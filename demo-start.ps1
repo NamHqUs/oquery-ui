@@ -10,7 +10,7 @@ $apiDirectory = Join-Path $repoRoot "src\OQuery.UI"
 $frontendDirectory = Join-Path $repoRoot "src\Demo.Frontend"
 
 $apiPort = 21210
-$frontendPort = 5173
+$frontendPort = 4173
 
 $stateDirectory = Join-Path $env:TEMP "DynamicSqlDemo"
 
@@ -255,7 +255,7 @@ $ErrorActionPreference = "Stop"
 
 $hostName = "127.0.0.1"
 $port = 5173
-$uri = "http://localhost:5173"
+$uri = "http://localhost:4173"
 $log = Join-Path $env:TEMP "DynamicSqlDemo\browser.log"
 
 function Write-BrowserLog {

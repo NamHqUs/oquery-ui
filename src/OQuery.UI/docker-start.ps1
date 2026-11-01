@@ -1,5 +1,5 @@
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$fileStoragePath = (Resolve-Path (Join-Path $PSScriptRoot 'FileStorage')).Path
+$fileStoragePath = (Resolve-Path (Join-Path $PSScriptRoot '..\..\data-storage')).Path
 
 Push-Location $repositoryRoot
 try {

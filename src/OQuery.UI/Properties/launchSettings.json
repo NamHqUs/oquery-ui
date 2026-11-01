@@ -28,7 +28,7 @@
         "DbProvider__DbScriptsPath": "../scripts",
         "FileStoragePath": "../var/data"
       },
-      "containerRunArguments": "-v \"{ProjectDir}/FileStorage:/var/data\"",
+      "containerRunArguments": "-v \"{ProjectDir}/../../data-storage:/var/data\"",
       "httpPort": 21210, /* Fixed VS port for HTTP */
       "publishAllPorts": false,
       "useSSL": false
