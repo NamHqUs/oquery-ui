@@ -31,6 +31,14 @@ frontend in separate Windows Terminal tabs. The API's Swagger UI is at
 The API host and database-services project target x64 because the IBM DB2
 provider requires an x64 process.
 
+Built-in saved queries (JSON and YAML) live in
+[`oquery/data-storage/queries`](./oquery/data-storage/queries). The demo copies
+the JSON files to `BuiltinQueries` in its build and publish output and loads
+them as shared, read-only requests. Custom queries remain in
+`data-storage/UserData/{sectionId}/QueryRequests` under the configured
+`FileStoragePath`; they are not stored in the core submodule. Docker images
+include the built-in samples independently of the custom-data volume.
+
 The API and demo projects are in `src/`; the OQuery engine is in
 `oquery/src/OQuery`. Build the complete solution with:
 

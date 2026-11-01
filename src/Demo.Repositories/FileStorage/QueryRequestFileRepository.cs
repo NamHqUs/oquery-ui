@@ -37,8 +37,7 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
 
     public override IReadOnlyCollection<QueryDto> GetBuiltin()
     {
-        var dir = GetBuiltinStoreFolder();
-        Directory.CreateDirectory(dir);
+        var dir = Path.Combine(AppContext.BaseDirectory, "BuiltinQueries");
         return Directory.EnumerateFiles(dir)
             .Where(IsJsonFile)
             .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
@@ -111,7 +110,7 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
             throw new InvalidDataException($"Query request file '{path}' is missing required data.");
 
         query = query with { IsBuiltin = isBuiltin };
-        if (!string.Equals(sourceJson, json, StringComparison.Ordinal))
+        if (!isBuiltin && !string.Equals(sourceJson, json, StringComparison.Ordinal))
             File.WriteAllText(path, Serialize(query));
         return query;
     }
