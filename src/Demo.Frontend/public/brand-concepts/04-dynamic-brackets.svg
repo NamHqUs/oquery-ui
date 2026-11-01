@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96">
+  <title>DynamicSQL — Bracketed D and SQL</title>
+  <desc>A typographic logo that frames the D and SQL in query brackets.</desc>
+  <defs>
+    <linearGradient id="bg" x1="6" y1="4" x2="316" y2="92" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#312018"/>
+      <stop offset="1" stop-color="#171322"/>
+    </linearGradient>
+    <linearGradient id="bracket" x1="20" y1="25" x2="78" y2="70" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fb923c"/>
+      <stop offset="1" stop-color="#facc15"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="96" rx="20" fill="url(#bg)"/>
+  <path d="M48 25H38c-5 0-8 4-8 9v27c0 5 3 9 8 9h10M66 25h10c5 0 8 4 8 9v27c0 5-3 9-8 9H66" fill="none" stroke="url(#bracket)" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+  <text x="39" y="59" fill="#fff1dc" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="800">D</text>
+  <path d="M52 51h10" stroke="#fb923c" stroke-linecap="round" stroke-width="2"/>
+  <text x="101" y="59" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="500" letter-spacing="-.9"><tspan fill="#fff1dc" font-weight="800">D</tspan><tspan fill="#f8eadd">ynamic</tspan><tspan fill="#fbbf24" font-weight="900">SQL</tspan></text>
+  <path d="M249 68h34" stroke="#facc15" stroke-linecap="round" stroke-width="3"/>
+  <path d="m278 63 6 5-6 5" fill="none" stroke="#facc15" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"/>
+</svg>

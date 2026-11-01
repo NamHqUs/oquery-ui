@@ -1,0 +1,72 @@
+.expression-debug-target {
+  position: relative;
+}
+
+.expression-debug-target:hover,
+.expression-debug-target:focus-within {
+  z-index: 1200;
+  outline: var(--expression-debug-outline, 2px solid #b9a5ff);
+  outline-offset: 2px;
+}
+
+.expression-debug-target.expression-group-root:hover,
+.expression-debug-target.expression-group-root:focus-within {
+  outline: 0;
+}
+
+.expression-debug-target:has(.expression-debug-target:hover),
+.expression-debug-target:has(.expression-debug-target:focus-within) {
+  z-index: auto;
+  outline: 0;
+}
+
+.expression-debug-tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1201;
+  display: none;
+  width: max-content;
+  min-width: min(260px, calc(100vw - 24px));
+  max-width: min(420px, calc(100vw - 24px));
+  max-height: 280px;
+  gap: 6px;
+  overflow: auto;
+  padding: 9px;
+  border: 1px solid #8069cb;
+  border-radius: 6px;
+  color: #e7e5ef;
+  background: #171521;
+  box-shadow: 0 8px 24px #000a;
+  font: 10px "Manrope", sans-serif;
+  pointer-events: none;
+}
+
+.expression-debug-target:hover > .expression-debug-tooltip,
+.expression-debug-target:focus-within > .expression-debug-tooltip {
+  display: var(--expression-debug-tooltip-display, grid);
+}
+
+.expression-debug-target:has(.expression-debug-target:hover) > .expression-debug-tooltip,
+.expression-debug-target:has(.expression-debug-target:focus-within) > .expression-debug-tooltip {
+  display: none;
+}
+
+.expression-debug-tooltip strong {
+  color: #c5b5ff;
+  font-size: 9px;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+}
+
+.expression-debug-tooltip pre {
+  max-width: 100%;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.expression-debug-tooltip code {
+  color: #c9d2e3;
+  font: inherit;
+}

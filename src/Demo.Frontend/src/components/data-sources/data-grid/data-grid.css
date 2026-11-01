@@ -1,0 +1,215 @@
+.database-content-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 21px;
+}
+
+.database-content-heading h2 {
+  margin: 7px 0 0;
+  color: #e9edf4;
+  font-size: 19px;
+  letter-spacing: -.4px;
+}
+
+.database-record-count {
+  color: #919bad;
+  font: 12px "Manrope", sans-serif;
+}
+
+.database-grid-wrap {
+  overflow-x: auto;
+  border: 1px solid #252b38;
+  border-radius: 6px;
+}
+
+.database-grid-loading {
+  display: grid;
+  min-height: 420px;
+  place-items: center;
+  border: 1px solid #252b38;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.database-grid {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.database-grid th {
+  min-width: 150px;
+  padding: 10px 12px;
+  color: #858fa1;
+  background: #141821;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.database-grid th.numeric-column {
+  width: 1%;
+  min-width: 86px;
+  max-width: 110px;
+  padding-right: 8px;
+  padding-left: 8px;
+}
+
+.database-grid th.numeric-column .database-sort-button {
+  justify-content: flex-start;
+  gap: 5px;
+}
+
+.database-grid th.id-column {
+  width: 74px;
+  min-width: 74px;
+  max-width: 74px;
+}
+
+.database-grid th.datetime-column {
+  width: 132px;
+  min-width: 132px;
+  max-width: 132px;
+}
+
+.database-grid th.numeric-column .database-column-filter,
+.database-grid th.id-column .database-column-filter,
+.database-grid th.datetime-column .database-column-filter {
+  min-width: 0;
+  padding-right: 5px;
+  padding-left: 5px;
+}
+
+.database-sort-button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  font: 500 11px "Manrope", sans-serif;
+  letter-spacing: .6px;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.database-sort-button:hover {
+  color: #ddd4ff;
+}
+
+.database-sort-indicator {
+  color: #6f798a;
+  font-size: 10px;
+}
+
+.database-filter-box {
+  position: relative;
+  margin-top: 8px;
+}
+
+.database-filter-clear {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  padding: 0;
+  color: #9da7b8;
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  transform: translateY(-50%);
+}
+
+.database-filter-clear:hover {
+  color: #fff;
+  background: #2b3340;
+}
+
+.database-grid th.is-sorted,
+.database-grid th.is-filtered {
+  background: #1f1a35;
+  box-shadow: inset 0 -2px 0 var(--purple);
+}
+
+.database-grid th.is-sorted .database-sort-button,
+.database-grid th.is-sorted .database-sort-indicator {
+  color: #cdbfff;
+}
+
+.database-grid th.is-filtered .database-column-filter {
+  color: #f0eaff;
+  background: #261f42;
+  border-color: #8064e8;
+  padding-right: 24px;
+}
+
+.database-column-filter {
+  width: 100%;
+  min-width: 100px;
+  padding: 7px 8px;
+  color: #c8ced9;
+  background: #0e1117;
+  border: 1px solid #303847;
+  border-radius: 4px;
+  outline: 0;
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: none;
+}
+
+.database-column-filter:focus {
+  border-color: #8064e8;
+  box-shadow: 0 0 0 2px #8064e833;
+}
+
+.database-column-filter::placeholder {
+  color: #697385;
+}
+
+.database-grid td {
+  padding: 13px 15px;
+  color: #c8ced9;
+  border-bottom: 1px solid #1e2430;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.database-grid td.numeric-column {
+  width: 1%;
+  max-width: 110px;
+  overflow: hidden;
+  padding-right: 8px;
+  padding-left: 8px;
+  text-align: right;
+  text-overflow: ellipsis;
+}
+
+.database-grid td.id-column {
+  width: 74px;
+  max-width: 74px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.database-grid td.datetime-column {
+  width: 132px;
+  max-width: 132px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.database-grid tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.database-grid tbody tr:hover {
+  background: #171c27;
+}

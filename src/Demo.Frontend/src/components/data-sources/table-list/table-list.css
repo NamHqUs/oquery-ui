@@ -1,0 +1,138 @@
+.database-sidebar {
+  display: flex;
+  min-height: calc(100vh - 257px);
+  flex-direction: column;
+  padding: 22px 12px;
+  border-right: 1px solid var(--line);
+  background: #0e1117;
+}
+
+.database-table-list {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.sidebar-list-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 37px;
+  padding: 0 10px 15px;
+}
+
+.database-table-count {
+  display: grid;
+  min-width: 22px;
+  height: 22px;
+  place-items: center;
+  color: #bbb0e4;
+  background: #28223d;
+  border-radius: 12px;
+  font: 12px "Manrope", sans-serif;
+}
+
+.database-table-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% - 16px);
+  margin: 0 8px 14px;
+  padding: 0 10px;
+  border: 1px solid #303847;
+  border-radius: 6px;
+  outline: 0;
+  color: #c8ced9;
+  background: #11151d;
+  font-size: 12px;
+}
+
+.database-table-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 0;
+  border: 0;
+  outline: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+}
+
+.database-table-search:focus-within {
+  border-color: #8064e8;
+  box-shadow: 0 0 0 2px #8064e833;
+}
+
+.database-table-search input::placeholder {
+  color: #697385;
+}
+
+.database-table-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 10px;
+  color: #aab2c0;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.database-table-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.database-table-schema {
+  max-width: 35%;
+  margin-left: auto;
+  padding: 3px 6px;
+  overflow: hidden;
+  color: #757e90;
+  background: #1a1e29;
+  border-radius: 4px;
+  font-size: 10px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.database-table-item.active > .database-table-schema {
+  color: #b5a5df;
+  background: #342c4d;
+}
+
+.database-table-item > .icon:last-child {
+  opacity: 0;
+}
+
+.database-table-item:hover {
+  color: #e9edf4;
+  background: #181c26;
+}
+
+.database-table-item.active {
+  color: #e7dcff;
+  background: #242039;
+  border-color: #403660;
+}
+
+.database-table-item.active > .icon:last-child {
+  opacity: 1;
+  color: var(--purple);
+}
+
+@media (max-width: 760px) {
+  .database-sidebar {
+    max-height: 40vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}

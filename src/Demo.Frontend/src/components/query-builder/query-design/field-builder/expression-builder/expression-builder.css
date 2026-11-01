@@ -1,0 +1,700 @@
+.expression-builder {
+  --expression-accent: #c2adff;
+  --expression-operation-width: 40px;
+  --expression-column-gap: 4px;
+  --expression-operation-mask-background: #141a23;
+  --expression-debug-outline: 2px solid #b9a5ff;
+  --expression-debug-tooltip-display: grid;
+  --expression-debug-panel-display: grid;
+  position: relative;
+  display: grid;
+  width: 100%;
+  max-height: none;
+  gap: 12px;
+  overflow: visible;
+  box-sizing: border-box;
+  padding: 14px;
+  color: #e9eaf2;
+  border: 1px solid #333c4e;
+  border-radius: 12px;
+  background:
+    radial-gradient(ellipse at 92% 0%, #57498226, transparent 42%),
+    linear-gradient(145deg, #171d29, #111720 72%);
+  box-shadow: inset 0 1px 0 #ffffff0a, 0 14px 38px #080a0f35;
+  font: 12px/1.5 "Manrope", sans-serif;
+}
+
+.expression-builder-actions,
+.expression-add-actions {
+  display: flex;
+  align-items: center;
+}
+
+.expression-builder .field-builder-selected,
+.expression-builder .field-builder-value {
+  font-size: 12px;
+}
+
+.expression-builder .field-builder-selected,
+.expression-builder .field-builder-selected * {
+  user-select: none;
+}
+
+.expression-preview-label {
+  color: #b1adc1;
+  font: 600 11px "Manrope", sans-serif;
+  letter-spacing: .2px;
+}
+
+.expression-preview-json-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.expression-preview-copy {
+  display: grid;
+  width: 23px;
+  height: 23px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #3b3a50;
+  border-radius: 4px;
+  color: #aab3c2;
+  background: #211e30;
+  cursor: pointer;
+}
+
+.expression-preview-copy:hover,
+.expression-preview-copy:focus-visible {
+  border-color: #8069cb;
+  color: #f0ecff;
+  outline: 0;
+}
+
+.expression-preview-copy-status {
+  color: #9ce4cb;
+  font: 11px "Manrope", sans-serif;
+}
+
+.expression-preview-copy-error {
+  color: #ffb0b0;
+}
+
+.expression-preview {
+  display: grid;
+  min-height: 48px;
+  gap: 6px;
+  align-content: center;
+  padding: 10px 12px;
+  border: 1px solid #343b48;
+  border-radius: 9px;
+  background: linear-gradient(110deg, #1c2028, #171b23);
+  box-shadow: inset 0 1px 0 #ffffff08;
+}
+
+.expression-debug-panel {
+  display: var(--expression-debug-panel-display, grid);
+  min-width: 0;
+  gap: 6px;
+}
+
+.expression-builder[data-debug-ui="false"] .expression-debug-target:hover,
+.expression-builder[data-debug-ui="false"] .expression-debug-target:focus-within {
+  outline: none;
+}
+
+.expression-builder[data-debug-ui="false"] .expression-debug-panel {
+  display: none;
+}
+
+.expression-builder[data-debug-ui="false"] .expression-debug-target:hover > .expression-debug-tooltip,
+.expression-builder[data-debug-ui="false"] .expression-debug-target:focus-within > .expression-debug-tooltip {
+  display: none;
+}
+
+.expression-preview code {
+  overflow-wrap: anywhere;
+  color: #9298a2;
+  font: 12px/1.7 "Manrope", sans-serif;
+}
+
+.expression-preview-json {
+  max-height: 220px;
+  overflow: auto;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid #303747;
+  border-radius: 5px;
+  background: #121720;
+}
+
+.expression-preview-json code {
+  color: #c9d2e3;
+  font: 11px/1.55 "Manrope", sans-serif;
+  white-space: pre;
+}
+
+.expression-group-list {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  background: var(--expression-operation-mask-background);
+}
+
+.expression-group-list::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 5px;
+  width: 2px;
+  box-sizing: border-box;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #b69aff 0%, #72d9c0 52%, #8e9cff 100%);
+  box-shadow: 0 0 10px #9c82e63d;
+  content: "";
+  pointer-events: none;
+}
+
+.expression-group-nested {
+  gap: 7px;
+  padding: 9px 24px 9px 13px;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(145deg, #202632, #171d27 72%);
+  box-shadow: inset 0 1px 0 #ffffff08;
+}
+
+.expression-group-nested::before {
+  left: 5px;
+  width: 2px;
+}
+
+.expression-group-root {
+  padding-left: 13px;
+  background: transparent;
+}
+
+.expression-group-root::before {
+  border: 0;
+  background: none;
+}
+
+.expression-math-element {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: var(--expression-operation-width) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--expression-column-gap);
+}
+
+.expression-group-list > .expression-math-element:first-child {
+  grid-template-columns: var(--expression-column-gap) minmax(0, 1fr);
+  gap: 0;
+}
+
+.expression-math-element-group-operand > .expression-math-operation {
+  margin-top: 9px;
+}
+
+.expression-debug-field-builder,
+.expression-debug-field-box {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.expression-debug-field-builder { max-width: 100%; }
+.expression-debug-field-builder { position: relative; }
+
+.expression-debug-field-builder .field-builder-editing {
+  --field-box-height: 32px;
+  box-sizing: border-box;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid #51446f;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #29223f, #211d32);
+  box-shadow: inset 0 1px 0 #ffffff09, 0 2px 8px #080a0f30;
+}
+.expression-debug-field-builder .field-builder-editing.field-builder-incomplete {
+  border-color: #d66a78;
+  background: #43252c;
+}
+
+.expression-item-controls > .expression-add-next-item,
+.expression-item-controls > .expression-remove,
+.expression-item-controls > .expression-ungroup,
+.expression-item-controls > .expression-group-actions,
+.expression-item-controls > .expression-actions-bar {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity .12s .18s, visibility 0s .3s;
+}
+
+.expression-item-controls:hover > .expression-add-next-item,
+.expression-item-controls:hover > .expression-remove,
+.expression-item-controls:hover > .expression-ungroup,
+.expression-item-controls:hover > .expression-group-actions,
+.expression-item-controls:hover > .expression-actions-bar,
+.expression-item-controls:focus-within > .expression-add-next-item,
+.expression-item-controls:focus-within > .expression-remove,
+.expression-item-controls:focus-within > .expression-ungroup,
+.expression-item-controls:focus-within > .expression-group-actions,
+.expression-item-controls:focus-within > .expression-actions-bar,
+.expression-item-controls.expression-selected > .expression-add-next-item,
+.expression-item-controls.expression-selected > .expression-remove,
+.expression-item-controls.expression-selected > .expression-ungroup,
+.expression-item-controls.expression-selected > .expression-group-actions,
+.expression-item-controls.expression-selected > .expression-actions-bar,
+.expression-field-drop-target.expression-item-controls:hover > .expression-debug-field-builder > .expression-actions-bar,
+.expression-field-drop-target.expression-item-controls:focus-within > .expression-debug-field-builder > .expression-actions-bar,
+.expression-field-drop-target.expression-item-controls.expression-selected > .expression-debug-field-builder > .expression-actions-bar {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity .12s, visibility 0s;
+}
+
+.expression-node-function.expression-item-controls > .expression-function-editor > .expression-function-label > .expression-function-actions {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .12s .18s, visibility 0s .3s;
+}
+
+.expression-node-function.expression-item-controls:has(> .expression-function-editor > .expression-function-label > .expression-function-select > .operator-trigger:hover, > .expression-function-editor > .expression-function-label > .expression-function-actions:hover) > .expression-function-editor > .expression-function-label > .expression-function-actions,
+.expression-node-function.expression-item-controls:focus-within:not(:has(.expression-function-argument:hover, .expression-function-argument:focus-within)) > .expression-function-editor > .expression-function-label > .expression-function-actions,
+.expression-node-function.expression-item-controls:has(> .expression-function-editor > .expression-function-label > .expression-function-select > .operator-trigger:focus-visible) > .expression-function-editor > .expression-function-label > .expression-function-actions {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity .12s, visibility 0s;
+}
+
+.expression-group-list.expression-item-controls:has(.expression-item-controls:hover) > .expression-add-next-item,
+.expression-group-list.expression-item-controls:has(.expression-item-controls:hover) > .expression-remove,
+.expression-group-list.expression-item-controls:has(.expression-item-controls:hover) > .expression-ungroup,
+.expression-group-list.expression-item-controls:has(.expression-item-controls:hover) > .expression-group-actions {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.expression-item-controls > .expression-remove,
+.expression-debug-field-builder.expression-item-controls > .expression-remove {
+  position: absolute;
+  top: calc(50% - 25px);
+  right: -24px;
+  z-index: 3;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+}
+
+.expression-debug-field-builder.expression-item-controls > .expression-remove {
+  top: 50%;
+  right: -24px;
+  transform: translateY(-50%);
+}
+
+.expression-debug-field-builder.expression-item-controls > .expression-actions-bar {
+  position: absolute;
+  top: 50%;
+  right: auto;
+  left: calc(100% + 8px);
+  z-index: 3;
+  transform: translateY(-50%);
+}
+
+.expression-group-actions {
+  position: absolute;
+  top: 50%;
+  right: -64px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50%);
+}
+
+.expression-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 2px;
+  border: 1px solid #343a49;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #202531 0%, #11151d 100%);
+  box-shadow: inset 0 1px 0 #ffffff0a;
+}
+
+.expression-actions-bar > .expression-remove,
+.expression-actions-bar > .expression-ungroup,
+.expression-actions-bar > .expression-add-next-item {
+  position: static;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  transform: none;
+}
+
+.expression-actions-bar > .expression-add-next-item:hover,
+.expression-actions-bar > .expression-add-next-item:focus-visible {
+  border: 0;
+  background: transparent;
+}
+
+.expression-actions-bar > .expression-add-next-item {
+  top: auto;
+  right: auto;
+}
+
+.expression-actions-bar > .expression-ungroup {
+  top: auto;
+  right: auto;
+}
+
+.expression-add-next-item {
+  position: absolute;
+  top: 50%;
+  right: -50px;
+  z-index: 2;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #4a4163;
+  border-radius: 4px;
+  color: #c5b5ff;
+  background: #211e30;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.expression-add-next-item:hover,
+.expression-add-next-item:focus-visible {
+  border-color: #8069cb;
+  color: #f0ecff;
+  outline: 0;
+}
+
+.expression-ungroup {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  z-index: 2;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #4a4163;
+  border-radius: 4px;
+  color: #c5b5ff;
+  background: #211e30;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.expression-ungroup:hover,
+.expression-ungroup:focus-visible {
+  border-color: #8069cb;
+  color: #f0ecff;
+  outline: 0;
+}
+
+.expression-debug-field-builder .field-box-completed,
+.expression-debug-field-builder .field-box select,
+.expression-debug-field-builder .field-box-menu .operator-trigger {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.expression-debug-field-builder .field-box-menu .operator-trigger {
+  width: max-content;
+  flex: 0 0 auto;
+  font: 12px "Manrope", sans-serif;
+}
+
+.expression-math-operation {
+  position: relative;
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  padding-left: var(--expression-column-gap);
+  color: #f5b5c4;
+  font: 13px "Manrope", sans-serif;
+}
+
+.expression-group-nested > .expression-math-element > .expression-math-operation {
+  z-index: 1;
+}
+
+.expression-math-operator-select {
+  position: relative;
+  min-width: 0;
+}
+
+.expression-math-operator-trigger {
+  display: grid;
+  min-width: 32px;
+  min-height: 30px;
+  max-width: 100%;
+  place-items: center;
+  padding: 2px;
+  border: 0;
+  border-radius: 4px;
+  color: #f5c1cc;
+  background: transparent;
+  font: 12px "Manrope", sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color .16s, color .16s, background .16s;
+}
+
+.expression-math-operator-trigger:hover,
+.expression-math-operator-trigger:focus-visible {
+  color: #ffe8ed;
+  background: transparent;
+}
+
+.expression-math-operator-trigger:focus-visible {
+  outline: 2px solid #a86d83;
+  outline-offset: 1px;
+}
+
+.expression-math-operator-menu.operator-menu {
+  top: calc(100% + 4px);
+  left: 0;
+  width: 112px;
+  transform: none;
+}
+
+.expression-math-operator-menu .operator-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 5px 8px;
+  font: 12px "Manrope", sans-serif;
+}
+
+.expression-math-operator-symbol {
+  color: #aab3c2;
+}
+
+.expression-math-field {
+  position: relative;
+  min-width: 0;
+}
+
+.expression-math-field-draggable {
+  min-height: 34px;
+  box-sizing: border-box;
+}
+
+.expression-math-field-group::before { left: 16px; }
+
+.expression-math-field::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 8px;
+  content: "";
+  cursor: grab;
+  touch-action: none;
+}
+
+.expression-math-field:active::before { cursor: grabbing; }
+
+.expression-field-drop-target {
+  position: relative;
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  border-radius: 5px;
+}
+
+.expression-math-field:has(> .expression-field-drop-target),
+.expression-math-field:has(> .expression-node-function) {
+  width: max-content;
+  max-width: none;
+  justify-self: start;
+}
+
+.expression-selectable { outline: 0; }
+
+.expression-selectable:focus-visible,
+.expression-selectable.expression-selected {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid #9b82e6;
+  outline-offset: 2px;
+}
+
+.expression-field-drop-target:focus-visible,
+.expression-field-drop-target.expression-selected {
+  outline: 0;
+}
+
+.expression-field-drop-target:focus-visible > .expression-debug-field-builder > .field-builder-editing,
+.expression-field-drop-target.expression-selected > .expression-debug-field-builder > .field-builder-editing,
+.expression-field-drop-target:focus-visible > .expression-debug-field-builder > .field-builder-selected,
+.expression-field-drop-target.expression-selected > .expression-debug-field-builder > .field-builder-selected {
+  outline: 2px solid #9b82e6;
+  outline-offset: 2px;
+}
+
+.expression-selectable.expression-selected { cursor: grab; }
+.expression-selectable.expression-selected:active { cursor: grabbing; }
+
+.expression-value-node {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.expression-value-node .field-builder-selected {
+  color: #c9f4df;
+  border-color: #3c6b5d;
+  background: linear-gradient(135deg, #18352f, #172a29);
+}
+
+.expression-value-node .field-builder-selected:hover {
+  border-color: #5a9c83;
+  background: linear-gradient(135deg, #1d4038, #1a3230);
+}
+
+.expression-value-node .field-builder-value,
+.expression-value-node .field-builder-type {
+  color: #b7ead2;
+}
+
+.expression-field-box-drop-target {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  border-radius: 5px;
+}
+
+.expression-field-box-drop-target.expression-drop-position-before::before,
+.expression-field-box-drop-target.expression-drop-position-after::after {
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: #9b82e6;
+  content: "";
+  pointer-events: none;
+}
+
+.expression-field-box-drop-target.expression-drop-position-before::before { top: -4px; }
+.expression-field-box-drop-target.expression-drop-position-after::after { bottom: -4px; }
+
+.expression-field-box-drop-target.expression-drop-position-inside {
+  outline: 2px solid #9b82e6;
+  outline-offset: 2px;
+}
+
+.expression-drag-preview {
+  position: fixed;
+  z-index: 10000;
+  max-width: min(320px, calc(100vw - 24px));
+  overflow: hidden;
+  padding: 7px 10px;
+  border: 1px solid #8069cb;
+  border-radius: 6px;
+  color: #eee9ff;
+  background: #29243a;
+  box-shadow: 0 8px 24px #0009;
+  font: 12px "Manrope", sans-serif;
+  opacity: .92;
+  pointer-events: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.expression-group-list.expression-drop-preview {
+  box-shadow: inset 0 0 0 2px #9b82e6;
+}
+
+.expression-builder-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
+.expression-builder-actions { gap: 7px; }
+
+.expression-apply-button {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font: 13px "Manrope", sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color .16s, background .16s, box-shadow .16s, transform .16s;
+}
+
+.expression-apply-button {
+  border-color: #9278d4;
+  color: #dce1ea;
+  background: linear-gradient(135deg, #8065c5, #654f9f);
+  box-shadow: 0 3px 10px #5d478540;
+}
+
+.expression-apply-button:hover:not(:disabled),
+.expression-apply-button:focus-visible {
+  border-color: #b9a5ff;
+  background: linear-gradient(135deg, #9076d4, #735caf);
+  box-shadow: 0 5px 16px #7258b85c;
+  transform: translateY(-1px);
+  outline: 0;
+}
+
+.expression-apply-button:disabled {
+  border-color: #343849;
+  color: #778397;
+  background: #222630;
+  cursor: not-allowed;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 440px) {
+  .expression-builder { padding: 10px; border-radius: 10px; }
+  .expression-builder {
+    --expression-operation-width: 52px;
+    --expression-column-gap: 3px;
+  }
+  .expression-apply-button { padding-inline: 7px; }
+}

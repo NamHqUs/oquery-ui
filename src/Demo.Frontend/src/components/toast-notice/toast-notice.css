@@ -1,0 +1,4 @@
+.toast-notice { position: fixed; z-index: 10000; top: 16px; right: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-sizing: border-box; width: max-content; max-width: min(440px, calc(100vw - 32px)); padding: 10px 12px; border: 1px solid #285347; border-radius: 6px; color: #a6e6d2; background: #12231e; box-shadow: 0 12px 32px #0008; font-size: 12px; }
+.toast-notice.error { border-color: #5b343c; color: #f0adb5; background: #29171d; }
+.toast-notice button { display: grid; flex: 0 0 auto; place-items: center; padding: 2px; border: 0; color: inherit; background: transparent; cursor: pointer; }
+.toast-notice.anchored { position: absolute; top: calc(100% + 8px); right: 0; }

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="324" viewBox="0 0 1024 324" role="img" aria-labelledby="title desc">
+  <title id="title">Dynamic SQL logo</title>
+  <desc id="desc">Purple D emblem, silver italic ynamic, lavender SQL, and a thin lavender underline on a dark background.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#17152d"/>
+      <stop offset="0.55" stop-color="#090b12"/>
+      <stop offset="1" stop-color="#05070b"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.2" cy="0.05" r="0.85">
+      <stop offset="0" stop-color="#39266b" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#090b12" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="dFront" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9270f3"/>
+      <stop offset="0.55" stop-color="#684bd1"/>
+      <stop offset="1" stop-color="#8a69eb"/>
+    </linearGradient>
+    <linearGradient id="dSide" x1="0" y1="0" x2="1" y2="0.8">
+      <stop offset="0" stop-color="#171633"/>
+      <stop offset="1" stop-color="#211944"/>
+    </linearGradient>
+    <linearGradient id="sqlColor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c8b7ff"/>
+      <stop offset="1" stop-color="#a993f6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="324" fill="url(#bg)"/>
+  <rect width="1024" height="324" fill="url(#glow)"/>
+  <!-- Dark extruded underside of the original D emblem -->
+  <path d="M132 76 H260 C314 76 351 111 351 160 C351 209 314 244 260 244 H132 L132 281 H260 C337 281 389 230 389 160 C389 90 337 39 260 39 H132 Z" fill="url(#dSide)" opacity="0.96" transform="translate(-14 0)"/>
+  <!-- Original forward-facing D silhouette -->
+  <path d="M120 49 H246 C315 49 361 91 361 148 C361 205 315 247 246 247 H112 L191 201 H245 C281 201 304 180 304 148 C304 116 281 94 245 94 H158 Z" fill="url(#dFront)"/>
+  <path d="M191 201 H245 C281 201 304 180 304 148 C304 132 298 119 287 109 C321 125 350 153 350 183 C350 221 309 247 246 247 H112 Z" fill="#8060df" opacity="0.24"/>
+  <text x="360" y="181" fill="#cbd4e1" font-family="Arial, Helvetica, sans-serif" font-size="73" font-style="italic" font-weight="700" letter-spacing="-3">ynamic</text>
+  <text x="694" y="181" fill="url(#sqlColor)" font-family="Arial, Helvetica, sans-serif" font-size="76" font-weight="700" letter-spacing="-1.5">SQL</text>
+  <line x1="363" y1="226" x2="890" y2="226" stroke="#bba7ff" stroke-width="3.5"/>
+</svg>

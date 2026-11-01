@@ -1,0 +1,27 @@
+.icon {
+  display: block;
+}
+
+.icon--firebird {
+  color: #e56743;
+}
+
+.icon--mysql {
+  color: #6ca9ca;
+}
+
+.icon--oracle {
+  color: #f04444;
+}
+
+.icon--postgres {
+  color: #699eca;
+}
+
+.icon--sqlserver {
+  color: #e66a6a;
+}
+
+.icon--sqlite {
+  color: #e8a34c;
+}

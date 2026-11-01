@@ -1,0 +1,25 @@
+.function-workspace { min-height: 640px; display: grid; grid-template-columns: var(--panel-width, 260px) minmax(0, 1fr); overflow: hidden; background: linear-gradient(135deg, #11141c, #0f1218); border: 0; border-radius: 9px; box-shadow: 0 14px 40px #00000018; }
+section.page-heading.function-page-heading {
+  min-height: 142px;
+  margin: 15px 0 20px;
+  padding: 22px 35px;
+  align-items: center;
+}
+
+section.page-heading.function-page-heading .metadata-heading-main {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  section.page-heading.function-page-heading {
+    height: auto;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 17px;
+    padding: 20px 27px;
+  }
+}
+
+@media (max-width: 760px) {
+  .function-workspace { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2056 650" role="img" aria-labelledby="title desc">
+<title id="title">Dynamic SQL</title><desc id="desc">Original flowing D monogram vertically centered with the wordmark, silver italic ynamic, and purple SQL on a dark background.</desc>
+<defs>
+ <linearGradient id="d-flow" x1="45" y1="240" x2="285" y2="60" gradientUnits="userSpaceOnUse"><stop stop-color="#a78bfa"/><stop offset=".52" stop-color="#8064e8"/><stop offset="1" stop-color="#5141b8"/></linearGradient>
+ <linearGradient id="sql-flow" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#c4b5fd"/><stop offset="1" stop-color="#8064e8"/></linearGradient>
+ <linearGradient id="line-flow" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#5141b8"/><stop offset="1" stop-color="#a78bfa"/></linearGradient>
+ <radialGradient id="ambient" cx="0" cy="0" r="1" gradientTransform="matrix(900 300 -200 600 500 40)" gradientUnits="userSpaceOnUse"><stop stop-color="#1b1630"/><stop offset="1" stop-color="#080a0f" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="2056" height="650" rx="26" fill="#080a0f"/><rect width="2056" height="650" rx="26" fill="url(#ambient)"/>
+<g transform="translate(118 -20) scale(2.1)">
+ <path d="M58 56h119c70 0 111 38 111 94s-41 94-111 94H50l76-43h50c37 0 57-19 57-51s-20-51-57-51h-82L58 56Z" fill="url(#d-flow)"/>
+ <path d="m54 246 73-45h50c37 0 57-19 57-51 0-15-4-27-12-36 34 11 55 39 55 76 0 55-41 94-111 94H54v-38Z" fill="#5141b8" fill-opacity=".22"/>
+</g>
+<text x="743" y="364" fill="#cbd5e1" font-family="Manrope, Inter, Segoe UI, sans-serif" font-size="190" font-style="italic" font-weight="700" letter-spacing="-8">ynamic</text>
+<text x="1418" y="364" fill="url(#sql-flow)" font-family="Manrope, Inter, Segoe UI, sans-serif" font-size="220" font-weight="800" letter-spacing="-8">SQL</text>
+<path d="M743 425 H1828" stroke="url(#line-flow)" stroke-width="13" stroke-linecap="round"/>
+
+</svg>

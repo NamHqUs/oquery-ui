@@ -1,0 +1,9 @@
+.metadata-list-group { margin-top: 13px; }
+.metadata-list-group + .metadata-list-group { margin-top: 15px; padding-top: 12px; }
+.metadata-list-group-head { display: flex; align-items: center; width: 100%; margin-bottom: 7px; padding: 8px 10px; border: 0; border-radius: 5px; background: #171b24; color: inherit; cursor: pointer; font: inherit; text-align: left; }
+.metadata-list-group-head:hover { background: #202633; }
+.metadata-list-group-head > .tab-number { margin-left: auto; }
+.metadata-list-group-title { color: #858fa1; font: 500 11px "Manrope", sans-serif; letter-spacing: .8px; text-transform: uppercase; }
+.metadata-list-group-empty { margin: 0; padding: 7px 10px; color: var(--muted); font-size: 11px; }
+.metadata-list-group-chevron { flex: 0 0 auto; margin-left: 10px; color: #858fa1; transition: transform .16s ease; }
+.metadata-list-group-head[aria-expanded="false"] .metadata-list-group-chevron { transform: rotate(-90deg); }

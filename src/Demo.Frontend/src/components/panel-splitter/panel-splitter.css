@@ -1,0 +1,19 @@
+.panel-splitter { position: absolute; top: 0; bottom: 0; left: var(--panel-width); z-index: 5; width: 0; }
+.panel-splitter-handle { position: absolute; top: 0; bottom: 0; left: -4px; width: 8px; cursor: col-resize; touch-action: none; }
+.panel-splitter-handle::after { position: absolute; top: 0; bottom: 0; left: 3px; width: 2px; background: transparent; content: ""; transition: background .15s ease; }
+.panel-splitter-handle:hover::after, .panel-splitter-handle:focus-visible::after { background: var(--purple); }
+.panel-splitter-handle:focus-visible { outline: 0; }
+.panel-splitter-toggle { position: absolute; top: 16px; left: -11px; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; color: #8993a5; border: 1px solid var(--line); border-radius: 50%; background: #171b24; cursor: pointer; }
+.panel-splitter-toggle:hover, .panel-splitter-toggle:focus-visible { color: #fff; border-color: var(--purple); outline: 0; }
+.panel-splitter.collapsed .panel-splitter-toggle { left: 6px; }
+
+.split-workspace { position: relative; }
+.split-workspace .split-panel { min-width: 0; overflow: hidden; }
+
+@media (min-width: 761px) {
+  .split-workspace.panel-collapsed .split-panel { padding: 0; border: 0; visibility: hidden; }
+}
+
+@media (max-width: 760px) {
+  .panel-splitter { display: none; }
+}

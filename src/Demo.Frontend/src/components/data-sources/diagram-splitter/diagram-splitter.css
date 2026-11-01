@@ -1,0 +1,27 @@
+.diagram-splitter {
+  position: relative;
+  z-index: 3;
+  min-height: 8px;
+  cursor: row-resize;
+  touch-action: none;
+}
+
+.diagram-splitter::after {
+  position: absolute;
+  top: 3px;
+  right: 0;
+  left: 0;
+  height: 2px;
+  background: #292e3a;
+  content: "";
+  transition: background .15s ease;
+}
+
+.diagram-splitter:hover::after,
+.diagram-splitter:focus-visible::after {
+  background: var(--purple);
+}
+
+.diagram-splitter:focus-visible {
+  outline: 0;
+}

@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+		<UserSecretsId>ffcded9a-4133-429d-805e-2ddb773cae17</UserSecretsId>
+
+		<!--Scripts folder is outside  of the solution folder, 
+		so we need to set the DockerfileContext to parent of SolutionDir.-->
+		<DockerfileContext>$(SolutionDir)..</DockerfileContext>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.24.2-preview.1" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="10.3.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Demo.DbServices\Demo.DbServices.csproj" />
+		<ProjectReference Include="..\Demo.Services\Demo.Services.csproj" />
+		<ProjectReference Include="..\Demo.Repositories\Demo.Repositories.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery\OQuery.csproj" />
+		<PackageReference Include="Namh.Configuration.Template" Version="1.0.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include="FileStorage\UserData\" />
+	</ItemGroup>
+
+	<ProjectExtensions>
+		<VisualStudio>
+			<UserProperties properties_4launchsettings_1json__JsonSchema="" />
+		</VisualStudio>
+	</ProjectExtensions>
+
+</Project>

@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/Demo/">
+    <Project Path="Demo.Contracts/Demo.Contracts.csproj" />
+    <Project Path="Demo.DbServices/Demo.DbServices.csproj" Id="728b0ab9-6f37-4d5b-8f09-35acc670403a" />
+    <Project Path="Demo.Repositories/Demo.Repositories.csproj" />
+    <Project Path="Demo.Services/Demo.Services.csproj" />
+    <Project Path="Demo.Share/Demo.Share.csproj" Id="b4876c7a-82d3-410b-84bc-3a8502971a80" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="../docker/docker-compose.dbservers.yml" />
+    <File Path="../docker/start-dbservers.ps1" />
+    <File Path="../README.md" />
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Project Path="OQuery.UI.UnitTest/OQuery.UI.UnitTest.csproj" />
+  <Project Path="OQuery.UI/OQuery.UI.csproj" Id="4db7bc93-1b7c-43fe-a3f8-89fa82649c6a" />
+  <Project Path="../oquery/src/OQuery.UnitTest/OQuery.UnitTest.csproj" />
+  <Project Path="../oquery/src/OQuery/OQuery.csproj" />
+</Solution>

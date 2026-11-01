@@ -1,0 +1,53 @@
+.entity-diagram { min-height: 640px; overflow: hidden; background: #10141c; border-radius: 9px; color: #b7bfce; }
+.entity-diagram-toolbar, .entity-diagram-domain-bar { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 15px 20px; border-bottom: 1px solid #252b38; background: #11151d; }
+.entity-diagram-toolbar p { margin: 6px 0 0; color: #818b9d; font-size: 11px; }
+.entity-domain-create, .entity-diagram-add-table { display: flex; align-items: center; gap: 8px; }
+.entity-domain-create input, .entity-diagram-add-table select { min-width: 150px; color: #dce1eb; background: #191e28; border: 1px solid #323947; border-radius: 5px; padding: 8px 10px; font-size: 12px; }
+.entity-domain-list { display: flex; flex-wrap: wrap; gap: 7px; }
+.entity-domain-list button { display: inline-flex; align-items: center; gap: 7px; padding: 8px 10px; color: #aeb7c5; border: 1px solid transparent; border-radius: 6px; background: transparent; font-size: 11px; }
+.entity-domain-list button:hover, .entity-domain-list button.active { color: #f2f0fa; border-color: #8068b555; background: #211b32; }
+.entity-domain-list button span { min-width: 17px; padding: 2px 5px; border-radius: 999px; background: #252b35; text-align: center; font-size: 9px; }
+.entity-diagram-empty { color: #818b9d; font-size: 12px; }
+.entity-diagram-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; align-content: start; min-height: 420px; padding: 24px; background: radial-gradient(circle at 50% 20%, #1a2030, #10141c 65%); }
+.entity-diagram-card { min-height: 190px; padding: 13px; border: 1px solid #364052; border-radius: 7px; background: #171d28; box-shadow: 0 8px 20px #00000025; animation: entity-diagram-card-in .2s ease both; animation-delay: calc(var(--card-index) * 35ms); }
+.entity-diagram-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.entity-diagram-card-head button:first-child { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 0; color: #e6e6ed; border: 0; background: none; text-align: left; }
+.entity-diagram-card-head strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.entity-diagram-card-schema { margin: 7px 0 11px; color: #8d98aa; font-size: 10px; }
+.entity-diagram-card-fields { display: grid; gap: 6px; min-height: 65px; color: #aeb7c5; font-size: 11px; }
+.entity-diagram-card-fields span { display: flex; align-items: center; gap: 6px; }
+.entity-diagram-card-fields span:first-child { color: #f0bd68; }
+.entity-diagram-card-fields small { color: #818b9d; }
+.entity-diagram-define { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 12px; padding: 8px 0 0; color: #b9a7ef; border: 0; border-top: 1px solid #2a3140; background: none; font-size: 10px; text-align: left; }
+.entity-diagram-define.defined { color: #62d4b4; }
+.entity-diagram-board-empty, .entity-diagram-state { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 300px; color: #818b9d; font-size: 12px; }
+.entity-diagram-state { min-height: 500px; }
+.entity-diagram-state.error { color: #f0a6ae; }
+.entity-diagram-relation-summary { margin: 0; padding: 11px 20px; color: #929cad; border-top: 1px solid #252b38; font-size: 11px; }
+.entity-diagram-relation-summary svg { color: #b49aff; margin-right: 5px; vertical-align: -2px; }
+.metadata-diagram-mode-content { display: grid; grid-template-columns: var(--panel-width, 390px) minmax(0, 1fr); grid-template-rows: 600px; height: 600px; min-height: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 9px; background: linear-gradient(135deg, #11141c, #0f1218); box-shadow: 0 14px 40px #00000018; }
+.metadata-diagram-mode-content > .database-diagram { grid-column: 2; grid-row: 1; min-height: 0; }
+.metadata-diagram-mode-content > .metadata-diagram-editor { display: flex; grid-column: 1; grid-row: 1; min-height: 0; flex-direction: column; overflow: hidden; background: linear-gradient(160deg, #171923, #11141c); }
+.metadata-diagram-editor .metadata-editor-heading { flex: 0 0 auto; margin: 0; padding: 19px 16px 15px; border: 0; border-bottom: 1px solid #35364a; border-radius: 0; background: linear-gradient(105deg, #262238a6, #1a1c29a6); }
+.metadata-diagram-editor .metadata-editor-heading .table-details-title h3 { margin: 7px 0 3px; color: #f0edfb; font-size: 15px; letter-spacing: -.2px; }
+.metadata-diagram-editor .metadata-editor-heading .editor-actions { gap: 6px; }
+.metadata-diagram-editor .metadata-editor-content { min-height: 0; flex: 1 1 auto; overflow-x: hidden; overflow-y: auto; padding-bottom: 14px; }
+.metadata-diagram-editor .metadata-editor-compact .metadata-form-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.metadata-diagram-editor .metadata-editor-compact .metadata-table-picker > label,
+.metadata-diagram-editor .metadata-editor-compact .metadata-form-grid > label,
+.metadata-diagram-editor .metadata-editor-compact .editor-section-head h3 {
+  color: #8f7fca;
+  font-size: 12px;
+  font-weight: 600;
+}
+.metadata-diagram-editor .metadata-form label { color: #8f7fca; }
+.metadata-diagram-editor .metadata-form input,
+.metadata-diagram-editor .metadata-form select,
+.metadata-diagram-editor .metadata-table-picker-trigger { color: #f0edfb; }
+@keyframes entity-diagram-card-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 760px) { .entity-diagram-toolbar, .entity-diagram-domain-bar { align-items: stretch; flex-direction: column; } .entity-domain-create, .entity-diagram-add-table { width: 100%; } .entity-domain-create input, .entity-diagram-add-table select { flex: 1; } }
+@media (max-width: 980px) {
+  .metadata-diagram-mode-content { grid-template-columns: minmax(0, 1fr); grid-template-rows: 600px auto; height: auto; overflow: auto; }
+  .metadata-diagram-mode-content > .metadata-diagram-editor { grid-column: 1; grid-row: 2; }
+  .metadata-diagram-mode-content > .database-diagram { grid-column: 1; grid-row: 1; }
+}

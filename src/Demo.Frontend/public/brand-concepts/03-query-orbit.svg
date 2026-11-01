@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96">
+  <title>DynamicSQL — DSQL Monogram</title>
+  <desc>A compact D and SQL lettermark paired with the DynamicSQL wordmark.</desc>
+  <defs>
+    <linearGradient id="bg" x1="6" y1="4" x2="314" y2="92" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#102d3c"/>
+      <stop offset="1" stop-color="#11162b"/>
+    </linearGradient>
+    <linearGradient id="orbit" x1="18" y1="22" x2="83" y2="75" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2dd4bf"/>
+      <stop offset="1" stop-color="#a3e635"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="96" rx="20" fill="url(#bg)"/>
+  <rect x="15" y="14" width="74" height="68" rx="16" fill="#173343" stroke="#2dd4bf" stroke-opacity=".55"/>
+  <text x="24" y="60" fill="url(#orbit)" font-family="Segoe UI, Arial, sans-serif" font-size="43" font-weight="800">D</text>
+  <text x="54" y="68" fill="#d9f99d" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="800" letter-spacing="-1">SQL</text>
+  <path d="M24 72c12 6 34 6 53-1" fill="none" stroke="#5eead4" stroke-linecap="round" stroke-width="2"/>
+  <text x="105" y="59" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="600" letter-spacing="-1"><tspan fill="#dffcf4">D</tspan><tspan fill="#e6fff8" font-weight="400">ynamic</tspan><tspan fill="#a3e635" font-weight="800">SQL</tspan></text>
+</svg>

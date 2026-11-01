@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 300" role="img" aria-labelledby="title description">
+  <title id="title">DynamicSQL Studio</title>
+  <desc id="description">A flowing blue and cyan D monogram beside a clean DynamicSQL wordmark on a dark navy field.</desc>
+  <defs>
+    <linearGradient id="d-flow" x1="45" y1="240" x2="285" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22d3ee"/>
+      <stop offset=".52" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#818cf8"/>
+    </linearGradient>
+    <linearGradient id="sql-flow" x1="650" y1="185" x2="920" y2="185" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#67e8f9"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+    <radialGradient id="ambient" cx="0" cy="0" r="1" gradientTransform="matrix(430 180 -120 286 240 18)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2563eb" stop-opacity=".2"/>
+      <stop offset="1" stop-color="#0b1220" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="dynamic-shadow" x="-20%" y="-30%" width="150%" height="180%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur"/>
+      <feOffset in="blur" dx="4" dy="4" result="offsetBlur"/>
+      <feFlood flood-color="#020617" flood-opacity=".9" result="shadowColor"/>
+      <feComposite in="shadowColor" in2="offsetBlur" operator="in" result="shadow"/>
+      <feMerge>
+        <feMergeNode in="shadow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="1000" height="300" rx="30" fill="#0b1220"/>
+  <rect width="1000" height="300" rx="30" fill="url(#ambient)"/>
+  <path d="M58 56h119c70 0 111 38 111 94s-41 94-111 94H50l76-43h50c37 0 57-19 57-51s-20-51-57-51h-82L58 56Z" fill="url(#d-flow)"/>
+  <path d="m54 246 73-45h50c37 0 57-19 57-51 0-15-4-27-12-36 34 11 55 39 55 76 0 55-41 94-111 94H54v-38Z" fill="#1d4ed8" fill-opacity=".22"/>
+  <g transform="translate(52 0)">
+  <text x="42" y="174" fill="#e8eef8" font-family="Manrope, Inter, Segoe UI, sans-serif" font-size="76" font-weight="600" font-style="italic" letter-spacing="-4" filter="url(#dynamic-shadow)">Dynamic</text>
+  <text x="350" y="174" fill="url(#sql-flow)" font-family="Manrope, Inter, Segoe UI, sans-serif" font-size="76" font-weight="800" letter-spacing="-3">SQL</text>
+  </g>
+  <path d="M75 205h515" stroke="#27354b" stroke-linecap="round" stroke-width="2"/>
+  <path d="M75 205h245" stroke="url(#d-flow)" stroke-linecap="round" stroke-width="2"/>
+  <circle cx="590" cy="205" r="4" fill="#67e8f9"/>
+  <text x="472" y="238" text-anchor="middle" fill="#91a2bb" font-family="Manrope, Inter, Segoe UI, sans-serif" font-size="15" font-weight="600" letter-spacing="3.2">DYNAMIC SQL STUDIO</text>
+</svg>

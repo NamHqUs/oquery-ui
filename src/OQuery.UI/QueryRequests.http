@@ -1,0 +1,74 @@
+@baseUrl = http://localhost:21210
+
+### List saved query requests
+GET {{baseUrl}}/query-request
+
+### Create a saved query request
+# @name createQueryRequest
+POST {{baseUrl}}/query-request
+Content-Type: application/json
+
+{
+  "mainQuery": {
+    "id": "",
+    "name": "Save override sample",
+    "entity": "User",
+    "projection": [
+      {
+        "fields": [
+          {
+            "kind": "field",
+            "field": "Id"
+          }
+        ],
+        "alias": null
+      }
+    ],
+    "filters": null,
+    "sorts": null,
+    "page": null,
+    "pageSize": null,
+    "extraRelations": null
+  },
+  "contexts": [],
+  "isBuiltin": false
+}
+
+###
+@queryId = {{createQueryRequest.response.body.$.mainQuery.id}}
+
+### Get a saved query request by its ID
+GET {{baseUrl}}/query-request/{{queryId}}
+
+### Update the same saved query request
+PUT {{baseUrl}}/query-request/{{queryId}}
+Content-Type: application/json
+
+{
+  "mainQuery": {
+    "id": "{{queryId}}",
+    "name": "Save override sample updated",
+    "entity": "User",
+    "projection": [
+      {
+        "fields": [
+          {
+            "kind": "field",
+            "field": "Id"
+          }
+        ],
+        "alias": null
+      }
+    ],
+    "filters": null,
+    "sorts": null,
+    "page": null,
+    "pageSize": null,
+    "extraRelations": null
+  },
+  "contexts": [],
+  "isBuiltin": false
+}
+
+### Delete the saved query request by its ID
+DELETE {{baseUrl}}/query-request/{{queryId}}

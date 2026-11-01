@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96">
+  <title>DynamicSQL — D and SQL Focus</title>
+  <desc>A DynamicSQL wordmark with D and SQL highlighted as distinct anchors.</desc>
+  <defs>
+    <linearGradient id="bg" x1="4" y1="3" x2="316" y2="94" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#101b38"/>
+      <stop offset="1" stop-color="#18112b"/>
+    </linearGradient>
+    <linearGradient id="d" x1="22" y1="33" x2="56" y2="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#67e8f9"/>
+      <stop offset="1" stop-color="#818cf8"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="96" rx="20" fill="url(#bg)"/>
+  <path d="M30 28h14a20 20 0 0 1 0 40H30z" fill="none" stroke="url(#d)" stroke-linejoin="round" stroke-width="5"/>
+  <path d="M36 38v20M36 48h13" fill="none" stroke="#c4b5fd" stroke-linecap="round" stroke-width="2.5"/>
+  <text x="63" y="58" fill="#e9edff" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="500" letter-spacing="-.8">ynamic</text>
+  <rect x="155" y="33" width="76" height="39" rx="12" fill="#30265d" stroke="#a78bfa" stroke-opacity=".8"/>
+  <text x="165" y="60" fill="#c4b5fd" font-family="Segoe UI, Arial, sans-serif" font-size="27" font-weight="800" letter-spacing=".5">SQL</text>
+  <path d="M245 48h41" stroke="#818cf8" stroke-linecap="round" stroke-width="2"/>
+  <circle cx="290" cy="48" r="3" fill="#67e8f9"/>
+</svg>

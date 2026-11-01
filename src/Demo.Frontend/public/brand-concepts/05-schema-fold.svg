@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96">
+  <title>DynamicSQL — D to SQL Ligature</title>
+  <desc>A dynamic ribbon links the D and SQL letterforms in the DynamicSQL wordmark.</desc>
+  <defs>
+    <linearGradient id="bg" x1="4" y1="3" x2="316" y2="94" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#17263a"/>
+      <stop offset="1" stop-color="#102a2d"/>
+    </linearGradient>
+    <linearGradient id="ribbon" x1="20" y1="25" x2="244" y2="77" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22d3ee"/>
+      <stop offset=".55" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#a3e635"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="96" rx="20" fill="url(#bg)"/>
+  <path d="M48 29H35a18 18 0 1 0 0 36h13z" fill="none" stroke="url(#ribbon)" stroke-linejoin="round" stroke-width="4"/>
+  <path d="M27 73c36 9 94 8 143-3" fill="none" stroke="url(#ribbon)" stroke-linecap="round" stroke-width="2.5"/>
+  <text x="59" y="59" font-family="Segoe UI, Arial, sans-serif" font-size="25" font-weight="500" letter-spacing="-.9"><tspan fill="#e5f7ff" font-weight="800">D</tspan><tspan fill="#e5f7ff">ynamic</tspan><tspan fill="#22d3ee" font-size="30" font-weight="900">SQL</tspan></text>
+  <path d="M249 46h34" stroke="#a3e635" stroke-linecap="round" stroke-width="2"/>
+  <circle cx="289" cy="46" r="3" fill="#a3e635"/>
+</svg>

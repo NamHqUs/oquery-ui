@@ -1,0 +1,27 @@
+# .NET build output
+**/bin/
+**/obj/
+.vs/
+
+# Visual Studio user files
+*.user
+*.suo
+
+# Frontend dependencies and build output
+**/node_modules/
+**/dist/
+
+# Local configuration and logs
+**/.*
+!.env.example
+!.gitignore
+!.dockerignore
+!.github/
+!.github/**
+!**/*.AGENT.md
+
+*.log
+
+# OS metadata
+
+Thumbs.db

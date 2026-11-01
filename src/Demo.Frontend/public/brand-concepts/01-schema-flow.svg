@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 96">
+  <title>DynamicSQL — D and SQL Flow</title>
+  <desc>A typography-led DynamicSQL logo emphasizing D and SQL with a linking flow line.</desc>
+  <defs>
+    <linearGradient id="bg" x1="8" y1="4" x2="312" y2="92" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#24204a"/>
+      <stop offset="1" stop-color="#0c1728"/>
+    </linearGradient>
+    <linearGradient id="link" x1="23" y1="74" x2="219" y2="74" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#67e8f9"/>
+      <stop offset="1" stop-color="#a78bfa"/>
+    </linearGradient>
+  </defs>
+  <rect width="240" height="96" rx="20" fill="url(#bg)"/>
+  <text x="22" y="61" font-family="Segoe UI, Arial, sans-serif" font-size="27" font-weight="600" letter-spacing="-1.2"><tspan fill="#67e8f9" font-size="36" font-weight="800">D</tspan><tspan fill="#eef0ff">ynamic</tspan><tspan fill="#a78bfa" font-size="34" font-weight="800">SQL</tspan></text>
+  <path d="M24 75h196" stroke="url(#link)" stroke-linecap="round" stroke-width="3"/>
+  <circle cx="220" cy="75" r="3" fill="#a78bfa"/>
+</svg>

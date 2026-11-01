@@ -1,0 +1,39 @@
+{
+  "profiles": {
+    "Local": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:21210"
+    },
+    "Dockerfile": {
+      "commandName": "Docker",
+      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
+      "environmentVariables": {
+        "DbProvider__Default": "Sqlite",
+        "DbProvider__DbScriptsPath": "../scripts",
+        "FileStoragePath": "/tmp/file-storage"
+      },
+      "httpPort": 21210, /* Fixed VS port for HTTP */
+      "publishAllPorts": false,
+      "useSSL": false
+    },
+    "Dockerfile-Volume": {
+      "commandName": "Docker",
+      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
+      "environmentVariables": {
+        "DbProvider__Default": "Sqlite",
+        "DbProvider__DbScriptsPath": "../scripts",
+        "FileStoragePath": "../var/data"
+      },
+      "containerRunArguments": "-v \"{ProjectDir}/FileStorage:/var/data\"",
+      "httpPort": 21210, /* Fixed VS port for HTTP */
+      "publishAllPorts": false,
+      "useSSL": false
+    }
+
+  },
+  "$schema": "https://json.schemastore.org/launchsettings.json"
+}
