@@ -1,12 +1,12 @@
 # OQuery UI
 
-The UI, API, frontend, and demo projects for [OQuery](https://github.com/NamHqUs/oquery).
+The UI, API, frontend, and demo projects for OQuery.
 The OQuery engine is included as the `oquery` Git submodule.
 
 Clone with the submodule initialized:
 
 ```powershell
-git clone --recurse-submodules https://github.com/NamHqUs/oquery-ui.git
+git clone --recurse-submodules <repository-url>
 ```
 
 If you already cloned the repository, initialize the submodule with:
