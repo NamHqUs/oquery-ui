@@ -51,3 +51,11 @@ To change it at runtime, dispatch `setExpressionDebugUiEnabled(false)` to turn t
 ```
 
 To change the default, edit `debugUiEnabled` in `src/components/query-builder/query-design/query-builder-slice.ts`. The persistent left borders on groups and field boxes are structural styling and remain visible.
+
+## YAML query editor
+
+Query Builder provides Visual and YAML tabs in the page header. The YAML tab
+loads the canonical query request from the backend, supports editing or
+creating a query definition, and validates changes with **Apply YAML**. While
+YAML is selected, **Run query** and **Get SQL statement** execute the edited
+text directly through the backend text-query endpoints.

@@ -941,6 +941,43 @@ export const getSqlStatementFromText = createAsyncThunk(
   },
 );
 
+export const getQueryRequestText = createAsyncThunk(
+  "queryBuilder/getQueryRequestText",
+  async (definition: QueryDefinition, { rejectWithValue }) => {
+    try {
+      const payload = await requestText(apiUrls.reports.toString, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(createApiQuery(definition)),
+      });
+      if (!payload.trim()) return rejectWithValue("Query API returned an empty YAML request.");
+      return payload;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : "Unable to generate YAML query request.");
+    }
+  },
+);
+
+export const parseQueryRequestText = createAsyncThunk(
+  "queryBuilder/parseQueryRequestText",
+  async ({ text, entity }: { text: string; entity: string }, { rejectWithValue }) => {
+    try {
+      const payload = await requestJson(apiUrls.reports.parse, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, entity }),
+      });
+      if (!payload || typeof payload !== "object" || typeof (payload as { entity?: unknown }).entity !== "string"
+        || !Array.isArray((payload as { projection?: unknown }).projection)) {
+        return rejectWithValue("Query API returned an invalid YAML query.");
+      }
+      return payload as ApiQueryDefinition;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : "Unable to parse YAML query request.");
+    }
+  },
+);
+
 export const fetchReports = createAsyncThunk(
   "queryBuilder/fetchReports",
   async (_, { rejectWithValue }) => {

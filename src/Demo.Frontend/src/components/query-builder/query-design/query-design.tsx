@@ -173,6 +173,12 @@ type QueryDesignProps = {
   requestNameError: string;
   onRequestNameChange: (name: string) => void;
   onDefinitionChange: (definition: QueryDefinition) => void;
+  editorMode: "visual" | "yaml";
+  yamlText: string;
+  yamlStatus: "idle" | "loading" | "applying";
+  yamlError: string;
+  onYamlTextChange: (text: string) => void;
+  onApplyYaml: () => void;
 };
 
 export default function QueryDesign({
@@ -197,6 +203,12 @@ export default function QueryDesign({
   requestNameError,
   onRequestNameChange,
   onDefinitionChange,
+  editorMode,
+  yamlText,
+  yamlStatus,
+  yamlError,
+  onYamlTextChange,
+  onApplyYaml,
 }: QueryDesignProps) {
   const [draggedProjectionField, setDraggedProjectionField] = useState<string | null>(null);
   const [contextDialogOpen, setContextDialogOpen] = useState(false);
@@ -309,7 +321,34 @@ export default function QueryDesign({
           {selectedContextIndex === null && requestNameError && <p className="query-name-warning" id="query-name-error" role="alert">{requestNameError}</p>}
         </div>
       </div>
-      <div className="query-builder-toolbar">
+      {editorMode === "yaml" ? (
+        <div className="query-yaml-editor" role="tabpanel" aria-label="YAML query editor">
+          <div className="query-yaml-editor-header">
+            <div>
+              <span className="section-kicker">QUERY YAML</span>
+              <p>Edit the query definition, then apply it to validate and load the visual design.</p>
+            </div>
+            <button
+              type="button"
+              className="button primary"
+              onClick={onApplyYaml}
+              disabled={yamlStatus !== "idle" || !yamlText.trim()}
+            >
+              {yamlStatus === "applying" ? "Applying…" : "Apply YAML"}
+            </button>
+          </div>
+          <textarea
+            className="query-yaml-textarea"
+            aria-label="Query YAML"
+            value={yamlText}
+            onChange={(event) => onYamlTextChange(event.target.value)}
+            spellCheck={false}
+            disabled={yamlStatus !== "idle"}
+          />
+          {yamlStatus === "loading" && <p className="query-message">Loading YAML…</p>}
+          {yamlError && <p className="query-message error" role="alert">{yamlError}</p>}
+        </div>
+      ) : <><div className="query-builder-toolbar">
         <div className="query-entity-field">
           <div className="query-entity-label-row">
             <span className="section-kicker">ENTITY</span>
@@ -442,7 +481,7 @@ export default function QueryDesign({
           onDefinitionChange={onDefinitionChange}
           draggedProjectionField={draggedProjectionField}
         />
-      </div>}
+      </div>}</>}
     </section>
   );
 }

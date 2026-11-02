@@ -5,7 +5,7 @@ import Icon from "../icon/icon";
 import { useMessageBox } from "../message-box/message-box";
 import PanelSplitter from "../panel-splitter/panel-splitter";
 import ToastNotice from "../toast-notice/toast-notice";
-import { ApiQueryContextDefinition, createApiQuery, deleteQueryRequest, executeQuery, fetchFilterOperators, fetchFunctionDefinitions, fetchQueryMetadata, fetchQueryRequests, fromApiQuery, fromApiQueryDefinition, getSqlStatement, IFieldDefinition, MetadataEntity, MetadataField, QueryDefinition, QueryFilterGroup, QueryFilterNode, saveQueryRequest, toQueryBuilderSavedView } from "./query-design/query-builder-slice";
+import { ApiQueryContextDefinition, createApiQuery, deleteQueryRequest, executeQuery, executeQueryFromText, fetchFilterOperators, fetchFunctionDefinitions, fetchQueryMetadata, fetchQueryRequests, fromApiQuery, fromApiQueryDefinition, getQueryRequestText, getSqlStatement, getSqlStatementFromText, IFieldDefinition, MetadataEntity, MetadataField, parseQueryRequestText, QueryDefinition, QueryFilterGroup, QueryFilterNode, saveQueryRequest, toQueryBuilderSavedView } from "./query-design/query-builder-slice";
 import QueryDesign from "./query-design/query-design";
 import QueryResult from "./query-result/query-result";
 import SavedQueryList from "./saved-query-list/saved-query-list";
@@ -154,6 +154,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function getYamlEntity(text: string): string {
+  const entityLine = text.split(/\r?\n/).find((line) => /^\s*Entity\s*:/i.test(line));
+  if (!entityLine) return "";
+  const value = entityLine.slice(entityLine.indexOf(":") + 1).trim();
+  return value.length >= 2 && ((value.startsWith("\"") && value.endsWith("\""))
+    || (value.startsWith("'") && value.endsWith("'")))
+    ? value.slice(1, -1).trim()
+    : value;
+}
+
 function pruneFilters(group: QueryFilterGroup, entity: MetadataEntity, metadata: MetadataEntity[]): QueryFilterGroup {
   return {
     ...group,
@@ -271,6 +281,10 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
   const [queryRequestNotice, setQueryRequestNotice] = useState("");
   const [requestNameError, setRequestNameError] = useState("");
   const [isSavingQuery, setIsSavingQuery] = useState(false);
+  const [editorMode, setEditorMode] = useState<"visual" | "yaml">("visual");
+  const [yamlText, setYamlText] = useState("");
+  const [yamlStatus, setYamlStatus] = useState<"idle" | "loading" | "applying">("idle");
+  const [yamlError, setYamlError] = useState("");
   const entity = useMemo(() => metadata.find((item) => item.name === definition.entity), [metadata, definition.entity]);
   const selectedContext = selectedContextIndex === null ? undefined : definition.contextCatalog?.[selectedContextIndex];
   const activeContextIndex = selectedContext ? selectedContextIndex : null;
@@ -324,6 +338,52 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
       return;
     }
     updateDefinition(updateContextDefinition(activeContextIndex, nextDefinition));
+  };
+  const loadYaml = async (definitionToSerialize: QueryDefinition) => {
+    setYamlStatus("loading");
+    setYamlError("");
+    try {
+      const text = await dispatch(getQueryRequestText(definitionToSerialize)).unwrap();
+      setYamlText(text);
+    } catch (error) {
+      setYamlError(typeof error === "string" ? error : "Unable to load YAML query.");
+    } finally {
+      setYamlStatus("idle");
+    }
+  };
+  const changeEditorMode = (mode: "visual" | "yaml") => {
+    if (mode === editorMode) return;
+    if (mode === "yaml") {
+      setEditorMode(mode);
+      return;
+    }
+    setYamlError("");
+    setEditorMode(mode);
+  };
+  useEffect(() => {
+    if (editorMode !== "yaml") return;
+    void loadYaml(activeDefinition);
+  }, [editorMode, selectedRequestName, activeContextIndex]);
+  const applyYaml = async () => {
+    if (!yamlText.trim() || yamlStatus !== "idle") return;
+    setYamlStatus("applying");
+    setYamlError("");
+    try {
+      const entityForParse = activeDefinition.entity.trim() || getYamlEntity(yamlText);
+      if (!entityForParse) {
+        setYamlError("YAML query must include an Entity.");
+        return;
+      }
+      const parsed = await dispatch(parseQueryRequestText({
+        text: yamlText,
+        entity: entityForParse,
+      })).unwrap();
+      updateDefinitionFromDesign(fromApiQueryDefinition(parsed));
+    } catch (error) {
+      setYamlError(typeof error === "string" ? error : "Unable to parse YAML query.");
+    } finally {
+      setYamlStatus("idle");
+    }
   };
   const updateRequestName = (name: string) => {
     setRequestName(name);
@@ -433,7 +493,7 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
   }, [metadata, definition.entity, definition.contextCatalog, definition.contexts]);
 
   const runQuery = async () => {
-    if (activeDefinition.entity.trim() && activeDefinition.columns.length) {
+    if (editorMode === "yaml" ? yamlText.trim() : activeDefinition.entity.trim() && activeDefinition.columns.length) {
       if (!connectedProvider || connectionStatus !== "succeeded") {
         onRequestConnection();
         return;
@@ -441,10 +501,11 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
       if (activeContextIndex !== null) {
         updateDefinition(updateContextDefinition(activeContextIndex, activeDefinition));
       }
-      dispatch(executeQuery({
-        ...activeDefinition,
-        filters: activeDefinition.filters,
-      }));
+      if (editorMode === "yaml") dispatch(executeQueryFromText(yamlText));
+      else dispatch(executeQuery({
+          ...activeDefinition,
+          filters: activeDefinition.filters,
+        }));
     }
   };
 
@@ -463,15 +524,16 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
   };
 
   const getSql = () => {
-    if (activeDefinition.entity.trim() && activeDefinition.columns.length) {
+    if (editorMode === "yaml" ? yamlText.trim() : activeDefinition.entity.trim() && activeDefinition.columns.length) {
       if (!connectedProvider || connectionStatus !== "succeeded") {
         onRequestConnection();
         return;
       }
-      dispatch(getSqlStatement({
-        ...activeDefinition,
-        filters: activeDefinition.filters,
-      }));
+      if (editorMode === "yaml") dispatch(getSqlStatementFromText(yamlText));
+      else dispatch(getSqlStatement({
+          ...activeDefinition,
+          filters: activeDefinition.filters,
+        }));
     }
   };
 
@@ -599,10 +661,18 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
           <div className="query-heading-copy">
             <span className="query-heading-eyebrow">QUERY WORKSPACE <i /> DESIGN Â· RUN Â· REFINE</span>
             <h2>Explore your data</h2>
-            <p>Shape a query visually, then inspect its SQL and live results.</p>
+            <p>Shape a query visually or edit YAML, then inspect its SQL and live results.</p>
           </div>
         </div>
         <div className="heading-actions">
+          <nav className="database-section-tabs query-editor-tabs" role="tablist" aria-label="Query editor">
+            <button type="button" role="tab" aria-selected={editorMode === "visual"} className={editorMode === "visual" ? "active" : ""} onClick={() => changeEditorMode("visual")}>
+              <Icon name="query" size={14} /> Visual
+            </button>
+            <button type="button" role="tab" aria-selected={editorMode === "yaml"} className={editorMode === "yaml" ? "active" : ""} onClick={() => changeEditorMode("yaml")}>
+              <Icon name="code" size={14} /> YAML
+            </button>
+          </nav>
           {onBackToReports && <button className="button secondary" onClick={onBackToReports}><Icon name="arrow-left" size={14} /> Back to reports</button>}
           {!selectedRequestIsBuiltin && <>
             {selectedRequestName && <button type="button" className="button secondary query-icon-button query-delete-button" aria-label="Delete query" title="Delete query" onClick={() => void removeCurrentRequest()}>
@@ -661,6 +731,15 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
               requestNameError={requestNameError}
               onRequestNameChange={updateRequestName}
               onDefinitionChange={updateDefinitionFromDesign}
+              editorMode={editorMode}
+              yamlText={yamlText}
+              yamlStatus={yamlStatus}
+              yamlError={yamlError}
+              onYamlTextChange={(text) => {
+                setYamlText(text);
+                setYamlError("");
+              }}
+              onApplyYaml={() => void applyYaml()}
             />
           </div>
         </div>
@@ -678,7 +757,9 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
           onPageChange={changePage}
           pageNavigationEnabled
           queryLoading={queryStatus === "loading"}
-          queryDisabled={!activeDefinition.entity.trim() || !activeDefinition.columns.length}
+          queryDisabled={editorMode === "yaml"
+            ? !yamlText.trim()
+            : !activeDefinition.entity.trim() || !activeDefinition.columns.length}
         />
       </section>
     </>
