@@ -3,5 +3,5 @@
     "./.vscode/oquery-metadata.schema.json": [
       "oquery/data-storage/metadata/*.yml"
     ]
-  },
+  }
 }
