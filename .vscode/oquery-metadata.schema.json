@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OQuery metadata",
+  "description": "Metadata entity definitions consumed by OQuery.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "dbSchema": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "dbTable": {
+        "type": "string"
+      },
+      "fields": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/field"
+        }
+      },
+      "relations": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/relation"
+        }
+      },
+      "isRawSql": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "name"
+    ],
+    "additionalProperties": true
+  },
+  "$defs": {
+    "field": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "dbColumn": {
+          "type": "string"
+        },
+        "dataType": {
+          "type": "string"
+        },
+        "isRawSql": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": true
+    },
+    "relation": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "refEntity": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "refKeys": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "dbColumn": {
+                "type": "string"
+              },
+              "refDbColumn": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

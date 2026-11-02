@@ -14,5 +14,6 @@
     <ProjectReference Include="..\Demo.Contracts\Demo.Contracts.csproj" />
     <ProjectReference Include="..\Demo.Services\Demo.Services.csproj" />
     <ProjectReference Include="..\Demo.Repositories\Demo.Repositories.csproj" />
+    <ProjectReference Include="..\..\oquery\src\OQuery\OQuery.csproj" />
   </ItemGroup>
 </Project>

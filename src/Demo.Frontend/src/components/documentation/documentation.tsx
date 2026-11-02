@@ -95,7 +95,7 @@ export default function Documentation() {
     ])
 };
 
-using var db = new OQueryEngine(connection, new MetaProvider(metadata));
+using var db = new OQueryEngine(connection, new MetadataProvider(metadata));
 
 var rows = db.Query("User")
     .Where(user => user["Age"] >= 18)

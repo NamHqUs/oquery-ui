@@ -31,6 +31,8 @@ frontend in separate Windows Terminal tabs. The API's Swagger UI is at
 The API host and database-services project target x64 because the IBM DB2
 provider requires an x64 process.
 
+Built-in metadata (YAML) lives in
+[`oquery/data-storage/metadata`](./oquery/data-storage/metadata).
 Built-in saved queries (JSON and YAML) live in
 [`oquery/data-storage/queries`](./oquery/data-storage/queries). The demo copies
 the JSON files to `BuiltinQueries` in its build and publish output and loads

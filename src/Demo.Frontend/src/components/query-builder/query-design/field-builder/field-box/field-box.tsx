@@ -59,8 +59,8 @@ function getJoinedContextFields(context: ApiQueryContextDefinition, metadata: Me
 export function resolveEntity(root: MetadataEntity, metadata: MetadataEntity[], segments: string[]) {
   let current: MetadataEntity | undefined = root;
   for (const segment of segments) {
-    const relation: { relatedEntity: string } | undefined = current?.relations?.find((item) => item.name === segment);
-    current = relation && metadata.find((item) => item.name === relation.relatedEntity);
+    const relation: { refEntity: string } | undefined = current?.relations?.find((item) => item.name === segment);
+    current = relation && metadata.find((item) => item.name === relation.refEntity);
     if (!current) return undefined;
   }
   return current;
@@ -76,7 +76,7 @@ export default function FieldBox({
   clearOnSelect = false,
   completeOnSelect = false,
   showPath = false,
-  placeholder = "Select field…",
+  placeholder = "Select fieldâ€¦",
   placeholderIcon = false,
   ariaLabel = "Field",
   popupAnchor,
@@ -269,7 +269,7 @@ export default function FieldBox({
     closeMenu();
   };
 
-  const relations = (current.relations || []).filter((relation) => metadata.some((item) => item.name === relation.relatedEntity));
+  const relations = (current.relations || []).filter((relation) => metadata.some((item) => item.name === relation.refEntity));
   const filteredJoinedContextFields = joinedContextFields.filter((field) =>
     field.toLowerCase().includes(fieldSearch.trim().toLowerCase()));
   const fields = current.fields.filter((field) =>
@@ -441,7 +441,7 @@ export default function FieldBox({
                 type="search"
                 className="field-box-search"
                 aria-label="Search fields"
-                placeholder="Search fields…"
+                placeholder="Search fieldsâ€¦"
                 autoFocus
                 value={fieldSearch}
                 onChange={(event) => setFieldSearch(event.target.value)}

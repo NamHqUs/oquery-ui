@@ -42,7 +42,7 @@ export default function RelationsBuilder({
         idx === relationIndex
           ? {
               ...item,
-              relatedKeys: [...item.relatedKeys, { fromDbColumn: "", toDbColumn: "" }],
+              refKeys: [...item.refKeys, { dbColumn: "", refDbColumn: "" }],
             }
           : item,
       ),
@@ -55,7 +55,7 @@ export default function RelationsBuilder({
         idx === relationIndex
           ? {
               ...item,
-              relatedKeys: item.relatedKeys.filter((_, mapIdx) => mapIdx !== keyIndex),
+              refKeys: item.refKeys.filter((_, mapIdx) => mapIdx !== keyIndex),
             }
           : item,
       ),
@@ -65,7 +65,7 @@ export default function RelationsBuilder({
   function updateKeyMapping(
     relationIndex: number,
     keyIndex: number,
-    field: "fromDbColumn" | "toDbColumn",
+    field: "dbColumn" | "refDbColumn",
     value: string,
   ) {
     onChange((prev) =>
@@ -73,7 +73,7 @@ export default function RelationsBuilder({
         idx === relationIndex
           ? {
               ...item,
-              relatedKeys: item.relatedKeys.map((mapping, mapIdx) =>
+              refKeys: item.refKeys.map((mapping, mapIdx) =>
                 mapIdx === keyIndex ? { ...mapping, [field]: value } : mapping,
               ),
             }
@@ -102,8 +102,8 @@ export default function RelationsBuilder({
               placeholder="Relation name"
             />
             <select
-              value={relation.relatedEntity}
-              onChange={(event) => updateRelation(index, "relatedEntity", event.target.value)}
+              value={relation.refEntity}
+              onChange={(event) => updateRelation(index, "refEntity", event.target.value)}
             >
               <option value="">Related entity</option>
               {allEntities
@@ -124,20 +124,20 @@ export default function RelationsBuilder({
           </div>
 
           <div className="key-mappings">
-            {relation.relatedKeys.map((key, keyIndex) => (
+            {relation.refKeys.map((key, keyIndex) => (
               <div className="key-row" key={keyIndex}>
                 <input
-                  value={key.fromDbColumn}
+                  value={key.dbColumn}
                   onChange={(event) =>
-                    updateKeyMapping(index, keyIndex, "fromDbColumn", event.target.value)
+                    updateKeyMapping(index, keyIndex, "dbColumn", event.target.value)
                   }
                   placeholder="Source column"
                 />
-                <span>→</span>
+                <span>Ã¢â€ â€™</span>
                 <input
-                  value={key.toDbColumn}
+                  value={key.refDbColumn}
                   onChange={(event) =>
-                    updateKeyMapping(index, keyIndex, "toDbColumn", event.target.value)
+                    updateKeyMapping(index, keyIndex, "refDbColumn", event.target.value)
                   }
                   placeholder="Target column"
                 />
@@ -145,7 +145,7 @@ export default function RelationsBuilder({
                   className="icon-button subtle"
                   type="button"
                   title="Remove mapping"
-                  disabled={relation.relatedKeys.length === 1}
+                  disabled={relation.refKeys.length === 1}
                   onClick={() => removeKeyMapping(index, keyIndex)}
                 >
                   <Icon name="trash" size={12} />

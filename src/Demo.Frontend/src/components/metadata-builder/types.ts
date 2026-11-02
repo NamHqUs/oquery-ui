@@ -6,9 +6,9 @@ export const createFieldId = () => `f_${nextFieldId++}`;
 let nextRelationId = 1;
 export const createRelationId = () => `r_${nextRelationId++}`;
 
-export type RelationKey = { fromDbColumn: string; toDbColumn: string };
+export type RelationKey = { dbColumn: string; refDbColumn: string };
 export type EditableField = MetadataField & { id?: string };
-export type EditableRelation = MetadataRelation & { id?: string; type: string; relatedKeys: RelationKey[] };
+export type EditableRelation = MetadataRelation & { id?: string; type: string; refKeys: RelationKey[] };
 export type EditableEntity = MetadataEntity & { schema: string; rawSql: string; fields: EditableField[]; relations: EditableRelation[] };
 
 export function toAbstractDataType(databaseType?: string, columnName?: string): string {
@@ -23,7 +23,7 @@ export function toAbstractDataType(databaseType?: string, columnName?: string): 
 }
 
 export const emptyField = (): EditableField => ({ id: createFieldId(), name: "", dbColumn: "", dataType: "String", isRawSql: false });
-export const emptyRelation = (): EditableRelation => ({ id: createRelationId(), name: "", relatedEntity: "", type: "Lookup", relatedKeys: [{ fromDbColumn: "", toDbColumn: "" }] });
+export const emptyRelation = (): EditableRelation => ({ id: createRelationId(), name: "", refEntity: "", type: "Lookup", refKeys: [{ dbColumn: "", refDbColumn: "" }] });
 
 export function toEditable(entity: MetadataEntity): EditableEntity {
   return {
@@ -35,7 +35,7 @@ export function toEditable(entity: MetadataEntity): EditableEntity {
       ...relation,
       id: (relation as Partial<EditableRelation>).id || createRelationId(),
       type: String(relation.type ?? "Lookup"),
-      relatedKeys: (relation as MetadataRelation & { relatedKeys?: RelationKey[] }).relatedKeys || [{ fromDbColumn: "", toDbColumn: "" }],
+      refKeys: (relation as MetadataRelation & { refKeys?: RelationKey[] }).refKeys || [{ dbColumn: "", refDbColumn: "" }],
     })),
   };
 }

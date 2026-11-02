@@ -178,7 +178,7 @@ function resolveEntityPath(entity: MetadataEntity, metadata: MetadataEntity[], p
   let current: MetadataEntity | undefined = entity;
   for (const relationName of path) {
     const relation = current?.relations?.find((item) => item.name === relationName);
-    current = relation && metadata.find((item) => item.name === relation.relatedEntity);
+    current = relation && metadata.find((item) => item.name === relation.refEntity);
     if (!current) return undefined;
   }
   return current;
@@ -578,7 +578,7 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
     if (!selectedRequestName || !selectedRequestId || selectedRequestIsBuiltin) return;
     const action = await showMessageBox({
       eyebrow: "DELETE SAVED QUERY",
-      title: `Delete “${selectedRequestName}”?`,
+      title: `Delete â€œ${selectedRequestName}â€?`,
       message: "This saved query request will be permanently removed.",
       actions: [
         { value: "cancel", label: "Keep query", variant: "secondary" },
@@ -604,7 +604,7 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
         <div className="query-heading-main">
           <span className="query-heading-mark"><Icon name="query" size={21} /></span>
           <div className="query-heading-copy">
-            <span className="query-heading-eyebrow">QUERY WORKSPACE <i /> DESIGN · RUN · REFINE</span>
+            <span className="query-heading-eyebrow">QUERY WORKSPACE <i /> DESIGN Â· RUN Â· REFINE</span>
             <h2>Explore your data</h2>
             <p>Shape a query visually, then inspect its SQL and live results.</p>
             <div className="query-heading-summary" aria-label="Current query summary">

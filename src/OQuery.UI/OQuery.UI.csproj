@@ -22,6 +22,7 @@
 		<ProjectReference Include="..\Demo.DbServices\Demo.DbServices.csproj" />
 		<ProjectReference Include="..\Demo.Services\Demo.Services.csproj" />
 		<ProjectReference Include="..\Demo.Repositories\Demo.Repositories.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery\OQuery.csproj" />
 		<PackageReference Include="Namh.Configuration.Template" Version="1.0.1" />
 	</ItemGroup>
 

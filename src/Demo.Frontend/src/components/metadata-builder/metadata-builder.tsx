@@ -194,7 +194,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
         dataType: fieldDataType(field),
         isRawSql: fieldIsRawSql(field),
       })),
-      relations: draft.relations.map(({ name, relatedEntity, type, relatedKeys }) => ({ name: name.trim(), relatedEntity: relatedEntity.trim(), type, relatedKeys })),
+      relations: draft.relations.map(({ name, refEntity, type, refKeys }) => ({ name: name.trim(), refEntity: refEntity.trim(), type, refKeys })),
     };
     setStatus("saving");
     setMessage("");
@@ -304,11 +304,11 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
         return relatedEntities.map((entity): EditableRelation => ({
           id: `schema_${relation.name}_${entity.name}`,
           name: relation.targetTable,
-          relatedEntity: entity.name,
+          refEntity: entity.name,
           type: "Lookup",
-          relatedKeys: relation.sourceColumns.map((fromDbColumn, index) => ({
-            fromDbColumn,
-            toDbColumn: relation.targetColumns[index] || "",
+          refKeys: relation.sourceColumns.map((dbColumn, index) => ({
+            dbColumn,
+            refDbColumn: relation.targetColumns[index] || "",
           })),
         }));
       });
@@ -319,10 +319,10 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
       setSelectedName(existing.name);
       const nextDraft = toEditable(existing);
       const existingRelationKeys = new Set(nextDraft.relations.map((relation) =>
-        `${relation.relatedEntity}|${relation.relatedKeys.map((key) => `${key.fromDbColumn}:${key.toDbColumn}`).join(",")}`,
+        `${relation.refEntity}|${relation.refKeys.map((key) => `${key.dbColumn}:${key.refDbColumn}`).join(",")}`,
       ));
       const relations = discoveredRelations.filter((relation) =>
-        !existingRelationKeys.has(`${relation.relatedEntity}|${relation.relatedKeys.map((key) => `${key.fromDbColumn}:${key.toDbColumn}`).join(",")}`),
+        !existingRelationKeys.has(`${relation.refEntity}|${relation.refKeys.map((key) => `${key.dbColumn}:${key.refDbColumn}`).join(",")}`),
       );
       setDraft({ ...nextDraft, rawSql: rawSqlOverride ?? nextDraft.rawSql, relations: [...nextDraft.relations, ...relations] });
       setDirty(relations.length > 0);
@@ -389,13 +389,13 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
         <div className="metadata-heading-main">
           <span className="metadata-heading-mark" aria-hidden="true"><Icon name="schema" size={21} /></span>
           <div className="metadata-heading-copy">
-            <span className="metadata-heading-eyebrow">DATA MODEL <i /> ENTITIES · FIELDS · RELATIONSHIPS</span>
+            <span className="metadata-heading-eyebrow">DATA MODEL <i /> ENTITIES Ã‚Â· FIELDS Ã‚Â· RELATIONSHIPS</span>
             <h2>Define your data model</h2>
             <p>Describe your entities and relationships to make your data ready for querying.</p>
             <div className="metadata-heading-summary" aria-label="Metadata summary">
-              <span><strong>{status === "succeeded" ? entities.length : "—"}</strong> entities</span>
-              <span><strong>{status === "succeeded" ? fieldCount : "—"}</strong> fields</span>
-              <span><strong>{status === "succeeded" ? relationCount : "—"}</strong> relations</span>
+              <span><strong>{status === "succeeded" ? entities.length : "Ã¢â‚¬â€"}</strong> entities</span>
+              <span><strong>{status === "succeeded" ? fieldCount : "Ã¢â‚¬â€"}</strong> fields</span>
+              <span><strong>{status === "succeeded" ? relationCount : "Ã¢â‚¬â€"}</strong> relations</span>
               <span className="metadata-heading-current"><Icon name="table" size={13} />{selectedName || "No entity selected"}</span>
             </div>
           </div>
@@ -417,7 +417,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
             <div className="table-details-heading metadata-editor-heading">
               <div className="table-details-title">
                 <span className="section-kicker">METADATA DEFINITION</span>
-                <h3>{selectedName || (draft ? "New Entity…" : "Select an entity")}</h3>
+                <h3>{selectedName || (draft ? "New EntityÃ¢â‚¬Â¦" : "Select an entity")}</h3>
               </div>
               <DefinitionActions adapter={entityActionAdapter} />
             </div>
@@ -453,7 +453,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
             <div className="table-details-heading metadata-editor-heading">
               <div className="table-details-title">
                 <span className="section-kicker">METADATA DEFINITION</span>
-                <h3>{selectedName || (draft ? "New Entity…" : "Select an entity")}</h3>
+                <h3>{selectedName || (draft ? "New EntityÃ¢â‚¬Â¦" : "Select an entity")}</h3>
               </div>
               <DefinitionActions adapter={entityActionAdapter} />
             </div>

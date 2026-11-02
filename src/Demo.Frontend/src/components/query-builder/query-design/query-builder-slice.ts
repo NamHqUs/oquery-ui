@@ -19,12 +19,12 @@ export type FilterOperatorDefinition = {
 
 export type MetadataRelation = {
   name: string;
-  relatedEntity: string;
+  refEntity: string;
   type?: number | string;
-  relatedKeys?: RelationKey[];
+  refKeys?: RelationKey[];
 };
 
-export type RelationKey = { fromDbColumn: string; toDbColumn: string };
+export type RelationKey = { dbColumn: string; refDbColumn: string };
 
 export type MetadataEntity = {
   name: string;

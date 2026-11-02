@@ -6,6 +6,7 @@ USER $APP_UID
 WORKDIR /app
 COPY ["scripts/", "/scripts/"]
 COPY ["oquery/data-storage/queries/", "/app/BuiltinQueries/"]
+COPY ["oquery/data-storage/metadata/", "/oquery/data-storage/metadata/"]
 EXPOSE 8080
 
 

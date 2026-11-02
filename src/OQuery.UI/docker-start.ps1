@@ -13,6 +13,7 @@ try {
 		-e DbProvider__Default=Sqlite `
 		-e DbProvider__DbScriptsPath=../scripts `
 		-e FileStoragePath="../var/data" `
+		-e MetadataPath="../oquery/data-storage/metadata" `
 		-v "${fileStoragePath}:/var/data" `
 		oquery-ui:dev
 	if ($LASTEXITCODE -ne 0) {

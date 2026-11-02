@@ -13,6 +13,11 @@ public sealed class FilePathResolver(IConfiguration configuration)
         return subDir is null ? rootDir : Path.Combine(rootDir, subDir);
     }
 
+    public string GetMetadataStoreFolder()
+        => Path.Combine(
+            Environment.CurrentDirectory,
+            configuration["MetadataPath"] ?? throw new InvalidOperationException("Configuration is missing [MetadataPath]."));
+
     public string GetUserStoreFolder(string userSectionId, string? subDir)
     {
         if (string.IsNullOrWhiteSpace(userSectionId) || Path.GetFileName(userSectionId) != userSectionId)

@@ -12,8 +12,8 @@
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Demo.Contracts\Demo.Contracts.csproj" />
-		<ProjectReference Include="..\Demo.Share\Demo.Share.csproj" />
 		<PackageReference Include="Namh.Configuration.Template" Version="1.0.1" />
+		<PackageReference Include="YamlDotNet" Version="16.3.0" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.13" />

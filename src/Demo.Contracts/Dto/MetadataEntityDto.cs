@@ -40,7 +40,7 @@ public sealed record MetadataEntityDto(
 // public record RelationDto(
 //    string FromEntityId, 
 //    string ToEntityId, 
-//    (string FromDbColumn, string ToDbColumn)[] RelatedDbColumns);
+//    (string DbColumn, string RefDbColumn)[] RelatedDbColumns);
 
 // public sealed record MetadataDto(
 //    IReadOnlyList<EntityDto> Entities,
