@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">OQuery lens logo</title>
+  <desc id="desc">A geometric lens combining an O and a query pointer.</desc>
+  <defs>
+    <linearGradient id="lensGradient" x1="20" y1="18" x2="108" y2="110" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#55D6BE"/>
+      <stop offset="1" stop-color="#4F7CFF"/>
+    </linearGradient>
+  </defs>
+  <path d="M64 16a48 48 0 1 0 30.7 84.9L108 114l6-6-13.3-13.3A48 48 0 0 0 64 16Zm0 12a36 36 0 1 1 0 72 36 36 0 0 1 0-72Z" fill="url(#lensGradient)"/>
+  <path d="M64 43a21 21 0 1 0 0 42 21 21 0 0 0 0-42Zm0 10a11 11 0 1 1 0 22 11 11 0 0 1 0-22Z" fill="#17233D"/>
+</svg>

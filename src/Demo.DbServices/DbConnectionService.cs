@@ -19,7 +19,7 @@ public enum DbServerType
 public sealed class DbConnectionService(IConfiguration configuration, DatabaseService dbService) : IDbConnectionService
 {
     private readonly IReadOnlyDictionary<string, (string Provider, string ConnectionString)> _dbOptions =
-        configuration.GetSection("DbOptions")
+        configuration.GetSection("ConnectionOptions")
             .GetChildren()
             .ToDictionary(e => e["Name"]!, e => (e["Provider"]!, e["ConnectionString"]!)) ?? [];
 

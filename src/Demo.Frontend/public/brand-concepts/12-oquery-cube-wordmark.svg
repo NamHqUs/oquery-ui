@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96" role="img" aria-labelledby="title desc">
+  <title id="title">OQuery cube wordmark</title>
+  <desc id="desc">The OQuery name paired with an isometric query cube.</desc>
+  <defs>
+    <linearGradient id="cube" x1="13" y1="12" x2="82" y2="82" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7B61FF"/>
+      <stop offset="1" stop-color="#34C9B0"/>
+    </linearGradient>
+  </defs>
+  <path d="m48 10 34 19v38L48 86 14 67V29L48 10Z" fill="url(#cube)"/>
+  <path d="m48 10 34 19-34 19-34-19L48 10Z" fill="#B3A8FF" opacity=".8"/>
+  <path d="M48 48v38M14 29l34 19 34-19" fill="none" stroke="#17233D" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M39 42a9 9 0 1 1 14 7l7 7" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+  <text x="104" y="61" fill="#17233D" font-family="Inter,Segoe UI,sans-serif" font-size="46" font-weight="700" letter-spacing="-2">O<tspan fill="#34AFA0">Query</tspan></text>
+</svg>

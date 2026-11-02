@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">OQuery layered query logo</title>
+  <desc id="desc">Layered database shapes forming a stylized O with a query mark.</desc>
+  <defs>
+    <linearGradient id="layerGradient" x1="25" y1="20" x2="103" y2="108" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFCF70"/>
+      <stop offset=".5" stop-color="#FF8291"/>
+      <stop offset="1" stop-color="#806CFF"/>
+    </linearGradient>
+  </defs>
+  <path d="M64 17c27 0 48 10 48 23v48c0 13-21 23-48 23S16 101 16 88V40c0-13 21-23 48-23Z" fill="none" stroke="url(#layerGradient)" stroke-width="10"/>
+  <path d="M16 40c0 13 21 23 48 23s48-10 48-23M16 64c0 13 21 23 48 23s48-10 48-23" fill="none" stroke="#17233D" stroke-width="7"/>
+  <path d="M64 41a12 12 0 1 1 0 24 12 12 0 0 1 0-24Zm0 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 16v9" fill="#17233D"/>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96" role="img" aria-labelledby="title desc">
+  <title id="title">OQuery brackets wordmark</title>
+  <desc id="desc">The OQuery name paired with code brackets and a data pulse.</desc>
+  <defs>
+    <linearGradient id="pulse" x1="12" y1="80" x2="84" y2="18" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#42D3B2"/>
+      <stop offset="1" stop-color="#5D6CFF"/>
+    </linearGradient>
+  </defs>
+  <path d="M32 17 12 48l20 31M64 17l20 31-20 31" fill="none" stroke="#17233D" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m31 59 12-13 11 7 15-21" fill="none" stroke="url(#pulse)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="31" cy="59" r="5" fill="#42D3B2"/>
+  <circle cx="69" cy="32" r="5" fill="#5D6CFF"/>
+  <text x="104" y="61" fill="#17233D" font-family="Inter,Segoe UI,sans-serif" font-size="46" font-weight="700" letter-spacing="-2">O<tspan fill="#536CE6">Query</tspan></text>
+</svg>

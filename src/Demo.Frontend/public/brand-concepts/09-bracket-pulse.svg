@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">OQuery bracket pulse logo</title>
+  <desc id="desc">Code brackets surrounding a rising data pulse.</desc>
+  <defs>
+    <linearGradient id="pulseGradient" x1="25" y1="95" x2="103" y2="31" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#42D3B2"/>
+      <stop offset="1" stop-color="#5D6CFF"/>
+    </linearGradient>
+  </defs>
+  <path d="M39 18 13 64l26 46M89 18l26 46-26 46" fill="none" stroke="#17233D" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m39 78 13-15 12 8 20-30" fill="none" stroke="url(#pulseGradient)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="39" cy="78" r="6" fill="#42D3B2"/>
+  <circle cx="52" cy="63" r="6" fill="#42D3B2"/>
+  <circle cx="64" cy="71" r="6" fill="#5177DD"/>
+  <circle cx="84" cy="41" r="6" fill="#5D6CFF"/>
+</svg>

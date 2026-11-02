@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">OQuery cube logo</title>
+  <desc id="desc">A three-dimensional cube with a query symbol cut into its center.</desc>
+  <defs>
+    <linearGradient id="cubeGradient" x1="28" y1="20" x2="103" y2="108" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7B61FF"/>
+      <stop offset="1" stop-color="#34C9B0"/>
+    </linearGradient>
+  </defs>
+  <path d="m64 12 48 27v50l-48 27-48-27V39l48-27Z" fill="url(#cubeGradient)"/>
+  <path d="m64 12 48 27-48 27-48-27 48-27Z" fill="#A99CFF" opacity=".8"/>
+  <path d="M64 66v50M16 39l48 27 48-27" fill="none" stroke="#17233D" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M52 52a12 12 0 1 1 19 9l8 8" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+</svg>

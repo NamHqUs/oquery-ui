@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96" role="img" aria-labelledby="title desc">
+  <title id="title">OQuery layers wordmark</title>
+  <desc id="desc">The OQuery name paired with layered database shapes.</desc>
+  <defs>
+    <linearGradient id="layers" x1="12" y1="12" x2="84" y2="84" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFCF70"/>
+      <stop offset=".5" stop-color="#FF8291"/>
+      <stop offset="1" stop-color="#806CFF"/>
+    </linearGradient>
+  </defs>
+  <path d="M48 14c20 0 35 7 35 16v36c0 9-15 16-35 16S13 75 13 66V30c0-9 15-16 35-16Z" fill="none" stroke="url(#layers)" stroke-width="8"/>
+  <path d="M13 30c0 9 15 16 35 16s35-7 35-16M13 48c0 9 15 16 35 16s35-7 35-16" fill="none" stroke="#17233D" stroke-width="5"/>
+  <circle cx="48" cy="30" r="7" fill="#17233D"/>
+  <path d="M48 39v9" stroke="#17233D" stroke-width="5" stroke-linecap="round"/>
+  <text x="104" y="61" fill="#17233D" font-family="Inter,Segoe UI,sans-serif" font-size="46" font-weight="700" letter-spacing="-2">O<tspan fill="#8A6BEA">Query</tspan></text>
+</svg>

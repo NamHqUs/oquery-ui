@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96" role="img" aria-labelledby="title desc">
+  <title id="title">OQuery lens wordmark</title>
+  <desc id="desc">The OQuery name paired with a geometric lens icon.</desc>
+  <defs>
+    <linearGradient id="mark" x1="10" y1="10" x2="78" y2="78" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#55D6BE"/>
+      <stop offset="1" stop-color="#4F7CFF"/>
+    </linearGradient>
+  </defs>
+  <circle cx="48" cy="48" r="31" fill="none" stroke="url(#mark)" stroke-width="10"/>
+  <circle cx="48" cy="48" r="12" fill="#17233D"/>
+  <path d="m70 70 13 13" fill="none" stroke="#17233D" stroke-width="9" stroke-linecap="round"/>
+  <text x="104" y="61" fill="#17233D" font-family="Inter,Segoe UI,sans-serif" font-size="46" font-weight="700" letter-spacing="-2">O<tspan fill="#4F7CFF">Query</tspan></text>
+</svg>

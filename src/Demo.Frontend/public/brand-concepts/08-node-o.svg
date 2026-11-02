@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">OQuery node logo</title>
+  <desc id="desc">A connected data graph arranged in the shape of an O.</desc>
+  <defs>
+    <linearGradient id="nodeGradient" x1="21" y1="25" x2="106" y2="104" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB45C"/>
+      <stop offset=".48" stop-color="#F06D8F"/>
+      <stop offset="1" stop-color="#6A6CFF"/>
+    </linearGradient>
+  </defs>
+  <path d="M31 36 18 64l13 28M97 36l13 28-13 28M31 36l33-14 33 14M31 92l33 14 33-14" fill="none" stroke="url(#nodeGradient)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="31" cy="36" r="10" fill="#17233D"/>
+  <circle cx="18" cy="64" r="10" fill="#17233D"/>
+  <circle cx="31" cy="92" r="10" fill="#17233D"/>
+  <circle cx="64" cy="22" r="10" fill="#17233D"/>
+  <circle cx="97" cy="36" r="10" fill="#17233D"/>
+  <circle cx="110" cy="64" r="10" fill="#17233D"/>
+  <circle cx="97" cy="92" r="10" fill="#17233D"/>
+  <circle cx="64" cy="106" r="10" fill="#17233D"/>
+</svg>

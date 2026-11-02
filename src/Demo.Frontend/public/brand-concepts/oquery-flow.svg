@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 160" role="img" aria-labelledby="title desc">
+  <title id="title">OQuery Flow</title>
+  <desc id="desc">An OQuery wordmark with a flowing query-stream O monogram and terminal chevron.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="640" y2="160" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0b102b"/>
+      <stop offset="1" stop-color="#080b1c"/>
+    </linearGradient>
+    <linearGradient id="flow" x1="22" y1="34" x2="150" y2="128" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22d3ee"/>
+      <stop offset=".48" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="wordmark" x1="245" y1="48" x2="555" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#818cf8"/>
+      <stop offset="1" stop-color="#c084fc"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="160" rx="28" fill="url(#background)"/>
+
+  <g transform="translate(22 20)">
+    <path d="M56 19c18-18 49-18 67 0s18 49 0 67-49 18-67 0-18-49 0-67Zm12 12c-11 11-11 31 0 42s31 11 42 0 11-31 0-42-31-11-42 0Z" fill="url(#flow)"/>
+    <path d="M58 31H24a7 7 0 1 0 0 14h25c7 0 12-2 17-7l10-10-18 3Z" fill="#22d3ee"/>
+    <path d="M61 76H24a7 7 0 1 0 0 14h28c7 0 14-2 19-7l9-10-19 3Z" fill="#8b5cf6"/>
+    <circle cx="10" cy="38" r="6" fill="#22d3ee"/>
+    <circle cx="10" cy="83" r="6" fill="#8b5cf6"/>
+    <path d="m88 48 13 13-13 13" fill="none" stroke="#67e8f9" stroke-linecap="round" stroke-linejoin="round" stroke-width="8"/>
+  </g>
+
+  <text x="190" y="101" fill="url(#wordmark)" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="68" font-weight="800" letter-spacing="-4">OQuery</text>
+  <path d="M190 122h370" stroke="url(#flow)" stroke-linecap="round" stroke-width="4"/>
+</svg>

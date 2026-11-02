@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96" role="img" aria-labelledby="title desc">
+  <title id="title">OQuery nodes wordmark</title>
+  <desc id="desc">The OQuery name paired with a connected data-node icon.</desc>
+  <defs>
+    <linearGradient id="nodes" x1="10" y1="12" x2="83" y2="84" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB45C"/>
+      <stop offset=".5" stop-color="#F06D8F"/>
+      <stop offset="1" stop-color="#6A6CFF"/>
+    </linearGradient>
+  </defs>
+  <path d="M24 28 12 48l12 20M72 28l12 20-12 20M24 28l24-12 24 12M24 68l24 12 24-12" fill="none" stroke="url(#nodes)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="24" cy="28" r="7" fill="#17233D"/>
+  <circle cx="12" cy="48" r="7" fill="#17233D"/>
+  <circle cx="24" cy="68" r="7" fill="#17233D"/>
+  <circle cx="48" cy="16" r="7" fill="#17233D"/>
+  <circle cx="72" cy="28" r="7" fill="#17233D"/>
+  <circle cx="84" cy="48" r="7" fill="#17233D"/>
+  <circle cx="72" cy="68" r="7" fill="#17233D"/>
+  <circle cx="48" cy="80" r="7" fill="#17233D"/>
+  <text x="104" y="61" fill="#17233D" font-family="Inter,Segoe UI,sans-serif" font-size="46" font-weight="700" letter-spacing="-2">O<tspan fill="#E8758C">Query</tspan></text>
+</svg>
