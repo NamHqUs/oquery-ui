@@ -3,7 +3,7 @@ using Demo.Contracts.Services;
 using Demo.Contracts.Application;
 using Demo.Contracts.Dto;
 using OQuery;
-using OQuery.Contracts.QueryDefinitions.Parsers;
+using OQuery.QueryDefinitions.Parsers;
 using System.Globalization;
 using System.Text.Json;
 

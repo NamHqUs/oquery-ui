@@ -256,7 +256,7 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
             && filterValue.TryGetValue<string>(out var filterText)
             && !string.IsNullOrWhiteSpace(filterText))
         {
-            var filter = OQuery.Contracts.QueryDefinitions.Parsers.QueryDefinitionParser
+            var filter = OQuery.QueryDefinitions.Parsers.QueryDefinitionParser
                 .ParseFilter(filterText);
             query[filtersProperty.Key] = JsonSerializer.SerializeToNode(
                 filter,
@@ -292,7 +292,7 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
                     || string.IsNullOrWhiteSpace(conditionText))
                     continue;
 
-                var condition = OQuery.Contracts.QueryDefinitions.Parsers.QueryDefinitionParser
+                var condition = OQuery.QueryDefinitions.Parsers.QueryDefinitionParser
                     .ParseJoinCondition(conditionText);
                 relationNode[conditionProperty.Key] = JsonSerializer.SerializeToNode(
                     condition,

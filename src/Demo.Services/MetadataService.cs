@@ -3,7 +3,7 @@ using Demo.Contracts.Application;
 using Demo.Contracts.Repositories;
 using Demo.Contracts.Services;
 using OQuery;
-using OQuery.Contracts;
+using OQuery;
 
 namespace Demo.Services;
 

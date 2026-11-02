@@ -1,7 +1,7 @@
 using Demo.Contracts.Repositories;
 using Demo.Contracts.Dto;
 using OQuery;
-using OQuery.Contracts.QueryDefinitions.Parsers;
+using OQuery.QueryDefinitions.Parsers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using YamlDotNet.Serialization;
