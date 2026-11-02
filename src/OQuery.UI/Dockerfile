@@ -4,7 +4,7 @@
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 USER $APP_UID
 WORKDIR /app
-COPY ["scripts/", "/scripts/"]
+COPY ["oquery/data-storage/scripts/", "/scripts/"]
 COPY ["oquery/data-storage/queries/", "/app/BuiltinQueries/"]
 COPY ["oquery/data-storage/metadata/", "/oquery/data-storage/metadata/"]
 EXPOSE 8080
@@ -32,7 +32,7 @@ RUN dotnet restore "./src/OQuery.UI/OQuery.UI.csproj"
 COPY ["src/", "src/"]
 COPY ["oquery/src/OQuery/", "oquery/src/OQuery/"]
 COPY ["oquery/data-storage/queries/", "oquery/data-storage/queries/"]
-COPY ["scripts/", "scripts/"]
+COPY ["oquery/data-storage/scripts/", "scripts/"]
 WORKDIR "/workspace/src/OQuery.UI"
 RUN dotnet build "./OQuery.UI.csproj" -c $BUILD_CONFIGURATION -o /app/build
 

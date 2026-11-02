@@ -15,6 +15,7 @@
 **/.*
 !.env.example
 !.gitignore
+!.gitattributes
 !.dockerignore
 !.vscode/
 !.vscode/**
