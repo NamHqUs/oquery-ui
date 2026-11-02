@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 112" role="img" aria-labelledby="title desc">
+  <title id="title">Open Query spark wordmark</title>
+  <desc id="desc">An open O becomes a Q through a bright query spark and a shared diagonal stroke.</desc>
+  <defs>
+    <linearGradient id="spark" x1="13" y1="15" x2="98" y2="98" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#42D3B2"/>
+      <stop offset="1" stop-color="#7B61FF"/>
+    </linearGradient>
+  </defs>
+  <path d="M80 27a35 35 0 1 0 2 58" fill="none" stroke="url(#spark)" stroke-width="12" stroke-linecap="round"/>
+  <path d="m76 74 28 25" fill="none" stroke="#17233D" stroke-width="12" stroke-linecap="round"/>
+  <path d="m82 18 4 9 9 4-9 4-4 9-4-9-9-4 9-4 4-9Z" fill="#FFB45C"/>
+  <text x="132" y="68" fill="#17233D" font-family="Inter,Segoe UI,sans-serif" font-size="44" font-weight="700" letter-spacing="-1">Open <tspan fill="#34AFA0">Query</tspan></text>
+</svg>

@@ -1,15 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Open Query</title>
+  <desc id="desc">An orbital Q surrounding a central O.</desc>
   <defs>
     <linearGradient id="background" x1="8" y1="4" x2="56" y2="60" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#24204a"/>
-      <stop offset="1" stop-color="#0c1728"/>
+      <stop stop-color="#1b1630"/>
+      <stop offset="1" stop-color="#080a0f"/>
     </linearGradient>
-    <linearGradient id="letter" x1="19" y1="17" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#67e8f9"/>
+    <linearGradient id="orbit" x1="15" y1="14" x2="51" y2="51" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#d9fff1"/>
+      <stop offset=".2" stop-color="#53d5a1"/>
+      <stop offset=".65" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#5540a5"/>
+    </linearGradient>
+    <linearGradient id="coreGloss" x1="22" y1="20" x2="38" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff"/>
+      <stop offset=".45" stop-color="#e9edf4"/>
       <stop offset="1" stop-color="#a78bfa"/>
     </linearGradient>
+    <linearGradient id="extrusion" x1="20" y1="20" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#302663"/>
+      <stop offset="1" stop-color="#151124"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="170%" height="190%">
+      <feDropShadow dx="0" dy="3" stdDeviation="2" flood-color="#000000" flood-opacity=".65"/>
+    </filter>
   </defs>
   <rect width="64" height="64" rx="16" fill="url(#background)"/>
-  <path d="M22 16h10a16 16 0 0 1 0 32H22z" fill="none" stroke="url(#letter)" stroke-linejoin="round" stroke-width="5"/>
-  <path d="M27 25v14m0-7h10" fill="none" stroke="#e8e7ff" stroke-linecap="round" stroke-width="2.5"/>
+  <g filter="url(#shadow)">
+    <ellipse cx="30" cy="33" rx="20" ry="14" transform="rotate(-35 30 33)" fill="none" stroke="#0A0812" stroke-opacity=".9" stroke-width="8"/>
+    <ellipse cx="30" cy="31" rx="20" ry="14" transform="rotate(-35 30 31)" fill="none" stroke="url(#extrusion)" stroke-width="7"/>
+    <ellipse cx="30" cy="29" rx="20" ry="14" transform="rotate(-35 30 29)" fill="none" stroke="url(#orbit)" stroke-width="6"/>
+    <path d="M15 22c6-8 15-10 23-6" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-opacity=".7" stroke-width="1.5"/>
+    <circle cx="30" cy="31" r="8" fill="#302663"/>
+    <circle cx="30" cy="29" r="8" fill="url(#coreGloss)"/>
+    <ellipse cx="28" cy="26" rx="4" ry="2" fill="#ffffff" opacity=".65" transform="rotate(-25 28 26)"/>
+  </g>
+  <circle cx="30" cy="29" r="3" fill="#10131a"/>
+  <path d="m43 45 11 11" fill="none" stroke="#211747" stroke-linecap="round" stroke-width="8"/>
+  <path d="m43 42 11 11" fill="none" stroke="#c5b5ff" stroke-linecap="round" stroke-width="6" filter="url(#shadow)"/>
+  <path d="m44 43 8 8" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-opacity=".6" stroke-width="1.5"/>
 </svg>

@@ -126,9 +126,9 @@ section.page-heading.database-page-heading {
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  min-height: 142px;
+  min-height: 110px;
   margin: 15px 0 20px;
-  padding: 22px 35px;
+  padding: 16px 30px;
   overflow: hidden;
   border: 0;
   border-radius: 11px;
@@ -184,7 +184,7 @@ section.page-heading.database-page-heading h2 {
   margin: 10px 0 8px;
   overflow: hidden;
   color: #f1eefb;
-  font-size: 25px;
+  font-size: 22px;
   line-height: 1.2;
   letter-spacing: -.8px;
   text-overflow: ellipsis;
@@ -194,40 +194,6 @@ section.page-heading.database-page-heading h2 {
 section.page-heading.database-page-heading p {
   color: #a4a0b3;
   font-size: 12px;
-}
-
-.database-heading-summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 17px;
-  margin-top: 12px;
-  color: #858b9b;
-  font-size: 11px;
-}
-
-.database-heading-summary > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  white-space: nowrap;
-}
-
-.database-heading-summary strong {
-  color: #d8d1ed;
-  font: 500 11px "Manrope", sans-serif;
-}
-
-.database-heading-summary .database-heading-current {
-  max-width: 260px;
-  overflow: hidden;
-  color: #c7b9f4;
-  text-overflow: ellipsis;
-}
-
-.database-heading-summary .database-heading-current svg {
-  flex: 0 0 auto;
-  color: #a78bfa;
 }
 
 .database-content {

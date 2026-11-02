@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 112" role="img" aria-labelledby="title desc">
+  <title id="title">Open Query portal wordmark</title>
+  <desc id="desc">An open O merges with the diagonal tail of a Q, representing an open query portal.</desc>
+  <defs>
+    <linearGradient id="portal" x1="13" y1="14" x2="95" y2="98" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#35D6B0"/>
+      <stop offset="1" stop-color="#566CFF"/>
+    </linearGradient>
+  </defs>
+  <path d="M75 26a35 35 0 1 0 6 55" fill="none" stroke="url(#portal)" stroke-width="12" stroke-linecap="round"/>
+  <path d="M74 26a35 35 0 0 1 9 54L104 99" fill="none" stroke="#17233D" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="75" cy="26" r="6" fill="#17233D"/>
+  <text x="132" y="68" fill="#17233D" font-family="Inter,Segoe UI,sans-serif" font-size="44" font-weight="700" letter-spacing="-1">Open <tspan fill="#566CFF">Query</tspan></text>
+</svg>

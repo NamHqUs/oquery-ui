@@ -1,6 +1,6 @@
-# DynamicSQL Studio demo
+# oQuery Studio demo
 
-This is the React/Vite front end for the DynamicSQL demo. It demonstrates a metadata-driven query builder with:
+This is the React/Vite front end for the oQuery demo. It demonstrates a metadata-driven query builder with:
 
 - CSV upload and local sample data
 - Selectable projection fields and aggregates, organized into drag-and-drop rows

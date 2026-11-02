@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 112" role="img" aria-labelledby="title desc">
+  <title id="title">oQuery negative space logo</title>
+  <desc id="desc">A solid Q contains an O-shaped negative space, followed by the oQuery wordmark.</desc>
+  <defs>
+    <linearGradient id="negativeSpace" x1="14" y1="14" x2="101" y2="97" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5D6CFF"/>
+      <stop offset="1" stop-color="#34C9B0"/>
+    </linearGradient>
+  </defs>
+  <path d="M53 13a37 37 0 1 0 24 65l20 20-9 9-21-21A37 37 0 0 0 53 87a37 37 0 1 0 0-74Z" fill="url(#negativeSpace)"/>
+  <circle cx="53" cy="50" r="17" fill="#fff"/>
+  <circle cx="53" cy="50" r="9" fill="#17233D"/>
+  <text x="118" y="67" fill="#17233D" font-family="Inter,Segoe UI,sans-serif" font-size="48" font-weight="700" letter-spacing="-2">o<tspan fill="#536CE6">Query</tspan></text>
+</svg>

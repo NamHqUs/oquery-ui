@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 112" role="img" aria-labelledby="title desc">
+  <title id="title">oQuery window logo</title>
+  <desc id="desc">A squared Q window frames an O, followed by the oQuery wordmark.</desc>
+  <defs>
+    <linearGradient id="window" x1="13" y1="14" x2="101" y2="96" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7B61FF"/>
+      <stop offset="1" stop-color="#34C9B0"/>
+    </linearGradient>
+  </defs>
+  <path d="M88 51a35 35 0 1 1-10-25" fill="none" stroke="url(#window)" stroke-width="11" stroke-linecap="round"/>
+  <path d="M82 75 98 91" fill="none" stroke="#17233D" stroke-width="11" stroke-linecap="round"/>
+  <rect x="39" y="36" width="28" height="28" rx="8" fill="none" stroke="#17233D" stroke-width="7"/>
+  <circle cx="53" cy="50" r="5" fill="#17233D"/>
+  <text x="118" y="67" fill="#17233D" font-family="Inter,Segoe UI,sans-serif" font-size="48" font-weight="700" letter-spacing="-2">o<tspan fill="#34AFA0">Query</tspan></text>
+</svg>

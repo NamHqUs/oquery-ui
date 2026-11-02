@@ -97,7 +97,7 @@
 .report-card-chart .report-donut-layout { gap: 8px; }
 .report-card-chart .report-donut-layout svg { width: min(115px,42%); }
 .report-card-chart .report-legend { min-width: 0; gap: 5px; }
-.report-card-chart .report-legend-item { grid-template-columns: 6px minmax(25px,1fr) auto; gap: 4px; font-size: 9px; }
+.report-card-chart .report-legend-item { grid-template-columns: 6px minmax(22px,1fr) auto; gap: 4px; font-size: 9px; }
 .report-card-chart .report-legend-item b { font-size: 9px; }
 .report-card-chart .donut-total { font-size: 18px; }
 .report-card-chart-status { display: flex; flex-direction: column; align-items: center; gap: 8px; color: #929cad; font-size: 11px; text-align: center; }

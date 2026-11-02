@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 112" role="img" aria-labelledby="title desc">
+  <title id="title">oQuery orbit core logo</title>
+  <desc id="desc">An orbital Q surrounds a central O, followed by the oQuery wordmark.</desc>
+  <defs>
+    <linearGradient id="orbitCore" x1="10" y1="12" x2="102" y2="99" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D9FFF1"/>
+      <stop offset=".18" stop-color="#53D5A1"/>
+      <stop offset=".62" stop-color="#A78BFA"/>
+      <stop offset="1" stop-color="#5540A5"/>
+    </linearGradient>
+    <linearGradient id="coreGloss" x1="43" y1="38" x2="62" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset=".36" stop-color="#E9EDF4"/>
+      <stop offset="1" stop-color="#A78BFA"/>
+    </linearGradient>
+    <linearGradient id="queryGloss" x1="75" y1="73" x2="97" y2="94" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E7DDFF"/>
+      <stop offset=".45" stop-color="#A78BFA"/>
+      <stop offset="1" stop-color="#6650BE"/>
+    </linearGradient>
+    <linearGradient id="extrusion" x1="35" y1="35" x2="80" y2="85" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#302663"/>
+      <stop offset="1" stop-color="#151124"/>
+    </linearGradient>
+    <filter id="depth" x="-30%" y="-30%" width="170%" height="190%">
+      <feDropShadow dx="0" dy="6" stdDeviation="4" flood-color="#000000" flood-opacity=".55"/>
+    </filter>
+  </defs>
+  <g filter="url(#depth)">
+    <ellipse cx="53" cy="57" rx="38" ry="27" transform="rotate(-35 53 57)" fill="none" stroke="#0A0812" stroke-opacity=".9" stroke-width="13"/>
+    <ellipse cx="53" cy="54" rx="38" ry="27" transform="rotate(-35 53 54)" fill="none" stroke="url(#extrusion)" stroke-width="12"/>
+    <ellipse cx="53" cy="50" rx="38" ry="27" transform="rotate(-35 53 50)" fill="none" stroke="url(#orbitCore)" stroke-width="10"/>
+    <path d="M25 35c10-15 28-20 42-11" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-opacity=".82" stroke-width="3"/>
+    <circle cx="53" cy="54" r="14" fill="#302663"/>
+    <circle cx="53" cy="50" r="14" fill="url(#coreGloss)"/>
+    <ellipse cx="49" cy="45" rx="7" ry="4" fill="#FFFFFF" opacity=".72" transform="rotate(-25 49 45)"/>
+  </g>
+  <circle cx="53" cy="50" r="5" fill="#10131A"/>
+  <path d="m76 78 21 20" fill="none" stroke="#211747" stroke-width="13" stroke-linecap="round"/>
+  <path d="m76 73 21 20" fill="none" stroke="url(#queryGloss)" stroke-width="10" stroke-linecap="round" filter="url(#depth)"/>
+  <path d="m78 76 16 16" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-opacity=".62" stroke-width="2"/>
+  <text x="118" y="67" fill="#F7F9FF" filter="url(#glow)" font-family="Manrope,Segoe UI,sans-serif" font-size="48" font-weight="700" letter-spacing="-2">o<tspan fill="#C5B5FF">Query</tspan></text>
+</svg>

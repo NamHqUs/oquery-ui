@@ -285,7 +285,7 @@
 .expression-item-controls > .expression-remove,
 .expression-debug-field-builder.expression-item-controls > .expression-remove {
   position: absolute;
-  top: calc(50% - 25px);
+  top: calc(50% - 22px);
   right: -24px;
   z-index: 3;
   width: 22px;

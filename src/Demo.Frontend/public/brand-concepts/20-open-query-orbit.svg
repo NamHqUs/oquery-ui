@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 112" role="img" aria-labelledby="title desc">
+  <title id="title">Open Query orbit wordmark</title>
+  <desc id="desc">An open orbit forms an O while its escaping path creates the tail of Q.</desc>
+  <defs>
+    <linearGradient id="orbit" x1="13" y1="15" x2="103" y2="100" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFCF70"/>
+      <stop offset=".48" stop-color="#FF8291"/>
+      <stop offset="1" stop-color="#806CFF"/>
+    </linearGradient>
+  </defs>
+  <path d="M89 47c0-20-16-36-36-36S17 27 17 47s16 36 36 36c12 0 22-5 29-14" fill="none" stroke="url(#orbit)" stroke-width="11" stroke-linecap="round"/>
+  <path d="M82 69c5 6 12 13 22 21" fill="none" stroke="#17233D" stroke-width="11" stroke-linecap="round"/>
+  <circle cx="89" cy="47" r="7" fill="#17233D"/>
+  <text x="132" y="68" fill="#17233D" font-family="Inter,Segoe UI,sans-serif" font-size="44" font-weight="700" letter-spacing="-1">Open <tspan fill="#8A6BEA">Query</tspan></text>
+</svg>

@@ -143,7 +143,7 @@ function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <button className="brand" type="button" aria-label="DynamicSQL Studio home" onClick={() => navigateToPage("reports")}><img className="brand-logo" src="/brand-concepts/dynamicsql-studio.svg" alt="" /></button>
+        <button className="brand" type="button" aria-label="Open Query home" onClick={() => navigateToPage("reports")}><img className="brand-logo" src="/brand-concepts/23-oquery-orbit-core.svg" alt="" /></button>
         <nav className="topnav"><button className={page === "builder" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("builder")}><Icon name="query" /> Query builder</button><button className={page === "sources" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("sources")}><Icon name="database" /> Data sources</button><button className={page === "metadata" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("metadata")}><Icon name="schema" /> Metadata</button><button className={page === "functions" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("functions")}><Icon name="function" /> Function definitions</button><button className={page === "documentation" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("documentation")}><Icon name="file-text" /> Docs</button></nav>
         <div className="top-actions">
           {database.providerCheckStatus === "loading" ? (
@@ -233,16 +233,12 @@ function App() {
               <span className="metadata-heading-eyebrow">QUERY METADATA <i /> FUNCTIONS · ARGUMENTS · SQL TEMPLATES</span>
               <h2>Define query functions</h2>
               <p>Manage reusable function definitions and provider-specific raw SQL templates.</p>
-              <div className="metadata-heading-summary" aria-label="Function definition summary">
-                <span><strong>Reusable</strong> functions</span>
-                <span><strong>Provider-specific</strong> SQL templates</span>
-              </div>
             </div>
           </div>
         </section>
         <FunctionDefinitionsWorkspace onNavigationGuardChange={updateFunctionNavigationGuard} />
       </div>}
-      <footer><span><span className="footer-mark">✦</span> DynamicSQL engine</span><span>Metadata-driven queries · Client preview</span></footer>
+      <footer><span><span className="footer-mark">✦</span> oQuery engine</span><span>Metadata-driven queries · Client preview</span></footer>
     </main>
   );
 }

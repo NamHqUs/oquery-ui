@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 112" role="img" aria-labelledby="title desc">
+  <title id="title">oQuery nested ring logo</title>
+  <desc id="desc">A bold Q encloses a smaller O, followed by the oQuery wordmark.</desc>
+  <defs>
+    <linearGradient id="nestedRing" x1="13" y1="13" x2="99" y2="99" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#566CFF"/>
+      <stop offset="1" stop-color="#35D6B0"/>
+    </linearGradient>
+  </defs>
+  <circle cx="53" cy="50" r="37" fill="none" stroke="url(#nestedRing)" stroke-width="11"/>
+  <circle cx="53" cy="50" r="14" fill="none" stroke="#17233D" stroke-width="8"/>
+  <path d="m76 74 21 21" fill="none" stroke="#17233D" stroke-width="11" stroke-linecap="round"/>
+  <text x="118" y="67" fill="#17233D" font-family="Inter,Segoe UI,sans-serif" font-size="48" font-weight="700" letter-spacing="-2">o<tspan fill="#566CFF">Query</tspan></text>
+</svg>

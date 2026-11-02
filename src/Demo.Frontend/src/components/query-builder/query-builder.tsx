@@ -74,13 +74,6 @@ function createContextEntity(
   return { name: context.name, fields };
 }
 
-function countFilters(group: QueryFilterGroup): number {
-  return group.filters.reduce(
-    (count, filter) => count + ("filters" in filter ? countFilters(filter) : 1),
-    0,
-  );
-}
-
 function loadDefinition(): QueryDefinition {
   if (!cachedDefinition) {
     const savedDefinition = window.sessionStorage.getItem(QUERY_DEFINITION_STORAGE_KEY);
@@ -607,12 +600,6 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
             <span className="query-heading-eyebrow">QUERY WORKSPACE <i /> DESIGN Â· RUN Â· REFINE</span>
             <h2>Explore your data</h2>
             <p>Shape a query visually, then inspect its SQL and live results.</p>
-            <div className="query-heading-summary" aria-label="Current query summary">
-              <span><strong>{activeDefinition.columns.length}</strong> fields</span>
-              <span><strong>{countFilters(activeDefinition.filters)}</strong> filters</span>
-              <span><strong>{activeDefinition.sorts.length}</strong> sorts</span>
-              <span className="query-heading-source"><Icon name="table" size={13} />{activeEntity?.name || activeDefinition.entity || "Choose a data source"}</span>
-            </div>
           </div>
         </div>
         <div className="heading-actions">

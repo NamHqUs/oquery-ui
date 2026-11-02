@@ -175,7 +175,7 @@ export function presentationFor(request: ReportDto): ReportPresentation {
     ? request.chartType as ChartType
     : "bar";
   return {
-    description: request.description || "A saved analysis from your DynamicSQL workspace.",
+    description: request.description || "A saved analysis from your oQuery workspace.",
     chartType,
     category: "Custom",
   };

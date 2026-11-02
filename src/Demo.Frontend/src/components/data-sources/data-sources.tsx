@@ -149,14 +149,6 @@ export default function DataSources({ onRequestConnection }: DataSourcesProps) {
             <p>{isConnected
               ? `Connected to ${connectedProfileName || connectedProvider}. Browse tables, inspect relationships, and preview records.`
               : "Connect to a database to browse its schema and records."}</p>
-            <div className="database-heading-summary" aria-label="Database summary">
-              {isConnected && <>
-                <span><strong>{tableStatus === "succeeded" ? tables.length : "—"}</strong> tables</span>
-                <span><strong>{selectedStatus === "succeeded" && selectedData ? selectedData.columns.length : "—"}</strong> columns</span>
-                <span><strong>{selectedStatus === "succeeded" && selectedData ? selectedData.rows.length : "—"}</strong> records</span>
-                <span className="database-heading-current"><Icon name="table" size={13} />{selectedTable ? `${selectedSchema ? `${selectedSchema}.` : ""}${selectedTable}` : "No table selected"}</span>
-              </>}
-            </div>
           </div>
         </div>
         {isConnected && (

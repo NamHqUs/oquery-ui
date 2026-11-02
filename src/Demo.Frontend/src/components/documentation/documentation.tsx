@@ -39,7 +39,7 @@ export default function Documentation() {
         <div className="documentation-sidebar-heading">
           <span className="documentation-sidebar-icon"><Icon name="file-text" size={17} /></span>
           <div>
-            <span className="section-kicker">DYNAMICSQL STUDIO</span>
+            <span className="section-kicker">OQUERY STUDIO</span>
             <strong>Documentation</strong>
           </div>
         </div>
@@ -58,8 +58,8 @@ export default function Documentation() {
       <article className="documentation-content">
         <header className="documentation-hero">
           <span className="eyebrow"><i /> PRODUCT GUIDE · .NET QUERY ENGINE</span>
-          <h1>Build configurable data experiences with DynamicSQL</h1>
-          <p>DynamicSQL turns runtime metadata and query definitions into safe, provider-specific SQL. Use it to power data grids, reports, admin screens, and APIs without creating a CLR class for every table.</p>
+          <h1>Build configurable data experiences with oQuery</h1>
+          <p>oQuery turns runtime metadata and query definitions into safe, provider-specific SQL. Use it to power data grids, reports, admin screens, and APIs without creating a CLR class for every table.</p>
           <div className="documentation-hero-actions">
             <a className="button primary" href="#quickstart"><Icon name="play" size={14} /> Start the quickstart</a>
             <a className="documentation-text-link" href="https://github.com/NamHqUs/OQuery" target="_blank" rel="noreferrer">View source on GitHub <Icon name="chevron" size={13} /></a>
@@ -82,7 +82,7 @@ export default function Documentation() {
         <section id="quickstart" className="documentation-section">
           <div className="documentation-section-heading">
             <span className="section-kicker">01 · QUICKSTART</span>
-            <h2>Run your first dynamic query</h2>
+            <h2>Run your first oQuery query</h2>
             <p>Install the package, describe the fields you want to expose, and query without a generated entity class.</p>
           </div>
           <CodeBlock>{`dotnet add package OQuery`}</CodeBlock>
@@ -143,7 +143,7 @@ var rows = db.Query("User")
           <div className="documentation-section-heading">
             <span className="section-kicker">05 · SECURITY</span>
             <h2>Keep the trust boundary explicit</h2>
-            <p>Dynamic queries are powerful. Pair the compiler with an authorization and resource policy before exposing it to untrusted users.</p>
+            <p>Queries are powerful. Pair the oQuery compiler with an authorization and resource policy before exposing it to untrusted users.</p>
           </div>
           <div className="documentation-security-grid">
             <div><strong>Parameterize values</strong><p>Filters and typed literals are sent through ADO.NET parameters.</p></div>
