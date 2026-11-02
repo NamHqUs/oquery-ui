@@ -92,7 +92,7 @@ public sealed class DynamicQueryService(
                 .Select(context => context with
                 {
                     Query = PrepareQuery(context.Query, dialect),
-                    Condition = context.Condition is null ? null : PrepareCondition(context.Condition)
+                    Relation = context.Relation is null ? null : PrepareCondition(context.Relation)
                 })
                 .ToList()
         };

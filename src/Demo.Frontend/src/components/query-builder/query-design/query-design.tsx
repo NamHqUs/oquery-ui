@@ -177,9 +177,222 @@ type QueryDesignProps = {
   yamlText: string;
   yamlStatus: "idle" | "loading" | "applying";
   yamlError: string;
+  yamlValidationMessage: string;
   onYamlTextChange: (text: string) => void;
+  onFormatYaml: () => void;
+  onInsertYamlTemplate: () => void;
   onApplyYaml: () => void;
 };
+
+function orderContextEntries(contextDefinitions: ApiQueryContextDefinition[]) {
+  const contextNames = new Set(contextDefinitions.map((context) => context.name));
+  const dependencies = new Map<string, Set<string>>();
+
+  for (const context of contextDefinitions) {
+    const names = new Set<string>();
+    const addQueryDependencies = (query: ApiQueryContextDefinition["query"]) => {
+      if (query.entity !== context.name && contextNames.has(query.entity)) names.add(query.entity);
+      query.contexts?.forEach((nestedContext) => {
+        if (nestedContext.name !== context.name && contextNames.has(nestedContext.name)) names.add(nestedContext.name);
+        addQueryDependencies(nestedContext.query);
+      });
+    };
+    addQueryDependencies(context.query);
+    dependencies.set(context.name, names);
+  }
+
+  const depthCache = new Map<string, number>();
+  const getDepth = (name: string, resolving: Set<string>): number => {
+    const cached = depthCache.get(name);
+    if (cached !== undefined) return cached;
+    if (resolving.has(name)) return 0;
+    const nextResolving = new Set(resolving).add(name);
+    const depth = Math.max(
+      0,
+      ...Array.from(dependencies.get(name) ?? [], (dependency) => getDepth(dependency, nextResolving) + 1),
+    );
+    depthCache.set(name, depth);
+    return depth;
+  };
+
+  return contextDefinitions
+    .map((context, index) => ({ context, index, depth: getDepth(context.name, new Set<string>()) }))
+    .sort((left, right) => left.depth - right.depth || left.index - right.index);
+}
+
+function highlightYaml(text: string, functionDefinitions: FunctionDefinition[], errorFunctionName: string): string {
+  const escaped = text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#39;");
+
+  const builtinFunctions = new Set(
+    functionDefinitions.filter((definition) => definition.isBuiltin).map((definition) => definition.name),
+  );
+  const customFunctions = new Set(
+    functionDefinitions
+      .filter((definition) => !definition.isBuiltin && !builtinFunctions.has(definition.name))
+      .map((definition) => definition.name),
+  );
+  const functionNames = [...builtinFunctions, ...customFunctions]
+    .sort((left, right) => right.length - left.length)
+    .map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const highlightedFunctions = functionNames.length
+    ? escaped.replace(new RegExp(`\\b(${functionNames.join("|")})(?=\\s*\\()`, "gi"), (match) => {
+      const className = errorFunctionName && match.toLocaleLowerCase() === errorFunctionName.toLocaleLowerCase()
+        ? "query-yaml-function query-yaml-error-function"
+        : "query-yaml-function";
+      return `<span class="${className}">${match}</span>`;
+    })
+    : escaped;
+
+  return highlightedFunctions.replace(
+    /^(\s*)(Entity|Projection|Filter|Sorts|PageSize|Page|Contexts)(\s*:)/gim,
+    "$1<span class=\"query-yaml-protected-key\">$2$3</span>",
+  );
+}
+
+const yamlListSections = new Set(["Projection", "Sorts", "Contexts"]);
+
+function getYamlLineContext(value: string, position: number) {
+  const beforeCursor = value.slice(0, position);
+  const lineStart = beforeCursor.lastIndexOf("\n") + 1;
+  const currentLine = beforeCursor.slice(lineStart);
+  const lines = value.slice(0, lineStart).split(/\r?\n/);
+  const currentIndentation = currentLine.match(/^\s*/)?.[0] ?? "";
+  const keyHeaders = lines.flatMap((line) => {
+    const match = /^(\s*)([A-Za-z_][A-Za-z0-9_]*)\s*:\s*$/.exec(line);
+    return match ? [{ indentation: match[1]!, name: match[2]! }] : [];
+  });
+  const parentHeader = [...keyHeaders]
+    .reverse()
+    .find((header) => header.indentation.length < currentIndentation.length)
+    ?? keyHeaders[keyHeaders.length - 1];
+
+  return {
+    beforeCursor,
+    lineStart,
+    currentLine,
+    section: parentHeader?.name ?? "",
+    sectionIndentation: parentHeader?.indentation ?? "",
+  };
+}
+
+function getYamlEnterEdit(value: string, selectionStart: number, selectionEnd: number) {
+  const { beforeCursor, lineStart, currentLine, section, sectionIndentation } = getYamlLineContext(value, selectionStart);
+  const afterCursor = value.slice(selectionEnd);
+  const isListSection = yamlListSections.has(section);
+  const trimmedLine = currentLine.trim();
+  const sectionHeader = /^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*$/.exec(trimmedLine);
+  const isListSectionHeader = sectionHeader ? yamlListSections.has(sectionHeader[1]!) : false;
+  const isTopLevelKey = !/^\s/.test(currentLine)
+    && /^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(trimmedLine);
+  const isEmptyListItem = /^-\s*$/.test(trimmedLine);
+
+  if (isEmptyListItem) {
+    const indentation = currentLine.match(/^\s*/)?.[0] ?? "";
+    const parentIndentation = indentation.slice(0, Math.max(0, indentation.length - 2));
+    const normalizedBeforeCursor = `${value.slice(0, lineStart)}${parentIndentation}`;
+    return {
+      value: `${normalizedBeforeCursor}${afterCursor}`,
+      caret: normalizedBeforeCursor.length,
+    };
+  }
+
+  if (!trimmedLine) {
+    const indentation = currentLine.match(/^\s*/)?.[0] ?? "";
+    if (!indentation) {
+      const inserted = "\n";
+      return {
+        value: `${beforeCursor}${inserted}${afterCursor}`,
+        caret: beforeCursor.length + inserted.length,
+      };
+    }
+    const parentIndentation = indentation.slice(0, Math.max(0, indentation.length - 2));
+    const normalizedBeforeCursor = `${value.slice(0, lineStart)}${parentIndentation}`;
+    return {
+      value: `${normalizedBeforeCursor}${afterCursor}`,
+      caret: normalizedBeforeCursor.length,
+    };
+  }
+
+  if ((!isListSection && !isListSectionHeader) || (isTopLevelKey && !isListSectionHeader)) {
+    const indentation = currentLine.match(/^\s*/)?.[0] ?? "";
+    return {
+      value: `${beforeCursor}\n${indentation}${afterCursor}`,
+      caret: beforeCursor.length + indentation.length + 1,
+    };
+  }
+
+  if (isListSectionHeader) {
+    const indentation = currentLine.match(/^\s*/)?.[0] ?? "";
+    const inserted = `\n${indentation}  - `;
+    return {
+      value: `${beforeCursor}${inserted}${afterCursor}`,
+      caret: beforeCursor.length + inserted.length,
+    };
+  }
+
+  const itemText = trimmedLine.replace(/^-+\s*/, "");
+  const listIndentation = `${sectionIndentation}  `;
+  const normalizedLine = `${listIndentation}- ${itemText}`;
+  const normalizedBeforeCursor = `${value.slice(0, lineStart)}${normalizedLine}`;
+  const inserted = `\n${listIndentation}- `;
+  return {
+    value: `${normalizedBeforeCursor}${inserted}${afterCursor}`,
+    caret: normalizedBeforeCursor.length + inserted.length,
+  };
+}
+
+function YamlEditor({
+  value,
+  disabled,
+  onChange,
+  onKeyDown,
+  functionDefinitions,
+  errorFunctionName,
+}: {
+  value: string;
+  disabled: boolean;
+  onChange: (value: string) => void;
+  onKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  functionDefinitions: FunctionDefinition[];
+  errorFunctionName: string;
+}) {
+  const highlightRef = useRef<HTMLPreElement>(null);
+  const lineNumbersRef = useRef<HTMLPreElement>(null);
+
+  return (
+    <div className="query-yaml-code-editor">
+      <pre ref={lineNumbersRef} className="query-yaml-line-numbers" aria-hidden="true">
+        {value.split("\n").map((_, index) => `${index + 1}\n`).join("")}
+      </pre>
+      <pre
+        ref={highlightRef}
+        className="query-yaml-highlight"
+        aria-hidden="true"
+        dangerouslySetInnerHTML={{ __html: highlightYaml(value, functionDefinitions, errorFunctionName) || " " }}
+      />
+      <textarea
+        className="query-yaml-textarea"
+        aria-label="Query YAML"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={onKeyDown}
+        onScroll={(event) => {
+          if (!highlightRef.current) return;
+          highlightRef.current.scrollTop = event.currentTarget.scrollTop;
+          highlightRef.current.scrollLeft = event.currentTarget.scrollLeft;
+          if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = event.currentTarget.scrollTop;
+        }}
+        spellCheck={false}
+        disabled={disabled}
+      />
+    </div>
+  );
+}
 
 export default function QueryDesign({
   metadata,
@@ -207,13 +420,17 @@ export default function QueryDesign({
   yamlText,
   yamlStatus,
   yamlError,
+  yamlValidationMessage,
   onYamlTextChange,
+  onFormatYaml,
+  onInsertYamlTemplate,
   onApplyYaml,
 }: QueryDesignProps) {
   const [draggedProjectionField, setDraggedProjectionField] = useState<string | null>(null);
   const [contextDialogOpen, setContextDialogOpen] = useState(false);
   const [newContextName, setNewContextName] = useState("");
   const [contextNameError, setContextNameError] = useState("");
+  const orderedContextEntries = orderContextEntries(contextDefinitions);
   const contextEntities = contextDefinitions.map((context) => {
     const fields = context.query.projection?.flatMap((projection) => {
       const alias = projection.alias?.trim();
@@ -270,19 +487,15 @@ export default function QueryDesign({
     setNewContextName("");
     setContextNameError("");
   };
+  const openContextDialog = () => {
+    setContextDialogOpen(true);
+    setContextNameError("");
+  };
 
   return (
     <section className="query-builder-card">
       {contextDefinitions.length > 0 && <nav className="query-context-bar" aria-label="Query contexts">
-        <button
-          type="button"
-          className={`query-context-tab${selectedContextIndex === null ? " selected" : ""}`}
-          aria-pressed={selectedContextIndex === null}
-          onClick={() => onSelectContext(null)}
-        >
-          <Icon name="query" size={14} /> Main Query
-        </button>
-        {contextDefinitions.map((context, index) => {
+        {orderedContextEntries.map(({ context, index }) => {
           const contextError = context.query.entity.trim() ? null : "Select an entity.";
           return <div className="query-context-tab-wrap" key={`${context.id ?? context.name}-${index}`}>
             <button
@@ -301,6 +514,14 @@ export default function QueryDesign({
             </button>
           </div>;
         })}
+        <button
+          type="button"
+          className={`query-context-tab${selectedContextIndex === null ? " selected" : ""}`}
+          aria-pressed={selectedContextIndex === null}
+          onClick={() => onSelectContext(null)}
+        >
+          <Icon name="query" size={14} /> Main Query
+        </button>
       </nav>}
       <div className="query-name-row">
         <div className="query-name-field">
@@ -321,41 +542,103 @@ export default function QueryDesign({
           {selectedContextIndex === null && requestNameError && <p className="query-name-warning" id="query-name-error" role="alert">{requestNameError}</p>}
         </div>
       </div>
+      {contextDialogOpen && <div className="context-name-backdrop">
+        <form className="context-name-dialog" onSubmit={submitContext}>
+          <span className="section-kicker">NEW CONTEXT</span>
+          <h3>Create a context</h3>
+          <p>Give this context a name. You can choose its entity and relations afterward.</p>
+          <label htmlFor="new-context-name">Context name</label>
+          <input
+            id="new-context-name"
+            autoFocus
+            value={newContextName}
+            onChange={(event) => {
+              setNewContextName(event.target.value);
+              setContextNameError("");
+            }}
+            placeholder="e.g. InvoiceDetails"
+            aria-invalid={Boolean(contextNameError)}
+            aria-describedby={contextNameError ? "new-context-name-error" : undefined}
+          />
+          {contextNameError && <p className="context-name-error" id="new-context-name-error" role="alert">{contextNameError}</p>}
+          <div className="context-name-actions">
+            <button type="button" className="button secondary" onClick={() => {
+              setContextDialogOpen(false);
+              setNewContextName("");
+              setContextNameError("");
+            }}>Cancel</button>
+            <button type="submit" className="button primary">Create context</button>
+          </div>
+        </form>
+      </div>}
       {editorMode === "yaml" ? (
         <div className="query-yaml-editor" role="tabpanel" aria-label="YAML query editor">
           <div className="query-yaml-editor-header">
             <div>
               <span className="section-kicker">QUERY YAML</span>
-              <p>Edit the query definition, then apply it to validate and load the visual design.</p>
+              <p>Use the template, edit values, and press Enter in list sections to auto-indent items. Format and check syntax when ready.</p>
+              <div className="query-yaml-function-legend" aria-label="Function color legend">
+                <span className="query-yaml-function">Function</span>
+              </div>
             </div>
-            <button
-              type="button"
-              className="button primary"
-              onClick={onApplyYaml}
-              disabled={yamlStatus !== "idle" || !yamlText.trim()}
-            >
-              {yamlStatus === "applying" ? "Applying…" : "Apply YAML"}
-            </button>
+            <div className="query-yaml-editor-actions">
+              <button type="button" className="button secondary" onClick={onInsertYamlTemplate} disabled={yamlStatus !== "idle"}>
+                <Icon name="file-plus" size={14} /> Template
+              </button>
+              <button type="button" className="button secondary" onClick={onFormatYaml} disabled={yamlStatus !== "idle" || !yamlText.trim()}>
+                <Icon name="code" size={14} /> Format
+              </button>
+              {selectedContextIndex === null && <button type="button" className="button secondary" onClick={openContextDialog}>
+                <Icon name="plus" size={14} /> Add context
+              </button>}
+              <button
+                type="button"
+                className="button primary"
+                onClick={onApplyYaml}
+                disabled={yamlStatus !== "idle" || !yamlText.trim()}
+              >
+                {yamlStatus === "applying" ? "Checking…" : "Check YAML"}
+              </button>
+            </div>
           </div>
-          <textarea
-            className="query-yaml-textarea"
-            aria-label="Query YAML"
+          <YamlEditor
             value={yamlText}
-            onChange={(event) => onYamlTextChange(event.target.value)}
-            spellCheck={false}
+            onChange={onYamlTextChange}
+            onKeyDown={(event) => {
+              const textarea = event.currentTarget;
+              if (event.key === "Enter") {
+                event.preventDefault();
+                const edit = getYamlEnterEdit(textarea.value, textarea.selectionStart, textarea.selectionEnd);
+                onYamlTextChange(edit.value);
+                requestAnimationFrame(() => {
+                  textarea.selectionStart = edit.caret;
+                  textarea.selectionEnd = edit.caret;
+                });
+                return;
+              }
+              if (event.key !== "Tab") return;
+              event.preventDefault();
+              const start = textarea.selectionStart;
+              const end = textarea.selectionEnd;
+              onYamlTextChange(`${textarea.value.slice(0, start)}  ${textarea.value.slice(end)}`);
+              requestAnimationFrame(() => {
+                textarea.selectionStart = start + 2;
+                textarea.selectionEnd = start + 2;
+              });
+            }}
+            functionDefinitions={functionDefinitions}
+            errorFunctionName={yamlError.match(/:\s+([A-Za-z_][A-Za-z0-9_]*) requires at least/i)?.[1] ?? ""}
             disabled={yamlStatus !== "idle"}
           />
           {yamlStatus === "loading" && <p className="query-message">Loading YAML…</p>}
+          {yamlValidationMessage && <p className="query-yaml-valid" role="status">{yamlValidationMessage}</p>}
           {yamlError && <p className="query-message error" role="alert">{yamlError}</p>}
         </div>
       ) : <><div className="query-builder-toolbar">
         <div className="query-entity-field">
           <div className="query-entity-label-row">
             <span className="section-kicker">ENTITY</span>
-            {selectedContextIndex === null && <button className="field-action field-action-icon query-create-context" type="button" aria-label="Create context" title="Create context" onClick={() => {
-              setContextDialogOpen(true);
-              setContextNameError("");
-            }}>
+            {selectedContextIndex === null && <button className="field-action field-action-icon query-create-context" type="button" aria-label="Create context" title="Create context" onClick={openContextDialog}>
               <Icon name="plus" size={14} />
             </button>}
           </div>
@@ -398,36 +681,6 @@ export default function QueryDesign({
           </label>
         </div>
       </div>
-      {contextDialogOpen && <div className="context-name-backdrop">
-        <form className="context-name-dialog" onSubmit={submitContext}>
-          <span className="section-kicker">NEW CONTEXT</span>
-          <h3>Create a context</h3>
-          <p>Give this context a name. You can choose its entity and relations afterward.</p>
-          <label htmlFor="new-context-name">Context name</label>
-          <input
-            id="new-context-name"
-            autoFocus
-            value={newContextName}
-            onChange={(event) => {
-              setNewContextName(event.target.value);
-              setContextNameError("");
-            }}
-            placeholder="e.g. InvoiceDetails"
-            aria-invalid={Boolean(contextNameError)}
-            aria-describedby={contextNameError ? "new-context-name-error" : undefined}
-          />
-          {contextNameError && <p className="context-name-error" id="new-context-name-error" role="alert">{contextNameError}</p>}
-          <div className="context-name-actions">
-            <button type="button" className="button secondary" onClick={() => {
-              setContextDialogOpen(false);
-              setNewContextName("");
-              setContextNameError("");
-            }}>Cancel</button>
-            <button type="submit" className="button primary">Create context</button>
-          </div>
-        </form>
-      </div>}
-
       {metadataStatus === "loading" && <p className="query-message">Loading metadata…</p>}
       {metadataStatus === "failed" && <p className="query-message error" role="alert">{metadataError}</p>}
       {(selectedContextIndex === null && contextDefinitions.length > 0)

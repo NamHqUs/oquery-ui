@@ -295,6 +295,14 @@ export function fromApiQueryDefinition(query: ApiQueryDefinition): QueryDefiniti
       ? query.filter
       : { logicalOperation: 0, filters: [query.filter] }
     : null;
+  const contextCatalog: ApiQueryContextDefinition[] = [];
+  const addContext = (context: ApiQueryContextDefinition) => {
+    const key = context.id ?? context.name;
+    if (contextCatalog.some((item) => (item.id ?? item.name) === key)) return;
+    contextCatalog.push(context);
+    context.query.contexts?.forEach(addContext);
+  };
+  query.contexts?.forEach(addContext);
 
   return fromApiQuery({
     entity: query.entity,
@@ -307,6 +315,7 @@ export function fromApiQueryDefinition(query: ApiQueryDefinition): QueryDefiniti
     page: query.page ?? null,
     pageSize: query.pageSize ?? null,
     contexts: query.contexts,
+    contextCatalog,
   });
 }
 

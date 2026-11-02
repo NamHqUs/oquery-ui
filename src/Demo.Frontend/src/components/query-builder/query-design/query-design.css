@@ -2,10 +2,24 @@
 .query-editor-tabs { margin-left: 0; }
 .query-yaml-editor { display: grid; gap: 12px; }
 .query-yaml-editor-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.query-yaml-editor-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .query-yaml-editor-header p { margin: 6px 0 0; color: #9299aa; font-size: 12px; line-height: 1.5; }
-.query-yaml-textarea { width: 100%; min-height: 520px; box-sizing: border-box; resize: vertical; padding: 16px; color: #dce1eb; border: 1px solid #323947; border-radius: 7px; background: #0b1018; font: 13px/1.6 "Cascadia Code", Consolas, monospace; tab-size: 2; outline: 0; }
-.query-yaml-textarea:focus { border-color: #7054d4; box-shadow: 0 0 0 2px #7054d433; }
+.query-yaml-function-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; font-size: 11px; }
+.query-yaml-function { color: #f2c14e; font-weight: 700; }
+.query-yaml-error-function { color: #ff5668; background: #ff566826; border-radius: 3px; box-shadow: 0 0 0 1px #ff566880; }
+.query-yaml-code-editor { position: relative; min-height: 520px; overflow: hidden; border: 1px solid #323947; border-radius: 7px; background: #0b1018; }
+.query-yaml-highlight, .query-yaml-textarea, .query-yaml-line-numbers { position: absolute; inset: 0; height: 100%; box-sizing: border-box; margin: 0; padding: 16px; overflow: auto; font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; letter-spacing: normal; tab-size: 2; white-space: pre; }
+.query-yaml-line-numbers { z-index: 1; width: 45px; overflow: hidden; color: #596477; border-right: 1px solid #252d3b; text-align: right; user-select: none; }
+.query-yaml-highlight { left: 45px; width: calc(100% - 45px); color: #dce1eb; pointer-events: none; }
+.query-yaml-protected-key { color: #d7bdff; font-weight: 700; text-decoration: none; }
+.query-yaml-highlight .query-yaml-function { color: #f2c14e; }
+.query-yaml-highlight .query-yaml-error-function { color: #ff5668; }
+.query-yaml-textarea { z-index: 2; width: 100%; resize: vertical; color: transparent; caret-color: #f0ecff; border: 0; border-radius: 0; background: transparent; outline: 0; -webkit-text-fill-color: transparent; padding-left: 61px; }
+.query-yaml-textarea { scrollbar-color: #514476 transparent; }
+.query-yaml-textarea::selection { color: transparent; background: #7054d488; }
+.query-yaml-code-editor:focus-within { border-color: #7054d4; box-shadow: 0 0 0 2px #7054d433; }
 .query-yaml-textarea:disabled { opacity: .7; }
+.query-yaml-valid { margin: 0; color: #77d7b0; font-size: 12px; }
 .query-builder-toolbar { display: flex; align-items: flex-start; gap: 16px; padding: 0; margin-bottom: 16px; border-bottom: 0; background: transparent; }
 .query-entity-field { display: flex; flex-direction: column; gap: 7px; }
 .query-entity-label-row { display: flex; align-items: center; gap: 12px; min-height: 22px; color: #aab3c2; font: 11px "Manrope", sans-serif; letter-spacing: .7px; text-transform: uppercase; }
@@ -251,4 +265,4 @@
 .filter-drop-zone-after.filter-drop-preview { height: 3px; margin-top: 0; }
 .filter-row.filter-drop-preview-before { border-top: 2px solid #a78bfa; }
 .filter-row.filter-drop-preview-after { border-bottom: 2px solid #a78bfa; }
-@media (max-width: 760px) { .query-builder-toolbar { flex-wrap: wrap; } .query-yaml-editor-header { flex-direction: column; } .query-yaml-textarea { min-height: 420px; } .filter-row { flex-wrap: wrap; } .filter-row select, .filter-row input { min-width: 130px; } }
+@media (max-width: 760px) { .query-builder-toolbar { flex-wrap: wrap; } .query-yaml-editor-header { flex-direction: column; } .query-yaml-editor-actions { justify-content: flex-start; } .query-yaml-code-editor { min-height: 420px; } .filter-row { flex-wrap: wrap; } .filter-row select, .filter-row input { min-width: 130px; } }

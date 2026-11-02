@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
+import { parseDocument } from "yaml";
+import type { FunctionDefinition } from "../function-definition/types";
 import Icon from "../icon/icon";
 import { useMessageBox } from "../message-box/message-box";
 import PanelSplitter from "../panel-splitter/panel-splitter";
@@ -164,6 +166,185 @@ function getYamlEntity(text: string): string {
     : value;
 }
 
+function preserveYamlKeys(formatted: string, source: string): string {
+  const topLevelKeyPattern = /^([A-Za-z_][A-Za-z0-9_]*)\s*:/gm;
+  const formattedKeys = new Set(Array.from(formatted.matchAll(topLevelKeyPattern), (match) => match[1]!.toLowerCase()));
+  const sourceKeys = Array.from(source.matchAll(topLevelKeyPattern), (match) => match[1]!);
+  const missingKeys = sourceKeys.filter((key, index) =>
+    !formattedKeys.has(key.toLowerCase())
+    && sourceKeys.findIndex((sourceKey) => sourceKey.toLowerCase() === key.toLowerCase()) === index);
+  if (!missingKeys.length) return formatted;
+  return `${formatted.trimEnd()}\n${missingKeys.map((key) => `${key}:`).join("\n")}\n`;
+}
+
+function getYamlSyntaxError(
+  text: string,
+  functionDefinitions: FunctionDefinition[],
+  filterOperators: FilterOperatorDefinition[],
+): string | null {
+  try {
+    const document = parseDocument(text, { uniqueKeys: true });
+    const error = document.errors[0];
+    if (error) {
+      const position = (error as { linePos?: [{ line: number; col: number }] }).linePos?.[0];
+      return position
+        ? `Line ${position.line}, column ${position.col}: ${error.message}`
+        : `Invalid YAML: ${error.message}`;
+    }
+
+    return getYamlFilterSyntaxError(text, filterOperators) ?? getYamlExpressionSyntaxError(text, functionDefinitions);
+  } catch (error) {
+    return `Invalid YAML: ${error instanceof Error ? error.message : "Unable to parse YAML."}`;
+  }
+}
+
+function getYamlFilterSyntaxError(text: string, filterOperators: FilterOperatorDefinition[]): string | null {
+  const operatorTokens = filterOperators
+    .flatMap((operator) => [operator.symbol, operator.name])
+    .filter((token) => token.trim())
+    .map((token) => token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const operatorPattern = operatorTokens.length
+    ? new RegExp(`(?:${operatorTokens.join("|")})`, "i")
+    : /[=<>!]|\b(?:IS|IN|LIKE|BETWEEN|CONTAINS|NULL)\b/i;
+
+  for (const [index, line] of text.split(/\r?\n/).entries()) {
+    const match = /^(\s*)Filter\s*:\s*(.*)$/i.exec(line);
+    const expression = match?.[2]?.trim();
+    if (!match || !expression || operatorPattern.test(expression)) continue;
+    const column = line.indexOf(expression) + 1;
+    return `Line ${index + 1}, column ${column}: Filter expression must include an operator. Try "UserId = <value>".`;
+  }
+
+  return null;
+}
+
+function getYamlExpressionSyntaxError(text: string, functionDefinitions: FunctionDefinition[]): string | null {
+  const openings: Array<{ line: number; column: number }> = [];
+  let quote: "'" | "\"" | null = null;
+  let escaped = false;
+  let line = 1;
+  let column = 0;
+
+  for (const character of text) {
+    column += 1;
+    if (character === "\n") {
+      line += 1;
+      column = 0;
+      escaped = false;
+      continue;
+    }
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (character === "\\") {
+        escaped = true;
+      } else if (character === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (character === "'" || character === "\"") {
+      quote = character;
+      continue;
+    }
+    if (character === "(") {
+      openings.push({ line, column });
+      continue;
+    }
+    if (character !== ")") continue;
+    if (!openings.pop()) return `Line ${line}, column ${column}: Unexpected closing ")" in expression.`;
+  }
+
+  const opening = openings[openings.length - 1];
+  if (opening) return `Line ${opening.line}, column ${opening.column}: Function expression is missing a closing ")".`;
+
+  const functionSignatures = new Map(
+    functionDefinitions.map((definition) => [
+      definition.name.toLocaleLowerCase(),
+      {
+        name: definition.name,
+        requiredArguments: definition.arguments.filter((argument) =>
+          argument.defaultValue === null || argument.defaultValue === undefined).length,
+        totalArguments: definition.arguments.length,
+      },
+    ]),
+  );
+  let functionQuote: "'" | "\"" | null = null;
+  let functionEscaped = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index]!;
+    if (functionQuote) {
+      if (functionEscaped) functionEscaped = false;
+      else if (character === "\\") functionEscaped = true;
+      else if (character === functionQuote) functionQuote = null;
+      continue;
+    }
+    if (character === "'" || character === "\"") {
+      functionQuote = character;
+      continue;
+    }
+    if (!/[A-Za-z_]/.test(character)) continue;
+    const nameStart = index;
+    let nameEnd = index + 1;
+    while (nameEnd < text.length && /[A-Za-z0-9_]/.test(text[nameEnd]!)) nameEnd += 1;
+    const signature = functionSignatures.get(text.slice(nameStart, nameEnd).toLocaleLowerCase());
+    if (!signature) {
+      index = nameEnd - 1;
+      continue;
+    }
+    let openingIndex = nameEnd;
+    while (openingIndex < text.length && /\s/.test(text[openingIndex]!)) openingIndex += 1;
+    if (text[openingIndex] !== "(") {
+      index = nameEnd - 1;
+      continue;
+    }
+
+    let depth = 1;
+    let argumentCount = 0;
+    let hasArgument = false;
+    let argumentQuote: "'" | "\"" | null = null;
+    let argumentEscaped = false;
+    for (let argumentIndex = openingIndex + 1; argumentIndex < text.length; argumentIndex += 1) {
+      const argumentCharacter = text[argumentIndex]!;
+      if (argumentQuote) {
+        if (argumentEscaped) argumentEscaped = false;
+        else if (argumentCharacter === "\\") argumentEscaped = true;
+        else if (argumentCharacter === argumentQuote) argumentQuote = null;
+        continue;
+      }
+      if (argumentCharacter === "'" || argumentCharacter === "\"") {
+        argumentQuote = argumentCharacter;
+      } else if (argumentCharacter === "(") {
+        depth += 1;
+        hasArgument = true;
+      } else if (argumentCharacter === ")") {
+        depth -= 1;
+        if (depth === 0) {
+          if (hasArgument) argumentCount += 1;
+          break;
+        }
+      } else if (depth === 1 && argumentCharacter === ",") {
+        argumentCount += 1;
+      } else if (depth === 1 && !/\s/.test(argumentCharacter)) {
+        hasArgument = true;
+      }
+    }
+
+    const line = text.slice(0, nameStart).split(/\r?\n/).length;
+    const lastLineBreak = text.lastIndexOf("\n", nameStart - 1);
+    const column = nameStart - lastLineBreak;
+    if (argumentCount < signature.requiredArguments) {
+      return `Line ${line}, column ${column}: ${signature.name} requires at least ${signature.requiredArguments} argument(s), but ${argumentCount} provided.`;
+    }
+    if (argumentCount > signature.totalArguments) {
+      return `Line ${line}, column ${column}: ${signature.name} accepts at most ${signature.totalArguments} argument(s), but ${argumentCount} provided.`;
+    }
+    index = nameEnd - 1;
+  }
+
+  return null;
+}
+
 function pruneFilters(group: QueryFilterGroup, entity: MetadataEntity, metadata: MetadataEntity[]): QueryFilterGroup {
   return {
     ...group,
@@ -272,8 +453,14 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
   const { connectedProvider, connectionStatus } = useSelector((state: RootState) => state.database);
   const [definition, setDefinition] = useState<QueryDefinition>(loadDefinition);
   const [requestName, setRequestName] = useState("");
+  const [yamlText, setYamlText] = useState("");
+  const [yamlStatus, setYamlStatus] = useState<"idle" | "loading" | "applying">("idle");
+  const [yamlError, setYamlError] = useState("");
+  const [yamlValidationMessage, setYamlValidationMessage] = useState("");
   const boundModelRef = useRef(JSON.stringify({ definition, requestName }));
-  const hasUnsavedChanges = JSON.stringify({ definition, requestName }) !== boundModelRef.current;
+  const boundYamlTextRef = useRef("");
+  const hasUnsavedChanges = JSON.stringify({ definition, requestName }) !== boundModelRef.current
+    || yamlText !== boundYamlTextRef.current;
   const [selectedContextIndex, setSelectedContextIndex] = useState<number | null>(null);
   const [selectedRequestName, setSelectedRequestName] = useState<string | null>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
@@ -282,9 +469,6 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
   const [requestNameError, setRequestNameError] = useState("");
   const [isSavingQuery, setIsSavingQuery] = useState(false);
   const [editorMode, setEditorMode] = useState<"visual" | "yaml">("visual");
-  const [yamlText, setYamlText] = useState("");
-  const [yamlStatus, setYamlStatus] = useState<"idle" | "loading" | "applying">("idle");
-  const [yamlError, setYamlError] = useState("");
   const entity = useMemo(() => metadata.find((item) => item.name === definition.entity), [metadata, definition.entity]);
   const selectedContext = selectedContextIndex === null ? undefined : definition.contextCatalog?.[selectedContextIndex];
   const activeContextIndex = selectedContext ? selectedContextIndex : null;
@@ -345,6 +529,8 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
     try {
       const text = await dispatch(getQueryRequestText(definitionToSerialize)).unwrap();
       setYamlText(text);
+      boundYamlTextRef.current = text;
+      setYamlValidationMessage("");
     } catch (error) {
       setYamlError(typeof error === "string" ? error : "Unable to load YAML query.");
     } finally {
@@ -368,10 +554,16 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
     if (!yamlText.trim() || yamlStatus !== "idle") return;
     setYamlStatus("applying");
     setYamlError("");
+    setYamlValidationMessage("");
     try {
+      const syntaxError = getYamlSyntaxError(yamlText, functionDefinitions, filterOperators);
+      if (syntaxError) {
+        setYamlError(syntaxError);
+        return;
+      }
       const entityForParse = activeDefinition.entity.trim() || getYamlEntity(yamlText);
       if (!entityForParse) {
-        setYamlError("YAML query must include an Entity.");
+        setYamlError("Missing Entity: YAML query must include an Entity.");
         return;
       }
       const parsed = await dispatch(parseQueryRequestText({
@@ -379,11 +571,55 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
         entity: entityForParse,
       })).unwrap();
       updateDefinitionFromDesign(fromApiQueryDefinition(parsed));
+      setYamlValidationMessage("Valid YAML");
     } catch (error) {
       setYamlError(typeof error === "string" ? error : "Unable to parse YAML query.");
     } finally {
       setYamlStatus("idle");
     }
+  };
+  const formatYaml = async () => {
+    if (!yamlText.trim() || yamlStatus !== "idle") return;
+    setYamlStatus("applying");
+    setYamlError("");
+    setYamlValidationMessage("");
+    try {
+      const syntaxError = getYamlSyntaxError(yamlText, functionDefinitions, filterOperators);
+      if (syntaxError) {
+        setYamlError(syntaxError);
+        return;
+      }
+      const entityForParse = activeDefinition.entity.trim() || getYamlEntity(yamlText);
+      if (!entityForParse) {
+        setYamlError("Missing Entity: YAML query must include an Entity.");
+        return;
+      }
+      const parsed = await dispatch(parseQueryRequestText({
+        text: yamlText,
+        entity: entityForParse,
+      })).unwrap();
+      const formatted = await dispatch(getQueryRequestText(fromApiQueryDefinition(parsed))).unwrap();
+      setYamlText(preserveYamlKeys(formatted, yamlText));
+    } catch (error) {
+      setYamlError(typeof error === "string" ? error : "Unable to format YAML query.");
+    } finally {
+      setYamlStatus("idle");
+    }
+  };
+  const insertYamlTemplate = () => {
+    const entityName = activeDefinition.entity.trim();
+    setYamlError("");
+    setYamlValidationMessage("");
+    setYamlText([
+      `Entity: ${entityName}`,
+      "Projection:",
+      "  - ",
+      "Filter:",
+      "Sorts:",
+      "Page: 1",
+      "PageSize: 50",
+      "Contexts:",
+    ].join("\n"));
   };
   const updateRequestName = (name: string) => {
     setRequestName(name);
@@ -595,6 +831,11 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
     setRequestName("");
     setRequestNameError("");
     setQueryRequestNotice("");
+    setYamlText("");
+    boundYamlTextRef.current = "";
+    setYamlError("");
+    setYamlValidationMessage("");
+    setYamlStatus("idle");
     const nextDefinition = createDefinition("");
     boundModelRef.current = JSON.stringify({ definition: nextDefinition, requestName: "" });
     updateDefinition(nextDefinition);
@@ -737,8 +978,11 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
               yamlError={yamlError}
               onYamlTextChange={(text) => {
                 setYamlText(text);
-                setYamlError("");
+                setYamlValidationMessage("");
               }}
+              yamlValidationMessage={yamlValidationMessage}
+              onFormatYaml={() => void formatYaml()}
+              onInsertYamlTemplate={insertYamlTemplate}
               onApplyYaml={() => void applyYaml()}
             />
           </div>

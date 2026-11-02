@@ -152,7 +152,7 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
                     {
                         ["RefContextId"] = id,
                         ["Alias"] = alias,
-                        ["Condition"] = GetProperty(legacyContext, "Condition")?.DeepClone(),
+                        ["Relation"] = GetProperty(legacyContext, "Relation")?.DeepClone(),
                         ["JoinType"] = GetProperty(legacyContext, "JoinType")?.DeepClone() ?? "Left"
                     });
                 }
@@ -286,7 +286,7 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
             foreach (var relationNode in relations.OfType<JsonObject>())
             {
                 var conditionProperty = relationNode.FirstOrDefault(property =>
-                    string.Equals(property.Key, "Condition", StringComparison.OrdinalIgnoreCase));
+                    string.Equals(property.Key, "Relation", StringComparison.OrdinalIgnoreCase));
                 if (conditionProperty.Value is not JsonValue conditionValue
                     || !conditionValue.TryGetValue<string>(out var conditionText)
                     || string.IsNullOrWhiteSpace(conditionText))

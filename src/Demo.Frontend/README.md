@@ -56,6 +56,10 @@ To change the default, edit `debugUiEnabled` in `src/components/query-builder/qu
 
 Query Builder provides Visual and YAML tabs in the page header. The YAML tab
 loads the canonical query request from the backend, supports editing or
-creating a query definition, and validates changes with **Apply YAML**. While
+creating a query definition, provides a starter **Template**, indentation with
+the Tab key, line numbers, local syntax diagnostics, and backend-backed
+**Format** and **Check YAML** actions. Complete YAML documents can be pasted
+or replaced freely; required keys are validated rather than blocking editing.
+While
 YAML is selected, **Run query** and **Get SQL statement** execute the edited
 text directly through the backend text-query endpoints.

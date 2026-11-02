@@ -18,7 +18,7 @@ public sealed record QueryContextDto(
 public sealed record RelationDto(
     string RefContextId,
     string Alias,
-    IConditionDefintion? Condition,
+    IConditionDefintion? Relation,
     QueryJoinType JoinType = QueryJoinType.Left);
 
 public sealed record QueryDto(
