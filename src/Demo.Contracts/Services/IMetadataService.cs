@@ -1,6 +1,5 @@
 using Demo.Contracts.Dto;
 using OQuery;
-using OQuery;
 
 namespace Demo.Contracts.Services;
 

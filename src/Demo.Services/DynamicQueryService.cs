@@ -1,7 +1,6 @@
 using Demo.Contracts.Services;
 using Microsoft.Extensions.Logging;
 using OQuery;
-using OQuery;
 
 namespace Demo.Services;
 
