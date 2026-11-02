@@ -57,7 +57,7 @@ dotnet test .\src\OQuery.UI.UnitTest\OQuery.UI.UnitTest.csproj
 Run the core provider tests against every database service with:
 
 ```powershell
-docker compose -f .\docker\docker-compose.dbservers.yml up -d
+docker compose -f .\oquery\docker\docker-compose.dbservers.yml up -d
 dotnet test .\oquery\src\OQuery.UnitTest\OQuery.UnitTest.csproj
 ```
 
