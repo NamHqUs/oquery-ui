@@ -33,6 +33,13 @@ npm install
 npm run dev
 ```
 
+## Projection condition arguments
+
+Opening a calculation such as `CountIf(IsAbnormal = <true>)` displays its
+condition argument as a labeled, read-only condition instead of a function
+selector. Applying the calculation preserves the structured condition,
+including its operand types and nested groups.
+
 ## Expression builder debug visuals
 
 The expression builder's debug outline, model tooltips, and model JSON panel are controlled by `debugUiEnabled` in the `queryBuilder` Redux state. To change what appears after a browser refresh, edit the `debugUiEnabled` value in the slice's `initialState` (`true` shows the debug UI; `false` hides it). This is a source-code flag and does not require a `.env` setting.

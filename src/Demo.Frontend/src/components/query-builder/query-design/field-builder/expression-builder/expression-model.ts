@@ -335,30 +335,28 @@ export function updateFunction(
 
 function formatCondition(condition: Extract<IFieldDefinition, { kind: "condition" }>["condition"]): string {
   const operators = ["=", "<>", "LIKE", "NOT LIKE", ">", "<", ">=", "<=", "BETWEEN", "NOT BETWEEN", "IN", "NOT IN", "IS NULL", "IS NOT NULL"];
-  const formatOperand = (operand: unknown): string => {
+  const formatOperand = (operand: IFieldDefinition | string | number | boolean | null | undefined): string => {
     if (typeof operand === "string") return operand;
-    if (operand && typeof operand === "object" && "kind" in operand)
-      return formatExpression(operand as IFieldDefinition);
+    if (operand && typeof operand === "object") return formatExpression(operand);
     return `<${String(operand ?? "")}>`;
   };
-  const formatGroup = (group: unknown): string => {
-    if (!group || typeof group !== "object" || !("filters" in group) || !Array.isArray(group.filters)) return "";
-    return group.filters.map((filter: unknown, index: number) => {
-      if (!filter || typeof filter !== "object") return "";
-      if ("filters" in filter) return `(${formatGroup(filter)})`;
-      const left = "left" in filter ? formatOperand(filter.left) : "";
-      const operation = "operation" in filter && typeof filter.operation === "number"
+  const formatGroup = (group: typeof condition): string =>
+    group.filters.map((filter, index) => {
+      const logicalOperator = "filters" in filter ? filter.logicalOperation : filter.logicalOperator;
+      const logical = index > 0 ? Number(logicalOperator) === 1 ? " OR " : " AND " : "";
+      if ("filters" in filter) return `${logical}(${formatGroup(filter)})`;
+      const left = formatOperand(filter.left ?? filter.field);
+      const operation = typeof filter.operation === "number"
         ? operators[filter.operation] ?? String(filter.operation)
-        : "operation" in filter ? String(filter.operation) : "=";
-      const right = "right" in filter && filter.right !== null && filter.right !== undefined
-        ? ` ${operation} ${formatOperand(filter.right)}`
+        : String(filter.operation);
+      const rightOperand = filter.right !== null && filter.right !== undefined
+        ? formatOperand(filter.right)
+        : filter.value !== null && filter.value !== undefined ? `<${String(filter.value)}>` : undefined;
+      const right = rightOperand !== undefined
+        ? ` ${operation} ${rightOperand}`
         : ` ${operation}`;
-      const logical = index > 0 && "logicalOperator" in filter
-        ? Number(filter.logicalOperator) === 1 ? " OR " : " AND "
-        : "";
       return `${logical}${left}${right}`;
     }).join("");
-  };
   return formatGroup(condition);
 }
 

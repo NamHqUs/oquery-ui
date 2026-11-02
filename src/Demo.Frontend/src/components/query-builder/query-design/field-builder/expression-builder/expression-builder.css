@@ -119,6 +119,12 @@
   font: 12px/1.7 "Manrope", sans-serif;
 }
 
+.expression-condition-node {
+  position: relative;
+  min-width: 0;
+  padding-right: 28px;
+}
+
 .expression-preview-json {
   max-height: 220px;
   overflow: auto;

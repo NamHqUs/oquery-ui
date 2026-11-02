@@ -12,6 +12,7 @@ import Icon from "../../../../icon/icon";
 import type { FunctionDefinition } from "../../../../function-definition/types";
 import FunctionBuilder from "../function-builder/function-builder";
 import {
+  formatExpression,
   getGroupArgumentOperator,
   isSameExpressionPath,
   mathOperatorLabels,
@@ -542,6 +543,36 @@ export default function NodeEditor({
       { kind: "field", field: "" },
     ],
   }));
+
+  if (expression.kind === "condition") {
+    return (
+      <div
+        className={`expression-condition-node expression-preview expression-debug-target expression-field-drop-target expression-item-controls${selectionPath === undefined ? "" : " expression-selectable"}${isSelected ? " expression-selected" : ""}${isDropPreview ? " expression-drop-preview" : ""}`}
+        role="group"
+        aria-label={fieldPlaceholder ?? "Condition"}
+        tabIndex={selectionPath === undefined ? undefined : 0}
+        onFocus={(event) => {
+          if (event.target === event.currentTarget && selectionPath !== undefined)
+            onSelect?.(selectionPath);
+        }}
+        onPointerDown={(event) => startSelectedDrag(event, true)}
+        data-expression-kind={expression.kind}
+        data-expression-path={path === undefined ? undefined : JSON.stringify(path)}
+      >
+        <span className="expression-preview-label">{fieldPlaceholder ?? "Condition"}</span>
+        <code>{formatExpression({ ...expression, oper: undefined })}</code>
+        <div className="expression-actions-bar">
+          {onRemove && (
+            <button type="button" className="expression-remove" aria-label="Delete" title="Delete" onClick={onRemove}>
+              <Icon name="remove" size={13} />
+            </button>
+          )}
+          <ExpressionAddNextItem onAddNextItem={addNextItem} />
+        </div>
+        <ExpressionDebugTooltip label="Condition" model={expression} />
+      </div>
+    );
+  }
 
   return (
     <FunctionBuilder
