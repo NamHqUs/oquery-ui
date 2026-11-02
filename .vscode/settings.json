@@ -3,5 +3,15 @@
     "./.vscode/oquery-metadata.schema.json": [
       "oquery/data-storage/metadata/*.yml"
     ]
+  },
+  "files.exclude": {
+    "**/*[Aa][Gg][Ee][Nn][Tt].md": true,
+    "**/*[Ii][Nn][Ss][Tt][Rr][Uu][Cc][Tt][Ii][Oo][Nn][Ss].md": true,
+    "**/copilot-instructions.md": true
+  },
+  "files.exclude": {
+    "**/*[Aa][Gg][Ee][Nn][Tt].md": true,
+    "**/*[Ii][Nn][Ss][Tt][Rr][Uu][Cc][Tt][Ii][Oo][Nn][Ss].md": true,
+    "**/copilot-instructions.md": true
   }
 }
