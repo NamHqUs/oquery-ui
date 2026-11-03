@@ -84,3 +84,28 @@ it is not replaced with `Left`. Run the saved-query round-trip regression with:
 ```powershell
 node --test .\src\components\query-builder\query-design\query-save.test.mjs
 ```
+
+All YAML context dictionary keys share the gold color previously used for
+functions. Functions use a darker muted blue, while schema keywords such as
+`Entity` and `Relations` remain purple. Quoted and flow-style keys are
+recognized using YAML source ranges.
+Context names in `RefContext` values use the same gold as context definition
+keys only when the referenced name exists in the `Contexts` dictionary,
+including references inside context relations. Unknown references remain
+normal text so invalid links are visible.
+
+The YAML line-number gutter provides collapse/expand buttons for indented
+mappings and arrays, including context definitions, projections, and relations.
+Use **Collapse all** and **Expand all** for the whole editor.
+Fold arrows are hidden until the pointer enters the line-number gutter. Once
+the gutter is hovered, all foldable lines show their arrows. A collapsed line
+keeps its right-pointing expand arrow visible; expanded lines show a
+down-pointing collapse arrow.
+Collapsed headers show a visual `...` suffix directly beside the parent text
+with a soft background highlight;
+neither decoration is inserted into the YAML. The collapsed header remains a
+single editor line, and the suffix sits immediately beside the parent text.
+Line numbers keep their original source positions, and folding never changes the saved/executed
+document. Edits to visible lines preserve hidden children. If an edit spans
+hidden content, the editor expands the document and asks you to retry rather
+than accidentally deleting unseen YAML.

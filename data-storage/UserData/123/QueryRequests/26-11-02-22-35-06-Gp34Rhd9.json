@@ -26,6 +26,7 @@
         }
       ],
       "sorts": [],
+      "relations": [],
       "recursive": false
     },
     "UserContext2": {
@@ -51,6 +52,31 @@
         }
       ],
       "sorts": [],
+      "relations": [
+        {
+          "refContext": "UserContext1",
+          "alias": "Ref1From2",
+          "condition": {
+            "logicalOperation": 0,
+            "filters": [
+              {
+                "logicalOperator": 0,
+                "left": {
+                  "kind": "field",
+                  "field": "ManagerId"
+                },
+                "operation": 0,
+                "right": {
+                  "kind": "field",
+                  "field": "Id"
+                },
+                "parameterized": true
+              }
+            ]
+          },
+          "joinType": null
+        }
+      ],
       "recursive": false
     }
   },

@@ -7,6 +7,8 @@ import ProjectionBuilder from "./projection-builder/projection-builder";
 import SortBuilder from "./sort-builder/sort-builder";
 import FilterBuilder from "./filter-builder/filter-builder";
 import JoinsBuilder from "./joins-builder/joins-builder";
+import { getYamlContextKeys } from "./yaml-context-colors";
+import { applyFoldedYamlEdit, getFoldedYaml, getYamlFolds } from "./yaml-folding";
 import "./query-design.css";
 
 type EntityMenuProps = {
@@ -221,6 +223,22 @@ function orderContextEntries(contextDefinitions: ApiQueryContextDefinition[]) {
 }
 
 function highlightYaml(text: string, functionDefinitions: FunctionDefinition[], errorFunctionName: string): string {
+  const keys = getYamlContextKeys(text);
+  let position = 0;
+  const parts: string[] = [];
+  for (const key of keys) {
+    parts.push(highlightYamlTokens(text.slice(position, key.start), functionDefinitions, errorFunctionName));
+    const name = text.slice(key.start, key.end)
+      .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+      .replaceAll("\"", "&quot;").replaceAll("'", "&#39;");
+    parts.push(`<span class="query-yaml-context-key">${name}</span>`);
+    position = key.end;
+  }
+  parts.push(highlightYamlTokens(text.slice(position), functionDefinitions, errorFunctionName));
+  return parts.join("");
+}
+
+function highlightYamlTokens(text: string, functionDefinitions: FunctionDefinition[], errorFunctionName: string): string {
   const escaped = text
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -249,7 +267,7 @@ function highlightYaml(text: string, functionDefinitions: FunctionDefinition[], 
     : escaped;
 
   return highlightedFunctions.replace(
-    /^(\s*)(Entity|Projection|Filter|Sorts|PageSize|Page|Contexts)(\s*:)/gim,
+    /^(\s*)(Entity|Projection|Filter|Sorts|PageSize|Page|Contexts|Relations)(\s*:)/gim,
     "$1<span class=\"query-yaml-protected-key\">$2$3</span>",
   );
 }
@@ -350,37 +368,102 @@ function YamlEditor({
   value,
   disabled,
   onChange,
-  onKeyDown,
   functionDefinitions,
   errorFunctionName,
 }: {
   value: string;
   disabled: boolean;
   onChange: (value: string) => void;
-  onKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   functionDefinitions: FunctionDefinition[];
   errorFunctionName: string;
 }) {
   const highlightRef = useRef<HTMLPreElement>(null);
-  const lineNumbersRef = useRef<HTMLPreElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lineNumbersRef = useRef<HTMLDivElement>(null);
+  const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
+  const [foldMessage, setFoldMessage] = useState("");
+  const projection = getFoldedYaml(value, collapsed);
+  const visibleLines = new Set(projection.visible.map(item => item.line));
+  const folds = getYamlFolds(value);
+  const foldsByLine = new Map(folds.map(fold => [fold.start, fold]));
+  const changeVisibleText = (next: string, caret?: number) => {
+    const updated = applyFoldedYamlEdit(value, collapsed, next);
+    if (updated === null) {
+      setCollapsed(new Set());
+      setFoldMessage("Blocks expanded: retry the edit so hidden YAML is not accidentally removed.");
+      return;
+    }
+    let nextCaret = caret;
+    if (next.split("\n").length !== projection.text.split("\n").length) {
+      if (caret !== undefined) {
+        let start = 0;
+        while (start < projection.text.length && start < next.length && projection.text[start] === next[start]) start++;
+        const row = [...projection.visible].reverse().find(item => item.offset <= start)!;
+        nextCaret = caret + row.source - row.offset;
+      }
+      setCollapsed(new Set());
+    }
+    setFoldMessage("");
+    onChange(updated);
+    if (nextCaret !== undefined)
+      requestAnimationFrame(() => textareaRef.current?.setSelectionRange(nextCaret, nextCaret));
+  };
 
   return (
+    <>
+    <div className="query-yaml-fold-actions">
+      <button type="button" className="field-action" disabled={disabled || !folds.length}
+        onClick={() => setCollapsed(new Set(folds.map(fold => fold.start)))}>Collapse all</button>
+      <button type="button" className="field-action" disabled={disabled || !collapsed.size}
+        onClick={() => setCollapsed(new Set())}>Expand all</button>
+    </div>
     <div className="query-yaml-code-editor">
-      <pre ref={lineNumbersRef} className="query-yaml-line-numbers" aria-hidden="true">
-        {value.split("\n").map((_, index) => `${index + 1}\n`).join("")}
-      </pre>
+      <div ref={lineNumbersRef} className="query-yaml-line-numbers">
+        {projection.visible.map(({ line }) => {
+          const fold = foldsByLine.get(line);
+          return <div key={line} className="query-yaml-gutter-line">
+            <span aria-hidden="true">{line + 1}</span>
+            {fold && <button type="button" disabled={disabled}
+              aria-label={`${collapsed.has(line) ? "Expand" : "Collapse"} ${fold.label} at line ${line + 1}`}
+              aria-expanded={!collapsed.has(line)}
+              className={`query-yaml-fold-button${collapsed.has(line) ? " collapsed" : ""}`}
+              title={`${collapsed.has(line) ? "Expand" : "Collapse"} ${fold.end - fold.start} lines`}
+              onClick={() => setCollapsed(previous => {
+                const next = new Set(previous);
+                if (next.has(line)) next.delete(line); else next.add(line);
+                return next;
+              })} />}
+          </div>;
+        })}
+      </div>
       <pre
         ref={highlightRef}
         className="query-yaml-highlight"
         aria-hidden="true"
-        dangerouslySetInnerHTML={{ __html: highlightYaml(value, functionDefinitions, errorFunctionName) || " " }}
+        dangerouslySetInnerHTML={{ __html: highlightYaml(value, functionDefinitions, errorFunctionName)
+          .split("\n").flatMap((text, line) => !visibleLines.has(line) ? [] : [
+            collapsed.has(line) && foldsByLine.has(line)
+              ? `<span class="query-yaml-collapsed-line">${text}</span>`
+              : text,
+          ]).join("\n") || " " }}
       />
       <textarea
+        ref={textareaRef}
         className="query-yaml-textarea"
         aria-label="Query YAML"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onKeyDown={onKeyDown}
+        value={projection.text}
+        onChange={(event) => changeVisibleText(event.target.value, event.target.selectionStart)}
+        onKeyDown={(event) => {
+          const textarea = event.currentTarget;
+          if (event.key !== "Enter" && event.key !== "Tab") return;
+          event.preventDefault();
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const edit = event.key === "Enter"
+            ? getYamlEnterEdit(textarea.value, start, end)
+            : { value: `${textarea.value.slice(0, start)}  ${textarea.value.slice(end)}`, caret: start + 2 };
+          changeVisibleText(edit.value, edit.caret);
+        }}
         onScroll={(event) => {
           if (!highlightRef.current) return;
           highlightRef.current.scrollTop = event.currentTarget.scrollTop;
@@ -391,6 +474,8 @@ function YamlEditor({
         disabled={disabled}
       />
     </div>
+    {foldMessage && <p className="query-message" role="status">{foldMessage}</p>}
+    </>
   );
 }
 
@@ -604,28 +689,6 @@ export default function QueryDesign({
           <YamlEditor
             value={yamlText}
             onChange={onYamlTextChange}
-            onKeyDown={(event) => {
-              const textarea = event.currentTarget;
-              if (event.key === "Enter") {
-                event.preventDefault();
-                const edit = getYamlEnterEdit(textarea.value, textarea.selectionStart, textarea.selectionEnd);
-                onYamlTextChange(edit.value);
-                requestAnimationFrame(() => {
-                  textarea.selectionStart = edit.caret;
-                  textarea.selectionEnd = edit.caret;
-                });
-                return;
-              }
-              if (event.key !== "Tab") return;
-              event.preventDefault();
-              const start = textarea.selectionStart;
-              const end = textarea.selectionEnd;
-              onYamlTextChange(`${textarea.value.slice(0, start)}  ${textarea.value.slice(end)}`);
-              requestAnimationFrame(() => {
-                textarea.selectionStart = start + 2;
-                textarea.selectionEnd = start + 2;
-              });
-            }}
             functionDefinitions={functionDefinitions}
             errorFunctionName={yamlError.match(/:\s+([A-Za-z_][A-Za-z0-9_]*) requires at least/i)?.[1] ?? ""}
             disabled={yamlStatus !== "idle"}
