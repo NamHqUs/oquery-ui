@@ -309,6 +309,38 @@ export function createApiQuery(definition: QueryDefinition) {
   };
 }
 
+type BackendApiQueryDefinition = Omit<ApiQueryDefinition, "contexts" | "relations"> & {
+  contexts?: Record<string, BackendApiQueryDefinition> | null;
+  relations?: ApiQueryDto["relations"];
+};
+
+function toBackendApiQuery(query: ApiQueryDefinition): BackendApiQueryDefinition {
+  const contextDefinitions = Array.isArray(query.contexts) ? query.contexts : [];
+  const contexts = Object.fromEntries(
+    contextDefinitions.map((context) => [
+      context.name,
+      toBackendApiQuery(context.query),
+    ]),
+  );
+  const relations = [
+    ...(query.relations ?? []),
+    ...contextDefinitions
+      .filter((context) => !isSourceContext(context, query.entity))
+      .map((context) => ({
+        refContext: context.name,
+        alias: context.alias ?? null,
+        condition: context.condition ?? null,
+        joinType: context.joinType ?? 1,
+      })),
+  ];
+
+  return {
+    ...query,
+    contexts: Object.keys(contexts).length ? contexts : null,
+    relations: relations.length ? relations : null,
+  };
+}
+
 export function fromApiQueryDefinition(query: ApiQueryDefinition): QueryDefinition {
   query = normalizeApiQueryDefinition(query);
   const filter = query.filter
@@ -959,7 +991,7 @@ export const executeQuery = createAsyncThunk(
       const payload = await requestJson(apiUrls.dynamicQuery.execute, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createApiQuery(definition)),
+        body: JSON.stringify(toBackendApiQuery(createApiQuery(definition))),
       });
       if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows) || payload.rows.some((row) => typeof row !== "string") || typeof payload.totalRecords !== "number" || !Number.isFinite(payload.totalRecords) || payload.totalRecords < -1) {
         return rejectWithValue("Query API must return a name, an array of row strings, and a valid total record count.");
@@ -1013,7 +1045,7 @@ export const getSqlStatement = createAsyncThunk(
       const payload = await requestText(apiUrls.dynamicQuery.toString, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createApiQuery(definition)),
+        body: JSON.stringify(toBackendApiQuery(createApiQuery(definition))),
       });
       if (typeof payload !== "string") {
         return rejectWithValue("Query API must return a SQL statement string.");
@@ -1047,7 +1079,7 @@ export const getQueryRequestText = createAsyncThunk(
       const payload = await requestText(apiUrls.reports.toString, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createApiQuery(definition)),
+        body: JSON.stringify(toBackendApiQuery(createApiQuery(definition))),
       });
       if (!payload.trim()) return rejectWithValue("Query API returned an empty YAML request.");
       return payload;

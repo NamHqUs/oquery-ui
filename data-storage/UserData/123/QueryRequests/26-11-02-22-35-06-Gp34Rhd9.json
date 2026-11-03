@@ -1,166 +1,132 @@
 {
-  "MainQuery": {
-    "Name": "Chain Reference",
-    "Entity": "User",
-    "Projection": [
-      {
-        "Fields": [
-          {
-            "kind": "field",
-            "field": "Id"
-          }
-        ],
-        "Alias": null
-      },
-      {
-        "Fields": [
-          {
-            "kind": "field",
-            "field": "Name"
-          }
-        ],
-        "Alias": null
-      }
-    ],
-    "Filters": null,
-    "Sorts": null,
-    "Page": 1,
-    "PageSize": 50,
-    "Id": "26-11-02-22-35-06-Gp34Rhd9",
-    "ExtraRelations": [
-      {
-        "RefContextId": "context-ce4f3870-4433-476c-b656-856467f64f7b",
-        "Alias": "Ref1FromMain",
-        "Condition": {
-          "logicalOperation": 0,
-          "filters": [
-            {
-              "logicalOperator": 0,
-              "left": {
-                "kind": "field",
-                "field": "ManagerId"
-              },
-              "operation": 0,
-              "right": {
-                "kind": "field",
-                "field": "Id"
-              },
-              "parameterized": false
-            }
-          ]
-        },
-        "JoinType": "Left"
-      },
-      {
-        "RefContextId": "context-30fe7cef-b22b-4569-a72e-12f0912e91c2",
-        "Alias": "Ref2FromMain",
-        "Condition": {
-          "logicalOperation": 0,
-          "filters": [
-            {
-              "logicalOperator": 0,
-              "left": {
-                "kind": "field",
-                "field": "ManagerId"
-              },
-              "operation": 0,
-              "right": {
-                "kind": "field",
-                "field": "Id"
-              },
-              "parameterized": false
-            }
-          ]
-        },
-        "JoinType": "Left"
-      }
-    ]
-  },
-  "Contexts": [
-    {
-      "Name": "UserContext1",
-      "Entity": "Users",
-      "Projection": [
+  "name": "Chain Reference",
+  "id": "26-11-02-22-35-06-Gp34Rhd9",
+  "isBuiltin": false,
+  "contexts": {
+    "UserContext1": {
+      "entity": "Users",
+      "projection": [
         {
-          "Fields": [
+          "fields": [
             {
               "kind": "field",
               "field": "Id"
             }
           ],
-          "Alias": null
+          "alias": null
         },
         {
-          "Fields": [
+          "fields": [
             {
               "kind": "field",
               "field": "FirstName"
             }
           ],
-          "Alias": null
+          "alias": null
         }
       ],
-      "Filters": null,
-      "Sorts": null,
-      "Page": null,
-      "PageSize": null,
-      "Id": "context-ce4f3870-4433-476c-b656-856467f64f7b",
-      "ExtraRelations": null
+      "sorts": [],
+      "relations": [],
+      "recursive": false
     },
-    {
-      "Name": "UserContext2",
-      "Entity": "User",
-      "Projection": [
+    "UserContext2": {
+      "entity": "User",
+      "projection": [
         {
-          "Fields": [
+          "fields": [
             {
               "kind": "field",
               "field": "Id"
             }
           ],
-          "Alias": null
+          "alias": null
         },
         {
-          "Fields": [
+          "fields": [
             {
               "kind": "field",
               "field": "Name"
             }
           ],
-          "Alias": null
+          "alias": null
         }
       ],
-      "Filters": null,
-      "Sorts": null,
-      "Page": null,
-      "PageSize": null,
-      "Id": "context-30fe7cef-b22b-4569-a72e-12f0912e91c2",
-      "ExtraRelations": [
+      "sorts": [],
+      "relations": [],
+      "recursive": false
+    }
+  },
+  "entity": "User",
+  "projection": [
+    {
+      "fields": [
         {
-          "RefContextId": "context-ce4f3870-4433-476c-b656-856467f64f7b",
-          "Alias": "Ref1From2",
-          "Condition": {
-            "logicalOperation": 0,
-            "filters": [
-              {
-                "logicalOperator": 0,
-                "left": {
-                  "kind": "field",
-                  "field": "ManagerId"
-                },
-                "operation": 0,
-                "right": {
-                  "kind": "field",
-                  "field": "Id"
-                },
-                "parameterized": false
-              }
-            ]
-          },
-          "JoinType": "Left"
+          "kind": "field",
+          "field": "Id"
         }
-      ]
+      ],
+      "alias": null
+    },
+    {
+      "fields": [
+        {
+          "kind": "field",
+          "field": "Name"
+        }
+      ],
+      "alias": null
     }
   ],
-  "IsBuiltin": false
+  "sorts": [],
+  "page": 1,
+  "pageSize": 50,
+  "relations": [
+    {
+      "refContext": "UserContext1",
+      "alias": "Ref1FromMain",
+      "condition": {
+        "logicalOperation": 0,
+        "filters": [
+          {
+            "logicalOperator": 0,
+            "left": {
+              "kind": "field",
+              "field": "ManagerId"
+            },
+            "operation": 0,
+            "right": {
+              "kind": "field",
+              "field": "Id"
+            },
+            "parameterized": false
+          }
+        ]
+      },
+      "joinType": "Left"
+    },
+    {
+      "refContext": "UserContext2",
+      "alias": "Ref2FromMain",
+      "condition": {
+        "logicalOperation": 0,
+        "filters": [
+          {
+            "logicalOperator": 0,
+            "left": {
+              "kind": "field",
+              "field": "ManagerId"
+            },
+            "operation": 0,
+            "right": {
+              "kind": "field",
+              "field": "Id"
+            },
+            "parameterized": false
+          }
+        ]
+      },
+      "joinType": "Left"
+    }
+  ],
+  "recursive": false
 }
