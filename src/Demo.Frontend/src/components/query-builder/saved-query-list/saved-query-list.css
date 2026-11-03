@@ -13,7 +13,7 @@
 .saved-query-search input::placeholder { color: #777e90; }
 .saved-query-search input:focus-visible { outline: 0; }
 .saved-query-status { display: flex; flex-direction: column; gap: 8px; margin: 14px 6px; color: var(--muted); font-size: 12px; line-height: 1.5; }
-.saved-query-status.error { color: #f0a6ae; }
+.saved-query-status.error { color: #f0a6ae; white-space: pre-wrap; overflow-wrap: anywhere; }
 .saved-query-retry { align-self: flex-start; padding: 0; border: 0; background: transparent; color: #c2b2f0; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .saved-query-retry:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
 .saved-query-list { display: grid; gap: 5px; margin: 14px 0 0; padding: 0; list-style: none; }

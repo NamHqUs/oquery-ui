@@ -63,3 +63,16 @@ or replaced freely; required keys are validated rather than blocking editing.
 While
 YAML is selected, **Run query** and **Get SQL statement** execute the edited
 text directly through the backend text-query endpoints.
+
+API validation failures appear directly in Query Builder, YAML actions, and
+saved-query error messages. Each rejected field is listed with its context
+and the server's validation explanation, rather than only the generic
+validation-error title. Context indexes in server errors are displayed as
+one-based numbers (for example, `Context 1 > Sorts`). Detailed server errors
+are retained for non-validation failures as well.
+
+Run the API error message regression tests with:
+
+```powershell
+node --test .\src\components\query-builder\query-design\api-error.test.mjs
+```

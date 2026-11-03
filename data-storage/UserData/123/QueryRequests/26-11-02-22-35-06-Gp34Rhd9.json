@@ -78,8 +78,6 @@
     }
   ],
   "sorts": [],
-  "page": 1,
-  "pageSize": 50,
   "relations": [
     {
       "refContext": "UserContext1",

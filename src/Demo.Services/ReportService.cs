@@ -47,7 +47,7 @@ public sealed class ReportService(
     }
 
     public string GetQueryRequestString(QueryDefinition query)
-        => query.ToString();
+        => YamlQueryDefinitionParser.Write(query);
 
     public QueryDefinition ParseQueryRequestString(string text, string entity)
     {
@@ -61,7 +61,12 @@ public sealed class ReportService(
             .Skip(projectionHeader + 1)
             .TakeWhile(line => string.IsNullOrWhiteSpace(line) || char.IsWhiteSpace(line[0]))
             .Any(line => line.TrimStart().StartsWith("- ", StringComparison.Ordinal));
-        if (hasYamlProjectionList)
+        var hasYamlStructure = textLines.Any(line =>
+            line.StartsWith("Contexts:", StringComparison.Ordinal) ||
+            line.StartsWith("Relations:", StringComparison.Ordinal) ||
+            line.StartsWith("ExtraRelations:", StringComparison.Ordinal) ||
+            line.StartsWith("Recursive:", StringComparison.Ordinal));
+        if (hasYamlProjectionList || hasYamlStructure)
         {
             var query = QueryDefinitionParser.ParseFromYml(text);
             if (!string.Equals(query.Entity, entity, StringComparison.Ordinal))

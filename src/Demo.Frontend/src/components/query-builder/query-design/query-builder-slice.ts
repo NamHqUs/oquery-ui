@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { apiUrls } from "../../../const/api-urls";
 import type { FunctionDefinition } from "../../function-definition/types";
+import { formatApiError } from "./api-error";
 
 export type MetadataField = {
   name: string;
@@ -158,7 +159,7 @@ type ApiQueryContextDto = {
   entity: string;
   projection?: ApiProjectionDefinition[];
   filters?: ApiQueryFilterGroup | null;
-  sorts?: { field: string | IFieldDefinition; direction: number | string }[][] | null;
+  sorts?: { field: string | IFieldDefinition; direction: number | string }[] | null;
   page?: number | null;
   pageSize?: number | null;
   relations?: {
@@ -241,16 +242,7 @@ export type QueryResult = {
 
 async function getApiError(response: Response, fallback: string): Promise<Error> {
   const body = await response.text();
-  if (body) {
-    try {
-      const problem = JSON.parse(body);
-      if (typeof problem?.detail === "string") return new Error(problem.detail);
-      if (typeof problem?.title === "string") return new Error(problem.title);
-    } catch {
-      return new Error(body);
-    }
-  }
-  return new Error(fallback);
+  return new Error(formatApiError(body, fallback));
 }
 
 async function requestJson(url: string, options?: RequestInit) {
@@ -330,7 +322,7 @@ function toBackendApiQuery(query: ApiQueryDefinition): BackendApiQueryDefinition
         refContext: context.name,
         alias: context.alias ?? null,
         condition: context.condition ?? null,
-        joinType: context.joinType ?? 1,
+        joinType: context.joinType ?? null,
       })),
   ];
 
@@ -417,7 +409,7 @@ function normalizeApiQueryDefinition(query: ApiQueryDefinition): ApiQueryDefinit
         entity: context.entity,
         projection: context.projection ?? [],
         filter: context.filters,
-        sorts: context.sorts?.flat() ?? [],
+        sorts: context.sorts ?? [],
         page: context.page,
         pageSize: context.pageSize,
         contexts: nestedContexts.length ? nestedContexts : undefined,
@@ -750,7 +742,7 @@ export function toQueryBuilderSavedView(request: ApiSavedQueryRequest): QueryBui
     entity: context.entity,
     projection: context.projection ?? [],
     filter: context.filters,
-    sorts: context.sorts?.flat() ?? [],
+    sorts: context.sorts ?? [],
     page: context.page,
     pageSize: context.pageSize,
     contexts: contexts.length ? contexts : undefined,
@@ -873,7 +865,7 @@ function toApiSavedRequest(request: { name: string; definition: QueryDefinition;
     entity: context.query.entity,
     projection: context.query.projection,
     filters: context.query.filter,
-    sorts: context.query.sorts?.length ? [context.query.sorts] : null,
+    sorts: context.query.sorts ?? null,
     page: context.query.page,
     pageSize: context.query.pageSize,
     relations: context.query.contexts?.map((nested) => ({
