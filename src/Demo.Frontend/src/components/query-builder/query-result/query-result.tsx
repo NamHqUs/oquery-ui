@@ -16,6 +16,7 @@ type QueryResultProps = {
   pageNavigationEnabled: boolean;
   queryLoading: boolean;
   queryDisabled: boolean;
+  error: string;
 };
 
 type CopyFeedback = {
@@ -23,7 +24,7 @@ type CopyFeedback = {
   status: "copied" | "error";
 };
 
-export default function QueryResult({ result, sqlStatement, resultView, onRunQuery, onGetSql, pageNumber, pageSize, onPageChange, pageNavigationEnabled, queryLoading, queryDisabled }: QueryResultProps) {
+export default function QueryResult({ result, sqlStatement, resultView, onRunQuery, onGetSql, pageNumber, pageSize, onPageChange, pageNavigationEnabled, queryLoading, queryDisabled, error }: QueryResultProps) {
   const [copyFeedback, setCopyFeedback] = useState<CopyFeedback | null>(null);
   const currentCopyStatus = copyFeedback?.statement === sqlStatement ? copyFeedback.status : null;
 
@@ -83,6 +84,7 @@ export default function QueryResult({ result, sqlStatement, resultView, onRunQue
          
         </div>
       </div>
+      {error && <p className="query-message error query-result-error" role="alert">{error}</p>}
       {resultView === "sql" && sqlStatement
         ? <SqlStatement statement={sqlStatement} />
         : result

@@ -15,12 +15,14 @@ public sealed class DynamicQueryService(
     {
         using var connection = dbConnectionService.CreateConnection();
         var dialect = SqlDialect.ForProvider(dbConnectionService.GetCurrentProvider(), connection);
+        var metadataProvider = metadataService.GetMetaProvider();
         using var context = new OQueryEngine(
             connection,
-            metadataService.GetMetaProvider(),
+            metadataProvider,
             metadataService.GetFunctionProvider(dialect),
             dialect);
-        return context.Query(PrepareQuery(query, dialect)).ToSql().CommandText;
+        var preparedQuery = EnsureDefaultProjection(PrepareQuery(query, dialect), metadataProvider);
+        return context.Query(preparedQuery).ToSql().CommandText;
     }
 
     public async Task<TableDataDto> ExecuteQueryAsync(
@@ -32,23 +34,39 @@ public sealed class DynamicQueryService(
 
         using var connection = dbConnectionService.CreateConnection();
         var dialect = SqlDialect.ForProvider(dbConnectionService.GetCurrentProvider(), connection);
+        var metadataProvider = metadataService.GetMetaProvider();
         using var context = new OQueryEngine(
             connection,
-            metadataService.GetMetaProvider(),
+            metadataProvider,
             metadataService.GetFunctionProvider(dialect),
             dialect);
-        var result = await context.Query(PrepareQuery(query, dialect))
+        var preparedQuery = EnsureDefaultProjection(PrepareQuery(query, dialect), metadataProvider);
+        var result = await context.Query(preparedQuery)
             .ToListWithTotalRecordsAsync(cancellationToken);
        
         logger.LogInformation("Dynamic query returned {TotalRecords} total records.", result.TotalRecords);
 
         return new TableDataDto(
-            Name: query.Entity,
-            Columns: string.Join(",", query.Projection.Select(field => field.Alias ?? field.ToText())),
+            Name: preparedQuery.Entity,
+            Columns: string.Join(",", preparedQuery.Projection.Select(field => field.Alias ?? field.ToText())),
             Rows: result.Records.Select(row => string.Join(",", row.Select(value => value.Value))).ToArray(),
             Page: query.Page,
             PageSize: query.PageSize,
             TotalRecords: result.TotalRecords);
+    }
+
+    private static QueryDefinition EnsureDefaultProjection(
+        QueryDefinition query,
+        IMetadataProvider metadataProvider)
+    {
+        if (query.Projection is { Count: > 0 } || query.Contexts is { Count: > 0 })
+            return query;
+
+        var entity = metadataProvider.GetEntity(query.Entity);
+        var projection = metadataProvider.GetFields(entity)
+            .Select(field => new ProjectionDefinition(field.Name))
+            .ToList();
+        return query with { Projection = projection };
     }
 
     private QueryDefinition PrepareQuery(QueryDefinition query, ISqlDialect dialect)

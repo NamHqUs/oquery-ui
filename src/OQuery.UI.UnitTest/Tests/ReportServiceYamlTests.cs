@@ -51,6 +51,33 @@ public sealed class ReportServiceYamlTests
             .With.Message.EqualTo("Entity cannot be changed in the request structure."));
     }
 
+    [Test]
+    public void InlineYamlProjectionIsParsedAsAnArray()
+    {
+        var query = _service.ParseQueryRequestString("""
+            Entity: User
+            Projection: [Id, Name]
+            """);
+
+        Assert.That(query.Projection.Select(projection => projection.ToText()),
+            Is.EqualTo(["Id", "Name"]));
+    }
+
+    [Test]
+    public void EmptyYamlProjectionItemsAreIgnored()
+    {
+        var query = _service.ParseQueryRequestString("""
+            Entity: User
+            Projection:
+              -
+              - Id
+              -
+            """);
+
+        Assert.That(query.Projection.Select(projection => projection.ToText()),
+            Is.EqualTo(["Id"]));
+    }
+
     private sealed class UnusedUserSectionManager : IUserSectionManager
     {
         public string GetSectionId() => throw new NotSupportedException();

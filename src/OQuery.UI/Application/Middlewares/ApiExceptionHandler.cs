@@ -19,6 +19,7 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
             KeyNotFoundException => (StatusCodes.Status404NotFound, "Not Found"),
             ArgumentException or FormatException or JsonException =>
                 (StatusCodes.Status400BadRequest, "Bad Request"),
+            NotSupportedException => (StatusCodes.Status400BadRequest, "Bad Request"),
             InvalidOperationException => (StatusCodes.Status409Conflict, "Conflict"),
             _ => (0, string.Empty)
         };

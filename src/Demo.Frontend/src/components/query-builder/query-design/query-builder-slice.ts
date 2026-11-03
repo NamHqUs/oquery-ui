@@ -1309,6 +1309,9 @@ const queryBuilderSlice = createSlice({
       .addCase(executeQuery.pending, (state) => {
         state.queryStatus = "loading";
         state.queryError = "";
+        state.result = null;
+        state.sqlStatement = null;
+        state.resultView = "data";
       })
       .addCase(executeQuery.fulfilled, (state, action) => {
         state.result = action.payload;
@@ -1323,6 +1326,9 @@ const queryBuilderSlice = createSlice({
       .addCase(executeQueryFromText.pending, (state) => {
         state.queryStatus = "loading";
         state.queryError = "";
+        state.result = null;
+        state.sqlStatement = null;
+        state.resultView = "data";
       })
       .addCase(executeQueryFromText.fulfilled, (state, action) => {
         state.result = action.payload;

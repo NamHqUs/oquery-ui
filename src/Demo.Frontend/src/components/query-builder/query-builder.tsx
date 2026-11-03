@@ -7,7 +7,7 @@ import Icon from "../icon/icon";
 import { useMessageBox } from "../message-box/message-box";
 import PanelSplitter from "../panel-splitter/panel-splitter";
 import ToastNotice from "../toast-notice/toast-notice";
-import { ApiQueryContextDefinition, createApiQuery, deleteQueryRequest, executeQuery, executeQueryFromText, fetchFilterOperators, fetchFunctionDefinitions, fetchQueryMetadata, fetchQueryRequests, fromApiQuery, fromApiQueryDefinition, getQueryRequestText, getSqlStatement, getSqlStatementFromText, IFieldDefinition, MetadataEntity, MetadataField, parseQueryRequestText, QueryDefinition, QueryFilterGroup, QueryFilterNode, saveQueryRequest, toQueryBuilderSavedView } from "./query-design/query-builder-slice";
+import { ApiQueryContextDefinition, clearQueryResult, createApiQuery, deleteQueryRequest, executeQuery, executeQueryFromText, fetchFilterOperators, fetchFunctionDefinitions, fetchQueryMetadata, fetchQueryRequests, fromApiQuery, fromApiQueryDefinition, getQueryRequestText, getSqlStatement, getSqlStatementFromText, IFieldDefinition, MetadataEntity, MetadataField, parseQueryRequestText, QueryDefinition, QueryFilterGroup, QueryFilterNode, saveQueryRequest, toQueryBuilderSavedView } from "./query-design/query-builder-slice";
 import QueryDesign from "./query-design/query-design";
 import QueryResult from "./query-result/query-result";
 import SavedQueryList from "./saved-query-list/saved-query-list";
@@ -211,11 +211,47 @@ function QuerySectionSplitter({ height, onHeightChange }: { height: number; onHe
 function getYamlEntity(text: string): string {
   const entityLine = text.split(/\r?\n/).find((line) => /^\s*Entity\s*:/i.test(line));
   if (!entityLine) return "";
-  const value = entityLine.slice(entityLine.indexOf(":") + 1).trim();
+  const value = stripYamlComment(entityLine.slice(entityLine.indexOf(":") + 1)).trim();
   return value.length >= 2 && ((value.startsWith("\"") && value.endsWith("\""))
     || (value.startsWith("'") && value.endsWith("'")))
     ? value.slice(1, -1).trim()
     : value;
+}
+
+function stripYamlLineComments(text: string): string {
+  return text.split(/\r?\n/).map((line) => {
+    let quote: "'" | "\"" | null = null;
+    for (let index = 0; index < line.length - 1; index++) {
+      const character = line[index];
+      if (quote) {
+        if (character === quote && line[index - 1] !== "\\") quote = null;
+        continue;
+      }
+      if (character === "'" || character === "\"") {
+        quote = character;
+        continue;
+      }
+      if (character === "/" && line[index + 1] === "/" && (index === 0 || /\s/.test(line[index - 1] ?? ""))) {
+        return line.slice(0, index).trimEnd();
+      }
+    }
+    return line;
+  }).join("\n");
+}
+
+function stripYamlComment(value: string): string {
+  let quote: "'" | "\"" | null = null;
+  for (let index = 0; index < value.length; index++) {
+    const character = value[index];
+    if (quote) {
+      if (character === quote && value[index - 1] !== "\\") quote = null;
+    } else if (character === "'" || character === "\"") {
+      quote = character;
+    } else if (character === "#" && (index === 0 || /\s/.test(value[index - 1] ?? ""))) {
+      return value.slice(0, index);
+    }
+  }
+  return value;
 }
 
 function preserveYamlKeys(formatted: string, source: string): string {
@@ -234,8 +270,9 @@ function getYamlSyntaxError(
   functionDefinitions: FunctionDefinition[],
   filterOperators: FilterOperatorDefinition[],
 ): string | null {
+  const normalizedText = stripYamlLineComments(text);
   try {
-    const document = parseDocument(text, { uniqueKeys: true });
+    const document = parseDocument(normalizedText, { uniqueKeys: true });
     const error = document.errors[0];
     if (error) {
       const position = (error as { linePos?: [{ line: number; col: number }] }).linePos?.[0];
@@ -244,7 +281,7 @@ function getYamlSyntaxError(
         : `Invalid YAML: ${error.message}`;
     }
 
-    return getYamlFilterSyntaxError(text, filterOperators) ?? getYamlExpressionSyntaxError(text, functionDefinitions);
+    return getYamlFilterSyntaxError(normalizedText, filterOperators) ?? getYamlExpressionSyntaxError(normalizedText, functionDefinitions);
   } catch (error) {
     return `Invalid YAML: ${error instanceof Error ? error.message : "Unable to parse YAML."}`;
   }
@@ -615,13 +652,14 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
         setYamlError(syntaxError);
         return;
       }
-      const entityForParse = activeDefinition.entity.trim() || getYamlEntity(yamlText);
+      const normalizedYamlText = stripYamlLineComments(yamlText);
+      const entityForParse = getYamlEntity(normalizedYamlText) || activeDefinition.entity.trim();
       if (!entityForParse) {
         setYamlError("Missing Entity: YAML query must include an Entity.");
         return;
       }
       const parsed = await dispatch(parseQueryRequestText({
-        text: yamlText,
+        text: normalizedYamlText,
         entity: entityForParse,
       })).unwrap();
       updateDefinitionFromDesign(fromApiQueryDefinition(parsed));
@@ -643,13 +681,14 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
         setYamlError(syntaxError);
         return;
       }
-      const entityForParse = activeDefinition.entity.trim() || getYamlEntity(yamlText);
+      const normalizedYamlText = stripYamlLineComments(yamlText);
+      const entityForParse = getYamlEntity(normalizedYamlText) || activeDefinition.entity.trim();
       if (!entityForParse) {
         setYamlError("Missing Entity: YAML query must include an Entity.");
         return;
       }
       const parsed = await dispatch(parseQueryRequestText({
-        text: yamlText,
+        text: normalizedYamlText,
         entity: entityForParse,
       })).unwrap();
       const formatted = await dispatch(getQueryRequestText(fromApiQueryDefinition(parsed))).unwrap();
@@ -892,6 +931,7 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
   };
   const startNewRequest = async () => {
     if (!(await confirmModelReplacement())) return;
+    dispatch(clearQueryResult());
     updateRequestRoute(null);
     setSelectedRequestName(null);
     setSelectedRequestId(null);
@@ -914,6 +954,7 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
     updateRoute = true,
   ) => {
     if (!(await confirmModelReplacement())) return;
+    dispatch(clearQueryResult());
     if (debugUiEnabled) console.log("Saved Query Request:", savedRequest);
     const savedView = toQueryBuilderSavedView(savedRequest);
     const nextDefinition = fromApiQuery(savedView.query, savedView.projectionRows);
@@ -952,12 +993,13 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
         setYamlError(syntaxError);
         return;
       }
-      const entity = activeDefinition.entity.trim() || getYamlEntity(yamlText);
+      const normalizedYamlText = stripYamlLineComments(yamlText);
+      const entity = getYamlEntity(normalizedYamlText) || activeDefinition.entity.trim();
       if (!entity) {
         setYamlError("Missing Entity: YAML query must include an Entity.");
         return;
       }
-      const parsed = await dispatch(parseQueryRequestText({ text: yamlText, entity })).unwrap();
+      const parsed = await dispatch(parseQueryRequestText({ text: normalizedYamlText, entity })).unwrap();
       const nextActiveDefinition = fromApiQueryDefinition(parsed);
       const nextDefinition = activeContextIndex === null
         ? nextActiveDefinition
@@ -1085,6 +1127,7 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
                 yamlStatus={yamlStatus}
                 yamlError={yamlError}
                 onYamlTextChange={(text) => {
+                  dispatch(clearQueryResult());
                   setYamlText(text);
                   setYamlValidationMessage("");
                 }}
@@ -1095,7 +1138,6 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
               />
             </div>
           </div>
-          {queryError && <p className="query-message error query-builder-error" role="alert">{queryError}</p>}
         </section>
         {editorMode === "yaml" && <QuerySectionSplitter height={yamlDesignHeight} onHeightChange={updateYamlDesignHeight} />}
         <section className="query-section query-result-section" aria-label="Section 2: Query Result">
@@ -1113,6 +1155,7 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
             queryDisabled={editorMode === "yaml"
               ? !yamlText.trim()
               : !activeDefinition.entity.trim() || !activeDefinition.columns.length}
+            error={queryError}
           />
         </section>
       </div>

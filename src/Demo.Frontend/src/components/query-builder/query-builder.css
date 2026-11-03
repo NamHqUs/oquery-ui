@@ -25,9 +25,10 @@ section.page-heading.query-page-heading h2 { max-width: 680px; margin: 10px 0 8p
 .query-builder-sections.yaml-layout .query-design-section { height: auto; max-height: var(--yaml-design-height); margin-bottom: 0; overflow: auto; }
 .query-builder-sections.yaml-layout.yaml-layout-resized .query-design-section { height: var(--yaml-design-height); max-height: var(--yaml-design-height); overflow: hidden; }
 .query-builder-sections.yaml-layout.yaml-layout-resized .query-design-workspace { height: 100%; min-height: 0; }
-.query-builder-sections.yaml-layout.yaml-layout-resized .query-design-area { box-sizing: border-box; overflow: hidden; }
-.query-builder-sections.yaml-layout.yaml-layout-resized .query-yaml-editor { height: calc(var(--yaml-design-height) - 115px); min-height: 0; grid-template-rows: auto minmax(0, 1fr); align-content: start; }
-.query-builder-sections.yaml-layout.yaml-layout-resized .query-yaml-code-editor { height: 100%; min-height: 0; box-sizing: border-box; }
+.query-builder-sections.yaml-layout.yaml-layout-resized .query-design-area { display: flex; min-height: 0; box-sizing: border-box; overflow: hidden; }
+.query-builder-sections.yaml-layout.yaml-layout-resized .query-yaml-editor { flex: 1 1 auto; min-height: 0; grid-template-rows: auto minmax(0, 1fr); align-content: start; }
+.query-builder-sections.yaml-layout.yaml-layout-resized .query-yaml-code-editor { height: auto; min-height: 0; box-sizing: border-box; }
+.query-builder-sections.yaml-layout.yaml-layout-resized .query-builder-card { display: flex; height: 100%; min-height: 0; flex-direction: column; }
 .query-builder-sections.yaml-layout .query-result-section { margin-top: 0; }
 .query-section-splitter { position: relative; height: 18px; margin: 0 8px; cursor: row-resize; touch-action: none; }
 .query-section-splitter::before { position: absolute; top: 8px; right: 0; left: 0; height: 2px; border-radius: 2px; background: var(--line); content: ""; transition: background .15s ease, box-shadow .15s ease; }
@@ -35,7 +36,7 @@ section.page-heading.query-page-heading h2 { max-width: 680px; margin: 10px 0 8p
 .query-section-splitter:focus-visible { outline: 0; }
 .query-design-workspace { display: grid; min-height: 480px; grid-template-columns: var(--panel-width, 260px) minmax(0, 1fr); align-items: stretch; overflow: hidden; background: linear-gradient(135deg, #11141c, #0f1218); border: 1px solid var(--line); border-radius: 9px; box-shadow: 0 14px 40px #00000018; }
 .query-builder-error { margin: 0; padding: 12px 28px; border: 1px solid var(--line); border-top: 0; background: #11141c; }
-.query-design-area { grid-column: 2; min-width: 0; padding: 26px 28px 35px; border-left: 1px solid var(--line); }
+.query-design-area { grid-column: 2; min-width: 0; padding: 26px 28px 12px; border-left: 1px solid var(--line); }
 .query-design-area .query-builder-card { border: 0; border-radius: 0; }
 .query-result-section { margin-top: 24px; }
 .query-results { border-radius: 9px; }

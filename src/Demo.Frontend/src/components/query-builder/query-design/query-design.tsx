@@ -272,6 +272,34 @@ function highlightYamlTokens(text: string, functionDefinitions: FunctionDefiniti
   );
 }
 
+function toggleYamlComments(text: string, selectionStart: number, selectionEnd: number) {
+  const lineStart = text.lastIndexOf("\n", Math.max(0, selectionStart - 1)) + 1;
+  const selectedEnd = selectionEnd > selectionStart && text[selectionEnd - 1] === "\n"
+    ? selectionEnd - 1
+    : selectionEnd;
+  const lineEnd = text.indexOf("\n", selectedEnd);
+  const end = lineEnd < 0 ? text.length : lineEnd;
+  const selected = text.slice(lineStart, end);
+  const lines = selected.split("\n");
+  const contentLines = lines.filter((line) => line.trim());
+  const uncomment = contentLines.length > 0
+    && contentLines.every((line) => /^\s*#(?:\s|$)/.test(line));
+  const updatedLines = lines.map((line) => {
+    if (!line.trim()) return line;
+    const indentation = line.match(/^\s*/)?.[0] ?? "";
+    const content = line.slice(indentation.length);
+    if (uncomment) return `${indentation}${content.replace(/^#\s?/, "")}`;
+    return `${indentation}# ${content}`;
+  });
+  const updated = `${text.slice(0, lineStart)}${updatedLines.join("\n")}${text.slice(end)}`;
+  const delta = updated.length - text.length;
+  return {
+    text: updated,
+    selectionStart,
+    selectionEnd: selectionEnd + delta,
+  };
+}
+
 const yamlListSections = new Set(["Projection", "Sorts", "Contexts"]);
 
 function getYamlLineContext(value: string, position: number) {
@@ -368,12 +396,14 @@ function YamlEditor({
   value,
   disabled,
   onChange,
+  onBlur,
   functionDefinitions,
   errorFunctionName,
 }: {
   value: string;
   disabled: boolean;
   onChange: (value: string) => void;
+  onBlur: () => void;
   functionDefinitions: FunctionDefinition[];
   errorFunctionName: string;
 }) {
@@ -459,8 +489,18 @@ function YamlEditor({
         aria-label="Query YAML"
         value={projection.text}
         onChange={(event) => changeVisibleText(event.target.value, event.target.selectionStart)}
+        onBlur={onBlur}
         onKeyDown={(event) => {
           const textarea = event.currentTarget;
+          if ((event.ctrlKey || event.metaKey) && event.key === "/") {
+            event.preventDefault();
+            const toggled = toggleYamlComments(projection.text, textarea.selectionStart, textarea.selectionEnd);
+            changeVisibleText(toggled.text);
+            requestAnimationFrame(() => {
+              textarea.setSelectionRange(toggled.selectionStart, toggled.selectionEnd);
+            });
+            return;
+          }
           if (event.key !== "Enter" && event.key !== "Tab") return;
           event.preventDefault();
           const start = textarea.selectionStart;
@@ -695,6 +735,7 @@ export default function QueryDesign({
           <YamlEditor
             value={yamlText}
             onChange={onYamlTextChange}
+            onBlur={onApplyYaml}
             functionDefinitions={functionDefinitions}
             errorFunctionName={yamlError.match(/:\s+([A-Za-z_][A-Za-z0-9_]*) requires at least/i)?.[1] ?? ""}
             disabled={yamlStatus !== "idle"}

@@ -53,14 +53,20 @@ public sealed class ReportService(
     {
         var textLines = text.Split(["\r\n", "\n"], StringSplitOptions.None);
         var projectionHeader = Array.FindIndex(textLines, line =>
-            line.Trim().Equals("Projection:", StringComparison.OrdinalIgnoreCase));
+            line.TrimStart().StartsWith("Projection:", StringComparison.OrdinalIgnoreCase));
         if (projectionHeader < 0)
             projectionHeader = Array.FindIndex(textLines, line =>
-                line.Trim().Equals("Fields:", StringComparison.OrdinalIgnoreCase));
-        var hasYamlProjectionList = projectionHeader >= 0 && textLines
-            .Skip(projectionHeader + 1)
-            .TakeWhile(line => string.IsNullOrWhiteSpace(line) || char.IsWhiteSpace(line[0]))
-            .Any(line => line.TrimStart().StartsWith("- ", StringComparison.Ordinal));
+                line.TrimStart().StartsWith("Fields:", StringComparison.OrdinalIgnoreCase));
+        var hasYamlProjectionList = projectionHeader >= 0
+            && (textLines[projectionHeader]
+                    .AsSpan(textLines[projectionHeader].IndexOf(':') + 1)
+                    .TrimStart()
+                    .StartsWith("[", StringComparison.Ordinal)
+                || textLines
+                    .Skip(projectionHeader + 1)
+                    .TakeWhile(line => string.IsNullOrWhiteSpace(line) || char.IsWhiteSpace(line[0]))
+                    .Any(line => line.TrimStart() is "-" ||
+                        line.TrimStart().StartsWith("- ", StringComparison.Ordinal)));
         var hasYamlStructure = textLines.Any(line =>
             line.StartsWith("Contexts:", StringComparison.Ordinal) ||
             line.StartsWith("Relations:", StringComparison.Ordinal) ||

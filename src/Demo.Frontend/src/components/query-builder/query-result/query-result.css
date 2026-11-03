@@ -1,5 +1,6 @@
 .results-card.query-results { grid-column: 1 / -1; margin-top: 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; box-shadow: none; }
 .query-results .results-head { padding-top: 16px; padding-bottom: 12px; }
+.query-result-error { margin: 0 28px 14px; }
 .query-result-title { display: flex; align-items: end; gap: 18px; }
 .query-result-description { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
 .query-result-description-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
