@@ -30,6 +30,11 @@ test("folding preserves original source line numbers and never changes YAML", ()
   assert.equal(getFoldedYaml(yaml, new Set()).text, yaml);
 });
 
+test("collapsing every fold keeps each fold header visible", () => {
+  const collapsed = new Set(getYamlFolds(yaml).map(fold => fold.start));
+  assert.deepEqual(getFoldedYaml(yaml, collapsed).visible.map(row => row.line), [0, 1, 7, 10]);
+});
+
 test("visible edits preserve hidden mappings and arrays", () => {
   const collapsed = new Set([1, 7]);
   const view = getFoldedYaml(yaml, collapsed);

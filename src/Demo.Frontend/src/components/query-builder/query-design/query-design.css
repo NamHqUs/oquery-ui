@@ -17,15 +17,18 @@
 .query-yaml-gutter-line button::before { content: ""; display: inline-block; width: 0; height: 0; border-top: 4px solid transparent; border-bottom: 4px solid transparent; border-left: 5px solid currentColor; transform: rotate(90deg); }
 .query-yaml-gutter-line button.collapsed::before { transform: none; }
 .query-yaml-gutter-line button:focus-visible { outline: 2px solid #d7bdff; outline-offset: 1px; }
-.query-yaml-fold-actions { display: flex; gap: 16px; }
+.query-yaml-fold-actions { position: absolute; top: 8px; right: 8px; z-index: 4; display: flex; gap: 4px; }
+.query-yaml-fold-actions button { display: grid; width: 24px; height: 24px; place-items: center; padding: 0; color: #a69abf; border: 1px solid #3a4050; border-radius: 4px; background: #171d28dd; cursor: pointer; }
+.query-yaml-fold-actions button:hover:not(:disabled), .query-yaml-fold-actions button:focus-visible { color: #f0ecff; border-color: #8068d1; background: #28233bdd; outline: 0; }
+.query-yaml-fold-actions button:disabled { opacity: .4; cursor: not-allowed; }
 .query-yaml-highlight { left: 76px; width: calc(100% - 76px); color: #dce1eb; pointer-events: none; }
-.query-yaml-collapsed-line { display: inline; border-radius: 3px; background: #8d78ba1c; box-shadow: 0 0 7px 2px #8d78ba14; }
+.query-yaml-collapsed-line { display: inline-block; white-space: nowrap; border-radius: 3px; background: #8d78ba1c; box-shadow: 0 0 7px 2px #8d78ba14; }
 .query-yaml-collapsed-line::after { content: "..."; color: #a69abf; font-weight: 700; }
 .query-yaml-protected-key { color: #d7bdff; font-weight: 700; text-decoration: none; }
 .query-yaml-context-key { color: #f2c14e; font-weight: 700; }
 .query-yaml-highlight .query-yaml-function { color: #7296c7; }
 .query-yaml-highlight .query-yaml-error-function { color: #ff5668; }
-.query-yaml-textarea { z-index: 2; width: 100%; resize: vertical; color: transparent; caret-color: #f0ecff; border: 0; border-radius: 0; background: transparent; outline: 0; -webkit-text-fill-color: transparent; padding-left: 92px; }
+.query-yaml-textarea { z-index: 2; width: 100%; resize: none; color: transparent; caret-color: #f0ecff; border: 0; border-radius: 0; background: transparent; outline: 0; -webkit-text-fill-color: transparent; padding-left: 92px; }
 .query-yaml-textarea { scrollbar-color: #514476 transparent; }
 .query-yaml-textarea::selection { color: transparent; background: #7054d488; }
 .query-yaml-code-editor:focus-within { border-color: #7054d4; box-shadow: 0 0 0 2px #7054d433; }

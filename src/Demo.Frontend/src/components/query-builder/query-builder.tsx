@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, type KeyboardEvent, type PointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import { parseDocument } from "yaml";
@@ -22,6 +22,10 @@ type QueryBuilderProps = {
 
 let cachedDefinition: QueryDefinition | null = null;
 const QUERY_DEFINITION_STORAGE_KEY = "OQuery-query-builder-definition";
+const YAML_DESIGN_HEIGHT_STORAGE_KEY = "OQuery.query-builder.yaml-design-height.v2";
+const YAML_DESIGN_HEIGHT_DEFAULT = 840;
+const YAML_DESIGN_HEIGHT_MIN = 440;
+const YAML_DESIGN_HEIGHT_MAX = 1100;
 
 export function resetQueryBuilderCache() {
   cachedDefinition = null;
@@ -154,6 +158,54 @@ function isQueryDefinition(value: unknown): value is QueryDefinition {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function readYamlDesignHeight() {
+  const stored = Number(window.localStorage.getItem(YAML_DESIGN_HEIGHT_STORAGE_KEY));
+  return Number.isFinite(stored) && stored >= YAML_DESIGN_HEIGHT_MIN && stored <= YAML_DESIGN_HEIGHT_MAX
+    ? stored
+    : YAML_DESIGN_HEIGHT_DEFAULT;
+}
+
+function QuerySectionSplitter({ height, onHeightChange }: { height: number; onHeightChange: (height: number) => void }) {
+  const resizeFromPointer = (event: PointerEvent<HTMLDivElement>) => {
+    const designSection = event.currentTarget.previousElementSibling;
+    if (!(designSection instanceof HTMLElement)) return;
+    const nextHeight = Math.min(YAML_DESIGN_HEIGHT_MAX, Math.max(YAML_DESIGN_HEIGHT_MIN, event.clientY - designSection.getBoundingClientRect().top));
+    onHeightChange(nextHeight);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const step = event.shiftKey ? 80 : 16;
+    if (event.key === "ArrowUp") onHeightChange(height - step);
+    else if (event.key === "ArrowDown") onHeightChange(height + step);
+    else if (event.key === "Home") onHeightChange(YAML_DESIGN_HEIGHT_MIN);
+    else if (event.key === "End") onHeightChange(YAML_DESIGN_HEIGHT_MAX);
+    else return;
+    event.preventDefault();
+  };
+
+  return (
+    <div
+      className="query-section-splitter"
+      role="separator"
+      aria-label="Resize query design and results"
+      aria-orientation="horizontal"
+      aria-valuemin={YAML_DESIGN_HEIGHT_MIN}
+      aria-valuemax={YAML_DESIGN_HEIGHT_MAX}
+      aria-valuenow={height}
+      tabIndex={0}
+      onPointerDown={(event) => {
+        if (event.button !== 0) return;
+        event.currentTarget.setPointerCapture(event.pointerId);
+        resizeFromPointer(event);
+      }}
+      onPointerMove={(event) => {
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) resizeFromPointer(event);
+      }}
+      onKeyDown={handleKeyDown}
+    />
+  );
 }
 
 function getYamlEntity(text: string): string {
@@ -469,6 +521,8 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
   const [requestNameError, setRequestNameError] = useState("");
   const [isSavingQuery, setIsSavingQuery] = useState(false);
   const [editorMode, setEditorMode] = useState<"visual" | "yaml">("visual");
+  const [yamlDesignHeight, setYamlDesignHeight] = useState(readYamlDesignHeight);
+  const [yamlDesignResized, setYamlDesignResized] = useState(() => Boolean(window.localStorage.getItem(YAML_DESIGN_HEIGHT_STORAGE_KEY)));
   const entity = useMemo(() => metadata.find((item) => item.name === definition.entity), [metadata, definition.entity]);
   const selectedContext = selectedContextIndex === null ? undefined : definition.contextCatalog?.[selectedContextIndex];
   const activeContextIndex = selectedContext ? selectedContextIndex : null;
@@ -940,6 +994,13 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
     }
   };
 
+  const updateYamlDesignHeight = (height: number) => {
+    const clampedHeight = Math.min(YAML_DESIGN_HEIGHT_MAX, Math.max(YAML_DESIGN_HEIGHT_MIN, Math.round(height)));
+    setYamlDesignHeight(clampedHeight);
+    setYamlDesignResized(true);
+    window.localStorage.setItem(YAML_DESIGN_HEIGHT_STORAGE_KEY, String(clampedHeight));
+  };
+
   return (
     <>
       <section className="page-heading query-page-heading">
@@ -981,77 +1042,80 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
         </div>
       </section>
 
-      <section className="query-section query-design-section" aria-label="Section 1: Design">
-        <div className={`query-design-workspace split-workspace${savedQueriesPanel.collapsed ? " panel-collapsed" : ""}`} style={savedQueriesPanel.style}>
-          <SavedQueryList
-            requests={queryRequests}
-            selectedRequestName={selectedRequestName}
-            status={queryRequestsStatus}
-            error={queryRequestsError}
-            onSelectRequest={selectSavedRequest}
-            onRetry={() => {
-              void dispatch(fetchQueryRequests());
-            }}
-          />
-          <PanelSplitter panel={savedQueriesPanel} label="saved queries panel" />
-          <div className="query-design-area">
-            <QueryDesign
-              key={`${selectedRequestName ?? "draft"}-${activeContextIndex ?? "request"}`}
-              metadata={metadata}
-              metadataStatus={metadataStatus}
-              metadataError={metadataError}
-              functionDefinitions={functionDefinitions}
-              functionDefinitionsStatus={functionDefinitionsStatus}
-              functionDefinitionsError={functionDefinitionsError}
-              filterOperators={filterOperators}
-              filterOperatorsStatus={filterOperatorsStatus}
-              filterOperatorsError={filterOperatorsError}
-              definition={activeDefinition}
-              entity={activeEntity}
-              contextDefinitions={definition.contextCatalog ?? []}
-              selectedContextIndex={activeContextIndex}
-              onSelectContext={setSelectedContextIndex}
-              onCreateContext={createContext}
-              onDeleteContext={(index) => void deleteContext(index)}
-              onContextNameChange={updateContextName}
-              requestName={requestName}
-              requestNameError={requestNameError}
-              onRequestNameChange={updateRequestName}
-              onDefinitionChange={updateDefinitionFromDesign}
-              editorMode={editorMode}
-              yamlText={yamlText}
-              yamlStatus={yamlStatus}
-              yamlError={yamlError}
-              onYamlTextChange={(text) => {
-                setYamlText(text);
-                setYamlValidationMessage("");
+      <div className={editorMode === "yaml" ? `query-builder-sections yaml-layout${yamlDesignResized ? " yaml-layout-resized" : ""}` : "query-builder-sections"} style={editorMode === "yaml" ? { "--yaml-design-height": `${yamlDesignHeight}px` } as CSSProperties : undefined}>
+        <section className="query-section query-design-section" aria-label="Section 1: Design">
+          <div className={`query-design-workspace split-workspace${savedQueriesPanel.collapsed ? " panel-collapsed" : ""}`} style={savedQueriesPanel.style}>
+            <SavedQueryList
+              requests={queryRequests}
+              selectedRequestName={selectedRequestName}
+              status={queryRequestsStatus}
+              error={queryRequestsError}
+              onSelectRequest={selectSavedRequest}
+              onRetry={() => {
+                void dispatch(fetchQueryRequests());
               }}
-              yamlValidationMessage={yamlValidationMessage}
-              onFormatYaml={() => void formatYaml()}
-              onInsertYamlTemplate={insertYamlTemplate}
-              onApplyYaml={() => void applyYaml()}
             />
+            <PanelSplitter panel={savedQueriesPanel} label="saved queries panel" />
+            <div className="query-design-area">
+              <QueryDesign
+                key={`${selectedRequestName ?? "draft"}-${activeContextIndex ?? "request"}`}
+                metadata={metadata}
+                metadataStatus={metadataStatus}
+                metadataError={metadataError}
+                functionDefinitions={functionDefinitions}
+                functionDefinitionsStatus={functionDefinitionsStatus}
+                functionDefinitionsError={functionDefinitionsError}
+                filterOperators={filterOperators}
+                filterOperatorsStatus={filterOperatorsStatus}
+                filterOperatorsError={filterOperatorsError}
+                definition={activeDefinition}
+                entity={activeEntity}
+                contextDefinitions={definition.contextCatalog ?? []}
+                selectedContextIndex={activeContextIndex}
+                onSelectContext={setSelectedContextIndex}
+                onCreateContext={createContext}
+                onDeleteContext={(index) => void deleteContext(index)}
+                onContextNameChange={updateContextName}
+                requestName={requestName}
+                requestNameError={requestNameError}
+                onRequestNameChange={updateRequestName}
+                onDefinitionChange={updateDefinitionFromDesign}
+                editorMode={editorMode}
+                yamlText={yamlText}
+                yamlStatus={yamlStatus}
+                yamlError={yamlError}
+                onYamlTextChange={(text) => {
+                  setYamlText(text);
+                  setYamlValidationMessage("");
+                }}
+                yamlValidationMessage={yamlValidationMessage}
+                onFormatYaml={() => void formatYaml()}
+                onInsertYamlTemplate={insertYamlTemplate}
+                onApplyYaml={() => void applyYaml()}
+              />
+            </div>
           </div>
-        </div>
-        {queryError && <p className="query-message error query-builder-error" role="alert">{queryError}</p>}
-      </section>
-      <section className="query-section query-result-section" aria-label="Section 2: Query Result">
-        <QueryResult
-          result={result}
-          sqlStatement={sqlStatement}
-          resultView={resultView}
-          onRunQuery={runQuery}
-          onGetSql={getSql}
-          pageNumber={activeDefinition.page ?? 1}
-          pageSize={activeDefinition.pageSize}
-          onPageChange={changePage}
-          pageNavigationEnabled
-          queryLoading={queryStatus === "loading"}
-          queryDisabled={editorMode === "yaml"
-            ? !yamlText.trim()
-            : !activeDefinition.entity.trim() || !activeDefinition.columns.length}
-        />
-      </section>
+          {queryError && <p className="query-message error query-builder-error" role="alert">{queryError}</p>}
+        </section>
+        {editorMode === "yaml" && <QuerySectionSplitter height={yamlDesignHeight} onHeightChange={updateYamlDesignHeight} />}
+        <section className="query-section query-result-section" aria-label="Section 2: Query Result">
+          <QueryResult
+            result={result}
+            sqlStatement={sqlStatement}
+            resultView={resultView}
+            onRunQuery={runQuery}
+            onGetSql={getSql}
+            pageNumber={activeDefinition.page ?? 1}
+            pageSize={activeDefinition.pageSize}
+            onPageChange={changePage}
+            pageNavigationEnabled
+            queryLoading={queryStatus === "loading"}
+            queryDisabled={editorMode === "yaml"
+              ? !yamlText.trim()
+              : !activeDefinition.entity.trim() || !activeDefinition.columns.length}
+          />
+        </section>
+      </div>
     </>
   );
 }

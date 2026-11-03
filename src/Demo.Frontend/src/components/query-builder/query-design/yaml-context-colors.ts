@@ -1,4 +1,4 @@
-import { isMap, isScalar, parseDocument, visit } from "yaml";
+import { isMap, isScalar, isSeq, parseDocument, visit } from "yaml";
 
 export function getYamlContextKeys(text: string): { start: number; end: number }[] {
   const keys: { start: number; end: number }[] = [];
@@ -26,5 +26,24 @@ export function getYamlContextKeys(text: string): { start: number; end: number }
       }
     },
   });
+  if (contextNames.size) {
+    const names = [...contextNames].sort((left, right) => right.length - left.length)
+      .map(name => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    const contextReferencePattern = new RegExp(`(?:^|[^A-Za-z0-9_])(${names.join("|")})(?=\\.)`, "g");
+    visit(document, {
+      Pair(_key, pair) {
+        if (!isScalar(pair.key) || pair.key.value !== "Projection" || !isSeq(pair.value)) return;
+        for (const item of pair.value.items) {
+          if (!isScalar(item) || typeof item.value !== "string" || !item.range) continue;
+          const raw = text.slice(item.range[0], item.range[1]);
+          for (const match of raw.matchAll(contextReferencePattern)) {
+            const name = match[1]!;
+            const matchStart = match.index! + match[0].length - name.length;
+            keys.push({ start: item.range[0] + matchStart, end: item.range[0] + matchStart + name.length });
+          }
+        }
+      },
+    });
+  }
   return keys.sort((left, right) => left.start - right.start);
 }

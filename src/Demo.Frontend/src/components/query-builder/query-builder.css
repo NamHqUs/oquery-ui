@@ -22,6 +22,17 @@ section.page-heading.query-page-heading h2 { max-width: 680px; margin: 10px 0 8p
 .query-page-heading .query-save-button:hover:not(:disabled) { border-color: #c1b2ff; background: linear-gradient(145deg, #927be5, #735dc7); box-shadow: inset 0 1px #ffffff38, 0 7px 19px #8069cb66; }
 .query-page-heading .query-save-button:disabled { opacity: .58; cursor: wait; }
 .query-section { margin-top: 22px; }
+.query-builder-sections.yaml-layout .query-design-section { height: auto; max-height: var(--yaml-design-height); margin-bottom: 0; overflow: auto; }
+.query-builder-sections.yaml-layout.yaml-layout-resized .query-design-section { height: var(--yaml-design-height); max-height: var(--yaml-design-height); overflow: hidden; }
+.query-builder-sections.yaml-layout.yaml-layout-resized .query-design-workspace { height: 100%; min-height: 0; }
+.query-builder-sections.yaml-layout.yaml-layout-resized .query-design-area { box-sizing: border-box; overflow: hidden; }
+.query-builder-sections.yaml-layout.yaml-layout-resized .query-yaml-editor { height: calc(var(--yaml-design-height) - 115px); min-height: 0; grid-template-rows: auto minmax(0, 1fr); align-content: start; }
+.query-builder-sections.yaml-layout.yaml-layout-resized .query-yaml-code-editor { height: 100%; min-height: 0; box-sizing: border-box; }
+.query-builder-sections.yaml-layout .query-result-section { margin-top: 0; }
+.query-section-splitter { position: relative; height: 18px; margin: 0 8px; cursor: row-resize; touch-action: none; }
+.query-section-splitter::before { position: absolute; top: 8px; right: 0; left: 0; height: 2px; border-radius: 2px; background: var(--line); content: ""; transition: background .15s ease, box-shadow .15s ease; }
+.query-section-splitter:hover::before, .query-section-splitter:focus-visible::before { background: var(--purple); box-shadow: 0 0 10px #7054d466; }
+.query-section-splitter:focus-visible { outline: 0; }
 .query-design-workspace { display: grid; min-height: 480px; grid-template-columns: var(--panel-width, 260px) minmax(0, 1fr); align-items: stretch; overflow: hidden; background: linear-gradient(135deg, #11141c, #0f1218); border: 1px solid var(--line); border-radius: 9px; box-shadow: 0 14px 40px #00000018; }
 .query-builder-error { margin: 0; padding: 12px 28px; border: 1px solid var(--line); border-top: 0; background: #11141c; }
 .query-design-area { grid-column: 2; min-width: 0; padding: 26px 28px 35px; border-left: 1px solid var(--line); }
@@ -31,6 +42,11 @@ section.page-heading.query-page-heading h2 { max-width: 680px; margin: 10px 0 8p
 @media (max-width: 760px) {
   section.page-heading.query-page-heading { align-items: flex-start; flex-direction: column; gap: 17px; padding: 20px 27px; }
   .query-page-heading .heading-actions { justify-content: flex-start; }
+  .query-builder-sections.yaml-layout .query-design-section { height: auto; max-height: none; overflow: visible; }
+  .query-builder-sections.yaml-layout.yaml-layout-resized .query-design-section { height: auto; }
+  .query-builder-sections.yaml-layout.yaml-layout-resized .query-yaml-editor { height: auto; }
+  .query-builder-sections.yaml-layout.yaml-layout-resized .query-yaml-code-editor { height: auto; min-height: 420px; }
+  .query-section-splitter { display: none; }
   .query-design-workspace { min-height: 0; grid-template-columns: 1fr; }
   .query-design-area { grid-column: 1; padding: 18px 14px; border-left: 0; }
 }

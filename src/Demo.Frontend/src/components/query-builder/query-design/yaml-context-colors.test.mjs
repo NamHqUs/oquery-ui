@@ -72,6 +72,20 @@ test("highlights only RefContext values that map to a Contexts key", () => {
     ["Managers", "Managers"]);
 });
 
+test("uses the same context color for projection references", () => {
+  const text = [
+    "Relations:",
+    "  - RefContext: PatientVisits",
+    "Contexts:",
+    "  PatientVisits:",
+    "    Entity: Visits",
+    "    Projection:",
+    "      - PatientVisits.ChronicVisits",
+  ].join("\n");
+  assert.deepEqual(getYamlContextKeys(text).map(key => text.slice(key.start, key.end)),
+    ["PatientVisits", "PatientVisits", "PatientVisits"]);
+});
+
 test("supports flow-style references and does not highlight null references", () => {
   const text = 'Contexts: {Managers: {Entity: User}}\nRelations: [{RefContext: Managers}, {RefContext: Missing}, {RefContext: null}]';
   assert.deepEqual(getYamlContextKeys(text).map(key => text.slice(key.start, key.end)), ["Managers", "Managers"]);

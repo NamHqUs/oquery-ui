@@ -411,13 +411,19 @@ function YamlEditor({
 
   return (
     <>
-    <div className="query-yaml-fold-actions">
-      <button type="button" className="field-action" disabled={disabled || !folds.length}
-        onClick={() => setCollapsed(new Set(folds.map(fold => fold.start)))}>Collapse all</button>
-      <button type="button" className="field-action" disabled={disabled || !collapsed.size}
-        onClick={() => setCollapsed(new Set())}>Expand all</button>
-    </div>
     <div className="query-yaml-code-editor">
+      <div className="query-yaml-fold-actions" role="toolbar" aria-label="YAML folding">
+        <button type="button" disabled={disabled || !folds.length}
+          aria-label="Collapse all YAML sections" title="Collapse all YAML sections"
+          onClick={() => setCollapsed(new Set(folds.map(fold => fold.start)))}>
+          <Icon name="chevron-down" size={13} />
+        </button>
+        <button type="button" disabled={disabled || !collapsed.size}
+          aria-label="Expand all YAML sections" title="Expand all YAML sections"
+          onClick={() => setCollapsed(new Set())}>
+          <Icon name="chevron-right" size={13} />
+        </button>
+      </div>
       <div ref={lineNumbersRef} className="query-yaml-line-numbers">
         {projection.visible.map(({ line }) => {
           const fold = foldsByLine.get(line);
