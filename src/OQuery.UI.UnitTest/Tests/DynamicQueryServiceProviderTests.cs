@@ -2,6 +2,7 @@ using Demo.Contracts.Dto;
 using Demo.Contracts.Services;
 using Demo.Services;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Data.SqlClient;
 using Npgsql;
 using System.Data;
 using System.Text.RegularExpressions;
@@ -12,9 +13,40 @@ namespace OQuery.UI.UnitTest.Tests;
 public sealed class DynamicQueryServiceProviderTests
 {
     [Test]
+    public void SqlServerProviderUsesSqlServerDialect()
+    {
+        var connectionService = new StubConnectionService(
+            new SqlConnection(),
+            "SqlServer");
+        var service = new DynamicQueryService(
+            connectionService,
+            new StubMetadataService(),
+            new StubOperatorDefinitionService(),
+            NullLogger<DynamicQueryService>.Instance);
+        var query = new QueryDefinition
+        {
+            Entity = "User",
+            Projection =
+            [
+                new ProjectionDefinition("Id"),
+                new ProjectionDefinition("Name")
+            ],
+            Page = 1,
+            PageSize = 50
+        };
+
+        var sql = Regex.Replace(service.GetSqlQueryString(query), @"\s+", " ");
+
+        Assert.That(sql, Does.Contain("SELECT t0.[Id] [Id]"));
+        Assert.That(sql, Does.Contain("FROM [dbo].[User] t0"));
+        Assert.That(sql, Does.Contain("OFFSET 0 ROWS FETCH NEXT 50 ROWS ONLY"));
+        Assert.That(sql, Does.Not.Contain("LIMIT 50 OFFSET 0"));
+    }
+
+    [Test]
     public void CockroachProviderUsesCockroachDialectAndOperatorTemplate()
     {
-        var connectionService = new StubConnectionService();
+        var connectionService = new StubConnectionService(new NpgsqlConnection(), "Cockroach");
         var metadataService = new StubMetadataService();
         var operatorService = new StubOperatorDefinitionService();
         var service = new DynamicQueryService(
@@ -45,11 +77,11 @@ public sealed class DynamicQueryServiceProviderTests
             dialect => dialect is CockroachDialect));
     }
 
-    private sealed class StubConnectionService : IDbConnectionService
+    private sealed class StubConnectionService(IDbConnection connection, string provider) : IDbConnectionService
     {
-        public IDbConnection CreateConnection() => new NpgsqlConnection();
+        public IDbConnection CreateConnection() => connection;
         public DatabaseConnectionOptionsDto GetConnectionOptions() => new([], [], false);
-        public string? GetCurrentProvider() => "Cockroach";
+        public string? GetCurrentProvider() => provider;
         public string Connect(string profile) => throw new NotSupportedException();
         public void Connect(string provider, string connectionString) => throw new NotSupportedException();
         public void Disconnect() { }
@@ -68,7 +100,7 @@ public sealed class DynamicQueryServiceProviderTests
         public IMetadataProvider GetMetaProvider()
             => new MetadataProvider(
             [
-                new Entity("User", [new Field("Id", "Id")])
+                new Entity("User", [new Field("Id", "Id"), new Field("Name", "Name")])
             ]);
 
         public IReadOnlyList<MetadataEntityDto> GetAll() => throw new NotSupportedException();

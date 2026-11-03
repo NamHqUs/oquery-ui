@@ -24,10 +24,10 @@ export default function SavedQueryList({
 
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
   const sortedRequests = [...requests].sort((left, right) => (
-    left.mainQuery.name.localeCompare(right.mainQuery.name, undefined, { numeric: true, sensitivity: "base" })
+    left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: "base" })
   ));
   const filteredRequests = sortedRequests.filter((request) => (
-    !normalizedSearchTerm || request.mainQuery.name.toLowerCase().includes(normalizedSearchTerm)
+    !normalizedSearchTerm || request.name.toLowerCase().includes(normalizedSearchTerm)
   ));
 
   return (
@@ -66,15 +66,15 @@ export default function SavedQueryList({
         {status !== "failed" && status !== "loading" && filteredRequests.length > 0 && (
           <ul className="saved-query-list">
             {filteredRequests.map((item) => (
-              <li key={item.mainQuery.id}>
+              <li key={item.id}>
                 <button
                   type="button"
-                  className={`saved-query-item${selectedRequestName === item.mainQuery.name ? " active" : ""}`}
+                  className={`saved-query-item${selectedRequestName === item.name ? " active" : ""}`}
                   onClick={() => onSelectRequest(item)}
-                  aria-current={selectedRequestName === item.mainQuery.name ? "page" : undefined}
+                  aria-current={selectedRequestName === item.name ? "page" : undefined}
                 >
                   <span className="saved-query-item-copy">
-                    <span className="saved-query-item-name">{item.mainQuery.name}</span>
+                    <span className="saved-query-item-name">{item.name}</span>
                     <span className="saved-query-item-description">
                       {item.isBuiltin ? "Ready-to-use query" : "Your saved query"}
                     </span>

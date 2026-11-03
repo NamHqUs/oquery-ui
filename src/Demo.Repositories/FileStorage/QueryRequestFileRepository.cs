@@ -1,6 +1,7 @@
 using Demo.Contracts.Repositories;
 using Demo.Contracts.Dto;
 using OQuery;
+using OQuery.QueryDefinitions.Parsers;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -22,6 +23,9 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
         WriteIndented = true,
         Converters = { new JsonStringEnumConverter() }
     };
+
+    static QueryRequestFileRepository()
+        => JsonQueryDefinitionParser.Configure(JSON_OPTIONS);
 
     public override string CreateId(string userSectionId)
     {
@@ -68,15 +72,14 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
     public override void Save(string userSectionId, QueryDto query)
     {
         ArgumentNullException.ThrowIfNull(query);
-        ArgumentNullException.ThrowIfNull(query.MainQuery);
-        ArgumentException.ThrowIfNullOrWhiteSpace(query.MainQuery.Id);
-        ArgumentException.ThrowIfNullOrWhiteSpace(query.MainQuery.Name);
-        ArgumentException.ThrowIfNullOrWhiteSpace(query.MainQuery.Entity);
-        ArgumentNullException.ThrowIfNull(query.MainQuery.Projection);
+        ArgumentException.ThrowIfNullOrWhiteSpace(query.Id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(query.Name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(query.Entity);
+        ArgumentNullException.ThrowIfNull(query.Projection);
 
         Directory.CreateDirectory(GetUserStoreFolder(userSectionId));
         File.WriteAllText(
-            GetUserFilePath(userSectionId, query.MainQuery.Id),
+            GetUserFilePath(userSectionId, query.Id),
             Serialize(query));
     }
 
@@ -102,11 +105,11 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
             json,
             JSON_OPTIONS)
             ?? throw new InvalidDataException($"Query request file '{path}' is empty.");
-        if (query?.MainQuery is null ||
-            string.IsNullOrWhiteSpace(query.MainQuery.Id) ||
-            string.IsNullOrWhiteSpace(query.MainQuery.Name) ||
-            string.IsNullOrWhiteSpace(query.MainQuery.Entity) ||
-            query.MainQuery.Projection is null)
+        if (query is null ||
+            string.IsNullOrWhiteSpace(query.Id) ||
+            string.IsNullOrWhiteSpace(query.Name) ||
+            string.IsNullOrWhiteSpace(query.Entity) ||
+            query.Projection is null)
             throw new InvalidDataException($"Query request file '{path}' is missing required data.");
 
         query = query with { IsBuiltin = isBuiltin };
@@ -122,80 +125,45 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
             return json;
 
         var wasNormalized = false;
-        if (!queryRequest.Any(property =>
-            string.Equals(property.Key, "MainQuery", StringComparison.OrdinalIgnoreCase)))
+        if (GetProperty(queryRequest, "MainQuery") is JsonObject legacyMainQuery)
         {
-            var contexts = new JsonArray();
-            var extraRelations = new JsonArray();
-            var legacyContexts = GetProperty(queryRequest, "Contexts") as JsonArray;
-            if (legacyContexts is not null)
-            {
-                foreach (var legacyContextNode in legacyContexts)
-                {
-                    if (legacyContextNode is not JsonObject legacyContext)
-                        throw new JsonException("A legacy query context must be an object.");
-                    var query = GetProperty(legacyContext, "Query") as JsonObject
-                        ?? throw new JsonException("A legacy query context must contain a query.");
-                    var alias = GetProperty(legacyContext, "Name")?.GetValue<string>()
-                        ?? throw new JsonException("A legacy query context must contain a name.");
-                    var id = GetProperty(query, "Id")?.GetValue<string>()
-                        ?? $"legacy-{alias}";
-                    var context = query.DeepClone()!.AsObject();
-                    context["Id"] = id;
-                    context["Name"] = GetProperty(query, "Name")?.DeepClone() ?? alias;
-                    context["Filters"] = GetProperty(query, "Filters")?.DeepClone()
-                        ?? GetProperty(query, "Filter")?.DeepClone();
-                    context.Remove("Filter");
-                    context["ExtraRelations"] = null;
-                    contexts.Add(context);
-                    extraRelations.Add(new JsonObject
-                    {
-                        ["RefContextId"] = id,
-                        ["Alias"] = alias,
-                        ["Relation"] = GetProperty(legacyContext, "Relation")?.DeepClone(),
-                        ["JoinType"] = GetProperty(legacyContext, "JoinType")?.DeepClone() ?? "Left"
-                    });
-                }
-            }
-
-            var mainQuery = queryRequest.DeepClone()!.AsObject();
-            mainQuery.Remove("Contexts");
-            mainQuery.Remove("IsBuiltin");
-            mainQuery["Id"] = GetProperty(queryRequest, "Id")?.DeepClone()
-                ?? GetProperty(queryRequest, "Name")?.DeepClone()
-                ?? fallbackName;
-            mainQuery["Name"] = GetProperty(queryRequest, "Name")?.DeepClone() ?? fallbackName;
-            mainQuery["ExtraRelations"] = extraRelations.Count > 0 ? extraRelations : null;
-            queryRequest = new JsonObject
-            {
-                ["MainQuery"] = mainQuery,
-                ["Contexts"] = contexts,
-                ["IsBuiltin"] = GetProperty(queryRequest, "IsBuiltin")?.DeepClone() ?? false
-            };
+            var contexts = GetProperty(queryRequest, "Contexts")?.DeepClone();
+            var isBuiltin = GetProperty(queryRequest, "IsBuiltin")?.DeepClone();
+            queryRequest = legacyMainQuery.DeepClone()!.AsObject();
+            if (contexts is not null)
+                queryRequest["Contexts"] = contexts;
+            if (isBuiltin is not null)
+                queryRequest["IsBuiltin"] = isBuiltin;
             wasNormalized = true;
         }
 
-        if (GetProperty(queryRequest, "MainQuery") is JsonObject normalizedMainQuery)
+        if (GetProperty(queryRequest, "Name") is null)
         {
-            if (GetProperty(normalizedMainQuery, "Name") is null)
-            {
-                normalizedMainQuery["Name"] = fallbackName;
-                wasNormalized = true;
-            }
-            if (GetProperty(normalizedMainQuery, "Id") is null)
-            {
-                normalizedMainQuery["Id"] = fallbackName;
-                wasNormalized = true;
-            }
-            NormalizeQueryContext(normalizedMainQuery, ref wasNormalized);
+            queryRequest["Name"] = fallbackName;
+            wasNormalized = true;
         }
-        else
-            NormalizeQueryContext(queryRequest, ref wasNormalized);
-        if (queryRequest["Contexts"] is JsonArray contextNodes)
+        if (GetProperty(queryRequest, "Id") is null)
         {
-            foreach (var context in contextNodes.OfType<JsonObject>())
-                NormalizeQueryContext(context, ref wasNormalized);
+            queryRequest["Id"] = fallbackName;
+            wasNormalized = true;
         }
+
+        NormalizeQueryContext(queryRequest, ref wasNormalized);
+        if (queryRequest["Contexts"] is JsonArray legacyContextNodes)
+        {
+            var contextNodes = new JsonObject();
+            foreach (var context in legacyContextNodes.OfType<JsonObject>())
+            {
+                var name = GetProperty(context, "Name")?.GetValue<string>();
+                if (string.IsNullOrWhiteSpace(name))
+                    continue;
+                context.Remove("Name");
+                contextNodes[name] = context.DeepClone();
+            }
+            queryRequest["Contexts"] = contextNodes;
+            wasNormalized = true;
+        }
+        NormalizeContextRegistry(queryRequest, ref wasNormalized);
 
         return wasNormalized ? queryRequest.ToJsonString() : json;
     }
@@ -238,19 +206,16 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
         }
 
         var filtersProperty = query.FirstOrDefault(property =>
-            string.Equals(property.Key, "Filters", StringComparison.OrdinalIgnoreCase));
-        if (filtersProperty.Value is null)
+            string.Equals(property.Key, "Filter", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(property.Key, "Filters", StringComparison.OrdinalIgnoreCase));
+        if (filtersProperty.Value is not null
+            && !string.Equals(filtersProperty.Key, "Filter", StringComparison.Ordinal))
         {
-            var filterProperty = query.FirstOrDefault(property =>
-                string.Equals(property.Key, "Filter", StringComparison.OrdinalIgnoreCase));
-            if (filterProperty.Value is not null)
-            {
-                query["Filters"] = filterProperty.Value.DeepClone();
-                query.Remove(filterProperty.Key);
-                filtersProperty = query.FirstOrDefault(property =>
-                    string.Equals(property.Key, "Filters", StringComparison.OrdinalIgnoreCase));
-                wasNormalized = true;
-            }
+            query["Filter"] = filtersProperty.Value.DeepClone();
+            query.Remove(filtersProperty.Key);
+            filtersProperty = query.FirstOrDefault(property =>
+                string.Equals(property.Key, "Filter", StringComparison.Ordinal));
+            wasNormalized = true;
         }
         if (filtersProperty.Value is JsonValue filterValue
             && filterValue.TryGetValue<string>(out var filterText)
@@ -266,7 +231,7 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
         }
         if (filtersProperty.Value is JsonArray filters)
         {
-            query[filtersProperty.Key] = filters.Count switch
+            query["Filter"] = filters.Count switch
             {
                 0 => null,
                 1 => filters[0]?.DeepClone(),
@@ -280,24 +245,43 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
         }
 
         var relationsProperty = query.FirstOrDefault(property =>
-            string.Equals(property.Key, "ExtraRelations", StringComparison.OrdinalIgnoreCase));
+            string.Equals(property.Key, "Relations", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(property.Key, "ExtraRelations", StringComparison.OrdinalIgnoreCase));
+        if (relationsProperty.Value is not null
+            && !string.Equals(relationsProperty.Key, "Relations", StringComparison.Ordinal))
+        {
+            query["Relations"] = relationsProperty.Value.DeepClone();
+            query.Remove(relationsProperty.Key);
+            relationsProperty = query.FirstOrDefault(property =>
+                string.Equals(property.Key, "Relations", StringComparison.OrdinalIgnoreCase));
+            wasNormalized = true;
+        }
         if (relationsProperty.Value is JsonArray relations)
         {
             foreach (var relationNode in relations.OfType<JsonObject>())
             {
                 var conditionProperty = relationNode.FirstOrDefault(property =>
-                    string.Equals(property.Key, "Relation", StringComparison.OrdinalIgnoreCase));
-                if (conditionProperty.Value is not JsonValue conditionValue
-                    || !conditionValue.TryGetValue<string>(out var conditionText)
-                    || string.IsNullOrWhiteSpace(conditionText))
-                    continue;
-
-                var condition = OQuery.QueryDefinitions.Parsers.QueryDefinitionParser
-                    .ParseJoinCondition(conditionText);
-                relationNode[conditionProperty.Key] = JsonSerializer.SerializeToNode(
-                    condition,
-                    condition?.GetType() ?? typeof(object),
-                    JSON_OPTIONS);
+                    string.Equals(property.Key, "Condition", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(property.Key, "Relation", StringComparison.OrdinalIgnoreCase));
+                if (conditionProperty.Value is JsonValue conditionValue
+                    && conditionValue.TryGetValue<string>(out var conditionText)
+                    && !string.IsNullOrWhiteSpace(conditionText))
+                {
+                    var condition = OQuery.QueryDefinitions.Parsers.QueryDefinitionParser
+                        .ParseJoinCondition(conditionText);
+                    relationNode["Condition"] = JsonSerializer.SerializeToNode(
+                        condition,
+                        condition?.GetType() ?? typeof(object),
+                        JSON_OPTIONS);
+                }
+                else if (conditionProperty.Value is not null
+                    && !string.Equals(conditionProperty.Key, "Condition", StringComparison.Ordinal))
+                    relationNode["Condition"] = conditionProperty.Value.DeepClone();
+                relationNode.Remove("Relation");
+                if (GetProperty(relationNode, "RefContext") is null
+                    && GetProperty(relationNode, "RefContextId") is JsonValue legacyRef)
+                    relationNode["RefContext"] = legacyRef.DeepClone();
+                relationNode.Remove("RefContextId");
                 wasNormalized = true;
             }
         }
@@ -306,20 +290,72 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
             string.Equals(property.Key, "Sorts", StringComparison.OrdinalIgnoreCase));
         if (sortsProperty.Value is JsonArray sorts && sorts.Count > 0)
         {
-            var containsGroups = sorts.Any(sort => sort is JsonArray);
-            if (containsGroups && sorts.Any(sort => sort is not JsonArray))
-                throw new JsonException("A legacy sort list must contain only groups.");
-
-            if (!containsGroups)
+            if (sorts.Any(sort => sort is JsonArray))
             {
-                var group = new JsonArray();
+                var flattened = new JsonArray();
                 foreach (var sort in sorts)
-                    group.Add(sort?.DeepClone());
-                query[sortsProperty.Key] = new JsonArray(group);
+                {
+                    if (sort is not JsonArray group)
+                        throw new JsonException("A legacy sort list must contain only groups.");
+                    foreach (var item in group)
+                        flattened.Add(item?.DeepClone());
+                }
+                query[sortsProperty.Key] = flattened;
                 wasNormalized = true;
             }
         }
 
+    }
+
+    private static void NormalizeContextRegistry(JsonObject queryRequest, ref bool wasNormalized)
+    {
+        if (queryRequest["Contexts"] is not JsonObject contextObject)
+            return;
+
+        var names = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var property in contextObject)
+        {
+            if (property.Value is not JsonObject context)
+                throw new JsonException("A query context must be an object.");
+            var name = GetProperty(context, "Name")?.GetValue<string>();
+            var resolvedName = string.IsNullOrWhiteSpace(name) ? property.Key : name;
+            names[property.Key] = resolvedName;
+            var id = GetProperty(context, "Id")?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(id))
+                names[id] = resolvedName;
+        }
+
+        var normalizedContexts = new JsonObject();
+        foreach (var property in contextObject)
+        {
+            var context = property.Value!.DeepClone()!.AsObject();
+            context.Remove("Name");
+            context.Remove("Id");
+            RewriteRelationReferences(context, names);
+            normalizedContexts[names[property.Key]] = context;
+        }
+
+        queryRequest["Contexts"] = normalizedContexts;
+        RewriteRelationReferences(
+            GetProperty(queryRequest, "MainQuery")?.AsObject() ?? queryRequest,
+            names);
+        wasNormalized = true;
+    }
+
+    private static void RewriteRelationReferences(
+        JsonObject query,
+        IReadOnlyDictionary<string, string> names)
+    {
+        if (GetProperty(query, "Relations") is not JsonArray relations)
+            return;
+
+        foreach (var relation in relations.OfType<JsonObject>())
+        {
+            var reference = GetProperty(relation, "RefContext")?.GetValue<string>();
+            if (!string.IsNullOrWhiteSpace(reference) &&
+                names.TryGetValue(reference, out var name))
+                relation["RefContext"] = name;
+        }
     }
 
     private static JsonNode? GetProperty(JsonObject value, string name)

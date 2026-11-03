@@ -28,6 +28,7 @@ public sealed class ReportService(
         string? description = null,
         string? chartType = null)
     {
+        QueryDefinitionParser.ValidateContextReferences(query);
         var sectionId = userSectionManager.GetSectionId();
         fileName ??= repository.CreateId(sectionId);
         EnsureNotBuiltin(fileName);
@@ -149,6 +150,7 @@ public sealed class ReportService(
         string? description = null,
         string? chartType = null)
     {
+        QueryDefinitionParser.ValidateContextReferences(query);
         var sectionId = userSectionManager.GetSectionId();
         EnsureNoBuiltinConflict(sectionId);
         if (IsBuiltin(fileName) || repository.Get(sectionId, fileName) is null)

@@ -4,6 +4,7 @@ using Demo.Contracts.Application;
 using Demo.Services;
 using OQuery.UI.Application.Middlewares;
 using OQuery;
+using OQuery.QueryDefinitions.Parsers;
 using System.Text.Json.Serialization;
 
 var configuration = new ConfigurationBuilder()
@@ -20,11 +21,13 @@ builder.Services
     .AddControllers()
     .AddJsonOptions(options =>
     {
+        JsonQueryDefinitionParser.Configure(options.JsonSerializerOptions);
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter<DataType>());
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter<RelationType>());
     });
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
+    JsonQueryDefinitionParser.Configure(options.SerializerOptions);
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<DataType>());
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<RelationType>());
 });

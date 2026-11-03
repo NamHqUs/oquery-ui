@@ -15,14 +15,17 @@ public class DatabaseService(IConfiguration configuration) : IDatabaseService, I
     {
         get
         {
-            if (_currentDbInstance is null)
+            lock (_instanceLock)
             {
-                var defaultOption = configuration.GetSection("DbProvider:DefaultDbOption");
-                if (defaultOption.Exists())
-                    _currentDbInstance = CreateDbInstance(defaultOption["Provider"]!, defaultOption["ConnectionString"]!);
-            }
+                if (_currentDbInstance is null)
+                {
+                    var defaultOption = configuration.GetSection("DbProvider:DefaultDbOption");
+                    if (defaultOption.Exists())
+                        _currentDbInstance = CreateDbInstance(defaultOption["Provider"]!, defaultOption["ConnectionString"]!);
+                }
 
-            return _currentDbInstance;
+                return _currentDbInstance;
+            }
         }
     }
 

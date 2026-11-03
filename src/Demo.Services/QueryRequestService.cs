@@ -2,6 +2,7 @@ using Demo.Contracts.Application;
 using Demo.Contracts.Dto;
 using Demo.Contracts.Repositories;
 using Demo.Contracts.Services;
+using OQuery.QueryDefinitions.Parsers;
 
 namespace Demo.Services;
 
@@ -13,13 +14,13 @@ public sealed class QueryRequestService(
     {
         var sectionId = userSectionManager.GetSectionId();
         var builtin = repository.GetBuiltin();
-        var builtinNames = builtin.Select(query => query.MainQuery.Name)
+        var builtinNames = builtin.Select(query => query.Name)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var custom = repository.GetUserDefined(sectionId);
-        var conflict = custom.FirstOrDefault(query => builtinNames.Contains(query.MainQuery.Name));
+        var conflict = custom.FirstOrDefault(query => builtinNames.Contains(query.Name));
         if (conflict is not null)
             throw new InvalidDataException(
-                $"Custom query request '{conflict.MainQuery.Name}' cannot replace a built-in request.");
+                $"Custom query request '{conflict.Name}' cannot replace a built-in request.");
 
         return builtin.Concat(custom).ToArray();
     }
@@ -28,7 +29,7 @@ public sealed class QueryRequestService(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         return repository.GetBuiltin().FirstOrDefault(query =>
-                string.Equals(query.MainQuery.Id, id, StringComparison.OrdinalIgnoreCase))
+                string.Equals(query.Id, id, StringComparison.OrdinalIgnoreCase))
             ?? repository.Get(userSectionManager.GetSectionId(), id);
     }
 
@@ -36,10 +37,10 @@ public sealed class QueryRequestService(
     {
         ValidateQuery(query);
         var sectionId = userSectionManager.GetSectionId();
-        EnsureNameIsAvailable(sectionId, query.MainQuery.Name, currentId: null);
+        EnsureNameIsAvailable(sectionId, query.Name, currentId: null);
         var created = query with
         {
-            MainQuery = query.MainQuery with { Id = repository.CreateId(sectionId) },
+            Id = repository.CreateId(sectionId),
             IsBuiltin = false
         };
         repository.Save(sectionId, created);
@@ -50,8 +51,8 @@ public sealed class QueryRequestService(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ValidateQuery(query);
-        if (!string.Equals(query.MainQuery.Id, id, StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException("Query context ID must match the requested ID.", nameof(query));
+        if (!string.Equals(query.Id, id, StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Query request ID must match the requested ID.", nameof(query));
         if (IsBuiltin(id))
             throw new InvalidOperationException($"Built-in query request '{id}' cannot be changed.");
 
@@ -59,7 +60,7 @@ public sealed class QueryRequestService(
         if (repository.Get(sectionId, id) is null)
             return null;
 
-        EnsureNameIsAvailable(sectionId, query.MainQuery.Name, id);
+        EnsureNameIsAvailable(sectionId, query.Name, id);
         var updated = query with { IsBuiltin = false };
         repository.Save(sectionId, updated);
         return updated;
@@ -67,7 +68,7 @@ public sealed class QueryRequestService(
 
     public bool IsBuiltin(string id)
         => repository.GetBuiltin().Any(item =>
-            string.Equals(item.MainQuery.Id, id, StringComparison.OrdinalIgnoreCase));
+            string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
 
     public bool Delete(string id)
     {
@@ -78,21 +79,21 @@ public sealed class QueryRequestService(
     private void EnsureNameIsAvailable(string sectionId, string name, string? currentId)
     {
         if (repository.GetBuiltin().Any(item =>
-            string.Equals(item.MainQuery.Name, name, StringComparison.OrdinalIgnoreCase)))
+            string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException($"Built-in query request '{name}' cannot be replaced.");
 
         if (repository.GetUserDefined(sectionId).Any(item =>
-            !string.Equals(item.MainQuery.Id, currentId, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(item.MainQuery.Name, name, StringComparison.OrdinalIgnoreCase)))
+            !string.Equals(item.Id, currentId, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException($"A query request named '{name}' already exists.");
     }
 
     private static void ValidateQuery(QueryDto query)
     {
         ArgumentNullException.ThrowIfNull(query);
-        ArgumentNullException.ThrowIfNull(query.MainQuery);
-        ArgumentException.ThrowIfNullOrWhiteSpace(query.MainQuery.Name);
-        ArgumentException.ThrowIfNullOrWhiteSpace(query.MainQuery.Entity);
-        ArgumentNullException.ThrowIfNull(query.MainQuery.Projection);
+        ArgumentException.ThrowIfNullOrWhiteSpace(query.Name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(query.Entity);
+        ArgumentNullException.ThrowIfNull(query.Projection);
+        QueryDefinitionParser.ValidateContextReferences(query);
     }
 }

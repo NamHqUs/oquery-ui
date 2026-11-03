@@ -25,7 +25,7 @@ public sealed class QueryRequestController(IQueryRequestService queryRequestServ
         try
         {
             var created = queryRequestService.Create(query);
-            return CreatedAtAction(nameof(GetById), new { id = created.MainQuery.Id }, created);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
         catch (ArgumentException exception)
         {

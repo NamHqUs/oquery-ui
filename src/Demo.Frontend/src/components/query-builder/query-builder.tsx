@@ -649,10 +649,25 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
   };
   const updateContextName = (name: string) => {
     if (activeContextIndex === null || !definition.contextCatalog) return;
-    const contexts = definition.contextCatalog.map((context, index) =>
-      index === activeContextIndex ? { ...context, name } : context,
-    );
-    updateDefinition({ ...definition, contextCatalog: contexts });
+    const previousName = definition.contextCatalog[activeContextIndex]?.name;
+    if (!previousName || !name.trim() || previousName === name) return;
+    if (definition.contextCatalog.some((context, index) =>
+      index !== activeContextIndex && context.name.localeCompare(name, undefined, { sensitivity: "base" }) === 0)) return;
+    const renameReferences = (contexts: ApiQueryContextDefinition[] | null | undefined): ApiQueryContextDefinition[] | undefined =>
+      contexts?.map((context) => ({
+        ...context,
+        name: context.name === previousName ? name : context.name,
+        alias: context.alias === previousName ? name : context.alias,
+        query: {
+          ...context.query,
+          contexts: renameReferences(context.query.contexts),
+        },
+      }));
+    updateDefinition({
+      ...definition,
+      contexts: renameReferences(definition.contexts),
+      contextCatalog: renameReferences(definition.contextCatalog),
+    });
   };
   const deleteContext = async (contextIndex: number) => {
     const context = definition.contextCatalog?.[contextIndex];
@@ -789,15 +804,15 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
         id: selectedRequestIsBuiltin ? undefined : selectedRequestId ?? undefined,
       }));
       if (saveQueryRequest.fulfilled.match(resultAction)) {
-        setSelectedRequestId(resultAction.payload.mainQuery.id);
-        setSelectedRequestName(resultAction.payload.mainQuery.name);
+        setSelectedRequestId(resultAction.payload.id);
+        setSelectedRequestName(resultAction.payload.name);
         setSelectedRequestIsBuiltin(false);
-        setRequestName(resultAction.payload.mainQuery.name);
-        updateRequestRoute(resultAction.payload.mainQuery.name);
+        setRequestName(resultAction.payload.name);
+        updateRequestRoute(resultAction.payload.name);
         setQueryRequestNotice("Query saved.");
         boundModelRef.current = JSON.stringify({
           definition: currentDefinition,
-          requestName: resultAction.payload.mainQuery.name,
+          requestName: resultAction.payload.name,
         });
         return true;
       }
@@ -848,24 +863,24 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
     if (debugUiEnabled) console.log("Saved Query Request:", savedRequest);
     const savedView = toQueryBuilderSavedView(savedRequest);
     const nextDefinition = fromApiQuery(savedView.query, savedView.projectionRows);
-    if (updateRoute) updateRequestRoute(savedRequest.mainQuery.name);
+    if (updateRoute) updateRequestRoute(savedRequest.name);
     setSelectedContextIndex(null);
     boundModelRef.current = JSON.stringify({
       definition: nextDefinition,
-      requestName: savedRequest.mainQuery.name,
+      requestName: savedRequest.name,
     });
     updateDefinition(nextDefinition);
-    setRequestName(savedRequest.mainQuery.name);
+    setRequestName(savedRequest.name);
     setRequestNameError("");
-    setSelectedRequestName(savedRequest.mainQuery.name);
-    setSelectedRequestId(savedRequest.mainQuery.id);
+    setSelectedRequestName(savedRequest.name);
+    setSelectedRequestId(savedRequest.id);
     setSelectedRequestIsBuiltin(savedRequest.isBuiltin);
     setQueryRequestNotice("");
   };
   useEffect(() => {
     const requestedName = searchParams.get("request");
     if (!requestedName || selectedRequestName === requestedName) return;
-    const savedRequest = queryRequests.find((request) => request.mainQuery.name === requestedName);
+    const savedRequest = queryRequests.find((request) => request.name === requestedName);
     if (savedRequest) void selectSavedRequest(savedRequest, false);
   }, [queryRequests, searchParams, selectedRequestName]);
 

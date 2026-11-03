@@ -72,7 +72,7 @@ public sealed class ReportFileRepository : FileRepositoryBase<ReportDto>, IRepor
             lines.AddRange(new SerializerBuilder().Build().Serialize(header)
                 .Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries));
         lines.Add("Query:");
-        lines.AddRange(report.Query.ToYml()
+        lines.AddRange(YamlQueryDefinitionParser.Write(report.Query)
             .Split(["\r\n", "\n"], StringSplitOptions.None)
             .Select(line => $"  {line}"));
         return string.Join(Environment.NewLine, lines) + Environment.NewLine;
@@ -91,7 +91,7 @@ public sealed class ReportFileRepository : FileRepositoryBase<ReportDto>, IRepor
         var chartType = root.GetValueOrDefault("ChartType") as string;
 
         var name = root.GetValueOrDefault("Name") as string;
-        return new ReportDto(fileName, query, query.ToYml(), description, chartType)
+        return new ReportDto(fileName, query, YamlQueryDefinitionParser.Write(query), description, chartType)
         {
             Name = name
         };
@@ -241,9 +241,13 @@ public sealed class ReportFileRepository : FileRepositoryBase<ReportDto>, IRepor
             element.TryGetProperty(char.ToLowerInvariant(name[0]) + name[1..], out value);
 
     private static JsonSerializerOptions Options(bool writeIndented = false)
-        => new()
+    {
+        var options = new JsonSerializerOptions
         {
             WriteIndented = writeIndented,
             Converters = { new JsonStringEnumConverter<DataType>() }
         };
+        JsonQueryDefinitionParser.Configure(options);
+        return options;
+    }
 }

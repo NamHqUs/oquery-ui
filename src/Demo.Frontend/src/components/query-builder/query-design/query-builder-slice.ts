@@ -126,7 +126,8 @@ export type ApiQueryDefinition = {
   sorts?: { field: string | IFieldDefinition; direction: number | string }[];
   page?: number | null;
   pageSize?: number | null;
-  contexts?: ApiQueryContextDefinition[] | null;
+  contexts?: ApiQueryContextDefinition[] | Record<string, ApiQueryContextDto> | null;
+  relations?: ApiQueryDto["relations"];
 };
 
 export type ApiQueryContextDefinition = {
@@ -152,25 +153,38 @@ function isSourceContext(context: ApiQueryContextDefinition, entity: string): bo
 }
 
 type ApiQueryContextDto = {
-  id: string;
-  name: string;
+  id?: string;
+  name?: string;
   entity: string;
   projection?: ApiProjectionDefinition[];
   filters?: ApiQueryFilterGroup | null;
   sorts?: { field: string | IFieldDefinition; direction: number | string }[][] | null;
   page?: number | null;
   pageSize?: number | null;
-  extraRelations?: {
-    refContextId: string;
-    alias: string;
+  relations?: {
+    refContext: string;
+    alias?: string | null;
     condition: ApiQueryFilterNode | string | null;
     joinType?: number | string;
   }[] | null;
 };
 
 export type ApiQueryDto = {
-  mainQuery: ApiQueryContextDto;
-  contexts?: ApiQueryContextDto[] | null;
+  id: string;
+  name: string;
+  entity: string;
+  projection: ApiProjectionDefinition[];
+  filter?: ApiQueryFilterGroup | null;
+  sorts?: { field: string | IFieldDefinition; direction: number | string }[] | null;
+  page?: number | null;
+  pageSize?: number | null;
+  relations?: {
+    refContext: string;
+    alias?: string | null;
+    condition: ApiQueryFilterNode | string | null;
+    joinType?: number | string;
+  }[] | null;
+  contexts?: Record<string, ApiQueryContextDto> | null;
   isBuiltin: boolean;
 };
 
@@ -187,8 +201,14 @@ export type ReportDto = {
 export type SavedQueryRequestDto = ApiQueryDto;
 
 type ApiSavedQueryRequestDto = {
-  mainQuery: ApiQueryContextDto;
-  contexts?: ApiQueryContextDto[] | null;
+  id: string;
+  name: string;
+  entity: string;
+  projection: ApiProjectionDefinition[];
+  filter?: ApiQueryFilterGroup | null;
+  sorts?: { field: string | IFieldDefinition; direction: number | string }[] | null;
+  relations?: ApiQueryDto["relations"];
+  contexts?: Record<string, ApiQueryContextDto> | null;
   isBuiltin: boolean;
 };
 
@@ -290,6 +310,7 @@ export function createApiQuery(definition: QueryDefinition) {
 }
 
 export function fromApiQueryDefinition(query: ApiQueryDefinition): QueryDefinition {
+  query = normalizeApiQueryDefinition(query);
   const filter = query.filter
     ? "filters" in query.filter
       ? query.filter
@@ -317,6 +338,71 @@ export function fromApiQueryDefinition(query: ApiQueryDefinition): QueryDefiniti
     contexts: query.contexts,
     contextCatalog,
   });
+}
+
+function normalizeApiQueryDefinition(query: ApiQueryDefinition): ApiQueryDefinition {
+  if (!query.contexts || Array.isArray(query.contexts))
+    return {
+      ...query,
+      contexts: query.contexts?.map((context) => ({
+        ...context,
+        query: normalizeApiQueryDefinition(context.query),
+      })),
+    };
+
+  const entries = Object.entries(query.contexts);
+  const byReference = new Map(entries.flatMap(([name, context]) => [
+    [name, { name, context }] as const,
+    ...(context.id ? [[context.id, { name, context }] as const] : []),
+  ]));
+  const visiting = new Set<string>();
+
+  const buildContext = (
+    name: string,
+    context: ApiQueryContextDto,
+    relation?: ApiQueryDto["relations"][number],
+  ): ApiQueryContextDefinition => {
+    const identity = context.id ?? name;
+    if (!visiting.add(identity))
+      throw new Error(`Query API returned recursive context '${name}'.`);
+
+    const nestedContexts = (context.relations ?? []).map((nestedRelation) => {
+      const referenced = byReference.get(nestedRelation.refContext);
+      if (!referenced)
+        throw new Error(`Query API returned an unknown context reference '${nestedRelation.refContext}'.`);
+      return buildContext(referenced.name, referenced.context, nestedRelation);
+    });
+
+    visiting.delete(identity);
+    return {
+      id: context.id ?? name,
+      name,
+      alias: relation?.alias ?? undefined,
+      joinType: relation?.joinType,
+      condition: relation?.condition,
+      query: {
+        name,
+        entity: context.entity,
+        projection: context.projection ?? [],
+        filter: context.filters,
+        sorts: context.sorts?.flat() ?? [],
+        page: context.page,
+        pageSize: context.pageSize,
+        contexts: nestedContexts.length ? nestedContexts : undefined,
+      },
+    };
+  };
+
+  const relations = query.relations ?? entries.map(([refContext]) => ({ refContext }));
+  return {
+    ...query,
+    contexts: relations.map((relation) => {
+      const referenced = byReference.get(relation.refContext);
+      if (!referenced)
+        throw new Error(`Query API returned an unknown context reference '${relation.refContext}'.`);
+      return buildContext(referenced.name, referenced.context, relation);
+    }),
+  };
 }
 
 function normalizeMatchOperation(value: unknown): MatchOperation | undefined {
@@ -605,16 +691,22 @@ export function toQueryBuilderSavedView(request: ApiSavedQueryRequest): QueryBui
   const fields: ApiProjectionDefinition[] = [];
   const projectionRows: string[][] = [];
   let row: string[] = [];
-  const mainQuery = request.mainQuery;
-  const contextsById = new Map((request.contexts ?? []).map((context) => [context.id, context]));
+  const mainQuery = request;
+  const contextEntries = Object.entries(request.contexts ?? {}).map(([name, context]) => ({
+    ...context,
+    name,
+    id: context.id ?? name,
+  }));
+  const contextsById = new Map(contextEntries.map((context) => [context.id!, context]));
   const toApiDefinition = (context: ApiQueryContextDto, visited = new Set<string>()): ApiQueryDefinition => {
-    if (!visited.add(context.id)) throw new Error(`Query API returned recursive context '${context.id}'.`);
-    const contexts = (context.extraRelations ?? []).map((joined) => {
-      const referenced = contextsById.get(joined.refContextId);
-      if (!referenced) throw new Error(`Query API returned an unknown context reference '${joined.refContextId}'.`);
+    const contextId = context.id!;
+    if (!visited.add(contextId)) throw new Error(`Query API returned recursive context '${contextId}'.`);
+    const contexts = (context.relations ?? []).map((joined) => {
+      const referenced = contextsById.get(joined.refContext);
+      if (!referenced) throw new Error(`Query API returned an unknown context reference '${joined.refContext}'.`);
       return {
-        id: referenced.id,
-        name: referenced.name,
+        id: referenced.id!,
+        name: referenced.name!,
         alias: joined.alias,
         joinType: joined.joinType,
         condition: joined.condition,
@@ -632,9 +724,9 @@ export function toQueryBuilderSavedView(request: ApiSavedQueryRequest): QueryBui
     contexts: contexts.length ? contexts : undefined,
     };
   };
-  const extraRelations: ApiQueryContextDefinition[] = (mainQuery.extraRelations ?? []).map((joined) => {
-    const context = contextsById.get(joined.refContextId);
-    if (!context) throw new Error(`Query API returned an unknown context reference '${joined.refContextId}'.`);
+  const extraRelations: ApiQueryContextDefinition[] = (mainQuery.relations ?? []).map((joined) => {
+    const context = contextsById.get(joined.refContext);
+    if (!context) throw new Error(`Query API returned an unknown context reference '${joined.refContext}'.`);
     return {
       id: context.id,
       name: context.name,
@@ -644,7 +736,7 @@ export function toQueryBuilderSavedView(request: ApiSavedQueryRequest): QueryBui
       query: toApiDefinition(context),
     };
   });
-  const sourceContextDto = (request.contexts ?? []).find((context) =>
+  const sourceContextDto = contextEntries.find((context) =>
     context.name === mainQuery.entity);
   const sourceContext: ApiQueryContextDefinition | undefined = sourceContextDto
     ? {
@@ -663,9 +755,9 @@ export function toQueryBuilderSavedView(request: ApiSavedQueryRequest): QueryBui
         && (context.alias === sourceContextDto.name || !context.alias?.trim())
         && !hasApiQueryCondition(context.condition))),
   ];
-  const contextCatalog: ApiQueryContextDefinition[] = (request.contexts ?? []).map((context) => ({
-    id: context.id,
-    name: context.name,
+  const contextCatalog: ApiQueryContextDefinition[] = contextEntries.map((context) => ({
+    id: context.id!,
+    name: context.name!,
     query: toApiDefinition(context),
   }));
 
@@ -689,8 +781,8 @@ export function toQueryBuilderSavedView(request: ApiSavedQueryRequest): QueryBui
     query: {
       entity: mainQuery.entity,
       projection: fields,
-      filter: mainQuery.filters ?? null,
-      sorts: mainQuery.sorts?.flat() ?? [],
+      filter: mainQuery.filter ?? null,
+      sorts: mainQuery.sorts ?? [],
       page: mainQuery.page ?? null,
       pageSize: mainQuery.pageSize ?? null,
       contexts: queryContexts.length ? queryContexts : undefined,
@@ -746,42 +838,40 @@ function toApiSavedRequest(request: { name: string; definition: QueryDefinition;
     ?? `${request.id ?? request.name}-context-${allContexts.indexOf(context)}`;
   const toStoredContext = (context: ApiQueryContextDefinition) => ({
     id: getContextId(context),
-    name: context.name,
     entity: context.query.entity,
     projection: context.query.projection,
     filters: context.query.filter,
     sorts: context.query.sorts?.length ? [context.query.sorts] : null,
     page: context.query.page,
     pageSize: context.query.pageSize,
-    extraRelations: context.query.contexts?.map((nested) => ({
-      refContextId: getContextId(nested),
-      alias: nested.alias ?? nested.name,
+    relations: context.query.contexts?.map((nested) => ({
+      refContext: nested.name,
+      alias: nested.alias ?? null,
       condition: nested.condition ?? { logicalOperation: 0, filters: [] },
       joinType: nested.joinType ?? 1,
     })) ?? null,
   });
-  const contexts = allContexts.map(toStoredContext);
-  const extraRelations = (apiQuery.contexts ?? [])
+  const contexts = Object.fromEntries(allContexts.map((context) => [
+    context.name,
+    toStoredContext(context),
+  ]));
+  const relations = (apiQuery.contexts ?? [])
     .filter((context) => !isSourceContext(context, apiQuery.entity))
     .map((context) => ({
-      refContextId: getContextId(context),
-      alias: context.alias ?? context.name,
+      refContext: context.name,
+      alias: context.alias ?? null,
       condition: context.condition ?? { logicalOperation: 0, filters: [] },
       joinType: context.joinType ?? 1,
     }));
 
   return {
-    mainQuery: {
-      id: request.id ?? "",
-      name: request.name,
-      entity: apiQuery.entity,
-      projection,
-      filters: apiQuery.filter,
-      sorts: apiQuery.sorts.length ? [apiQuery.sorts] : null,
-      page: apiQuery.page,
-      pageSize: apiQuery.pageSize,
-      extraRelations,
-    },
+    id: request.id ?? "",
+    name: request.name,
+    entity: apiQuery.entity,
+    projection,
+    filter: apiQuery.filter,
+    sorts: apiQuery.sorts,
+    relations,
     contexts,
     isBuiltin: false,
   };
@@ -1061,12 +1151,12 @@ export const fetchQueryRequests = createAsyncThunk(
       const payload = await requestJson(apiUrls.queryRequests.list);
       if (!Array.isArray(payload) || payload.some((item) => !item
         || typeof item.isBuiltin !== "boolean"
-        || !item.mainQuery
-        || typeof item.mainQuery.id !== "string"
-        || typeof item.mainQuery.name !== "string"
-        || typeof item.mainQuery.entity !== "string"
-        || !Array.isArray(item.mainQuery.projection)
-        || (item.contexts !== undefined && item.contexts !== null && !Array.isArray(item.contexts)))) {
+        || typeof item.id !== "string"
+        || typeof item.name !== "string"
+        || typeof item.entity !== "string"
+        || !Array.isArray(item.projection)
+        || (item.contexts !== undefined && item.contexts !== null
+          && (typeof item.contexts !== "object" || Array.isArray(item.contexts))))) {
         return rejectWithValue("Query request API must return saved query requests.");
       }
       return payload.map((item) => item as ApiQueryDto);
@@ -1085,11 +1175,13 @@ export const saveQueryRequest = createAsyncThunk(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(toApiSavedRequest({ name, definition, id })),
       });
-      if (!saved?.mainQuery
-        || typeof saved.mainQuery.id !== "string"
-        || typeof saved.mainQuery.name !== "string"
-        || typeof saved.mainQuery.entity !== "string"
-        || !Array.isArray(saved.mainQuery.projection)) {
+      if (!saved
+        || typeof saved.id !== "string"
+        || typeof saved.name !== "string"
+        || typeof saved.entity !== "string"
+        || !Array.isArray(saved.projection)
+        || (saved.contexts !== undefined && saved.contexts !== null
+          && (typeof saved.contexts !== "object" || Array.isArray(saved.contexts)))) {
         throw new Error("Query request API must return the saved query request.");
       }
       return saved as ApiQueryDto;
@@ -1288,7 +1380,7 @@ const queryBuilderSlice = createSlice({
         state.queryRequestsError = "";
         state.queryRequestsStatus = "succeeded";
         state.queryRequests = state.queryRequests.filter((item) =>
-          item.isBuiltin || item.mainQuery.id !== action.payload.mainQuery.id);
+          item.isBuiltin || item.id !== action.payload.id);
         state.queryRequests.unshift(action.payload);
       })
       .addCase(saveQueryRequest.rejected, (state, action) => {
@@ -1296,7 +1388,7 @@ const queryBuilderSlice = createSlice({
       })
       .addCase(deleteQueryRequest.fulfilled, (state, action) => {
         state.queryRequests = state.queryRequests.filter((item) =>
-          item.mainQuery.id !== action.payload);
+          item.id !== action.payload);
       })
       .addCase(deleteQueryRequest.rejected, (state, action) => {
         state.queryRequestsError = String(action.payload || action.error.message || "Unable to delete query.");

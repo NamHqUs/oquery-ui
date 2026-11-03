@@ -46,7 +46,7 @@ public sealed class QueryRequestFileRepositoryTests
             Assert.That(files, Has.Count.EqualTo(30));
             Assert.That(queries, Has.Count.EqualTo(files.Count));
             Assert.That(queries.All(query => query.IsBuiltin), Is.True);
-            Assert.That(queries.Select(query => query.MainQuery.Id).Distinct().Count(), Is.EqualTo(files.Count));
+            Assert.That(queries.Select(query => query.Id).Distinct().Count(), Is.EqualTo(files.Count));
             Assert.That(service.List(), Has.Count.EqualTo(files.Count));
             Assert.That(_repository.GetUserDefined("123"), Is.Empty);
             Assert.That(Directory.Exists(_storagePath), Is.False);
@@ -60,35 +60,29 @@ public sealed class QueryRequestFileRepositoryTests
     {
         var service = new QueryRequestService(_repository, new StubUserSectionManager("123"));
         var builtin = _repository.GetBuiltin().First();
-        var id = builtin.MainQuery.Id;
+        var id = builtin.Id;
 
         Assert.Multiple(() =>
         {
-            Assert.That(service.Get(id)?.MainQuery.Id, Is.EqualTo(id));
+            Assert.That(service.Get(id)?.Id, Is.EqualTo(id));
             Assert.That(service.IsBuiltin(id), Is.True);
             Assert.That(() => service.Update(id, builtin), Throws.InvalidOperationException);
             Assert.That(service.Delete(id), Is.False);
             Assert.That(() => service.Create(builtin), Throws.InvalidOperationException);
         });
 
-        var custom = service.Create(builtin with
-        {
-            MainQuery = builtin.MainQuery with { Name = "Custom sample copy" }
-        });
-        var updated = custom with
-        {
-            MainQuery = custom.MainQuery with { Name = "Updated custom sample" }
-        };
+        var custom = service.Create(builtin with { Name = "Custom sample copy" });
+        var updated = custom with { Name = "Updated custom sample" };
 
         Assert.Multiple(() =>
         {
             Assert.That(custom.IsBuiltin, Is.False);
             Assert.That(_repository.GetUserDefined("123"), Has.Count.EqualTo(1));
             Assert.That(_repository.GetUserDefined("other-section"), Is.Empty);
-            Assert.That(service.Update(custom.MainQuery.Id, updated), Is.EqualTo(updated));
-            Assert.That(service.Get(custom.MainQuery.Id)?.MainQuery.Name, Is.EqualTo(updated.MainQuery.Name));
-            Assert.That(service.Delete(custom.MainQuery.Id), Is.True);
-            Assert.That(service.Get(custom.MainQuery.Id), Is.Null);
+            Assert.That(service.Update(custom.Id, updated), Is.EqualTo(updated));
+            Assert.That(service.Get(custom.Id)?.Name, Is.EqualTo(updated.Name));
+            Assert.That(service.Delete(custom.Id), Is.True);
+            Assert.That(service.Get(custom.Id), Is.Null);
             Assert.That(service.Get(id)?.IsBuiltin, Is.True);
         });
     }

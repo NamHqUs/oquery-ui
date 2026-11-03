@@ -1,6 +1,7 @@
 using Demo.Contracts.Services;
 using Microsoft.Extensions.Logging;
 using OQuery;
+using OQuery.QueryDefinitions.Parsers;
 
 namespace Demo.Services;
 
@@ -53,7 +54,10 @@ public sealed class DynamicQueryService(
     private QueryDefinition PrepareQuery(QueryDefinition query, ISqlDialect dialect)
     {
         ArgumentNullException.ThrowIfNull(query);
-        if (query.Filter is null && query.Contexts is not { Count: > 0 })
+        QueryDefinitionParser.ValidateContextReferences(query);
+        if (query.Filter is null
+            && query.Contexts is not { Count: > 0 }
+            && query.Relations is not { Count: > 0 })
             return query;
 
         var customOperators = operatorDefinitionService.GetAll()
@@ -80,6 +84,24 @@ public sealed class DynamicQueryService(
                     $"Unsupported filter definition [{condition.GetType().Name}].")
             };
 
+        QueryDefinitionBase PrepareContext(QueryDefinitionBase context)
+            => new QueryDefinitionBase
+            {
+                Entity = context.Entity,
+                Projection = context.Projection,
+                Filter = context.Filter is null ? null : PrepareGroup(context.Filter),
+                Sorts = context.Sorts,
+                Page = context.Page,
+                PageSize = context.PageSize,
+                Recursive = context.Recursive,
+                Relations = context.Relations?
+                    .Select(relation => relation with
+                    {
+                        Condition = relation.Condition is null ? null : PrepareCondition(relation.Condition)
+                    })
+                    .ToList() ?? []
+            };
+
         return new QueryDefinition
         {
             Entity = query.Entity,
@@ -88,13 +110,15 @@ public sealed class DynamicQueryService(
             Sorts = query.Sorts,
             Page = query.Page,
             PageSize = query.PageSize,
-            Contexts = query.Contexts?
-                .Select(context => context with
+            Contexts = query.Contexts?.ToDictionary(
+                context => context.Key,
+                context => PrepareContext(context.Value)),
+            Relations = query.Relations?
+                .Select(relation => relation with
                 {
-                    Query = PrepareQuery(context.Query, dialect),
-                    Relation = context.Relation is null ? null : PrepareCondition(context.Relation)
+                    Condition = relation.Condition is null ? null : PrepareCondition(relation.Condition)
                 })
-                .ToList()
+                .ToList() ?? []
         };
     }
 
