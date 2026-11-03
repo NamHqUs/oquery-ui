@@ -5,10 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
-    <PackageReference Include="NUnit" Version="5.0.0" />
-    <PackageReference Include="NUnit3TestAdapter" Version="6.3.1" />
-    <PackageReference Include="Npgsql" Version="10.0.3" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="Npgsql" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Demo.Contracts\Demo.Contracts.csproj" />

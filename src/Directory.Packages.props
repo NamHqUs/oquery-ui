@@ -1,0 +1,23 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="FirebirdSql.Data.FirebirdClient" Version="10.3.4" />
+    <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.1.1" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageVersion Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.24.2-preview.1" />
+    <PackageVersion Include="MySqlConnector" Version="2.6.1" />
+    <PackageVersion Include="Namh.Configuration.Template" Version="1.0.1" />
+    <PackageVersion Include="Net.IBM.Data.Db2" Version="10.0.0.400" />
+    <PackageVersion Include="Npgsql" Version="10.0.3" />
+    <PackageVersion Include="NUnit" Version="5.0.0" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="6.3.1" />
+    <PackageVersion Include="Oracle.ManagedDataAccess.Core" Version="23.4.0" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.3.0" />
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="9.0.21" />
+    <PackageVersion Include="YamlDotNet" Version="16.3.0" />
+  </ItemGroup>
+</Project>

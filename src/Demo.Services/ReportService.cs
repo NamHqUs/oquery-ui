@@ -47,10 +47,18 @@ public sealed class ReportService(
     }
 
     public string GetQueryRequestString(QueryDefinition query)
-        => YamlQueryDefinitionParser.Write(query);
+        => OQueryDefinitionParser.Write(query);
 
     public QueryDefinition ParseQueryRequestString(string text, string entity)
     {
+        if (IsOQueryText(text))
+        {
+            var query = OQueryDefinitionParser.Parse(text);
+            if (!string.Equals(query.Entity, entity, StringComparison.Ordinal))
+                throw new FormatException("Entity cannot be changed in the request structure.");
+            return query;
+        }
+
         var textLines = text.Split(["\r\n", "\n"], StringSplitOptions.None);
         var projectionHeader = Array.FindIndex(textLines, line =>
             line.TrimStart().StartsWith("Projection:", StringComparison.OrdinalIgnoreCase));
@@ -145,6 +153,9 @@ public sealed class ReportService(
 
     public QueryDefinition ParseQueryRequestString(string text)
     {
+        if (IsOQueryText(text))
+            return OQueryDefinitionParser.Parse(text);
+
         var entity = text.Split(["\r\n", "\n"], StringSplitOptions.None)
             .Select(line => line.Trim())
             .FirstOrDefault(line => line.StartsWith("Entity:", StringComparison.OrdinalIgnoreCase));
@@ -153,6 +164,13 @@ public sealed class ReportService(
 
         throw new FormatException("Query request requires an Entity.");
     }
+
+    private static bool IsOQueryText(string text)
+        => text.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Trim())
+            .FirstOrDefault() is { } first
+            && !first.StartsWith("Entity:", StringComparison.OrdinalIgnoreCase)
+            && first.Contains(':', StringComparison.Ordinal);
 
     public ReportDto? UpdateReport(
         string fileName,

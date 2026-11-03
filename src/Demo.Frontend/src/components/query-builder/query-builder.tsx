@@ -1,7 +1,6 @@
 import { type CSSProperties, type KeyboardEvent, type PointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
-import { parseDocument } from "yaml";
 import type { FunctionDefinition } from "../function-definition/types";
 import Icon from "../icon/icon";
 import { useMessageBox } from "../message-box/message-box";
@@ -209,13 +208,9 @@ function QuerySectionSplitter({ height, onHeightChange }: { height: number; onHe
 }
 
 function getYamlEntity(text: string): string {
-  const entityLine = text.split(/\r?\n/).find((line) => /^\s*Entity\s*:/i.test(line));
-  if (!entityLine) return "";
-  const value = stripYamlComment(entityLine.slice(entityLine.indexOf(":") + 1)).trim();
-  return value.length >= 2 && ((value.startsWith("\"") && value.endsWith("\""))
-    || (value.startsWith("'") && value.endsWith("'")))
-    ? value.slice(1, -1).trim()
-    : value;
+  const header = text.split(/\r?\n/).find((line) => line.trim() && !line.trimStart().startsWith("#") && !/^\s/.test(line));
+  const match = header?.match(/^([A-Za-z_][A-Za-z0-9_]*)(?:\s+is\s+([A-Za-z_][A-Za-z0-9_]*))?\s*:/i);
+  return match?.[2] ?? match?.[1] ?? "";
 }
 
 function stripYamlLineComments(text: string): string {
@@ -270,21 +265,11 @@ function getYamlSyntaxError(
   functionDefinitions: FunctionDefinition[],
   filterOperators: FilterOperatorDefinition[],
 ): string | null {
-  const normalizedText = stripYamlLineComments(text);
-  try {
-    const document = parseDocument(normalizedText, { uniqueKeys: true });
-    const error = document.errors[0];
-    if (error) {
-      const position = (error as { linePos?: [{ line: number; col: number }] }).linePos?.[0];
-      return position
-        ? `Line ${position.line}, column ${position.col}: ${error.message}`
-        : `Invalid YAML: ${error.message}`;
-    }
-
-    return getYamlFilterSyntaxError(normalizedText, filterOperators) ?? getYamlExpressionSyntaxError(normalizedText, functionDefinitions);
-  } catch (error) {
-    return `Invalid YAML: ${error instanceof Error ? error.message : "Unable to parse YAML."}`;
+  const firstLine = text.split(/\r?\n/).find((line) => line.trim() && !line.trimStart().startsWith("#") && !/^\s/.test(line));
+  if (!firstLine || !/^([A-Za-z_][A-Za-z0-9_]*)(?:\s+is\s+[A-Za-z_][A-Za-z0-9_]*)?\s*:/i.test(firstLine)) {
+    return "Invalid OQuery: expected a query header such as \"Users: Id, Name\".";
   }
+  return getYamlFilterSyntaxError(text, filterOperators) ?? getYamlExpressionSyntaxError(text, functionDefinitions);
 }
 
 function getYamlFilterSyntaxError(text: string, filterOperators: FilterOperatorDefinition[]): string | null {
@@ -297,11 +282,11 @@ function getYamlFilterSyntaxError(text: string, filterOperators: FilterOperatorD
     : /[=<>!]|\b(?:IS|IN|LIKE|BETWEEN|CONTAINS|NULL)\b/i;
 
   for (const [index, line] of text.split(/\r?\n/).entries()) {
-    const match = /^(\s*)Filter\s*:\s*(.*)$/i.exec(line);
+    const match = /^(\s*)(?:Filter\s*:\s*|where\s+)(.*)$/i.exec(line);
     const expression = match?.[2]?.trim();
     if (!match || !expression || operatorPattern.test(expression)) continue;
     const column = line.indexOf(expression) + 1;
-    return `Line ${index + 1}, column ${column}: Filter expression must include an operator. Try "UserId = <value>".`;
+    return `Line ${index + 1}, column ${column}: where expression must include an operator. Try "where UserId = <value>".`;
   }
 
   return null;
@@ -546,6 +531,10 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
   const [yamlStatus, setYamlStatus] = useState<"idle" | "loading" | "applying">("idle");
   const [yamlError, setYamlError] = useState("");
   const [yamlValidationMessage, setYamlValidationMessage] = useState("");
+  const selectedOQueryTextRef = useRef("");
+  const updateSelectedOQueryText = (text: string) => {
+    selectedOQueryTextRef.current = text;
+  };
   const boundModelRef = useRef(JSON.stringify({ definition, requestName }));
   const boundYamlTextRef = useRef("");
   const hasUnsavedChanges = JSON.stringify({ definition, requestName }) !== boundModelRef.current
@@ -620,10 +609,11 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
     try {
       const text = await dispatch(getQueryRequestText(definitionToSerialize)).unwrap();
       setYamlText(text);
+      updateSelectedOQueryText("");
       boundYamlTextRef.current = text;
       setYamlValidationMessage("");
     } catch (error) {
-      setYamlError(typeof error === "string" ? error : "Unable to load YAML query.");
+      setYamlError(typeof error === "string" ? error : "Unable to load OQuery text.");
     } finally {
       setYamlStatus("idle");
     }
@@ -652,10 +642,10 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
         setYamlError(syntaxError);
         return;
       }
-      const normalizedYamlText = stripYamlLineComments(yamlText);
+      const normalizedYamlText = yamlText;
       const entityForParse = getYamlEntity(normalizedYamlText) || activeDefinition.entity.trim();
       if (!entityForParse) {
-        setYamlError("Missing Entity: YAML query must include an Entity.");
+        setYamlError("Missing query header: OQuery text must start with an entity, such as \"Users: Id, Name\".");
         return;
       }
       const parsed = await dispatch(parseQueryRequestText({
@@ -663,9 +653,9 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
         entity: entityForParse,
       })).unwrap();
       updateDefinitionFromDesign(fromApiQueryDefinition(parsed));
-      setYamlValidationMessage("Valid YAML");
+      setYamlValidationMessage("Valid OQuery");
     } catch (error) {
-      setYamlError(typeof error === "string" ? error : "Unable to parse YAML query.");
+      setYamlError(typeof error === "string" ? error : "Unable to parse OQuery text.");
     } finally {
       setYamlStatus("idle");
     }
@@ -681,10 +671,10 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
         setYamlError(syntaxError);
         return;
       }
-      const normalizedYamlText = stripYamlLineComments(yamlText);
+      const normalizedYamlText = yamlText;
       const entityForParse = getYamlEntity(normalizedYamlText) || activeDefinition.entity.trim();
       if (!entityForParse) {
-        setYamlError("Missing Entity: YAML query must include an Entity.");
+        setYamlError("Missing query header: OQuery text must start with an entity, such as \"Users: Id, Name\".");
         return;
       }
       const parsed = await dispatch(parseQueryRequestText({
@@ -693,8 +683,9 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
       })).unwrap();
       const formatted = await dispatch(getQueryRequestText(fromApiQueryDefinition(parsed))).unwrap();
       setYamlText(preserveYamlKeys(formatted, yamlText));
+      updateSelectedOQueryText("");
     } catch (error) {
-      setYamlError(typeof error === "string" ? error : "Unable to format YAML query.");
+      setYamlError(typeof error === "string" ? error : "Unable to format OQuery text.");
     } finally {
       setYamlStatus("idle");
     }
@@ -703,15 +694,13 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
     const entityName = activeDefinition.entity.trim();
     setYamlError("");
     setYamlValidationMessage("");
+    updateSelectedOQueryText("");
     setYamlText([
-      `Entity: ${entityName}`,
-      "Projection:",
-      "  - ",
-      "Filter:",
-      "Sorts:",
-      "Page: 1",
-      "PageSize: 50",
-      "Contexts:",
+      `${entityName}: Id`,
+      "  Where ",
+      "  Order ",
+      "  Skip 0",
+      "  Take 50",
     ].join("\n"));
   };
   const updateRequestName = (name: string) => {
@@ -837,7 +826,8 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
   }, [metadata, definition.entity, definition.contextCatalog, definition.contexts]);
 
   const runQuery = async () => {
-    if (editorMode === "yaml" ? yamlText.trim() : activeDefinition.entity.trim() && activeDefinition.columns.length) {
+    const textToExecute = selectedOQueryTextRef.current.trim() || yamlText;
+    if (editorMode === "yaml" ? textToExecute.trim() : activeDefinition.entity.trim() && activeDefinition.columns.length) {
       if (!connectedProvider || connectionStatus !== "succeeded") {
         onRequestConnection();
         return;
@@ -845,7 +835,7 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
       if (activeContextIndex !== null) {
         updateDefinition(updateContextDefinition(activeContextIndex, activeDefinition));
       }
-      if (editorMode === "yaml") dispatch(executeQueryFromText(yamlText));
+      if (editorMode === "yaml") dispatch(executeQueryFromText(textToExecute));
       else dispatch(executeQuery({
           ...activeDefinition,
           filters: activeDefinition.filters,
@@ -868,12 +858,13 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
   };
 
   const getSql = () => {
-    if (editorMode === "yaml" ? yamlText.trim() : activeDefinition.entity.trim() && activeDefinition.columns.length) {
+    const textToExecute = selectedOQueryTextRef.current.trim() || yamlText;
+    if (editorMode === "yaml" ? textToExecute.trim() : activeDefinition.entity.trim() && activeDefinition.columns.length) {
       if (!connectedProvider || connectionStatus !== "succeeded") {
         onRequestConnection();
         return;
       }
-      if (editorMode === "yaml") dispatch(getSqlStatementFromText(yamlText));
+      if (editorMode === "yaml") dispatch(getSqlStatementFromText(textToExecute));
       else dispatch(getSqlStatement({
           ...activeDefinition,
           filters: activeDefinition.filters,
@@ -941,6 +932,7 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
     setRequestNameError("");
     setQueryRequestNotice("");
     setYamlText("");
+    updateSelectedOQueryText("");
     boundYamlTextRef.current = "";
     setYamlError("");
     setYamlValidationMessage("");
@@ -993,10 +985,10 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
         setYamlError(syntaxError);
         return;
       }
-      const normalizedYamlText = stripYamlLineComments(yamlText);
+      const normalizedYamlText = yamlText;
       const entity = getYamlEntity(normalizedYamlText) || activeDefinition.entity.trim();
       if (!entity) {
-        setYamlError("Missing Entity: YAML query must include an Entity.");
+        setYamlError("Missing query entity: select an entity before saving.");
         return;
       }
       const parsed = await dispatch(parseQueryRequestText({ text: normalizedYamlText, entity })).unwrap();
@@ -1007,7 +999,7 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
       updateDefinition(nextDefinition);
       await persistCurrentRequest(nextDefinition);
     } catch (error) {
-      setYamlError(typeof error === "string" ? error : "Unable to save YAML query.");
+      setYamlError(typeof error === "string" ? error : "Unable to save OQuery query.");
     } finally {
       setYamlStatus("idle");
     }
@@ -1051,7 +1043,7 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
           <div className="query-heading-copy">
             <span className="query-heading-eyebrow">QUERY WORKSPACE <i /> DESIGN Â· RUN Â· REFINE</span>
             <h2>Explore your data</h2>
-            <p>Shape a query visually or edit YAML, then inspect its SQL and live results.</p>
+            <p>Shape a query visually or edit OQuery text, then inspect its SQL and live results.</p>
           </div>
         </div>
         <div className="heading-actions">
@@ -1060,7 +1052,7 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
               <Icon name="query" size={14} /> Visual
             </button>
             <button type="button" role="tab" aria-selected={editorMode === "yaml"} className={editorMode === "yaml" ? "active" : ""} onClick={() => changeEditorMode("yaml")}>
-              <Icon name="code" size={14} /> YAML
+              <Icon name="code" size={14} /> OQuery
             </button>
           </nav>
           {onBackToReports && <button className="button secondary" onClick={onBackToReports}><Icon name="arrow-left" size={14} /> Back to reports</button>}
@@ -1129,8 +1121,10 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
                 onYamlTextChange={(text) => {
                   dispatch(clearQueryResult());
                   setYamlText(text);
+                  updateSelectedOQueryText("");
                   setYamlValidationMessage("");
                 }}
+                onOQuerySelectionChange={updateSelectedOQueryText}
                 yamlValidationMessage={yamlValidationMessage}
                 onFormatYaml={() => void formatYaml()}
                 onInsertYamlTemplate={insertYamlTemplate}
@@ -1162,3 +1156,4 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
     </>
   );
 }
+

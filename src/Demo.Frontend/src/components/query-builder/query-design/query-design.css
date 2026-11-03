@@ -8,7 +8,7 @@
 .query-yaml-function { color: #7296c7; font-weight: 700; }
 .query-yaml-error-function { color: #ff5668; background: #ff566826; border-radius: 3px; box-shadow: 0 0 0 1px #ff566880; }
 .query-yaml-code-editor { position: relative; min-height: 520px; overflow: hidden; border: 1px solid #323947; border-radius: 7px; background: #0b1018; }
-.query-yaml-highlight, .query-yaml-textarea, .query-yaml-line-numbers { position: absolute; inset: 0; height: 100%; box-sizing: border-box; margin: 0; padding: 16px; overflow: auto; font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; letter-spacing: normal; tab-size: 2; white-space: pre; }
+.query-yaml-highlight, .query-yaml-textarea, .query-yaml-line-numbers { position: absolute; inset: 0; height: 100%; box-sizing: border-box; margin: 0; padding: 16px; font-family: "Cascadia Mono", "Consolas", ui-monospace, SFMono-Regular, Menlo, Monaco, "Liberation Mono", "Courier New", monospace; font-size: 13px; font-weight: 300; line-height: 1.6; font-variant-ligatures: none; letter-spacing: normal; tab-size: 2; white-space: pre; overflow: auto; }
 .query-yaml-line-numbers { z-index: 3; width: 76px; padding: 16px 4px; overflow: hidden; color: #596477; border-right: 1px solid #252d3b; text-align: right; user-select: none; }
 .query-yaml-gutter-line { display: flex; justify-content: flex-end; align-items: center; gap: 5px; height: 20.8px; padding-right: 23px; position: relative; }
 .query-yaml-gutter-line button { position: absolute; right: 0; width: 20px; height: 19px; padding: 0; border: 0; border-radius: 3px; background: transparent; color: #b6a7df; font: inherit; cursor: pointer; opacity: 0; transition: opacity .12s ease, background .12s ease; }

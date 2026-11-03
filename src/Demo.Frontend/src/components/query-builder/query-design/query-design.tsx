@@ -7,7 +7,7 @@ import ProjectionBuilder from "./projection-builder/projection-builder";
 import SortBuilder from "./sort-builder/sort-builder";
 import FilterBuilder from "./filter-builder/filter-builder";
 import JoinsBuilder from "./joins-builder/joins-builder";
-import { getYamlContextKeys } from "./yaml-context-colors";
+import { getOQueryContextKeys } from "./yaml-context-colors";
 import { applyFoldedYamlEdit, getFoldedYaml, getYamlFolds } from "./yaml-folding";
 import "./query-design.css";
 
@@ -181,6 +181,7 @@ type QueryDesignProps = {
   yamlError: string;
   yamlValidationMessage: string;
   onYamlTextChange: (text: string) => void;
+  onOQuerySelectionChange: (text: string) => void;
   onFormatYaml: () => void;
   onInsertYamlTemplate: () => void;
   onApplyYaml: () => void;
@@ -223,7 +224,7 @@ function orderContextEntries(contextDefinitions: ApiQueryContextDefinition[]) {
 }
 
 function highlightYaml(text: string, functionDefinitions: FunctionDefinition[], errorFunctionName: string): string {
-  const keys = getYamlContextKeys(text);
+  const keys = getOQueryContextKeys(text);
   let position = 0;
   const parts: string[] = [];
   for (const key of keys) {
@@ -267,8 +268,8 @@ function highlightYamlTokens(text: string, functionDefinitions: FunctionDefiniti
     : escaped;
 
   return highlightedFunctions.replace(
-    /^(\s*)(Entity|Projection|Filter|Sorts|PageSize|Page|Contexts|Relations)(\s*:)/gim,
-    "$1<span class=\"query-yaml-protected-key\">$2$3</span>",
+    /\b(where|order|skip|take|join|left|inner|right|full|on|asc|desc|and|or|is|in|between|not|like|contains|null|true|false)\b/gi,
+    "<span class=\"query-yaml-protected-key\">$1</span>",
   );
 }
 
@@ -392,6 +393,59 @@ function getYamlEnterEdit(value: string, selectionStart: number, selectionEnd: n
   };
 }
 
+function getSelectedLineEdit(
+  value: string,
+  selectionStart: number,
+  selectionEnd: number,
+  operation: "indent" | "outdent" | "delete",
+) {
+  const start = value.lastIndexOf("\n", Math.max(0, selectionStart - 1)) + 1;
+  if (selectionStart === selectionEnd) {
+    const line = value.slice(start, value.indexOf("\n", selectionStart) < 0
+      ? value.length
+      : value.indexOf("\n", selectionStart));
+    if (operation === "indent") {
+      return {
+        value: `${value.slice(0, start)}  ${value.slice(start)}`,
+        selectionStart: selectionStart + 2,
+        selectionEnd: selectionEnd + 2,
+      };
+    }
+
+    const removed = line.match(/^ {1,2}/)?.[0].length ?? 0;
+    return {
+      value: `${value.slice(0, start)}${value.slice(start + removed)}`,
+      selectionStart: Math.max(start, selectionStart - removed),
+      selectionEnd: Math.max(start, selectionEnd - removed),
+    };
+  }
+
+  const selectedEnd = selectionEnd > selectionStart && value[selectionEnd - 1] === "\n"
+    ? selectionEnd - 1
+    : selectionEnd;
+  const lineEndIndex = value.indexOf("\n", selectedEnd);
+  const end = lineEndIndex < 0 ? value.length : lineEndIndex + 1;
+  const selectedLines = value.slice(start, end).split("\n");
+
+  if (operation === "delete") {
+    return {
+      value: `${value.slice(0, start)}${value.slice(end)}`,
+      selectionStart: start,
+      selectionEnd: start,
+    };
+  }
+
+  const updatedLines = selectedLines.map((line) => operation === "indent"
+    ? `  ${line}`
+    : line.replace(/^ {1,2}/, ""));
+  const replacement = updatedLines.join("\n");
+  return {
+    value: `${value.slice(0, start)}${replacement}${value.slice(end)}`,
+    selectionStart: start,
+    selectionEnd: start + replacement.length,
+  };
+}
+
 function YamlEditor({
   value,
   disabled,
@@ -399,10 +453,12 @@ function YamlEditor({
   onBlur,
   functionDefinitions,
   errorFunctionName,
+  onSelectionChange,
 }: {
   value: string;
   disabled: boolean;
   onChange: (value: string) => void;
+  onSelectionChange: (value: string) => void;
   onBlur: () => void;
   functionDefinitions: FunctionDefinition[];
   errorFunctionName: string;
@@ -420,7 +476,7 @@ function YamlEditor({
     const updated = applyFoldedYamlEdit(value, collapsed, next);
     if (updated === null) {
       setCollapsed(new Set());
-      setFoldMessage("Blocks expanded: retry the edit so hidden YAML is not accidentally removed.");
+      setFoldMessage("Blocks expanded: retry the edit so hidden OQuery text is not accidentally removed.");
       return;
     }
     let nextCaret = caret;
@@ -442,14 +498,14 @@ function YamlEditor({
   return (
     <>
     <div className="query-yaml-code-editor">
-      <div className="query-yaml-fold-actions" role="toolbar" aria-label="YAML folding">
+      <div className="query-yaml-fold-actions" role="toolbar" aria-label="OQuery folding">
         <button type="button" disabled={disabled || !folds.length}
-          aria-label="Collapse all YAML sections" title="Collapse all YAML sections"
+          aria-label="Collapse all OQuery sections" title="Collapse all OQuery sections"
           onClick={() => setCollapsed(new Set(folds.map(fold => fold.start)))}>
           <Icon name="chevron-down" size={13} />
         </button>
         <button type="button" disabled={disabled || !collapsed.size}
-          aria-label="Expand all YAML sections" title="Expand all YAML sections"
+          aria-label="Expand all OQuery sections" title="Expand all OQuery sections"
           onClick={() => setCollapsed(new Set())}>
           <Icon name="chevron-right" size={13} />
         </button>
@@ -486,12 +542,44 @@ function YamlEditor({
       <textarea
         ref={textareaRef}
         className="query-yaml-textarea"
-        aria-label="Query YAML"
+        aria-label="Query OQuery text"
         value={projection.text}
         onChange={(event) => changeVisibleText(event.target.value, event.target.selectionStart)}
-        onBlur={onBlur}
+        onSelect={(event) => {
+          const textarea = event.currentTarget;
+          onSelectionChange(textarea.value.slice(textarea.selectionStart, textarea.selectionEnd));
+        }}
+        onBlur={(event) => {
+          const textarea = event.currentTarget;
+          onSelectionChange(textarea.value.slice(textarea.selectionStart, textarea.selectionEnd));
+          onBlur();
+        }}
         onKeyDown={(event) => {
           const textarea = event.currentTarget;
+          if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "x" && textarea.selectionStart !== textarea.selectionEnd) {
+            event.preventDefault();
+            const edit = getSelectedLineEdit(
+              textarea.value,
+              textarea.selectionStart,
+              textarea.selectionEnd,
+              "delete",
+            );
+            changeVisibleText(edit.value, edit.selectionStart);
+            requestAnimationFrame(() => textarea.setSelectionRange(edit.selectionStart, edit.selectionEnd));
+            return;
+          }
+          if (event.key === "Tab") {
+            event.preventDefault();
+            const edit = getSelectedLineEdit(
+              textarea.value,
+              textarea.selectionStart,
+              textarea.selectionEnd,
+              event.shiftKey ? "outdent" : "indent",
+            );
+            changeVisibleText(edit.value, edit.selectionStart);
+            requestAnimationFrame(() => textarea.setSelectionRange(edit.selectionStart, edit.selectionEnd));
+            return;
+          }
           if ((event.ctrlKey || event.metaKey) && event.key === "/") {
             event.preventDefault();
             const toggled = toggleYamlComments(projection.text, textarea.selectionStart, textarea.selectionEnd);
@@ -501,7 +589,7 @@ function YamlEditor({
             });
             return;
           }
-          if (event.key !== "Enter" && event.key !== "Tab") return;
+          if (event.key !== "Enter") return;
           event.preventDefault();
           const start = textarea.selectionStart;
           const end = textarea.selectionEnd;
@@ -553,6 +641,7 @@ export default function QueryDesign({
   yamlError,
   yamlValidationMessage,
   onYamlTextChange,
+  onOQuerySelectionChange,
   onFormatYaml,
   onInsertYamlTemplate,
   onApplyYaml,
@@ -703,11 +792,11 @@ export default function QueryDesign({
         </form>
       </div>}
       {editorMode === "yaml" ? (
-        <div className="query-yaml-editor" role="tabpanel" aria-label="YAML query editor">
+        <div className="query-yaml-editor" role="tabpanel" aria-label="OQuery text editor">
           <div className="query-yaml-editor-header">
             <div>
-              <span className="section-kicker">QUERY YAML</span>
-              <p>Use the template, edit values, and press Enter in list sections to auto-indent items. Format and check syntax when ready.</p>
+              <span className="section-kicker">OQUERY TEXT</span>
+              <p>Use the compact query syntax, edit values, and check the text when ready.</p>
               <div className="query-yaml-function-legend" aria-label="Function color legend">
                 <span className="query-yaml-function">Function</span>
               </div>
@@ -728,19 +817,20 @@ export default function QueryDesign({
                 onClick={onApplyYaml}
                 disabled={yamlStatus !== "idle" || !yamlText.trim()}
               >
-                {yamlStatus === "applying" ? "Checking…" : "Check YAML"}
+                {yamlStatus === "applying" ? "Checking…" : "Check OQuery"}
               </button>
             </div>
           </div>
           <YamlEditor
             value={yamlText}
             onChange={onYamlTextChange}
+            onSelectionChange={onOQuerySelectionChange}
             onBlur={onApplyYaml}
             functionDefinitions={functionDefinitions}
             errorFunctionName={yamlError.match(/:\s+([A-Za-z_][A-Za-z0-9_]*) requires at least/i)?.[1] ?? ""}
             disabled={yamlStatus !== "idle"}
           />
-          {yamlStatus === "loading" && <p className="query-message">Loading YAML…</p>}
+          {yamlStatus === "loading" && <p className="query-message">Loading OQuery…</p>}
           {yamlValidationMessage && <p className="query-yaml-valid" role="status">{yamlValidationMessage}</p>}
           {yamlError && <p className="query-message error" role="alert">{yamlError}</p>}
         </div>

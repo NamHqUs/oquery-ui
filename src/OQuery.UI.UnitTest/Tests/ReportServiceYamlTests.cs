@@ -12,7 +12,7 @@ public sealed class ReportServiceYamlTests
     private readonly ReportService _service = new(new UnusedReportRepository(), new UnusedUserSectionManager());
 
     [Test]
-    public void QueryWithoutProjectionRoundTripsRelationsAndNullJoinType()
+    public void QueryWithoutProjectionRoundTripsRelationsWithDefaultLeftJoin()
     {
         var definition = new QueryDefinition
         {
@@ -32,12 +32,12 @@ public sealed class ReportServiceYamlTests
         var restored = _service.ParseQueryRequestString(yaml, "User");
         var restoredFromText = _service.ParseQueryRequestString(yaml);
 
-        Assert.That(yaml, Does.Not.Contain("JoinType:"));
+        Assert.That(yaml, Does.Contain("Left Join Managers"));
         Assert.That(yaml, Does.Not.Contain("ExtraRelations:"));
         Assert.That(yaml, Does.Not.Contain("RefContextId:"));
         Assert.That(restored.Relations!.Single().RefContext, Is.EqualTo("Managers"));
-        Assert.That(restored.Relations!.Single().JoinType, Is.Null);
-        Assert.That(restored.Contexts!["Managers"].Relations!.Single().JoinType, Is.Null);
+        Assert.That(restored.Relations!.Single().JoinType, Is.EqualTo(QueryJoinType.Left));
+        Assert.That(restored.Contexts!["Managers"].Relations!.Single().JoinType, Is.EqualTo(QueryJoinType.Left));
         Assert.That(restoredFromText.Relations!.Single().RefContext, Is.EqualTo("Managers"));
     }
 

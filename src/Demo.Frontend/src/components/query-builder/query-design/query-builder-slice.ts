@@ -1073,10 +1073,10 @@ export const getQueryRequestText = createAsyncThunk(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(toBackendApiQuery(createApiQuery(definition))),
       });
-      if (!payload.trim()) return rejectWithValue("Query API returned an empty YAML request.");
+      if (!payload.trim()) return rejectWithValue("Query API returned an empty OQuery request.");
       return payload;
     } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : "Unable to generate YAML query request.");
+      return rejectWithValue(error instanceof Error ? error.message : "Unable to generate OQuery request.");
     }
   },
 );
@@ -1092,11 +1092,11 @@ export const parseQueryRequestText = createAsyncThunk(
       });
       if (!payload || typeof payload !== "object" || typeof (payload as { entity?: unknown }).entity !== "string"
         || !Array.isArray((payload as { projection?: unknown }).projection)) {
-        return rejectWithValue("Query API returned an invalid YAML query.");
+        return rejectWithValue("Query API returned an invalid OQuery query.");
       }
       return payload as ApiQueryDefinition;
     } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : "Unable to parse YAML query request.");
+      return rejectWithValue(error instanceof Error ? error.message : "Unable to parse OQuery request.");
     }
   },
 );

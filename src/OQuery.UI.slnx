@@ -7,6 +7,7 @@
     <Project Path="Demo.Share/Demo.Share.csproj" Id="b4876c7a-82d3-410b-84bc-3a8502971a80" />
   </Folder>
   <Folder Name="/Solution Items/">
+    <File Path="Directory.Packages.props" />
     <File Path="../oquery/docker/docker-compose.dbservers.yml" />
     <File Path="../oquery/docker/start-dbservers.ps1" />
     <File Path="../README.md" />
