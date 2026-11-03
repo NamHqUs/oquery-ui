@@ -76,3 +76,11 @@ Run the API error message regression tests with:
 ```powershell
 node --test .\src\components\query-builder\query-design\api-error.test.mjs
 ```
+
+Saving in YAML mode parses the current editor contents before persisting
+the query. Removing `JoinType` preserves a null join through save and reload;
+it is not replaced with `Left`. Run the saved-query round-trip regression with:
+
+```powershell
+node --test .\src\components\query-builder\query-design\query-save.test.mjs
+```

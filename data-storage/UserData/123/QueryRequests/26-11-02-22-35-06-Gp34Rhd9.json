@@ -26,7 +26,6 @@
         }
       ],
       "sorts": [],
-      "relations": [],
       "recursive": false
     },
     "UserContext2": {
@@ -52,7 +51,6 @@
         }
       ],
       "sorts": [],
-      "relations": [],
       "recursive": false
     }
   },
@@ -96,11 +94,11 @@
               "kind": "field",
               "field": "Id"
             },
-            "parameterized": false
+            "parameterized": true
           }
         ]
       },
-      "joinType": "Left"
+      "joinType": null
     },
     {
       "refContext": "UserContext2",
@@ -119,11 +117,11 @@
               "kind": "field",
               "field": "Id"
             },
-            "parameterized": false
+            "parameterized": true
           }
         ]
       },
-      "joinType": "Left"
+      "joinType": null
     }
   ],
   "recursive": false

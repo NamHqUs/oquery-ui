@@ -2,6 +2,9 @@ using Demo.Contracts.Application;
 using Demo.Repositories.FileStorage;
 using Demo.Services;
 using Microsoft.Extensions.Configuration;
+using Demo.Contracts.Dto;
+using OQuery;
+using OQuery.QueryDefinitions.Parsers;
 
 namespace OQuery.UI.UnitTest.Tests;
 
@@ -85,6 +88,36 @@ public sealed class QueryRequestFileRepositoryTests
             Assert.That(service.Get(custom.Id), Is.Null);
             Assert.That(service.Get(id)?.IsBuiltin, Is.True);
         });
+    }
+
+    [Test]
+    public void SavingAndReloadingPreservesOmittedYamlJoinTypes()
+    {
+        var parsed = YamlQueryDefinitionParser.Parse("""
+            Entity: User
+            Relations:
+              - RefContext: Managers
+            Contexts:
+              Managers:
+                Entity: User
+                Relations:
+                  - RefContext: Managers
+            """);
+        var request = new QueryDto
+        {
+            Id = "null-join",
+            Name = "Null joins",
+            Entity = parsed.Entity,
+            Relations = parsed.Relations,
+            Contexts = parsed.Contexts
+        };
+        _repository.Save("123", request);
+
+        var reloaded = _repository.Get("123", request.Id)
+            ?? throw new InvalidOperationException("The saved request was not found.");
+        Assert.That(reloaded.Relations!.Single().JoinType, Is.Null);
+        Assert.That(reloaded.Contexts!["Managers"].Relations!.Single().JoinType, Is.Null);
+        Assert.That(YamlQueryDefinitionParser.Write(reloaded), Does.Not.Contain("JoinType:"));
     }
 
     private sealed class StubUserSectionManager(string sectionId) : IUserSectionManager

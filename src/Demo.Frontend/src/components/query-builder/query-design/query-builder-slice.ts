@@ -134,7 +134,7 @@ export type ApiQueryDefinition = {
 export type ApiQueryContextDefinition = {
   name: string;
   alias?: string;
-  joinType?: number | string;
+  joinType?: number | string | null;
   query: ApiQueryDefinition;
   condition?: ApiQueryFilterNode | string | null;
   id?: string;
@@ -166,7 +166,7 @@ type ApiQueryContextDto = {
     refContext: string;
     alias?: string | null;
     condition: ApiQueryFilterNode | string | null;
-    joinType?: number | string;
+    joinType?: number | string | null;
   }[] | null;
 };
 
@@ -183,7 +183,7 @@ export type ApiQueryDto = {
     refContext: string;
     alias?: string | null;
     condition: ApiQueryFilterNode | string | null;
-    joinType?: number | string;
+    joinType?: number | string | null;
   }[] | null;
   contexts?: Record<string, ApiQueryContextDto> | null;
   isBuiltin: boolean;
@@ -872,7 +872,7 @@ function toApiSavedRequest(request: { name: string; definition: QueryDefinition;
       refContext: nested.name,
       alias: nested.alias ?? null,
       condition: nested.condition ?? { logicalOperation: 0, filters: [] },
-      joinType: nested.joinType ?? 1,
+      joinType: nested.joinType ?? null,
     })) ?? null,
   });
   const contexts = Object.fromEntries(allContexts.map((context) => [
@@ -885,7 +885,7 @@ function toApiSavedRequest(request: { name: string; definition: QueryDefinition;
       refContext: context.name,
       alias: context.alias ?? null,
       condition: context.condition ?? { logicalOperation: 0, filters: [] },
-      joinType: context.joinType ?? 1,
+      joinType: context.joinType ?? null,
     }));
 
   return {

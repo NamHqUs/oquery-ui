@@ -884,7 +884,38 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
     if (savedRequest) void selectSavedRequest(savedRequest, false);
   }, [queryRequests, searchParams, selectedRequestName]);
 
-  const saveCurrentRequest = () => void persistCurrentRequest(definition);
+  const saveCurrentRequest = async () => {
+    if (editorMode !== "yaml") {
+      await persistCurrentRequest(definition);
+      return;
+    }
+    if (!yamlText.trim() || yamlStatus !== "idle") return;
+    setYamlStatus("applying");
+    setYamlError("");
+    try {
+      const syntaxError = getYamlSyntaxError(yamlText, functionDefinitions, filterOperators);
+      if (syntaxError) {
+        setYamlError(syntaxError);
+        return;
+      }
+      const entity = activeDefinition.entity.trim() || getYamlEntity(yamlText);
+      if (!entity) {
+        setYamlError("Missing Entity: YAML query must include an Entity.");
+        return;
+      }
+      const parsed = await dispatch(parseQueryRequestText({ text: yamlText, entity })).unwrap();
+      const nextActiveDefinition = fromApiQueryDefinition(parsed);
+      const nextDefinition = activeContextIndex === null
+        ? nextActiveDefinition
+        : updateContextDefinition(activeContextIndex, nextActiveDefinition);
+      updateDefinition(nextDefinition);
+      await persistCurrentRequest(nextDefinition);
+    } catch (error) {
+      setYamlError(typeof error === "string" ? error : "Unable to save YAML query.");
+    } finally {
+      setYamlStatus("idle");
+    }
+  };
   const removeCurrentRequest = async () => {
     if (!selectedRequestName || !selectedRequestId || selectedRequestIsBuiltin) return;
     const action = await showMessageBox({
