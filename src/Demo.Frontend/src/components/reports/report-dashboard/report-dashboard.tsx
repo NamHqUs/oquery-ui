@@ -16,48 +16,43 @@ import {
 type ReportGroup = { name: string; reports: ReportDto[] };
 type DropPosition = "before" | "after";
 const REPORT_COLUMN_STORAGE_KEY = "OQuery-report-columns";
-const REVENUE_OQUERY = `RevenueByMonth is InvoiceLines: ProductId,
-     MonthKey(Invoice.IssueDate) | Month,
-     SUM(Quantity * UnitPrice) | Revenue,
-     CountDistinct(InvoiceId) | Orders
-  WHERE Invoice.Status = <Paid>
+const PRODUCT_SALES_OQUERY = `ProductSales is OrderItems: ProductId,
+     SUM(Quantity * UnitPrice) | TotalRevenue
+  GROUP BY ProductId
 
 Products: Id, Name,
-     RevenueByMonth.Month | Month,
-     RevenueByMonth.Revenue | Revenue
-  LEFT JOIN RevenueByMonth on Id = RevenueByMonth.ProductId
-  ORDER Revenue desc
-  TAKE 20`;
-const REVENUE_SQL = `WITH RevenueByMonth AS
+     ProductSales.TotalRevenue
+  INNER JOIN ProductSales on Id = ProductSales.ProductId
+  WHERE ProductSales.TotalRevenue >
+    (AVG(ProductSales.TotalRevenue))`;
+const PRODUCT_SALES_SQL = `WITH ProductSales AS
 (
     SELECT
         ProductId,
-        MONTH(IssueDate) AS Month,
-        SUM(l.Quantity * l.UnitPrice) AS Revenue,
-        COUNT(DISTINCT l.InvoiceId) AS Orders
-    FROM InvoiceLines AS l
-    INNER JOIN Invoices AS i
-        ON l.InvoiceId = i.Id
-    WHERE i.Status = @p0
-    GROUP BY l.ProductId, MONTH(i.IssueDate)
+        SUM(Quantity * UnitPrice) AS TotalRevenue
+    FROM sa.OrderItems
+    GROUP BY ProductId
 )
-SELECT TOP (20)
+SELECT
     p.Id,
     p.Name,
-    r.Month,
-    r.Revenue
-FROM Products AS p
-LEFT JOIN RevenueByMonth AS r
-    ON p.Id = r.ProductId
-ORDER BY r.Revenue DESC;`;
+    ps.TotalRevenue
+FROM sa.Products AS p
+INNER JOIN ProductSales AS ps
+    ON p.Id = ps.ProductId
+WHERE ps.TotalRevenue >
+(
+    SELECT AVG(TotalRevenue)
+    FROM ProductSales
+);`;
 
 type DemoQueryLanguage = "oquery" | "sql";
 
 const demoQueryPatterns: Record<DemoQueryLanguage, RegExp> = {
-  oquery: /\b(RevenueByMonth|Products|MonthKey|CountDistinct|SUM|Left\s+Join|Join|Is|On|Order|Desc|Asc|Take|Where|And|Or|Group|By|Having|Skip|Full|Inner|Right)\b/gi,
-  sql: /\b(RevenueByMonth|Products|MONTH|COUNT|SUM|WITH|AS|SELECT|FROM|WHERE|GROUP|BY|HAVING|ORDER|LIMIT|OFFSET|ASC|DESC|AND|OR|IN|IS|NULL|LIKE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|DISTINCT|TOP)\b/gi,
+  oquery: /\b(ProductSales|SaleItems|Products|ProductId|TotalRevenue|AVG|SUM|Left\s+Join|Join|Is|On|Order|Desc|Asc|Take|Where|And|Or|Group|By|Having|Skip|Full|Inner|Right)\b/gi,
+  sql: /\b(ProductSales|SaleItems|Products|ProductId|TotalRevenue|AVG|SUM|WITH|AS|SELECT|FROM|WHERE|GROUP|BY|HAVING|ORDER|LIMIT|OFFSET|ASC|DESC|AND|OR|IN|IS|NULL|LIKE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|DISTINCT|TOP)\b/gi,
 };
-const demoQueryFunctionNames = new Set(["monthkey", "countdistinct", "sum", "month", "count"]);
+const demoQueryFunctionNames = new Set(["avg", "sum"]);
 
 function highlightDemoQuery(query: string, language: DemoQueryLanguage) {
   const pattern = demoQueryPatterns[language];
@@ -66,7 +61,7 @@ function highlightDemoQuery(query: string, language: DemoQueryLanguage) {
     keywordPattern.test(token)
       ? <span className={demoQueryFunctionNames.has(token.toLocaleLowerCase())
         ? "demo-query-function"
-        : ["revenuebymonth", "products"].includes(token.toLocaleLowerCase())
+        : ["productsales", "revenuebymonth", "products"].includes(token.toLocaleLowerCase())
         ? "demo-query-reference"
         : "demo-query-keyword"} key={`${token}-${index}`}>{token}</span>
       : token
@@ -206,18 +201,18 @@ export default function ReportDashboard({
     <div className="reports-workspace">
     <section className="reports-hero" aria-labelledby="reports-hero-title">
       <div className="reports-hero-copy">
-        <span className="eyebrow">QUERY INTENT <i /> SQL POWER</span>
-        <h1 id="reports-hero-title">Say what you need.<br /><span>Let OQuery shape the SQL.</span></h1>
-        <p>Start with an entity, follow relationships, and compose reusable contexts. OQuery derives joins, grouping, HAVING, parameters, and provider-specific SQL while you stay focused on the data.</p>
+        <span className="eyebrow">DYNAMIC DATA INFRASTRUCTURE <i /> FOR APPLICATION TEAMS</span>
+        <h1 id="reports-hero-title">Stop rebuilding<br /><span>data access for every feature.</span></h1>
+        <p>Define your business data once, compose it around real application contexts, and let OQuery turn intent into secure, provider-specific SQL. Your data. Your domain. Your query language.</p>
         <ul className="query-input-modes" aria-label="Ways to build a query">
-          <li>OQuery text</li>
-          <li>Visual builder</li>
-          <li>C# expressions</li>
-          <li>JSON</li>
-          <li>Parameterized SQL</li>
+          <li>Dynamic entities</li>
+          <li>Bounded contexts</li>
+          <li>Composable relationships</li>
+          <li>Custom functions</li>
         </ul>
         <div className="reports-hero-actions">
-          <button className="button primary" type="button" onClick={onCreateReport}><Icon name="query" size={15} /> Build a query</button>
+          <button className="button primary" type="button" onClick={() => onNavigateToPage("sources")}><Icon name="database" size={15} /> Build your foundation</button>
+          <button className="reports-browse-link" type="button" onClick={() => onNavigateToPage("builder")}>Try a query first <Icon name="arrow-right" size={13} /></button>
         </div>
       </div>
       <aside className="query-flow-card" aria-label="Query builder workflow">
@@ -250,6 +245,36 @@ export default function ReportDashboard({
         <div className="query-flow-footer"><span><i /> SQL SERVER</span><span>SQLITE</span><span>POSTGRESQL</span></div>
       </aside>
       <div className="reports-hero-glow" />
+    </section>
+    <section className="recommended-path" aria-labelledby="recommended-path-title">
+      <div className="recommended-heading">
+        <div>
+          <span className="eyebrow">RECOMMENDED STARTING PATH</span>
+          <h2 id="recommended-path-title">Build the layer your application can grow on.</h2>
+          <p>Three focused steps turn an existing database into reusable, business-oriented data capabilities.</p>
+        </div>
+        <span className="recommended-badge"><Icon name="sparkles" size={15} /> 10 MINUTE SETUP</span>
+      </div>
+      <div className="recommended-grid">
+        <button className="recommended-card" type="button" onClick={() => onNavigateToPage("sources")}>
+          <span className="recommended-card-number">01</span>
+          <span className="recommended-card-icon"><Icon name="database" size={17} /></span>
+          <span className="recommended-card-copy"><strong>Connect your source</strong><small>Keep your database. Add a dynamic layer above it.</small></span>
+          <Icon name="arrow-right" size={14} />
+        </button>
+        <button className="recommended-card" type="button" onClick={() => onNavigateToPage("metadata")}>
+          <span className="recommended-card-number">02</span>
+          <span className="recommended-card-icon"><Icon name="schema" size={17} /></span>
+          <span className="recommended-card-copy"><strong>Define your vocabulary</strong><small>Shape entities, relationships, contexts, and policies.</small></span>
+          <Icon name="arrow-right" size={14} />
+        </button>
+        <button className="recommended-card" type="button" onClick={onCreateReport}>
+          <span className="recommended-card-number">03</span>
+          <span className="recommended-card-icon"><Icon name="query" size={17} /></span>
+          <span className="recommended-card-copy"><strong>Compose an answer</strong><small>Express a business question without hand-wiring every join.</small></span>
+          <Icon name="arrow-right" size={14} />
+        </button>
+      </div>
     </section>
     <section className="oquery-showcase" aria-labelledby="oquery-showcase-title">
       <div className="oquery-showcase-heading">
@@ -297,12 +322,12 @@ LEFT JOIN Categories AS c
       <div className="oquery-story">
         <div className="oquery-story-copy">
           <span className="oquery-showcase-number">REAL QUERY STORY</span>
-          <h3>Which products are driving revenue this month?</h3>
-          <p>Start with the result people need. Define the paid revenue context once, join it to products, and let the engine compile the report.</p>
+          <h3>Which products outperform average sales?</h3>
+          <p>Aggregate sales once, compare every product with the overall average, and let the engine compile the relational work underneath.</p>
           <ol>
-            <li><strong>Choose the grain</strong><span>One result per product and month.</span></li>
-            <li><strong>Define the vocabulary</strong><span>Revenue, orders, and paid invoices.</span></li>
-            <li><strong>Inspect the SQL</strong><span>Parameterized and provider-specific.</span></li>
+            <li><strong>Choose the grain</strong><span>One result per product.</span></li>
+            <li><strong>Define the vocabulary</strong><span>Sales, products, and total revenue.</span></li>
+            <li><strong>Inspect the SQL</strong><span>CTE, aggregate, join, and subquery.</span></li>
           </ol>
         </div>
         <div className="oquery-story-code">
@@ -314,8 +339,8 @@ LEFT JOIN Categories AS c
             <span>{showRevenueSql ? "GENERATED SQL" : "READ QUERY"}</span>
           </div>
           <pre><code>{showRevenueSql
-            ? highlightDemoQuery(REVENUE_SQL, "sql")
-            : highlightDemoQuery(REVENUE_OQUERY, "oquery")}</code></pre>
+            ? highlightDemoQuery(PRODUCT_SALES_SQL, "sql")
+            : highlightDemoQuery(PRODUCT_SALES_OQUERY, "oquery")}</code></pre>
         </div>
       </div>
       <div className="oquery-capability-strip">
