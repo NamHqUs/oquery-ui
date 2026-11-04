@@ -25,32 +25,47 @@ Products: Id, Name,
   INNER JOIN ProductSales on Id = ProductSales.ProductId
   WHERE ProductSales.TotalRevenue >
     (AVG(ProductSales.TotalRevenue))`;
-const PRODUCT_SALES_SQL = `WITH ProductSales AS
-(
-    SELECT
-        ProductId,
-        SUM(Quantity * UnitPrice) AS TotalRevenue
+const PRODUCT_SALES_SQL = `SELECT p.Id, p.Name, ps.TotalRevenue
+FROM sa.Products p
+JOIN (
+    SELECT ProductId, SUM(Quantity * UnitPrice) AS TotalRevenue
     FROM sa.OrderItems
     GROUP BY ProductId
-)
-SELECT
-    p.Id,
-    p.Name,
-    ps.TotalRevenue
-FROM sa.Products AS p
-INNER JOIN ProductSales AS ps
-    ON p.Id = ps.ProductId
-WHERE ps.TotalRevenue >
-(
+) ps ON p.Id = ps.ProductId
+WHERE ps.TotalRevenue > (
     SELECT AVG(TotalRevenue)
-    FROM ProductSales
+    FROM (
+        SELECT SUM(Quantity * UnitPrice) AS TotalRevenue
+        FROM sa.OrderItems
+        GROUP BY ProductId
+    ) t
 );`;
+const EMPLOYEE_TREE_OQUERY = `EmployeeTree is Employees: FirstName | ManagerName,
+    member.FirstName | MemberName
+  INNER JOIN EmployeeTree member on Id = member.ManagerId`;
+const EMPLOYEE_TREE_SQL = `WITH EmployeeTree AS
+(
+    SELECT e.Id, e.ManagerId
+    FROM Main.Employees e
+    WHERE e.ManagerId IS NULL
+
+    UNION ALL
+
+    SELECT e.Id, e.ManagerId
+    FROM Main.Employees e
+    JOIN EmployeeTree t ON e.ManagerId = t.Id
+)
+SELECT member.FirstName AS MemberName,
+       manager.FirstName AS ManagerName
+FROM EmployeeTree tree
+JOIN Main.Employees member ON member.Id = tree.Id
+LEFT JOIN Main.Employees manager ON manager.Id = tree.ManagerId;`;
 
 type DemoQueryLanguage = "oquery" | "sql";
 
 const demoQueryPatterns: Record<DemoQueryLanguage, RegExp> = {
-  oquery: /\b(ProductSales|SaleItems|Products|ProductId|TotalRevenue|AVG|SUM|Left\s+Join|Join|Is|On|Order|Desc|Asc|Take|Where|And|Or|Group|By|Having|Skip|Full|Inner|Right)\b/gi,
-  sql: /\b(ProductSales|SaleItems|Products|ProductId|TotalRevenue|AVG|SUM|WITH|AS|SELECT|FROM|WHERE|GROUP|BY|HAVING|ORDER|LIMIT|OFFSET|ASC|DESC|AND|OR|IN|IS|NULL|LIKE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|DISTINCT|TOP)\b/gi,
+  oquery: /\b(EmployeeTree|Employees|Manager|ProductSales|SaleItems|Products|AVG|SUM|Left\s+Join|Join|Is|On|Order|Desc|Asc|Take|Where|And|Or|Group|By|Having|Skip|Full|Inner|Right|Recursive)\b/gi,
+  sql: /\b(EmployeeTree|Employees|ProductSales|SaleItems|Products|AVG|SUM|WITH|AS|SELECT|FROM|WHERE|GROUP|BY|HAVING|ORDER|LIMIT|OFFSET|ASC|DESC|AND|OR|IN|IS|NULL|LIKE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|DISTINCT|TOP|UNION|ALL)\b/gi,
 };
 const demoQueryFunctionNames = new Set(["avg", "sum"]);
 
@@ -61,7 +76,7 @@ function highlightDemoQuery(query: string, language: DemoQueryLanguage) {
     keywordPattern.test(token)
       ? <span className={demoQueryFunctionNames.has(token.toLocaleLowerCase())
         ? "demo-query-function"
-        : ["productsales", "revenuebymonth", "products"].includes(token.toLocaleLowerCase())
+        : ["employeetree", "productsales", "revenuebymonth", "products"].includes(token.toLocaleLowerCase())
         ? "demo-query-reference"
         : "demo-query-keyword"} key={`${token}-${index}`}>{token}</span>
       : token
@@ -144,6 +159,7 @@ export default function ReportDashboard({
   const [showProductsSql, setShowProductsSql] = useState(false);
   const [showTraversalSql, setShowTraversalSql] = useState(false);
   const [showRevenueSql, setShowRevenueSql] = useState(false);
+  const [showRecursiveSql, setShowRecursiveSql] = useState(false);
   const [columnCount, setColumnCount] = useState(() => {
     const width = window.innerWidth;
     return width <= 600 ? 1 : width <= 860 ? 2 : 3;
@@ -199,154 +215,59 @@ export default function ReportDashboard({
 
   return (
     <div className="reports-workspace">
-    <section className="reports-hero" aria-labelledby="reports-hero-title">
-      <div className="reports-hero-copy">
-        <span className="eyebrow">DYNAMIC DATA INFRASTRUCTURE <i /> FOR APPLICATION TEAMS</span>
-        <h1 id="reports-hero-title">Stop rebuilding<br /><span>data access for every feature.</span></h1>
-        <p>Define your business data once, compose it around real application contexts, and let OQuery turn intent into secure, provider-specific SQL. Your data. Your domain. Your query language.</p>
-        <ul className="query-input-modes" aria-label="Ways to build a query">
-          <li>Dynamic entities</li>
-          <li>Bounded contexts</li>
-          <li>Composable relationships</li>
-          <li>Custom functions</li>
-        </ul>
-        <div className="reports-hero-actions">
-          <button className="button primary" type="button" onClick={() => onNavigateToPage("sources")}><Icon name="database" size={15} /> Build your foundation</button>
-          <button className="reports-browse-link" type="button" onClick={() => onNavigateToPage("builder")}>Try a query first <Icon name="arrow-right" size={13} /></button>
-        </div>
-      </div>
-      <aside className="query-flow-card" aria-label="Query builder workflow">
-        <div className="query-flow-heading">
-          <span className="query-flow-mark"><Icon name="query" size={16} /></span>
-          <div><strong>FROM INTENT TO ANSWERS</strong><small>A query, shaped around your data</small></div>
-          <span className="query-flow-live"><i /> LIVE</span>
-        </div>
-        <div className="query-flow-steps">
-          <button className="query-flow-step" type="button" onClick={() => onNavigateToPage("sources")}>
-            <span className="query-flow-icon"><Icon name="database" size={16} /></span>
-            <span className="query-flow-copy"><strong>Connect to your database</strong><small>Configure your data sources</small></span>
-          </button>
-          <span className="query-flow-connector" aria-hidden="true" />
-          <button className="query-flow-step" type="button" onClick={() => onNavigateToPage("metadata")}>
-            <span className="query-flow-icon"><Icon name="schema" size={16} /></span>
-            <span className="query-flow-copy"><strong>Build your vocabulary</strong><small>Entities · fields · relationships · functions</small></span>
-          </button>
-          <span className="query-flow-connector" aria-hidden="true" />
-          <button className="query-flow-step" type="button" onClick={() => onNavigateToPage("builder")}>
-            <span className="query-flow-icon"><Icon name="chart-bar" size={16} /></span>
-            <span className="query-flow-copy"><strong>Express your intent</strong><small>Traversal · aggregates · contexts</small></span>
-          </button>
-          <span className="query-flow-connector" aria-hidden="true" />
-          <div className="query-flow-outcome">
-            <span className="query-flow-icon outcome"><Icon name="results" size={16} /></span>
-            <span className="query-flow-copy"><strong>Inspect the result</strong><small>SQL · parameters · live data</small></span>
+    <section className="new-home-intro" aria-labelledby="reports-hero-title">
+      <div className="new-home-hero">
+        <div className="new-home-copy">
+          <h1 id="reports-hero-title">Your data has a shape.<br /><span>Give it a language.</span></h1>
+          <p>Stop writing queries as nested SQL structures. Start building them as independent, reusable components.</p>
+          <div className="new-home-actions">
+            <button className="button primary" type="button" onClick={() => onNavigateToPage("sources")}><Icon name="database" size={15} /> Connect a data source</button>
+            <button className="new-home-text-action" type="button" onClick={() => onNavigateToPage("metadata")}>Read the model <Icon name="arrow-right" size={13} /></button>
           </div>
         </div>
-        <div className="query-flow-footer"><span><i /> SQL SERVER</span><span>SQLITE</span><span>POSTGRESQL</span></div>
-      </aside>
-      <div className="reports-hero-glow" />
-    </section>
-    <section className="recommended-path" aria-labelledby="recommended-path-title">
-      <div className="recommended-heading">
-        <div>
-          <span className="eyebrow">RECOMMENDED STARTING PATH</span>
-          <h2 id="recommended-path-title">Build the layer your application can grow on.</h2>
-          <p>Three focused steps turn an existing database into reusable, business-oriented data capabilities.</p>
+        <div className="new-home-signal" aria-label="OQuery architecture">
+          <span className="new-home-signal-label">ONE FOUNDATION · MANY SURFACES</span>
+          <div className="new-home-signal-line"><span className="new-home-signal-node"><Icon name="database" size={17} /><b>Physical data</b><small>Tables · providers</small></span><i /><span className="new-home-signal-node primary"><Icon name="schema" size={17} /><b>OQuery</b><small>Entities · contexts</small></span><i /><span className="new-home-signal-node output"><Icon name="query" size={17} /><b>Product features</b><small>APIs · reports · apps</small></span></div>
+          <p>Keep the database you have. Add a vocabulary your application can share.</p>
         </div>
-        <span className="recommended-badge"><Icon name="sparkles" size={15} /> 10 MINUTE SETUP</span>
       </div>
-      <div className="recommended-grid">
-        <button className="recommended-card" type="button" onClick={() => onNavigateToPage("sources")}>
-          <span className="recommended-card-number">01</span>
-          <span className="recommended-card-icon"><Icon name="database" size={17} /></span>
-          <span className="recommended-card-copy"><strong>Connect your source</strong><small>Keep your database. Add a dynamic layer above it.</small></span>
-          <Icon name="arrow-right" size={14} />
-        </button>
-        <button className="recommended-card" type="button" onClick={() => onNavigateToPage("metadata")}>
-          <span className="recommended-card-number">02</span>
-          <span className="recommended-card-icon"><Icon name="schema" size={17} /></span>
-          <span className="recommended-card-copy"><strong>Define your vocabulary</strong><small>Shape entities, relationships, contexts, and policies.</small></span>
-          <Icon name="arrow-right" size={14} />
-        </button>
-        <button className="recommended-card" type="button" onClick={onCreateReport}>
-          <span className="recommended-card-number">03</span>
-          <span className="recommended-card-icon"><Icon name="query" size={17} /></span>
-          <span className="recommended-card-copy"><strong>Compose an answer</strong><small>Express a business question without hand-wiring every join.</small></span>
-          <Icon name="arrow-right" size={14} />
-        </button>
+      <div className="new-home-principles">
+        <div><span>01</span><strong>Define once</strong><small>Reusable entities and relationships</small></div>
+        <div><span>02</span><strong>Compose safely</strong><small>Contexts that match business meaning</small></div>
+        <div><span>03</span><strong>Deliver anywhere</strong><small>Dialect-aware SQL for each provider</small></div>
       </div>
     </section>
-    <section className="oquery-showcase" aria-labelledby="oquery-showcase-title">
-      <div className="oquery-showcase-heading">
-        <div>
-          <span className="eyebrow">THE OQUERY DIFFERENCE</span>
-          <h2 id="oquery-showcase-title">One business question. One readable query.</h2>
-          <p>Follow the story from products to paid invoices. OQuery keeps the intent visible and derives the relational work underneath.</p>
-        </div>
-        <span className="oquery-showcase-mark"><Icon name="sparkles" size={18} /></span>
+    <section className="new-home-examples" aria-labelledby="new-home-examples-title">
+      <div className="new-home-examples-heading">
+        <div><span className="eyebrow">OQUERY SYNTAX</span><h2 id="new-home-examples-title">Build from reusable components.</h2><p>Compose business questions from clear, independent parts.</p></div>
       </div>
-      <div className="oquery-simple-grid">
-        <article className="oquery-simple-card">
-          <span className="oquery-showcase-number">START HERE · 01</span>
-          <h3>Explore an entity</h3>
-          <p>One word is the compact form of selecting every exposed field.</p>
-          <div className="oquery-example-switch" role="tablist" aria-label="Products query representation">
-            <button type="button" role="tab" aria-selected={!showProductsSql} className={!showProductsSql ? "active" : ""} onClick={() => setShowProductsSql(false)}>OQuery</button>
-            <button type="button" role="tab" aria-selected={showProductsSql} className={showProductsSql ? "active" : ""} onClick={() => setShowProductsSql(true)}>SQL</button>
-          </div>
-          <pre><code>{showProductsSql
-            ? highlightDemoQuery("SELECT *\nFROM Products;", "sql")
-            : highlightDemoQuery("Products", "oquery")}</code></pre>
-          <small>{showProductsSql ? "The complete entity projection becomes a standard SELECT." : "Equivalent intent: SELECT * FROM Products"}</small>
+      <div className="new-home-example-rail">
+        <article className="new-home-example">
+          <div className="new-home-example-marker">01</div>
+          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>How do I explore a product?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Product example representation"><button type="button" role="tab" aria-selected={!showProductsSql} className={!showProductsSql ? "active" : ""} onClick={() => setShowProductsSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showProductsSql} className={showProductsSql ? "active" : ""} onClick={() => setShowProductsSql(true)}>SQL</button></div></div><p>A business entity is enough to begin exploring its exposed data.</p></div>
+          <pre><code>{highlightDemoQuery(showProductsSql ? "SELECT *\nFROM sa.Products;" : "Products", showProductsSql ? "sql" : "oquery")}</code></pre>
         </article>
-        <article className="oquery-simple-card">
-          <span className="oquery-showcase-number">START HERE · 02</span>
-          <h3>Choose the shape</h3>
-          <p>Select fields and follow a relationship without writing a join.</p>
-          <div className="oquery-example-switch" role="tablist" aria-label="Relationship query representation">
-            <button type="button" role="tab" aria-selected={!showTraversalSql} className={!showTraversalSql ? "active" : ""} onClick={() => setShowTraversalSql(false)}>OQuery</button>
-            <button type="button" role="tab" aria-selected={showTraversalSql} className={showTraversalSql ? "active" : ""} onClick={() => setShowTraversalSql(true)}>SQL</button>
-          </div>
-          <pre><code>{showTraversalSql
-            ? highlightDemoQuery(`SELECT
+        <article className="new-home-example">
+          <div className="new-home-example-marker">02</div>
+          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>How do I follow a relationship?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Relationship example representation"><button type="button" role="tab" aria-selected={!showTraversalSql} className={!showTraversalSql ? "active" : ""} onClick={() => setShowTraversalSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showTraversalSql} className={showTraversalSql ? "active" : ""} onClick={() => setShowTraversalSql(true)}>SQL</button></div></div><p>Declare a relationship, and the join becomes an implementation detail.</p></div>
+          <pre><code>{highlightDemoQuery(showTraversalSql ? `SELECT
     p.Id,
     p.Name,
     c.Name AS CategoryName
-FROM Products AS p
-LEFT JOIN Categories AS c
-    ON p.CategoryId = c.Id;`, "sql")
-    : highlightDemoQuery("Products: Id, Name, Category.Name", "oquery")}</code></pre>
-          <small>{showTraversalSql ? "The metadata relationship becomes an explicit SQL join." : "Equivalent intent: SELECT Id, Name, Category.Name FROM Products; the relationship join is derived from metadata."}</small>
+FROM sa.Products AS p
+LEFT JOIN sa.Categories AS c
+    ON p.CategoryId = c.Id;` : "Products: Id, Name, Category.Name", showTraversalSql ? "sql" : "oquery")}</code></pre>
         </article>
-      </div>
-      <div className="oquery-story">
-        <div className="oquery-story-copy">
-          <span className="oquery-showcase-number">REAL QUERY STORY</span>
-          <h3>Which products outperform average sales?</h3>
-          <p>Aggregate sales once, compare every product with the overall average, and let the engine compile the relational work underneath.</p>
-          <ol>
-            <li><strong>Choose the grain</strong><span>One result per product.</span></li>
-            <li><strong>Define the vocabulary</strong><span>Sales, products, and total revenue.</span></li>
-            <li><strong>Inspect the SQL</strong><span>CTE, aggregate, join, and subquery.</span></li>
-          </ol>
-        </div>
-        <div className="oquery-story-code">
-          <div className="oquery-story-code-bar">
-            <div className="oquery-example-switch" role="tablist" aria-label="Revenue query representation">
-              <button type="button" role="tab" aria-selected={!showRevenueSql} className={!showRevenueSql ? "active" : ""} onClick={() => setShowRevenueSql(false)}>OQuery</button>
-              <button type="button" role="tab" aria-selected={showRevenueSql} className={showRevenueSql ? "active" : ""} onClick={() => setShowRevenueSql(true)}>SQL</button>
-            </div>
-            <span>{showRevenueSql ? "GENERATED SQL" : "READ QUERY"}</span>
-          </div>
-          <pre><code>{showRevenueSql
-            ? highlightDemoQuery(PRODUCT_SALES_SQL, "sql")
-            : highlightDemoQuery(PRODUCT_SALES_OQUERY, "oquery")}</code></pre>
-        </div>
-      </div>
-      <div className="oquery-capability-strip">
-        <div><Icon name="schema" size={16} /><span><strong>Metadata traversal</strong><small>Relationships become joins</small></span></div>
-        <div><Icon name="chart-bar" size={16} /><span><strong>Intent aggregation</strong><small>Grouping and HAVING derived</small></span></div>
-        <div><Icon name="shield" size={16} /><span><strong>Controlled SQL</strong><small>Parameters and dialects included</small></span></div>
+        <article className="new-home-example">
+          <div className="new-home-example-marker">03</div>
+          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>How big is your organization really?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Recursive hierarchy example representation"><button type="button" role="tab" aria-selected={!showRecursiveSql} className={!showRecursiveSql ? "active" : ""} onClick={() => setShowRecursiveSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showRecursiveSql} className={showRecursiveSql ? "active" : ""} onClick={() => setShowRecursiveSql(true)}>SQL</button></div></div><p>The engine detects the self-reference and generates the recursive SQL automatically.</p></div>
+          <pre><code>{highlightDemoQuery(showRecursiveSql ? EMPLOYEE_TREE_SQL : EMPLOYEE_TREE_OQUERY, showRecursiveSql ? "sql" : "oquery")}</code></pre>
+        </article>
+        <article className="new-home-example">
+          <div className="new-home-example-marker">04</div>
+          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>Which products sell above average?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Product sales example representation"><button type="button" role="tab" aria-selected={!showRevenueSql} className={!showRevenueSql ? "active" : ""} onClick={() => setShowRevenueSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showRevenueSql} className={showRevenueSql ? "active" : ""} onClick={() => setShowRevenueSql(true)}>SQL</button></div></div><p>Aggregate sales once, compare each product with the overall average, and keep the question readable.</p></div>
+          <pre><code>{highlightDemoQuery(showRevenueSql ? PRODUCT_SALES_SQL : PRODUCT_SALES_OQUERY, showRevenueSql ? "sql" : "oquery")}</code></pre>
+        </article>
       </div>
     </section>
     <section className="report-group-browser" id="report-group-browser" aria-labelledby="report-groups-title">
