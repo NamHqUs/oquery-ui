@@ -4,6 +4,7 @@ import ToastNotice from "../../toast-notice/toast-notice";
 import type { QueryResult, ReportDto } from "../../query-builder/query-design/query-builder-slice";
 import ReportDetail from "../report-detail/report-detail";
 import ReportItem from "../report-item/report-item";
+import type { ReportDemoExampleKey } from "../report-demo-examples";
 import {
   categoryTone,
   defaultReportChartSettings,
@@ -41,7 +42,7 @@ WHERE ps.TotalRevenue > (
     ) t
 );`;
 const EMPLOYEE_TREE_OQUERY = `EmployeeTree is Employees: FirstName | ManagerName,
-    member.FirstName | MemberName
+    EmployeeTree.FirstName | MemberName
   INNER JOIN EmployeeTree member on Id = member.ManagerId`;
 const EMPLOYEE_TREE_SQL = `WITH EmployeeTree AS
 (
@@ -55,8 +56,8 @@ const EMPLOYEE_TREE_SQL = `WITH EmployeeTree AS
     FROM Main.Employees e
     JOIN EmployeeTree t ON e.ManagerId = t.Id
 )
-SELECT member.FirstName AS MemberName,
-       manager.FirstName AS ManagerName
+SELECT manager.FirstName AS ManagerName,
+       member.FirstName AS MemberName
 FROM EmployeeTree tree
 JOIN Main.Employees member ON member.Id = tree.Id
 LEFT JOIN Main.Employees manager ON manager.Id = tree.ManagerId;`;
@@ -64,8 +65,8 @@ LEFT JOIN Main.Employees manager ON manager.Id = tree.ManagerId;`;
 type DemoQueryLanguage = "oquery" | "sql";
 
 const demoQueryPatterns: Record<DemoQueryLanguage, RegExp> = {
-  oquery: /\b(EmployeeTree|Employees|Manager|ProductSales|SaleItems|Products|AVG|SUM|Left\s+Join|Join|Is|On|Order|Desc|Asc|Take|Where|And|Or|Group|By|Having|Skip|Full|Inner|Right|Recursive)\b/gi,
-  sql: /\b(EmployeeTree|Employees|ProductSales|SaleItems|Products|AVG|SUM|WITH|AS|SELECT|FROM|WHERE|GROUP|BY|HAVING|ORDER|LIMIT|OFFSET|ASC|DESC|AND|OR|IN|IS|NULL|LIKE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|DISTINCT|TOP|UNION|ALL)\b/gi,
+  oquery: /\b(EmployeeTree|Employees|Manager|ProductSales|OrderItems|Product|Products|AVG|SUM|Left\s+Join|Join|Is|On|Order|Desc|Asc|Take|Where|And|Or|Group|By|Having|Skip|Full|Inner|Right|Recursive)\b/gi,
+  sql: /\b(EmployeeTree|Employees|ProductSales|OrderItems|Products|AVG|SUM|WITH|AS|SELECT|FROM|WHERE|GROUP|BY|HAVING|ORDER|LIMIT|OFFSET|ASC|DESC|AND|OR|IN|IS|NULL|LIKE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|DISTINCT|TOP|UNION|ALL)\b/gi,
 };
 const demoQueryFunctionNames = new Set(["avg", "sum"]);
 
@@ -117,6 +118,9 @@ type ReportDashboardProps = {
   reportResults: Record<string, QueryResult>;
   reportLoading: Record<string, boolean>;
   reportErrors: Record<string, string>;
+  demoResults: Partial<Record<ReportDemoExampleKey, QueryResult>>;
+  demoLoading: Partial<Record<ReportDemoExampleKey, boolean>>;
+  demoErrors: Partial<Record<ReportDemoExampleKey, string>>;
   chartTypeOverrides: Record<string, ChartType>;
   chartSettingsOverrides: Record<string, ReportChartSettings>;
   detailReport: ReportDto | null;
@@ -132,6 +136,8 @@ type ReportDashboardProps = {
   onSearchChange: (search: string) => void;
   onDismissMessage: () => void;
   onRun: (report: ReportDto) => void;
+  onRunDemo: (example: ReportDemoExampleKey) => void;
+  onCloseDemo: (example: ReportDemoExampleKey) => void;
   onOpenDetails: (report: ReportDto) => void;
   onReorderReports: (sourceFileName: string, targetFileName: string, position: DropPosition) => void;
   onCloseDetails: () => void;
@@ -148,9 +154,9 @@ export default function ReportDashboard({
   onNavigateToPage,
   groups, sortedReports, filteredReports, category, search, numberOfBuiltins, numberOfCustom,
   reportsStatus, reportsError, metadataStatus, metadataError, reportResults, reportLoading,
-  reportErrors, chartTypeOverrides, chartSettingsOverrides, detailReport, detailResult, detailChartType, detailChartSettings, detailLoading, detailError,
+  reportErrors, demoResults, demoLoading, demoErrors, chartTypeOverrides, chartSettingsOverrides, detailReport, detailResult, detailChartType, detailChartSettings, detailLoading, detailError,
   message, messageIsError, onCreateReport, onSelectCategory, onSearchChange,
-  onDismissMessage, onRun, onOpenDetails, onReorderReports, onCloseDetails, onRunDetails, onApplyLayout, onChartTypeChange, onChartSettingsChange, onEdit, onEditQuery, onDelete,
+  onDismissMessage, onRun, onRunDemo, onCloseDemo, onOpenDetails, onReorderReports, onCloseDetails, onRunDetails, onApplyLayout, onChartTypeChange, onChartSettingsChange, onEdit, onEditQuery, onDelete,
 }: ReportDashboardProps) {
   const draggedReport = useRef<string | null>(null);
   const dragPreview = useRef<HTMLElement | null>(null);
@@ -184,6 +190,28 @@ export default function ReportDashboard({
     draggedReport.current = null;
     setDropIndicator(null);
   };
+
+  const renderDemoResult = (example: ReportDemoExampleKey) => {
+    const result = demoResults[example];
+    const loading = Boolean(demoLoading[example]);
+    const error = demoErrors[example];
+    return (
+      <div className="new-home-example-result">
+        {error && <p className="query-message error" role="alert">{error}</p>}
+        {loading && !result
+          ? <p className="new-home-example-result-status">Loading the first 10 records…</p>
+          : result
+            ? <div className="new-home-example-table"><div className="new-home-example-result-head"><span>Top 10 records</span><button className="report-icon-button" type="button" aria-label="Close query result" title="Close query result" onClick={() => onCloseDemo(example)}><Icon name="close" size={13} /></button></div><div className="table-wrap"><table><thead><tr>{result.columns.map((column, index) => <th key={`${column}-${index}`}>{column}</th>)}</tr></thead><tbody>{result.rows.slice(0, 10).map((row, rowIndex) => <tr key={rowIndex}>{result.columns.map((_, columnIndex) => <td key={columnIndex}>{row[columnIndex] ?? ""}</td>)}</tr>)}</tbody></table>{!result.rows.length && <p className="empty-state">No records matched this query.</p>}</div></div>
+            : null}
+      </div>
+    );
+  };
+
+  const renderDemoRun = (example: ReportDemoExampleKey, sqlSelected: boolean) => (
+    <button className="new-home-example-run" type="button" aria-label="Run example query" title={sqlSelected ? "Switch to OQuery to run this example" : "Run example query"} onClick={() => onRunDemo(example)} disabled={sqlSelected || Boolean(demoLoading[example])}>
+      <Icon name="play" size={12} />
+    </button>
+  );
 
   const dropPositionFor = (target: HTMLElement, clientY: number): DropPosition => {
     const bounds = target.getBoundingClientRect();
@@ -244,29 +272,34 @@ export default function ReportDashboard({
       <div className="new-home-example-rail">
         <article className="new-home-example">
           <div className="new-home-example-marker">01</div>
-          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>How do I explore a product?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Product example representation"><button type="button" role="tab" aria-selected={!showProductsSql} className={!showProductsSql ? "active" : ""} onClick={() => setShowProductsSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showProductsSql} className={showProductsSql ? "active" : ""} onClick={() => setShowProductsSql(true)}>SQL</button></div></div><p>A business entity is enough to begin exploring its exposed data.</p></div>
+          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>How do I explore a product?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Product example representation"><button type="button" role="tab" aria-selected={!showProductsSql} className={!showProductsSql ? "active" : ""} onClick={() => setShowProductsSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showProductsSql} className={showProductsSql ? "active" : ""} onClick={() => setShowProductsSql(true)}>SQL</button></div>{renderDemoRun("products", showProductsSql)}</div><p>A business entity is enough to begin exploring its exposed data.</p></div>
           <pre><code>{highlightDemoQuery(showProductsSql ? "SELECT *\nFROM sa.Products;" : "Products", showProductsSql ? "sql" : "oquery")}</code></pre>
+          {renderDemoResult("products")}
         </article>
         <article className="new-home-example">
           <div className="new-home-example-marker">02</div>
-          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>How do I follow a relationship?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Relationship example representation"><button type="button" role="tab" aria-selected={!showTraversalSql} className={!showTraversalSql ? "active" : ""} onClick={() => setShowTraversalSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showTraversalSql} className={showTraversalSql ? "active" : ""} onClick={() => setShowTraversalSql(true)}>SQL</button></div></div><p>Declare a relationship, and the join becomes an implementation detail.</p></div>
+          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>Who placed each order?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Order customer example representation"><button type="button" role="tab" aria-selected={!showTraversalSql} className={!showTraversalSql ? "active" : ""} onClick={() => setShowTraversalSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showTraversalSql} className={showTraversalSql ? "active" : ""} onClick={() => setShowTraversalSql(true)}>SQL</button></div>{renderDemoRun("traversal", showTraversalSql)}</div><p>Follow an order’s customer relationship without writing the join by hand.</p></div>
           <pre><code>{highlightDemoQuery(showTraversalSql ? `SELECT
-    p.Id,
-    p.Name,
-    c.Name AS CategoryName
-FROM sa.Products AS p
-LEFT JOIN sa.Categories AS c
-    ON p.CategoryId = c.Id;` : "Products: Id, Name, Category.Name", showTraversalSql ? "sql" : "oquery")}</code></pre>
+    o.Id,
+    o.OrderDate,
+    u.FirstName,
+    u.LastName
+FROM sa.Orders AS o
+LEFT JOIN Main.Users AS u
+    ON o.UserId = u.Id;` : "Orders: Id, OrderDate, User.FirstName, User.LastName", showTraversalSql ? "sql" : "oquery")}</code></pre>
+          {renderDemoResult("traversal")}
         </article>
         <article className="new-home-example">
           <div className="new-home-example-marker">03</div>
-          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>How big is your organization really?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Recursive hierarchy example representation"><button type="button" role="tab" aria-selected={!showRecursiveSql} className={!showRecursiveSql ? "active" : ""} onClick={() => setShowRecursiveSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showRecursiveSql} className={showRecursiveSql ? "active" : ""} onClick={() => setShowRecursiveSql(true)}>SQL</button></div></div><p>The engine detects the self-reference and generates the recursive SQL automatically.</p></div>
+          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>How big is your organization really?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Recursive hierarchy example representation"><button type="button" role="tab" aria-selected={!showRecursiveSql} className={!showRecursiveSql ? "active" : ""} onClick={() => setShowRecursiveSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showRecursiveSql} className={showRecursiveSql ? "active" : ""} onClick={() => setShowRecursiveSql(true)}>SQL</button></div>{renderDemoRun("recursive", showRecursiveSql)}</div><p>The engine detects the self-reference and generates the recursive SQL automatically.</p></div>
           <pre><code>{highlightDemoQuery(showRecursiveSql ? EMPLOYEE_TREE_SQL : EMPLOYEE_TREE_OQUERY, showRecursiveSql ? "sql" : "oquery")}</code></pre>
+          {renderDemoResult("recursive")}
         </article>
         <article className="new-home-example">
           <div className="new-home-example-marker">04</div>
-          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>Which products sell above average?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Product sales example representation"><button type="button" role="tab" aria-selected={!showRevenueSql} className={!showRevenueSql ? "active" : ""} onClick={() => setShowRevenueSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showRevenueSql} className={showRevenueSql ? "active" : ""} onClick={() => setShowRevenueSql(true)}>SQL</button></div></div><p>Aggregate sales once, compare each product with the overall average, and keep the question readable.</p></div>
+          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>Which products sell above average?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Product sales example representation"><button type="button" role="tab" aria-selected={!showRevenueSql} className={!showRevenueSql ? "active" : ""} onClick={() => setShowRevenueSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showRevenueSql} className={showRevenueSql ? "active" : ""} onClick={() => setShowRevenueSql(true)}>SQL</button></div>{renderDemoRun("revenue", showRevenueSql)}</div><p>Aggregate sales once, compare each product with the overall average, and keep the question readable.</p></div>
           <pre><code>{highlightDemoQuery(showRevenueSql ? PRODUCT_SALES_SQL : PRODUCT_SALES_OQUERY, showRevenueSql ? "sql" : "oquery")}</code></pre>
+          {renderDemoResult("revenue")}
         </article>
       </div>
     </section>

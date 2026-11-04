@@ -6,6 +6,7 @@ import { useMessageBox } from "../message-box/message-box";
 import {
   deleteReport,
   executeQuery,
+  executeQueryFromText,
   fetchQueryMetadata,
   fetchReports,
   fromApiQuery,
@@ -16,6 +17,7 @@ import {
   ReportDto,
 } from "../query-builder/query-design/query-builder-slice";
 import ReportDashboard from "./report-dashboard/report-dashboard";
+import { reportDemoExamples, type ReportDemoExampleKey } from "./report-demo-examples";
 import {
   chartOptions,
   defaultReportChartSettings,
@@ -118,6 +120,9 @@ export default function Reports({
   const [reportResults, setReportResults] = useState<Record<string, QueryResult>>({});
   const [reportLoading, setReportLoading] = useState<Record<string, boolean>>({});
   const [reportErrors, setReportErrors] = useState<Record<string, string>>({});
+  const [demoResults, setDemoResults] = useState<Partial<Record<ReportDemoExampleKey, QueryResult>>>({});
+  const [demoLoading, setDemoLoading] = useState<Partial<Record<ReportDemoExampleKey, boolean>>>({});
+  const [demoErrors, setDemoErrors] = useState<Partial<Record<ReportDemoExampleKey, string>>>({});
   const [search, setSearch] = useState("");
   const [selectedCategory, setCategory] = useState<string | null>(null);
   const [reportOrder, setReportOrder] = useState<string[]>(() => {
@@ -186,6 +191,24 @@ export default function Reports({
       setReportErrors((current) => ({ ...current, [request.fileName]: String(action.payload || "Unable to run this report.") }));
     }
     setReportLoading((current) => ({ ...current, [request.fileName]: false }));
+  };
+
+  const runDemo = async (example: ReportDemoExampleKey) => {
+    setDemoLoading((current) => ({ ...current, [example]: true }));
+    setDemoErrors((current) => ({ ...current, [example]: "" }));
+    const query = reportDemoExamples.find((item) => item.key === example)?.oquery;
+    if (!query) {
+      setDemoLoading((current) => ({ ...current, [example]: false }));
+      setDemoErrors((current) => ({ ...current, [example]: "This example query is not configured." }));
+      return;
+    }
+    const action = await dispatch(executeQueryFromText(query));
+    if (executeQuery.fulfilled.match(action) || executeQueryFromText.fulfilled.match(action)) {
+      setDemoResults((current) => ({ ...current, [example]: action.payload }));
+    } else {
+      setDemoErrors((current) => ({ ...current, [example]: String(action.payload || "Unable to run this example.") }));
+    }
+    setDemoLoading((current) => ({ ...current, [example]: false }));
   };
 
   useEffect(() => {
@@ -351,6 +374,9 @@ export default function Reports({
         reportResults={reportResults}
         reportLoading={reportLoading}
         reportErrors={reportErrors}
+        demoResults={demoResults}
+        demoLoading={demoLoading}
+        demoErrors={demoErrors}
         chartTypeOverrides={chartTypeOverrides}
         chartSettingsOverrides={chartSettingsOverrides}
         detailReport={detailReport}
@@ -375,6 +401,19 @@ export default function Reports({
         onSearchChange={setSearch}
         onDismissMessage={() => setMessage("")}
         onRun={(report) => void runReport(report)}
+        onRunDemo={(example) => void runDemo(example)}
+        onCloseDemo={(example) => {
+          setDemoResults((current) => {
+            const next = { ...current };
+            delete next[example];
+            return next;
+          });
+          setDemoErrors((current) => {
+            const next = { ...current };
+            delete next[example];
+            return next;
+          });
+        }}
         onOpenDetails={openReportDetails}
         onCloseDetails={closeReportDetails}
         onRunDetails={() => { if (detailReport) void runReport(detailReport); }}

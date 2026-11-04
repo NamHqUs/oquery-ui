@@ -315,6 +315,17 @@
 .new-home-example-copy p { margin: 4px 0 0; color: #8994a5; font-size: 10px; line-height: 1.45; }
 .new-home-example > .new-home-example-toggle { grid-column: 1 / -1; margin-top: 17px; }
 .new-home-example pre { grid-column: 1 / -1; overflow-x: auto; margin: 8px 0 0; padding: 11px 13px; border-left: 2px solid #5b4b96; color: #d3cef4; background: #0b1017; font: 12px/1.6 "Cascadia Mono","Consolas",monospace; white-space: pre; }
+.new-home-example-result { grid-column: 1 / -1; min-width: 0; margin-top: 10px; }
+.new-home-example-run { position: static; display: grid; flex: 0 0 25px; width: 25px; height: 25px; place-items: center; margin-left: 0; padding: 0; border: 1px solid #62529a; border-radius: 6px; color: #ddd5fa; background: #352957; cursor: pointer; }
+.new-home-example-run:hover:not(:disabled) { color: #fff; background: #4a3974; }
+.new-home-example-run:disabled { cursor: wait; opacity: .65; }
+.new-home-example-result .table-wrap { max-height: 220px; margin-top: 9px; }
+.new-home-example-result table { font-size: 10px; }
+.new-home-example-result-head { display: flex; align-items: center; justify-content: space-between; padding: 7px 5px 7px 9px; color: #8994a5; background: #101721; font-size: 10px; }
+.new-home-example-result-head .report-icon-button { width: 22px; height: 22px; }
+.new-home-example-table .table-wrap { margin-top: 9px; }
+.new-home-example-result-status { margin: 8px 0 0; color: #8994a5; font-size: 10px; }
+.new-home-example-result .query-message { margin: 8px 0 0; font-size: 10px; }
 .new-home-example small { grid-column: 1 / -1; margin-top: 9px; color: #7f8a9b; font-size: 9px; }
 .new-home-query { padding: 54px 42px 48px; border-bottom: 1px solid #2e2a43; background: #111720; }
 .new-home-query-heading { display: grid; grid-template-columns: minmax(0,1fr) minmax(240px,.72fr); column-gap: 55px; max-width: 930px; margin: 0 auto 28px; }
@@ -538,7 +549,8 @@
 .new-home-example small { grid-column: 3; }
 .new-home-example pre { margin: 0 0 0 13px; }
 .new-home-example pre code { margin: 0; }
-.new-home-example-copy-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.new-home-example-copy-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.new-home-example-copy-head strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .new-home-example-copy-head .new-home-example-toggle { flex: 0 0 auto; margin: 0 0 0 auto; }
 .new-home-example-copy-head .new-home-example-toggle button { padding: 4px 7px; }
 .new-home-example-copy p { font-size: 11px; line-height: 1.55; }
