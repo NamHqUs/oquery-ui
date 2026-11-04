@@ -52,19 +52,19 @@ To change it at runtime, dispatch `setExpressionDebugUiEnabled(false)` to turn t
 
 To change the default, edit `debugUiEnabled` in `src/components/query-builder/query-design/query-builder-slice.ts`. The persistent left borders on groups and field boxes are structural styling and remain visible.
 
-## YAML query editor
+## OQuery text editor
 
-Query Builder provides Visual and YAML tabs in the page header. The YAML tab
+Query Builder provides Visual and OQuery tabs in the page header. The OQuery tab
 loads the canonical query request from the backend, supports editing or
 creating a query definition, provides a starter **Template**, indentation with
 the Tab key, line numbers, local syntax diagnostics, and backend-backed
-**Format** and **Check YAML** actions. Complete YAML documents can be pasted
-or replaced freely; required keys are validated rather than blocking editing.
+**Format** and **Check OQuery** actions. Complete OQuery documents can be pasted
+or replaced freely; required values are validated rather than blocking editing.
 While
-YAML is selected, **Run query** and **Get SQL statement** execute the edited
+OQuery is selected, **Run query** and **Get SQL statement** execute the edited
 text directly through the backend text-query endpoints.
 
-API validation failures appear directly in Query Builder, YAML actions, and
+API validation failures appear directly in Query Builder, OQuery actions, and
 saved-query error messages. Each rejected field is listed with its context
 and the server's validation explanation, rather than only the generic
 validation-error title. Context indexes in server errors are displayed as
@@ -77,7 +77,7 @@ Run the API error message regression tests with:
 node --test .\src\components\query-builder\query-design\api-error.test.mjs
 ```
 
-Saving in YAML mode parses the current editor contents before persisting
+Saving in OQuery mode parses the current editor contents before persisting
 the query. Removing `JoinType` preserves a null join through save and reload;
 it is not replaced with `Left`. Run the saved-query round-trip regression with:
 
@@ -85,17 +85,16 @@ it is not replaced with `Left`. Run the saved-query round-trip regression with:
 node --test .\src\components\query-builder\query-design\query-save.test.mjs
 ```
 
-All YAML context dictionary keys share the gold color previously used for
-functions. Functions use a darker muted blue, while schema keywords such as
-`Entity` and `Relations` remain purple. Quoted and flow-style keys are
-recognized using YAML source ranges.
+All OQuery context keys share the gold color previously used for
+functions. Functions use a darker muted blue, while schema keywords remain
+purple.
 Context names in `RefContext` values use the same gold as context definition
 keys only when the referenced name exists in the `Contexts` dictionary,
 including references inside context relations. Unknown references remain
 normal text so invalid links are visible.
 
-The YAML line-number gutter provides collapse/expand buttons for indented
-mappings and arrays, including context definitions, projections, and relations.
+The OQuery line-number gutter provides collapse/expand buttons for indented
+context definitions, projections, and relations.
 Use **Collapse all** and **Expand all** for the whole editor.
 Fold arrows are hidden until the pointer enters the line-number gutter. Once
 the gutter is hovered, all foldable lines show their arrows. A collapsed line
@@ -103,9 +102,9 @@ keeps its right-pointing expand arrow visible; expanded lines show a
 down-pointing collapse arrow.
 Collapsed headers show a visual `...` suffix directly beside the parent text
 with a soft background highlight;
-neither decoration is inserted into the YAML. The collapsed header remains a
+neither decoration is inserted into the OQuery text. The collapsed header remains a
 single editor line, and the suffix sits immediately beside the parent text.
 Line numbers keep their original source positions, and folding never changes the saved/executed
 document. Edits to visible lines preserve hidden children. If an edit spans
 hidden content, the editor expands the document and asks you to retry rather
-than accidentally deleting unseen YAML.
+than accidentally deleting unseen OQuery text.

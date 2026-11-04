@@ -7,7 +7,7 @@ using OQuery;
 namespace OQuery.UI.UnitTest.Tests;
 
 [TestFixture]
-public sealed class ReportServiceYamlTests
+public sealed class ReportServiceQueryTextTests
 {
     private readonly ReportService _service = new(new UnusedReportRepository(), new UnusedUserSectionManager());
 
@@ -28,13 +28,13 @@ public sealed class ReportServiceYamlTests
             }
         };
 
-        var yaml = _service.GetQueryRequestString(definition);
-        var restored = _service.ParseQueryRequestString(yaml, "User");
-        var restoredFromText = _service.ParseQueryRequestString(yaml);
+        var queryText = _service.GetQueryRequestString(definition);
+        var restored = _service.ParseQueryRequestString(queryText, "User");
+        var restoredFromText = _service.ParseQueryRequestString(queryText);
 
-        Assert.That(yaml, Does.Contain("Left Join Managers"));
-        Assert.That(yaml, Does.Not.Contain("ExtraRelations:"));
-        Assert.That(yaml, Does.Not.Contain("RefContextId:"));
+        Assert.That(queryText, Does.Contain("Left Join Managers"));
+        Assert.That(queryText, Does.Not.Contain("ExtraRelations:"));
+        Assert.That(queryText, Does.Not.Contain("RefContextId:"));
         Assert.That(restored.Relations!.Single().RefContext, Is.EqualTo("Managers"));
         Assert.That(restored.Relations!.Single().JoinType, Is.EqualTo(QueryJoinType.Left));
         Assert.That(restored.Contexts!["Managers"].Relations!.Single().JoinType, Is.EqualTo(QueryJoinType.Left));
@@ -42,40 +42,23 @@ public sealed class ReportServiceYamlTests
     }
 
     [Test]
-    public void CanonicalYamlStillRejectsAnEntityChange()
+    public void CanonicalQueryTextStillRejectsAnEntityChange()
     {
         Assert.That(() => _service.ParseQueryRequestString("""
-            Entity: User
-            Contexts: {}
+            User: Id
             """, "Orders"), Throws.TypeOf<FormatException>()
             .With.Message.EqualTo("Entity cannot be changed in the request structure."));
     }
 
     [Test]
-    public void InlineYamlProjectionIsParsedAsAnArray()
+    public void InlineQueryProjectionIsParsedAsSeparateFields()
     {
         var query = _service.ParseQueryRequestString("""
-            Entity: User
-            Projection: [Id, Name]
+            User: Id, Name
             """);
 
         Assert.That(query.Projection.Select(projection => projection.ToText()),
             Is.EqualTo(["Id", "Name"]));
-    }
-
-    [Test]
-    public void EmptyYamlProjectionItemsAreIgnored()
-    {
-        var query = _service.ParseQueryRequestString("""
-            Entity: User
-            Projection:
-              -
-              - Id
-              -
-            """);
-
-        Assert.That(query.Projection.Select(projection => projection.ToText()),
-            Is.EqualTo(["Id"]));
     }
 
     private sealed class UnusedUserSectionManager : IUserSectionManager

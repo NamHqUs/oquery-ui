@@ -60,34 +60,6 @@ public sealed class ReportService(
         }
 
         var textLines = text.Split(["\r\n", "\n"], StringSplitOptions.None);
-        var projectionHeader = Array.FindIndex(textLines, line =>
-            line.TrimStart().StartsWith("Projection:", StringComparison.OrdinalIgnoreCase));
-        if (projectionHeader < 0)
-            projectionHeader = Array.FindIndex(textLines, line =>
-                line.TrimStart().StartsWith("Fields:", StringComparison.OrdinalIgnoreCase));
-        var hasYamlProjectionList = projectionHeader >= 0
-            && (textLines[projectionHeader]
-                    .AsSpan(textLines[projectionHeader].IndexOf(':') + 1)
-                    .TrimStart()
-                    .StartsWith("[", StringComparison.Ordinal)
-                || textLines
-                    .Skip(projectionHeader + 1)
-                    .TakeWhile(line => string.IsNullOrWhiteSpace(line) || char.IsWhiteSpace(line[0]))
-                    .Any(line => line.TrimStart() is "-" ||
-                        line.TrimStart().StartsWith("- ", StringComparison.Ordinal)));
-        var hasYamlStructure = textLines.Any(line =>
-            line.StartsWith("Contexts:", StringComparison.Ordinal) ||
-            line.StartsWith("Relations:", StringComparison.Ordinal) ||
-            line.StartsWith("ExtraRelations:", StringComparison.Ordinal) ||
-            line.StartsWith("Recursive:", StringComparison.Ordinal));
-        if (hasYamlProjectionList || hasYamlStructure)
-        {
-            var query = QueryDefinitionParser.ParseFromYml(text);
-            if (!string.Equals(query.Entity, entity, StringComparison.Ordinal))
-                throw new FormatException("Entity cannot be changed in the request structure.");
-            return query;
-        }
-
         var lines = new List<(string Key, string Value)>();
         foreach (var line in textLines)
         {

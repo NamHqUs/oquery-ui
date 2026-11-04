@@ -15,7 +15,7 @@ import type { AppDispatch, RootState } from "../../store/store";
 import "./query-builder.css";
 
 type QueryBuilderProps = {
-  onBackToReports?: () => void;
+  onBackToHome?: () => void;
   onRequestConnection: () => void;
 };
 
@@ -518,7 +518,7 @@ function reconcileDefinition(definition: QueryDefinition, entity: MetadataEntity
   };
 }
 
-export default function QueryBuilder({ onBackToReports, onRequestConnection }: QueryBuilderProps) {
+export default function QueryBuilder({ onBackToHome, onRequestConnection }: QueryBuilderProps) {
   const dispatch = useDispatch<AppDispatch>();
   const showMessageBox = useMessageBox();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1055,7 +1055,7 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
               <Icon name="code" size={14} /> OQuery
             </button>
           </nav>
-          {onBackToReports && <button className="button secondary" onClick={onBackToReports}><Icon name="arrow-left" size={14} /> Back to reports</button>}
+          {onBackToHome && <button className="button secondary" onClick={onBackToHome}><Icon name="arrow-left" size={14} /> Back to home</button>}
           {!selectedRequestIsBuiltin && <>
             {selectedRequestName && <button type="button" className="button secondary query-icon-button query-delete-button" aria-label="Delete query" title="Delete query" onClick={() => void removeCurrentRequest()}>
               <Icon name="trash" size={16} />
@@ -1156,4 +1156,3 @@ export default function QueryBuilder({ onBackToReports, onRequestConnection }: Q
     </>
   );
 }
-

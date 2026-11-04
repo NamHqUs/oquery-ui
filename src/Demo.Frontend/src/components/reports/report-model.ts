@@ -154,7 +154,7 @@ export function defaultReportChartSettings(report: ReportDto, result: QueryResul
 }
 
 export function reportTitle(request: ReportDto): string {
-  return request.name || request.fileName.replace(/\.(json|yml)$/i, "");
+  return request.name || request.fileName.replace(/\.(json|oqr)$/i, "");
 }
 
 export function categoryTone(category: string): string {
@@ -168,7 +168,7 @@ export function categoryTone(category: string): string {
 }
 
 export function presentationFor(request: ReportDto): ReportPresentation {
-  const match = request.fileName.match(/^(\d{2})-builtin-(?:report|query-request)\.yml$/i);
+  const match = request.fileName.match(/^(\d{2})-builtin-(?:report|query-request)\.oqr$/i);
   const index = match ? Number(match[1]) : null;
   if (index && builtinPresentations[index]) return builtinPresentations[index];
   const chartType = chartOptions.some((option) => option.value === request.chartType)

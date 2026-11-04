@@ -4,14 +4,14 @@ using OQuery;
 using OQuery.QueryDefinitions.Parsers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using YamlDotNet.Serialization;
 
 namespace Demo.Repositories.FileStorage;
 
 public sealed class ReportFileRepository : FileRepositoryBase<ReportDto>, IReportRepository
 {
     private const string FOLDER_NAME = "Reports";
-    private const string FILE_EXTENSION = ".yml";
+    private const string FILE_EXTENSION = ".oqr";
+    private const string LEGACY_FILE_EXTENSION = ".json";
 
     public ReportFileRepository(FilePathResolver filePathResolver)
         : base(filePathResolver, FOLDER_NAME, FILE_EXTENSION)
@@ -35,9 +35,9 @@ public sealed class ReportFileRepository : FileRepositoryBase<ReportDto>, IRepor
         var dir = GetBuiltinStoreFolder();
         Directory.CreateDirectory(dir);
         return Directory.EnumerateFiles(dir)
-            .Where(path => string.Equals(Path.GetExtension(path), ".yml", StringComparison.OrdinalIgnoreCase))
+            .Where(path => string.Equals(Path.GetExtension(path), FILE_EXTENSION, StringComparison.OrdinalIgnoreCase))
             .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
-            .Select(path => ReadYml(Path.GetFileName(path)!, File.ReadAllText(path)) with { CanDelete = false })
+            .Select(path => ReadOqr(Path.GetFileName(path)!, File.ReadAllText(path)) with { CanDelete = false })
             .ToArray();
     }
 
@@ -46,7 +46,7 @@ public sealed class ReportFileRepository : FileRepositoryBase<ReportDto>, IRepor
         var path = GetUserFilePath(userSectionId, id);
         if (File.Exists(path))
             return Load(userSectionId, path);
-        var legacyPath = Path.ChangeExtension(path, FILE_EXTENSION);
+        var legacyPath = Path.ChangeExtension(path, LEGACY_FILE_EXTENSION);
         return File.Exists(legacyPath) ? Load(userSectionId, legacyPath) : null;
     }
 
@@ -54,86 +54,66 @@ public sealed class ReportFileRepository : FileRepositoryBase<ReportDto>, IRepor
     {
         var dir = GetUserStoreFolder(userSectionId);
         Directory.CreateDirectory(dir);
-        File.WriteAllText(GetUserFilePath(userSectionId, report.FileName), SerializeYml(report));
+        File.WriteAllText(GetUserFilePath(userSectionId, report.FileName), SerializeOqr(report));
     }
 
-    private static string SerializeYml(ReportDto report)
+    private static string SerializeOqr(ReportDto report)
     {
-        var header = new Dictionary<string, string>();
-        if (!string.IsNullOrWhiteSpace(report.Name))
-            header["Name"] = report.Name;
-        if (!string.IsNullOrWhiteSpace(report.Description))
-            header["Description"] = report.Description;
-        if (!string.IsNullOrWhiteSpace(report.ChartType))
-            header["ChartType"] = report.ChartType;
-
         var lines = new List<string>();
-        if (header.Count > 0)
-            lines.AddRange(new SerializerBuilder().Build().Serialize(header)
-                .Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries));
-        lines.Add("Query:");
-        lines.AddRange(YamlQueryDefinitionParser.Write(report.Query)
-            .Split(["\r\n", "\n"], StringSplitOptions.None)
-            .Select(line => $"  {line}"));
+        AddMetadata(lines, "Name", report.Name);
+        AddMetadata(lines, "Description", report.Description);
+        AddMetadata(lines, "ChartType", report.ChartType);
+        lines.Add(OQueryDefinitionParser.Write(report.Query));
         return string.Join(Environment.NewLine, lines) + Environment.NewLine;
     }
 
-    private static ReportDto ReadYml(string fileName, string text)
+    private static ReportDto ReadOqr(string fileName, string text)
     {
-        var root = new DeserializerBuilder().Build().Deserialize<Dictionary<string, object?>>(text)
-            ?? throw new InvalidDataException($"Query request file '{fileName}' is empty.");
-
-
-        var queryValue = root.GetValueOrDefault("Query");
-        var queryText = queryValue as string ?? GetNestedQueryText(fileName, text);
-        var query = QueryDefinitionParser.ParseFromYml(queryText);
-        var description = root.GetValueOrDefault("Description") as string;
-        var chartType = root.GetValueOrDefault("ChartType") as string;
-
-        var name = root.GetValueOrDefault("Name") as string;
-        return new ReportDto(fileName, query, YamlQueryDefinitionParser.Write(query), description, chartType)
+        var metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var queryLines = text.Split(["\r\n", "\n"], StringSplitOptions.None)
+            .Where(line => !TryReadMetadata(line, metadata))
+            .ToArray();
+        var query = OQueryDefinitionParser.Parse(string.Join(Environment.NewLine, queryLines));
+        return new ReportDto(
+            fileName,
+            query,
+            OQueryDefinitionParser.Write(query),
+            metadata.GetValueOrDefault("Description"),
+            metadata.GetValueOrDefault("ChartType"))
         {
-            Name = name
+            Name = metadata.GetValueOrDefault("Name")
         };
     }
 
-    private static string GetNestedQueryText(string fileName, string text)
+    private static void AddMetadata(List<string> lines, string key, string? value)
     {
-        var lines = text.Split(["\r\n", "\n"], StringSplitOptions.None);
-        var queryLine = Array.FindIndex(lines, line =>
-            line.Equals("Query:", StringComparison.OrdinalIgnoreCase));
-        if (queryLine < 0)
-            throw new InvalidDataException($"Query request file '{fileName}' has an empty Query.");
+        if (!string.IsNullOrWhiteSpace(value))
+            lines.Add($"# {key}: {value.Replace("\r", " ", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal)}");
+    }
 
-        var queryLines = lines.Skip(queryLine + 1)
-            .TakeWhile(line => string.IsNullOrWhiteSpace(line) || char.IsWhiteSpace(line[0]))
-            .ToArray();
-        var indentation = queryLines
-            .Where(line => !string.IsNullOrWhiteSpace(line))
-            .Select(line => line.TakeWhile(char.IsWhiteSpace).Count())
-            .DefaultIfEmpty(0)
-            .Min();
-        if (indentation == 0)
-            throw new InvalidDataException($"Query request file '{fileName}' has an empty Query.");
-
-        var queryText = string.Join(Environment.NewLine, queryLines.Select(line =>
-            string.IsNullOrWhiteSpace(line) ? string.Empty : line[indentation..]));
-        return string.IsNullOrWhiteSpace(queryText)
-            ? throw new InvalidDataException($"Query request file '{fileName}' has an empty Query.")
-            : queryText;
+    private static bool TryReadMetadata(string line, IDictionary<string, string> metadata)
+    {
+        var value = line.Trim();
+        if (!value.StartsWith("#", StringComparison.Ordinal))
+            return false;
+        var separator = value.IndexOf(':');
+        if (separator <= 1)
+            return true;
+        metadata[value[1..separator].Trim()] = value[(separator + 1)..].Trim();
+        return true;
     }
 
     private ReportDto Load(string userSectionId, string path)
     {
         var fileName = Path.GetFileNameWithoutExtension(path);
         if (HasExtension(path, FILE_EXTENSION))
-            return ReadYml(fileName, File.ReadAllText(path));
+            return ReadOqr(fileName, File.ReadAllText(path));
 
-        // Legacy JSON report: convert to YAML on first access.
+        // Legacy JSON report: convert to OQuery on first access.
         var report = Read(path) with { FileName = fileName };
-        var ymlPath = GetUserFilePath(userSectionId, fileName);
-        if (!File.Exists(ymlPath))
-            File.WriteAllText(ymlPath, SerializeYml(report));
+        var oqrPath = GetUserFilePath(userSectionId, fileName);
+        if (!File.Exists(oqrPath))
+            File.WriteAllText(oqrPath, SerializeOqr(report));
         File.Delete(path);
         return report;
     }
@@ -144,7 +124,7 @@ public sealed class ReportFileRepository : FileRepositoryBase<ReportDto>, IRepor
     public override bool Delete(string userSectionId, string id)
     {
         var path = GetUserFilePath(userSectionId, id);
-        var legacyPath = Path.ChangeExtension(path, FILE_EXTENSION);
+        var legacyPath = Path.ChangeExtension(path, LEGACY_FILE_EXTENSION);
         var deleted = false;
         foreach (var candidate in new[] { path, legacyPath })
         {

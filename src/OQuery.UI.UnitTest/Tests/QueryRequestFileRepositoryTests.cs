@@ -91,18 +91,21 @@ public sealed class QueryRequestFileRepositoryTests
     }
 
     [Test]
-    public void SavingAndReloadingPreservesOmittedYamlJoinTypes()
+    public void SavingAndReloadingPreservesOmittedOQueryJoinTypes()
     {
-        var parsed = YamlQueryDefinitionParser.Parse("""
-            Entity: User
-            Relations:
-              - RefContext: Managers
-            Contexts:
-              Managers:
-                Entity: User
-                Relations:
-                  - RefContext: Managers
-            """);
+        var parsed = new QueryDefinition
+        {
+            Entity = "User",
+            Relations = [new RelationDefinition("Managers", JoinType: null)],
+            Contexts = new Dictionary<string, QueryDefinitionBase>
+            {
+                ["Managers"] = new QueryDefinition
+                {
+                    Entity = "User",
+                    Relations = [new RelationDefinition("Managers", JoinType: null)]
+                }
+            }
+        };
         var request = new QueryDto
         {
             Id = "null-join",
@@ -117,7 +120,7 @@ public sealed class QueryRequestFileRepositoryTests
             ?? throw new InvalidOperationException("The saved request was not found.");
         Assert.That(reloaded.Relations!.Single().JoinType, Is.Null);
         Assert.That(reloaded.Contexts!["Managers"].Relations!.Single().JoinType, Is.Null);
-        Assert.That(YamlQueryDefinitionParser.Write(reloaded), Does.Not.Contain("JoinType:"));
+        Assert.That(OQueryDefinitionParser.Write(reloaded), Does.Not.Contain("JoinType:"));
     }
 
     private sealed class StubUserSectionManager(string sectionId) : IUserSectionManager

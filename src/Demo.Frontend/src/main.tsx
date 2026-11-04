@@ -18,7 +18,7 @@ import { store, type RootState } from "./store/store";
 import "./styles.css";
 
 const PAGE_PATHS = {
-  reports: "/reports",
+  home: "/",
   builder: "/query-builder",
   metadata: "/metadata",
   sources: "/data-sources",
@@ -101,10 +101,10 @@ function App() {
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [connectionDialogOpen]);
 
-  const navigateToPage = (nextPage: Page, fromReport = false) => {
-    if (nextPage === page && !(nextPage === "builder" && fromReport)) return;
-    const destination = nextPage === "builder" && fromReport
-      ? `${PAGE_PATHS.builder}?from=reports`
+  const navigateToPage = (nextPage: Page, fromHome = false) => {
+    if (nextPage === page && !(nextPage === "builder" && fromHome)) return;
+    const destination = nextPage === "builder" && fromHome
+      ? `${PAGE_PATHS.builder}?from=home`
       : PAGE_PATHS[nextPage];
     const continueNavigation = () => {
       if (nextPage === "metadata") setMetadataVisited(true);
@@ -143,7 +143,7 @@ function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <button className="brand" type="button" aria-label="Open Query home" onClick={() => navigateToPage("reports")}><img className="brand-logo" src="/brand-concepts/23-oquery-orbit-core.svg" alt="" /></button>
+        <button className="brand" type="button" aria-label="Open Query home" onClick={() => navigateToPage("home")}><img className="brand-logo" src="/brand-concepts/23-oquery-orbit-core.svg" alt="" /></button>
         <nav className="topnav"><button className={page === "builder" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("builder")}><Icon name="query" /> Query builder</button><button className={page === "sources" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("sources")}><Icon name="database" /> Data sources</button><button className={page === "metadata" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("metadata")}><Icon name="schema" /> Metadata</button><button className={page === "functions" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("functions")}><Icon name="function" /> Function definitions</button><button className={page === "documentation" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("documentation")}><Icon name="file-text" /> Docs</button></nav>
         <div className="top-actions">
           {database.providerCheckStatus === "loading" ? (
@@ -182,7 +182,7 @@ function App() {
       </header>
 
       <Routes>
-        <Route path={PAGE_PATHS.reports} element={<div className="page-transition page-transition-no-slide"><Reports onNavigateToPage={navigateToPage} onEditQuery={(definition: QueryDefinition) => {
+        <Route path={PAGE_PATHS.home} element={<div className="page-transition page-transition-no-slide"><Reports onNavigateToPage={navigateToPage} onEditQuery={(definition: QueryDefinition) => {
           setQueryBuilderDefinition(definition);
           setQueryBuilderInstance((current) => current + 1);
           navigateToPage("builder", true);
@@ -193,7 +193,8 @@ function App() {
         <Route path={PAGE_PATHS.functions} element={null} />
         <Route path={LEGACY_FUNCTIONS_PATH} element={<Navigate to={PAGE_PATHS.functions} replace />} />
         <Route path={PAGE_PATHS.sources} element={<div className="page-transition page-transition-no-slide"><DataSources onRequestConnection={requestDatabaseConnection} /></div>} />
-        <Route path="*" element={<Navigate to={PAGE_PATHS.reports} replace />} />
+        <Route path="/reports" element={<Navigate to={PAGE_PATHS.home} replace />} />
+        <Route path="*" element={<Navigate to={PAGE_PATHS.home} replace />} />
       </Routes>
       {connectionDialogOpen && createPortal(
         <div className="database-connection-dialog-backdrop" onClick={() => setConnectionDialogOpen(false)}>
@@ -220,8 +221,8 @@ function App() {
       {queryBuilderVisited && <div hidden={page !== "builder"} className={page === "builder" ? "page-transition page-transition-no-slide" : undefined}><QueryBuilder
         key={queryBuilderInstance}
         onRequestConnection={requestDatabaseConnection}
-        onBackToReports={new URLSearchParams(location.search).get("from") === "reports"
-          ? () => navigateToPage("reports")
+        onBackToHome={new URLSearchParams(location.search).get("from") === "home"
+          ? () => navigateToPage("home")
           : undefined}
       /></div>}
       {metadataVisited && <div hidden={page !== "metadata"} className={page === "metadata" ? "page-transition page-transition-no-slide" : undefined}><MetadataBuilder onNavigationGuardChange={updateMetadataNavigationGuard} /></div>}

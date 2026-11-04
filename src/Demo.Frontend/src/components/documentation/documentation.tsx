@@ -264,7 +264,7 @@ ref1 is User: Id, Name`}</CodeBlock>
           <div className="documentation-next-links">
             <a href="/query-builder"><Icon name="query" size={17} /><span><strong>Open Query builder</strong><small>Compose filters, projections, joins, and sorts.</small></span><Icon name="chevron" size={14} /></a>
             <a href="/data-sources"><Icon name="database" size={17} /><span><strong>Inspect Data sources</strong><small>Explore tables, fields, keys, and sample rows.</small></span><Icon name="chevron" size={14} /></a>
-            <a href="/reports"><Icon name="chart" size={17} /><span><strong>Browse Reports</strong><small>See query-backed dashboards and saved analyses.</small></span><Icon name="chevron" size={14} /></a>
+            <a href="/"><Icon name="chart" size={17} /><span><strong>Open Home</strong><small>See query-backed dashboards and saved analyses.</small></span><Icon name="chevron" size={14} /></a>
           </div>
         </section>
       </article>
