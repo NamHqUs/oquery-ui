@@ -340,7 +340,7 @@
 .new-home-example-run:hover:not(:disabled) { color: #fff; background: #4a3974; }
 .new-home-example-run:disabled { cursor: wait; opacity: .65; }
 .new-home-example-result .table-wrap { max-height: 220px; margin-top: 0; }
-.new-home-example-result .table-wrap td { padding-top: 8px; padding-bottom: 8px; }
+.new-home-example-result .table-wrap td { padding-top: 12px; padding-bottom: 12px; }
 .new-home-example-result table { font-size: 10px; }
 .new-home-example-result-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 5px 4px 9px; color: #8994a5; background: #101721; font-size: 10px; }
 .new-home-example-result-head .report-icon-button { width: 22px; height: 22px; }
