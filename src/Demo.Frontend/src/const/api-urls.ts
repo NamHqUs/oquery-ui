@@ -30,7 +30,10 @@ export const apiUrls = {
   dynamicQuery: {
     execute: `${backendApiUrl}/dynamic-query/query`,
     executeText: `${backendApiUrl}/dynamic-query/query/from-text`,
+    executeContextText: (context: string) => `${backendApiUrl}/dynamic-query/query/from-text/${encodeURIComponent(context)}`,
     toString: `${backendApiUrl}/dynamic-query/query/to-string`,
+    toOQuery: `${backendApiUrl}/dynamic-query/query/to-oquery`,
+    fromOQuery: `${backendApiUrl}/dynamic-query/query/from-oquery`,
     toStringText: `${backendApiUrl}/dynamic-query/query/to-string-from-text`,
   },
   reports: {

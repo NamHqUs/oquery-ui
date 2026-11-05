@@ -17,7 +17,7 @@ import {
   ReportDto,
 } from "../query-builder/query-design/query-builder-slice";
 import ReportDashboard from "./report-dashboard/report-dashboard";
-import { reportDemoExamples, type ReportDemoExampleKey } from "./report-demo-examples";
+import type { ReportDemoExampleKey } from "./report-demo-examples";
 import {
   chartOptions,
   defaultReportChartSettings,
@@ -193,17 +193,11 @@ export default function Reports({
     setReportLoading((current) => ({ ...current, [request.fileName]: false }));
   };
 
-  const runDemo = async (example: ReportDemoExampleKey) => {
+  const runDemo = async (example: ReportDemoExampleKey, query: string) => {
     setDemoLoading((current) => ({ ...current, [example]: true }));
     setDemoErrors((current) => ({ ...current, [example]: "" }));
-    const query = reportDemoExamples.find((item) => item.key === example)?.oquery;
-    if (!query) {
-      setDemoLoading((current) => ({ ...current, [example]: false }));
-      setDemoErrors((current) => ({ ...current, [example]: "This example query is not configured." }));
-      return;
-    }
     const action = await dispatch(executeQueryFromText(query));
-    if (executeQuery.fulfilled.match(action) || executeQueryFromText.fulfilled.match(action)) {
+    if (executeQueryFromText.fulfilled.match(action)) {
       setDemoResults((current) => ({ ...current, [example]: action.payload }));
     } else {
       setDemoErrors((current) => ({ ...current, [example]: String(action.payload || "Unable to run this example.") }));
@@ -401,7 +395,7 @@ export default function Reports({
         onSearchChange={setSearch}
         onDismissMessage={() => setMessage("")}
         onRun={(report) => void runReport(report)}
-        onRunDemo={(example) => void runDemo(example)}
+        onRunDemo={(example, query) => void runDemo(example, query)}
         onCloseDemo={(example) => {
           setDemoResults((current) => {
             const next = { ...current };

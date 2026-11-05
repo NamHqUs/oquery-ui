@@ -93,7 +93,7 @@ public sealed class QueryRequestService(
         ArgumentNullException.ThrowIfNull(query);
         ArgumentException.ThrowIfNullOrWhiteSpace(query.Name);
         ArgumentException.ThrowIfNullOrWhiteSpace(query.Entity);
-        ArgumentNullException.ThrowIfNull(query.Projection);
-        QueryDefinitionParser.ValidateContextReferences(query);
+        ArgumentNullException.ThrowIfNull(query.Projections);
+        QueryDefinitionJsonParser.ValidateContextReferences(query);
     }
 }

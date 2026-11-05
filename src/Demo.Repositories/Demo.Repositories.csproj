@@ -22,5 +22,6 @@
 		<PackageReference Include="MySqlConnector" />
 		<PackageReference Include="Oracle.ManagedDataAccess.Core" />
 		<PackageReference Include="System.Security.Cryptography.Pkcs" />
+		<PackageReference Include="YamlDotNet" />
 	</ItemGroup>
 </Project>

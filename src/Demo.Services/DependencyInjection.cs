@@ -11,7 +11,6 @@ public static class DependencyInjection
         services.AddSingleton<IFunctionDefinitionService, FunctionDefinitionService>();
         services.AddSingleton<IOperatorDefinitionService, OperatorDefinitionService>();
         services.AddSingleton<IDynamicQueryService, DynamicQueryService>();
-        services.AddSingleton<IReportService, ReportService>();
         services.AddSingleton<IQueryRequestService, QueryRequestService>();
         return services;
     }

@@ -6,7 +6,7 @@ import Icon from "../icon/icon";
 import { useMessageBox } from "../message-box/message-box";
 import PanelSplitter from "../panel-splitter/panel-splitter";
 import ToastNotice from "../toast-notice/toast-notice";
-import { ApiQueryContextDefinition, clearQueryResult, createApiQuery, deleteQueryRequest, executeQuery, executeQueryFromText, fetchFilterOperators, fetchFunctionDefinitions, fetchQueryMetadata, fetchQueryRequests, fromApiQuery, fromApiQueryDefinition, getQueryRequestText, getSqlStatement, getSqlStatementFromText, IFieldDefinition, MetadataEntity, MetadataField, parseQueryRequestText, QueryDefinition, QueryFilterGroup, QueryFilterNode, saveQueryRequest, toQueryBuilderSavedView } from "./query-design/query-builder-slice";
+import { ApiQueryContextDefinition, clearQueryResult, createApiQuery, deleteQueryRequest, executeContextFromText, executeQuery, executeQueryFromText, fetchFilterOperators, fetchFunctionDefinitions, fetchQueryMetadata, fetchQueryRequests, fromApiQuery, fromApiQueryDefinition, getQueryRequestText, getSqlStatement, getSqlStatementFromText, IFieldDefinition, MetadataEntity, MetadataField, parseQueryRequestText, QueryDefinition, QueryFilterGroup, QueryFilterNode, saveQueryRequest, toQueryBuilderSavedView } from "./query-design/query-builder-slice";
 import QueryDesign from "./query-design/query-design";
 import QueryResult from "./query-result/query-result";
 import SavedQueryList from "./saved-query-list/saved-query-list";
@@ -21,10 +21,10 @@ type QueryBuilderProps = {
 
 let cachedDefinition: QueryDefinition | null = null;
 const QUERY_DEFINITION_STORAGE_KEY = "OQuery-query-builder-definition";
-const YAML_DESIGN_HEIGHT_STORAGE_KEY = "OQuery.query-builder.yaml-design-height.v2";
-const YAML_DESIGN_HEIGHT_DEFAULT = 840;
-const YAML_DESIGN_HEIGHT_MIN = 440;
-const YAML_DESIGN_HEIGHT_MAX = 1100;
+const OQUERY_DESIGN_HEIGHT_STORAGE_KEY = "OQuery.query-builder.oquery-design-height.v2";
+const OQUERY_DESIGN_HEIGHT_DEFAULT = 840;
+const OQUERY_DESIGN_HEIGHT_MIN = 440;
+const OQUERY_DESIGN_HEIGHT_MAX = 1100;
 
 export function resetQueryBuilderCache() {
   cachedDefinition = null;
@@ -159,18 +159,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function readYamlDesignHeight() {
-  const stored = Number(window.localStorage.getItem(YAML_DESIGN_HEIGHT_STORAGE_KEY));
-  return Number.isFinite(stored) && stored >= YAML_DESIGN_HEIGHT_MIN && stored <= YAML_DESIGN_HEIGHT_MAX
+function readOqueryDesignHeight() {
+  const stored = Number(window.localStorage.getItem(OQUERY_DESIGN_HEIGHT_STORAGE_KEY));
+  return Number.isFinite(stored) && stored >= OQUERY_DESIGN_HEIGHT_MIN && stored <= OQUERY_DESIGN_HEIGHT_MAX
     ? stored
-    : YAML_DESIGN_HEIGHT_DEFAULT;
+    : OQUERY_DESIGN_HEIGHT_DEFAULT;
 }
 
 function QuerySectionSplitter({ height, onHeightChange }: { height: number; onHeightChange: (height: number) => void }) {
   const resizeFromPointer = (event: PointerEvent<HTMLDivElement>) => {
     const designSection = event.currentTarget.previousElementSibling;
     if (!(designSection instanceof HTMLElement)) return;
-    const nextHeight = Math.min(YAML_DESIGN_HEIGHT_MAX, Math.max(YAML_DESIGN_HEIGHT_MIN, event.clientY - designSection.getBoundingClientRect().top));
+    const nextHeight = Math.min(OQUERY_DESIGN_HEIGHT_MAX, Math.max(OQUERY_DESIGN_HEIGHT_MIN, event.clientY - designSection.getBoundingClientRect().top));
     onHeightChange(nextHeight);
   };
 
@@ -178,8 +178,8 @@ function QuerySectionSplitter({ height, onHeightChange }: { height: number; onHe
     const step = event.shiftKey ? 80 : 16;
     if (event.key === "ArrowUp") onHeightChange(height - step);
     else if (event.key === "ArrowDown") onHeightChange(height + step);
-    else if (event.key === "Home") onHeightChange(YAML_DESIGN_HEIGHT_MIN);
-    else if (event.key === "End") onHeightChange(YAML_DESIGN_HEIGHT_MAX);
+    else if (event.key === "Home") onHeightChange(OQUERY_DESIGN_HEIGHT_MIN);
+    else if (event.key === "End") onHeightChange(OQUERY_DESIGN_HEIGHT_MAX);
     else return;
     event.preventDefault();
   };
@@ -190,8 +190,8 @@ function QuerySectionSplitter({ height, onHeightChange }: { height: number; onHe
       role="separator"
       aria-label="Resize query design and results"
       aria-orientation="horizontal"
-      aria-valuemin={YAML_DESIGN_HEIGHT_MIN}
-      aria-valuemax={YAML_DESIGN_HEIGHT_MAX}
+      aria-valuemin={OQUERY_DESIGN_HEIGHT_MIN}
+      aria-valuemax={OQUERY_DESIGN_HEIGHT_MAX}
       aria-valuenow={height}
       tabIndex={0}
       onPointerDown={(event) => {
@@ -207,13 +207,18 @@ function QuerySectionSplitter({ height, onHeightChange }: { height: number; onHe
   );
 }
 
-function getYamlEntity(text: string): string {
+function getOqueryEntity(text: string): string {
   const header = text.split(/\r?\n/).find((line) => line.trim() && !line.trimStart().startsWith("#") && !/^\s/.test(line));
   const match = header?.match(/^([A-Za-z_][A-Za-z0-9_]*)(?:\s+is\s+([A-Za-z_][A-Za-z0-9_]*))?\s*:/i);
   return match?.[2] ?? match?.[1] ?? "";
 }
 
-function stripYamlLineComments(text: string): string {
+function getOqueryContextName(text: string): string {
+  const header = text.split(/\r?\n/).find((line) => line.trim() && !line.trimStart().startsWith("#") && !/^\s/.test(line));
+  return header?.match(/^([A-Za-z_][A-Za-z0-9_]*)(?:\s+is\s+[A-Za-z_][A-Za-z0-9_]*)?\s*:/i)?.[1] ?? "";
+}
+
+function stripOqueryLineComments(text: string): string {
   return text.split(/\r?\n/).map((line) => {
     let quote: "'" | "\"" | null = null;
     for (let index = 0; index < line.length - 1; index++) {
@@ -234,7 +239,7 @@ function stripYamlLineComments(text: string): string {
   }).join("\n");
 }
 
-function stripYamlComment(value: string): string {
+function stripOqueryComment(value: string): string {
   let quote: "'" | "\"" | null = null;
   for (let index = 0; index < value.length; index++) {
     const character = value[index];
@@ -249,7 +254,7 @@ function stripYamlComment(value: string): string {
   return value;
 }
 
-function preserveYamlKeys(formatted: string, source: string): string {
+function preserveOqueryKeys(formatted: string, source: string): string {
   const topLevelKeyPattern = /^([A-Za-z_][A-Za-z0-9_]*)\s*:/gm;
   const formattedKeys = new Set(Array.from(formatted.matchAll(topLevelKeyPattern), (match) => match[1]!.toLowerCase()));
   const sourceKeys = Array.from(source.matchAll(topLevelKeyPattern), (match) => match[1]!);
@@ -260,7 +265,7 @@ function preserveYamlKeys(formatted: string, source: string): string {
   return `${formatted.trimEnd()}\n${missingKeys.map((key) => `${key}:`).join("\n")}\n`;
 }
 
-function getYamlSyntaxError(
+function getOquerySyntaxError(
   text: string,
   functionDefinitions: FunctionDefinition[],
   filterOperators: FilterOperatorDefinition[],
@@ -269,10 +274,10 @@ function getYamlSyntaxError(
   if (!firstLine || !/^([A-Za-z_][A-Za-z0-9_]*)(?:\s+is\s+[A-Za-z_][A-Za-z0-9_]*)?\s*:/i.test(firstLine)) {
     return "Invalid OQuery: expected a query header such as \"Users: Id, Name\".";
   }
-  return getYamlFilterSyntaxError(text, filterOperators) ?? getYamlExpressionSyntaxError(text, functionDefinitions);
+  return getOqueryFilterSyntaxError(text, filterOperators) ?? getOqueryExpressionSyntaxError(text, functionDefinitions);
 }
 
-function getYamlFilterSyntaxError(text: string, filterOperators: FilterOperatorDefinition[]): string | null {
+function getOqueryFilterSyntaxError(text: string, filterOperators: FilterOperatorDefinition[]): string | null {
   const operatorTokens = filterOperators
     .flatMap((operator) => [operator.symbol, operator.name])
     .filter((token) => token.trim())
@@ -292,19 +297,24 @@ function getYamlFilterSyntaxError(text: string, filterOperators: FilterOperatorD
   return null;
 }
 
-function getYamlExpressionSyntaxError(text: string, functionDefinitions: FunctionDefinition[]): string | null {
+function getOqueryExpressionSyntaxError(text: string, functionDefinitions: FunctionDefinition[]): string | null {
   const openings: Array<{ line: number; column: number }> = [];
   let quote: "'" | "\"" | null = null;
   let escaped = false;
   let line = 1;
   let column = 0;
 
-  for (const character of text) {
+  for (let index = 0; index < text.length; index++) {
+    const character = text[index]!;
     column += 1;
     if (character === "\n") {
       line += 1;
       column = 0;
       escaped = false;
+      continue;
+    }
+    if (character === "#" && !quote) {
+      while (index < text.length && text[index] !== "\n") index++;
       continue;
     }
     if (quote) {
@@ -527,18 +537,20 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   const { connectedProvider, connectionStatus } = useSelector((state: RootState) => state.database);
   const [definition, setDefinition] = useState<QueryDefinition>(loadDefinition);
   const [requestName, setRequestName] = useState("");
-  const [yamlText, setYamlText] = useState("");
-  const [yamlStatus, setYamlStatus] = useState<"idle" | "loading" | "applying">("idle");
-  const [yamlError, setYamlError] = useState("");
-  const [yamlValidationMessage, setYamlValidationMessage] = useState("");
+  const [oqueryText, setOqueryText] = useState("");
+  const [oqueryStatus, setOqueryStatus] = useState<"idle" | "loading" | "applying">("idle");
+  const [oqueryError, setOqueryError] = useState("");
+  const [oqueryValidationMessage, setOqueryValidationMessage] = useState("");
   const selectedOQueryTextRef = useRef("");
+  const oqueryLoadRequestRef = useRef(0);
   const updateSelectedOQueryText = (text: string) => {
     selectedOQueryTextRef.current = text;
   };
   const boundModelRef = useRef(JSON.stringify({ definition, requestName }));
-  const boundYamlTextRef = useRef("");
+  const boundOqueryTextRef = useRef("");
+  const [editorMode, setEditorMode] = useState<"visual" | "oquery">("visual");
   const hasUnsavedChanges = JSON.stringify({ definition, requestName }) !== boundModelRef.current
-    || yamlText !== boundYamlTextRef.current;
+    || (editorMode === "oquery" && oqueryText !== boundOqueryTextRef.current);
   const [selectedContextIndex, setSelectedContextIndex] = useState<number | null>(null);
   const [selectedRequestName, setSelectedRequestName] = useState<string | null>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
@@ -546,9 +558,8 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   const [queryRequestNotice, setQueryRequestNotice] = useState("");
   const [requestNameError, setRequestNameError] = useState("");
   const [isSavingQuery, setIsSavingQuery] = useState(false);
-  const [editorMode, setEditorMode] = useState<"visual" | "yaml">("visual");
-  const [yamlDesignHeight, setYamlDesignHeight] = useState(readYamlDesignHeight);
-  const [yamlDesignResized, setYamlDesignResized] = useState(() => Boolean(window.localStorage.getItem(YAML_DESIGN_HEIGHT_STORAGE_KEY)));
+  const [oqueryDesignHeight, setOqueryDesignHeight] = useState(readOqueryDesignHeight);
+  const [oqueryDesignResized, setOqueryDesignResized] = useState(() => Boolean(window.localStorage.getItem(OQUERY_DESIGN_HEIGHT_STORAGE_KEY)));
   const entity = useMemo(() => metadata.find((item) => item.name === definition.entity), [metadata, definition.entity]);
   const selectedContext = selectedContextIndex === null ? undefined : definition.contextCatalog?.[selectedContextIndex];
   const activeContextIndex = selectedContext ? selectedContextIndex : null;
@@ -603,99 +614,103 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     }
     updateDefinition(updateContextDefinition(activeContextIndex, nextDefinition));
   };
-  const loadYaml = async (definitionToSerialize: QueryDefinition) => {
-    setYamlStatus("loading");
-    setYamlError("");
+  const loadOquery = async (definitionToSerialize: QueryDefinition) => {
+    const requestId = ++oqueryLoadRequestRef.current;
+    setOqueryStatus("loading");
+    setOqueryError("");
     try {
       const text = await dispatch(getQueryRequestText(definitionToSerialize)).unwrap();
-      setYamlText(text);
+      if (requestId !== oqueryLoadRequestRef.current) return;
+      setOqueryText(text);
       updateSelectedOQueryText("");
-      boundYamlTextRef.current = text;
-      setYamlValidationMessage("");
+      boundOqueryTextRef.current = text;
+      setOqueryValidationMessage("");
     } catch (error) {
-      setYamlError(typeof error === "string" ? error : "Unable to load OQuery text.");
+      if (requestId !== oqueryLoadRequestRef.current) return;
+      setOqueryError(typeof error === "string" ? error : "Unable to load OQuery text.");
     } finally {
-      setYamlStatus("idle");
+      if (requestId === oqueryLoadRequestRef.current)
+        setOqueryStatus("idle");
     }
   };
-  const changeEditorMode = (mode: "visual" | "yaml") => {
+  const changeEditorMode = (mode: "visual" | "oquery") => {
     if (mode === editorMode) return;
-    if (mode === "yaml") {
+    if (mode === "oquery") {
       setEditorMode(mode);
       return;
     }
-    setYamlError("");
+    setOqueryError("");
     setEditorMode(mode);
   };
   useEffect(() => {
-    if (editorMode !== "yaml") return;
-    void loadYaml(activeDefinition);
+    if (editorMode !== "oquery") return;
+    void loadOquery(activeDefinition);
   }, [editorMode, selectedRequestName, activeContextIndex]);
-  const applyYaml = async () => {
-    if (!yamlText.trim() || yamlStatus !== "idle") return;
-    setYamlStatus("applying");
-    setYamlError("");
-    setYamlValidationMessage("");
+  const applyOquery = async () => {
+    if (!oqueryText.trim() || oqueryStatus !== "idle") return;
+    setOqueryStatus("applying");
+    setOqueryError("");
+    setOqueryValidationMessage("");
     try {
-      const syntaxError = getYamlSyntaxError(yamlText, functionDefinitions, filterOperators);
+      const syntaxError = getOquerySyntaxError(oqueryText, functionDefinitions, filterOperators);
       if (syntaxError) {
-        setYamlError(syntaxError);
+        setOqueryError(syntaxError);
         return;
       }
-      const normalizedYamlText = yamlText;
-      const entityForParse = getYamlEntity(normalizedYamlText) || activeDefinition.entity.trim();
+      const normalizedOqueryText = oqueryText;
+      const entityForParse = getOqueryEntity(normalizedOqueryText) || activeDefinition.entity.trim();
       if (!entityForParse) {
-        setYamlError("Missing query header: OQuery text must start with an entity, such as \"Users: Id, Name\".");
+        setOqueryError("Missing query header: OQuery text must start with an entity, such as \"Users: Id, Name\".");
         return;
       }
       const parsed = await dispatch(parseQueryRequestText({
-        text: normalizedYamlText,
+        text: normalizedOqueryText,
         entity: entityForParse,
       })).unwrap();
       updateDefinitionFromDesign(fromApiQueryDefinition(parsed));
-      setYamlValidationMessage("Valid OQuery");
+      setOqueryValidationMessage("Valid OQuery");
     } catch (error) {
-      setYamlError(typeof error === "string" ? error : "Unable to parse OQuery text.");
+      setOqueryError(typeof error === "string" ? error : "Unable to parse OQuery text.");
     } finally {
-      setYamlStatus("idle");
+      setOqueryStatus("idle");
     }
   };
-  const formatYaml = async () => {
-    if (!yamlText.trim() || yamlStatus !== "idle") return;
-    setYamlStatus("applying");
-    setYamlError("");
-    setYamlValidationMessage("");
+  const formatOquery = async () => {
+    if (!oqueryText.trim() || oqueryStatus !== "idle") return;
+    setOqueryStatus("applying");
+    setOqueryError("");
+    setOqueryValidationMessage("");
     try {
-      const syntaxError = getYamlSyntaxError(yamlText, functionDefinitions, filterOperators);
+      const syntaxError = getOquerySyntaxError(oqueryText, functionDefinitions, filterOperators);
       if (syntaxError) {
-        setYamlError(syntaxError);
+        setOqueryError(syntaxError);
         return;
       }
-      const normalizedYamlText = yamlText;
-      const entityForParse = getYamlEntity(normalizedYamlText) || activeDefinition.entity.trim();
+      const normalizedOqueryText = oqueryText;
+      const entityForParse = getOqueryEntity(normalizedOqueryText) || activeDefinition.entity.trim();
       if (!entityForParse) {
-        setYamlError("Missing query header: OQuery text must start with an entity, such as \"Users: Id, Name\".");
+        setOqueryError("Missing query header: OQuery text must start with an entity, such as \"Users: Id, Name\".");
         return;
       }
       const parsed = await dispatch(parseQueryRequestText({
-        text: normalizedYamlText,
+        text: normalizedOqueryText,
         entity: entityForParse,
       })).unwrap();
       const formatted = await dispatch(getQueryRequestText(fromApiQueryDefinition(parsed))).unwrap();
-      setYamlText(preserveYamlKeys(formatted, yamlText));
+      setOqueryText(preserveOqueryKeys(formatted, oqueryText));
       updateSelectedOQueryText("");
     } catch (error) {
-      setYamlError(typeof error === "string" ? error : "Unable to format OQuery text.");
+      setOqueryError(typeof error === "string" ? error : "Unable to format OQuery text.");
     } finally {
-      setYamlStatus("idle");
+      setOqueryStatus("idle");
     }
   };
-  const insertYamlTemplate = () => {
+  const insertOqueryTemplate = () => {
     const entityName = activeDefinition.entity.trim();
-    setYamlError("");
-    setYamlValidationMessage("");
+    setOqueryError("");
+    setOqueryValidationMessage("");
     updateSelectedOQueryText("");
-    setYamlText([
+    setOqueryText([
       `${entityName}: Id`,
       "  Where ",
       "  Order ",
@@ -826,8 +841,8 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   }, [metadata, definition.entity, definition.contextCatalog, definition.contexts]);
 
   const runQuery = async () => {
-    const textToExecute = selectedOQueryTextRef.current.trim() || yamlText;
-    if (editorMode === "yaml" ? textToExecute.trim() : activeDefinition.entity.trim() && activeDefinition.columns.length) {
+    const textToExecute = selectedOQueryTextRef.current.trim() || oqueryText;
+    if (editorMode === "oquery" ? textToExecute.trim() : activeDefinition.entity.trim() && activeDefinition.columns.length) {
       if (!connectedProvider || connectionStatus !== "succeeded") {
         onRequestConnection();
         return;
@@ -835,12 +850,21 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
       if (activeContextIndex !== null) {
         updateDefinition(updateContextDefinition(activeContextIndex, activeDefinition));
       }
-      if (editorMode === "yaml") dispatch(executeQueryFromText(textToExecute));
+      if (editorMode === "oquery") dispatch(executeQueryFromText(textToExecute));
       else dispatch(executeQuery({
           ...activeDefinition,
           filters: activeDefinition.filters,
         }));
     }
+  };
+  const runOQueryContext = (contextName: string) => {
+    const text = selectedOQueryTextRef.current.trim() || oqueryText;
+    if (!text.trim()) return;
+    if (activeContextIndex === null && contextName === getOqueryContextName(text)) {
+      dispatch(executeQueryFromText(text));
+      return;
+    }
+    dispatch(executeContextFromText({ text, context: contextName }));
   };
 
   const changePage = (page: number) => {
@@ -858,13 +882,13 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   };
 
   const getSql = () => {
-    const textToExecute = selectedOQueryTextRef.current.trim() || yamlText;
-    if (editorMode === "yaml" ? textToExecute.trim() : activeDefinition.entity.trim() && activeDefinition.columns.length) {
+    const textToExecute = selectedOQueryTextRef.current.trim() || oqueryText;
+    if (editorMode === "oquery" ? textToExecute.trim() : activeDefinition.entity.trim() && activeDefinition.columns.length) {
       if (!connectedProvider || connectionStatus !== "succeeded") {
         onRequestConnection();
         return;
       }
-      if (editorMode === "yaml") dispatch(getSqlStatementFromText(textToExecute));
+      if (editorMode === "oquery") dispatch(getSqlStatementFromText(textToExecute));
       else dispatch(getSqlStatement({
           ...activeDefinition,
           filters: activeDefinition.filters,
@@ -922,6 +946,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   };
   const startNewRequest = async () => {
     if (!(await confirmModelReplacement())) return;
+    oqueryLoadRequestRef.current++;
     dispatch(clearQueryResult());
     updateRequestRoute(null);
     setSelectedRequestName(null);
@@ -931,12 +956,12 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     setRequestName("");
     setRequestNameError("");
     setQueryRequestNotice("");
-    setYamlText("");
+    setOqueryText("");
     updateSelectedOQueryText("");
-    boundYamlTextRef.current = "";
-    setYamlError("");
-    setYamlValidationMessage("");
-    setYamlStatus("idle");
+    boundOqueryTextRef.current = "";
+    setOqueryError("");
+    setOqueryValidationMessage("");
+    setOqueryStatus("idle");
     const nextDefinition = createDefinition("");
     boundModelRef.current = JSON.stringify({ definition: nextDefinition, requestName: "" });
     updateDefinition(nextDefinition);
@@ -946,6 +971,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     updateRoute = true,
   ) => {
     if (!(await confirmModelReplacement())) return;
+    oqueryLoadRequestRef.current++;
     dispatch(clearQueryResult());
     if (debugUiEnabled) console.log("Saved Query Request:", savedRequest);
     const savedView = toQueryBuilderSavedView(savedRequest);
@@ -972,26 +998,26 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   }, [queryRequests, searchParams, selectedRequestName]);
 
   const saveCurrentRequest = async () => {
-    if (editorMode !== "yaml") {
+    if (editorMode !== "oquery") {
       await persistCurrentRequest(definition);
       return;
     }
-    if (!yamlText.trim() || yamlStatus !== "idle") return;
-    setYamlStatus("applying");
-    setYamlError("");
+    if (!oqueryText.trim() || oqueryStatus !== "idle") return;
+    setOqueryStatus("applying");
+    setOqueryError("");
     try {
-      const syntaxError = getYamlSyntaxError(yamlText, functionDefinitions, filterOperators);
+      const syntaxError = getOquerySyntaxError(oqueryText, functionDefinitions, filterOperators);
       if (syntaxError) {
-        setYamlError(syntaxError);
+        setOqueryError(syntaxError);
         return;
       }
-      const normalizedYamlText = yamlText;
-      const entity = getYamlEntity(normalizedYamlText) || activeDefinition.entity.trim();
+      const normalizedOqueryText = oqueryText;
+      const entity = getOqueryEntity(normalizedOqueryText) || activeDefinition.entity.trim();
       if (!entity) {
-        setYamlError("Missing query entity: select an entity before saving.");
+        setOqueryError("Missing query entity: select an entity before saving.");
         return;
       }
-      const parsed = await dispatch(parseQueryRequestText({ text: normalizedYamlText, entity })).unwrap();
+      const parsed = await dispatch(parseQueryRequestText({ text: normalizedOqueryText, entity })).unwrap();
       const nextActiveDefinition = fromApiQueryDefinition(parsed);
       const nextDefinition = activeContextIndex === null
         ? nextActiveDefinition
@@ -999,9 +1025,9 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
       updateDefinition(nextDefinition);
       await persistCurrentRequest(nextDefinition);
     } catch (error) {
-      setYamlError(typeof error === "string" ? error : "Unable to save OQuery query.");
+      setOqueryError(typeof error === "string" ? error : "Unable to save OQuery query.");
     } finally {
-      setYamlStatus("idle");
+      setOqueryStatus("idle");
     }
   };
   const removeCurrentRequest = async () => {
@@ -1028,11 +1054,11 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     }
   };
 
-  const updateYamlDesignHeight = (height: number) => {
-    const clampedHeight = Math.min(YAML_DESIGN_HEIGHT_MAX, Math.max(YAML_DESIGN_HEIGHT_MIN, Math.round(height)));
-    setYamlDesignHeight(clampedHeight);
-    setYamlDesignResized(true);
-    window.localStorage.setItem(YAML_DESIGN_HEIGHT_STORAGE_KEY, String(clampedHeight));
+  const updateOqueryDesignHeight = (height: number) => {
+    const clampedHeight = Math.min(OQUERY_DESIGN_HEIGHT_MAX, Math.max(OQUERY_DESIGN_HEIGHT_MIN, Math.round(height)));
+    setOqueryDesignHeight(clampedHeight);
+    setOqueryDesignResized(true);
+    window.localStorage.setItem(OQUERY_DESIGN_HEIGHT_STORAGE_KEY, String(clampedHeight));
   };
 
   return (
@@ -1051,7 +1077,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
             <button type="button" role="tab" aria-selected={editorMode === "visual"} className={editorMode === "visual" ? "active" : ""} onClick={() => changeEditorMode("visual")}>
               <Icon name="query" size={14} /> Visual
             </button>
-            <button type="button" role="tab" aria-selected={editorMode === "yaml"} className={editorMode === "yaml" ? "active" : ""} onClick={() => changeEditorMode("yaml")}>
+            <button type="button" role="tab" aria-selected={editorMode === "oquery"} className={editorMode === "oquery" ? "active" : ""} onClick={() => changeEditorMode("oquery")}>
               <Icon name="code" size={14} /> OQuery
             </button>
           </nav>
@@ -1076,7 +1102,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
         </div>
       </section>
 
-      <div className={editorMode === "yaml" ? `query-builder-sections yaml-layout${yamlDesignResized ? " yaml-layout-resized" : ""}` : "query-builder-sections"} style={editorMode === "yaml" ? { "--yaml-design-height": `${yamlDesignHeight}px` } as CSSProperties : undefined}>
+      <div className={editorMode === "oquery" ? `query-builder-sections oquery-layout${oqueryDesignResized ? " oquery-layout-resized" : ""}` : "query-builder-sections"} style={editorMode === "oquery" ? { "--oquery-design-height": `${oqueryDesignHeight}px` } as CSSProperties : undefined}>
         <section className="query-section query-design-section" aria-label="Section 1: Design">
           <div className={`query-design-workspace split-workspace${savedQueriesPanel.collapsed ? " panel-collapsed" : ""}`} style={savedQueriesPanel.style}>
             <SavedQueryList
@@ -1115,25 +1141,26 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
                 onRequestNameChange={updateRequestName}
                 onDefinitionChange={updateDefinitionFromDesign}
                 editorMode={editorMode}
-                yamlText={yamlText}
-                yamlStatus={yamlStatus}
-                yamlError={yamlError}
-                onYamlTextChange={(text) => {
+                oqueryText={oqueryText}
+                oqueryStatus={oqueryStatus}
+                oqueryError={oqueryError}
+                onOqueryTextChange={(text) => {
                   dispatch(clearQueryResult());
-                  setYamlText(text);
+                  setOqueryText(text);
                   updateSelectedOQueryText("");
-                  setYamlValidationMessage("");
+                  setOqueryValidationMessage("");
                 }}
                 onOQuerySelectionChange={updateSelectedOQueryText}
-                yamlValidationMessage={yamlValidationMessage}
-                onFormatYaml={() => void formatYaml()}
-                onInsertYamlTemplate={insertYamlTemplate}
-                onApplyYaml={() => void applyYaml()}
+                onExecuteOQueryContext={runOQueryContext}
+                oqueryValidationMessage={oqueryValidationMessage}
+                onFormatOquery={() => void formatOquery()}
+                onInsertOqueryTemplate={insertOqueryTemplate}
+                onApplyOquery={() => void applyOquery()}
               />
             </div>
           </div>
         </section>
-        {editorMode === "yaml" && <QuerySectionSplitter height={yamlDesignHeight} onHeightChange={updateYamlDesignHeight} />}
+        {editorMode === "oquery" && <QuerySectionSplitter height={oqueryDesignHeight} onHeightChange={updateOqueryDesignHeight} />}
         <section className="query-section query-result-section" aria-label="Section 2: Query Result">
           <QueryResult
             result={result}
@@ -1146,8 +1173,8 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
             onPageChange={changePage}
             pageNavigationEnabled
             queryLoading={queryStatus === "loading"}
-            queryDisabled={editorMode === "yaml"
-              ? !yamlText.trim()
+            queryDisabled={editorMode === "oquery"
+              ? !oqueryText.trim()
               : !activeDefinition.entity.trim() || !activeDefinition.columns.length}
             error={queryError}
           />

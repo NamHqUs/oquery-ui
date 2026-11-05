@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Icon from "../../icon/icon";
+import OQueryEditor from "../../query-builder/oquery-editor/oquery-editor";
 import ToastNotice from "../../toast-notice/toast-notice";
 import type { QueryResult, ReportDto } from "../../query-builder/query-design/query-builder-slice";
 import ReportDetail from "../report-detail/report-detail";
@@ -17,8 +18,10 @@ import {
 type ReportGroup = { name: string; reports: ReportDto[] };
 type DropPosition = "before" | "after";
 const REPORT_COLUMN_STORAGE_KEY = "OQuery-report-columns";
+const PRODUCTS_OQUERY = "Products:";
+const TRAVERSAL_OQUERY = "Orders: Id, OrderDate, User.FirstName, User.LastName";
 const PRODUCT_SALES_OQUERY = `ProductSales is OrderItems: ProductId,
-     SUM(Quantity * UnitPrice) | TotalRevenue
+     SUM(Quantity * UnitPrice) TotalRevenue
   GROUP BY ProductId
 
 Products: Id, Name,
@@ -41,8 +44,8 @@ WHERE ps.TotalRevenue > (
         GROUP BY ProductId
     ) t
 );`;
-const EMPLOYEE_TREE_OQUERY = `EmployeeTree is Employees: FirstName | ManagerName,
-    EmployeeTree.FirstName | MemberName
+const EMPLOYEE_TREE_OQUERY = `EmployeeTree is Employees: FirstName ManagerName,
+    EmployeeTree.FirstName MemberName
   INNER JOIN EmployeeTree member on Id = member.ManagerId`;
 const EMPLOYEE_TREE_SQL = `WITH EmployeeTree AS
 (
@@ -136,7 +139,7 @@ type ReportDashboardProps = {
   onSearchChange: (search: string) => void;
   onDismissMessage: () => void;
   onRun: (report: ReportDto) => void;
-  onRunDemo: (example: ReportDemoExampleKey) => void;
+  onRunDemo: (example: ReportDemoExampleKey, query: string) => void;
   onCloseDemo: (example: ReportDemoExampleKey) => void;
   onOpenDetails: (report: ReportDto) => void;
   onReorderReports: (sourceFileName: string, targetFileName: string, position: DropPosition) => void;
@@ -166,6 +169,13 @@ export default function ReportDashboard({
   const [showTraversalSql, setShowTraversalSql] = useState(false);
   const [showRevenueSql, setShowRevenueSql] = useState(false);
   const [showRecursiveSql, setShowRecursiveSql] = useState(false);
+  const [demoQueries, setDemoQueries] = useState<Record<ReportDemoExampleKey, string>>({
+    products: PRODUCTS_OQUERY,
+    traversal: TRAVERSAL_OQUERY,
+    recursive: EMPLOYEE_TREE_OQUERY,
+    revenue: PRODUCT_SALES_OQUERY,
+  });
+  const demoSelectionsRef = useRef<Partial<Record<ReportDemoExampleKey, string>>>({});
   const [columnCount, setColumnCount] = useState(() => {
     const width = window.innerWidth;
     return width <= 600 ? 1 : width <= 860 ? 2 : 3;
@@ -207,11 +217,32 @@ export default function ReportDashboard({
     );
   };
 
-  const renderDemoRun = (example: ReportDemoExampleKey, sqlSelected: boolean) => (
-    <button className="new-home-example-run" type="button" aria-label="Run example query" title={sqlSelected ? "Switch to OQuery to run this example" : "Run example query"} onClick={() => onRunDemo(example)} disabled={sqlSelected || Boolean(demoLoading[example])}>
-      <Icon name="play" size={12} />
-    </button>
-  );
+  const demoRunQuery = (example: ReportDemoExampleKey) =>
+    demoSelectionsRef.current[example]?.trim() || demoQueries[example];
+
+  const renderDemoQuery = (
+    example: ReportDemoExampleKey,
+    query: string,
+    sqlQuery: string,
+    sqlSelected: boolean,
+  ) => sqlSelected
+    ? <pre><code>{highlightDemoQuery(sqlQuery, "sql")}</code></pre>
+    : <div className="new-home-example-editor"><OQueryEditor
+      aria-label={`${example} OQuery example`}
+      oquery
+      compact
+      showLineNumbers={false}
+      showContextRunAlways
+      showFoldControls={false}
+      rows={Math.max(1, query.split("\n").length)}
+      initialText={query}
+      onTextChange={(text) => setDemoQueries((current) => ({ ...current, [example]: text }))}
+      onSelectionChange={(text) => {
+        demoSelectionsRef.current[example] = text;
+      }}
+      onExecuteContext={() => onRunDemo(example, demoRunQuery(example))}
+      onExecuteSelectedText={(text) => onRunDemo(example, text)}
+    /></div>;
 
   const dropPositionFor = (target: HTMLElement, clientY: number): DropPosition => {
     const bounds = target.getBoundingClientRect();
@@ -272,33 +303,33 @@ export default function ReportDashboard({
       <div className="new-home-example-rail">
         <article className="new-home-example">
           <div className="new-home-example-marker">01</div>
-          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>How do I explore a product?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Product example representation"><button type="button" role="tab" aria-selected={!showProductsSql} className={!showProductsSql ? "active" : ""} onClick={() => setShowProductsSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showProductsSql} className={showProductsSql ? "active" : ""} onClick={() => setShowProductsSql(true)}>SQL</button></div>{renderDemoRun("products", showProductsSql)}</div><p>A business entity is enough to begin exploring its exposed data.</p></div>
-          <pre><code>{highlightDemoQuery(showProductsSql ? "SELECT *\nFROM sa.Products;" : "Products", showProductsSql ? "sql" : "oquery")}</code></pre>
+          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>How do I explore a product?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Product example representation"><button type="button" role="tab" aria-selected={!showProductsSql} className={!showProductsSql ? "active" : ""} onClick={() => setShowProductsSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showProductsSql} className={showProductsSql ? "active" : ""} onClick={() => setShowProductsSql(true)}>SQL</button></div></div><p>A business entity is enough to begin exploring its exposed data.</p></div>
+          {renderDemoQuery("products", demoQueries.products, "SELECT *\nFROM sa.Products;", showProductsSql)}
           {renderDemoResult("products")}
         </article>
         <article className="new-home-example">
           <div className="new-home-example-marker">02</div>
-          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>Who placed each order?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Order customer example representation"><button type="button" role="tab" aria-selected={!showTraversalSql} className={!showTraversalSql ? "active" : ""} onClick={() => setShowTraversalSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showTraversalSql} className={showTraversalSql ? "active" : ""} onClick={() => setShowTraversalSql(true)}>SQL</button></div>{renderDemoRun("traversal", showTraversalSql)}</div><p>Follow an order’s customer relationship without writing the join by hand.</p></div>
-          <pre><code>{highlightDemoQuery(showTraversalSql ? `SELECT
+          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>Who placed each order?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Order customer example representation"><button type="button" role="tab" aria-selected={!showTraversalSql} className={!showTraversalSql ? "active" : ""} onClick={() => setShowTraversalSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showTraversalSql} className={showTraversalSql ? "active" : ""} onClick={() => setShowTraversalSql(true)}>SQL</button></div></div><p>Follow an order’s customer relationship without writing the join by hand.</p></div>
+          {renderDemoQuery("traversal", demoQueries.traversal, `SELECT
     o.Id,
     o.OrderDate,
     u.FirstName,
     u.LastName
 FROM sa.Orders AS o
 LEFT JOIN Main.Users AS u
-    ON o.UserId = u.Id;` : "Orders: Id, OrderDate, User.FirstName, User.LastName", showTraversalSql ? "sql" : "oquery")}</code></pre>
+    ON o.UserId = u.Id;`, showTraversalSql)}
           {renderDemoResult("traversal")}
         </article>
         <article className="new-home-example">
           <div className="new-home-example-marker">03</div>
-          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>How big is your organization really?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Recursive hierarchy example representation"><button type="button" role="tab" aria-selected={!showRecursiveSql} className={!showRecursiveSql ? "active" : ""} onClick={() => setShowRecursiveSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showRecursiveSql} className={showRecursiveSql ? "active" : ""} onClick={() => setShowRecursiveSql(true)}>SQL</button></div>{renderDemoRun("recursive", showRecursiveSql)}</div><p>The engine detects the self-reference and generates the recursive SQL automatically.</p></div>
-          <pre><code>{highlightDemoQuery(showRecursiveSql ? EMPLOYEE_TREE_SQL : EMPLOYEE_TREE_OQUERY, showRecursiveSql ? "sql" : "oquery")}</code></pre>
+          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>How big is your organization really?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Recursive hierarchy example representation"><button type="button" role="tab" aria-selected={!showRecursiveSql} className={!showRecursiveSql ? "active" : ""} onClick={() => setShowRecursiveSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showRecursiveSql} className={showRecursiveSql ? "active" : ""} onClick={() => setShowRecursiveSql(true)}>SQL</button></div></div><p>The engine detects the self-reference and generates the recursive SQL automatically.</p></div>
+          {renderDemoQuery("recursive", demoQueries.recursive, EMPLOYEE_TREE_SQL, showRecursiveSql)}
           {renderDemoResult("recursive")}
         </article>
         <article className="new-home-example">
           <div className="new-home-example-marker">04</div>
-          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>Which products sell above average?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Product sales example representation"><button type="button" role="tab" aria-selected={!showRevenueSql} className={!showRevenueSql ? "active" : ""} onClick={() => setShowRevenueSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showRevenueSql} className={showRevenueSql ? "active" : ""} onClick={() => setShowRevenueSql(true)}>SQL</button></div>{renderDemoRun("revenue", showRevenueSql)}</div><p>Aggregate sales once, compare each product with the overall average, and keep the question readable.</p></div>
-          <pre><code>{highlightDemoQuery(showRevenueSql ? PRODUCT_SALES_SQL : PRODUCT_SALES_OQUERY, showRevenueSql ? "sql" : "oquery")}</code></pre>
+          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>Which products sell above average?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Product sales example representation"><button type="button" role="tab" aria-selected={!showRevenueSql} className={!showRevenueSql ? "active" : ""} onClick={() => setShowRevenueSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showRevenueSql} className={showRevenueSql ? "active" : ""} onClick={() => setShowRevenueSql(true)}>SQL</button></div></div><p>Aggregate sales once, compare each product with the overall average, and keep the question readable.</p></div>
+          {renderDemoQuery("revenue", demoQueries.revenue, PRODUCT_SALES_SQL, showRevenueSql)}
           {renderDemoResult("revenue")}
         </article>
       </div>

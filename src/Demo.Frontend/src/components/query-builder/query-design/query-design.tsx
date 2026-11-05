@@ -7,8 +7,7 @@ import ProjectionBuilder from "./projection-builder/projection-builder";
 import SortBuilder from "./sort-builder/sort-builder";
 import FilterBuilder from "./filter-builder/filter-builder";
 import JoinsBuilder from "./joins-builder/joins-builder";
-import { getOQueryContextKeys } from "./yaml-context-colors";
-import { applyFoldedYamlEdit, getFoldedYaml, getYamlFolds } from "./yaml-folding";
+import OQueryEditor from "../oquery-editor/oquery-editor";
 import "./query-design.css";
 
 type EntityMenuProps = {
@@ -175,16 +174,17 @@ type QueryDesignProps = {
   requestNameError: string;
   onRequestNameChange: (name: string) => void;
   onDefinitionChange: (definition: QueryDefinition) => void;
-  editorMode: "visual" | "yaml";
-  yamlText: string;
-  yamlStatus: "idle" | "loading" | "applying";
-  yamlError: string;
-  yamlValidationMessage: string;
-  onYamlTextChange: (text: string) => void;
+  editorMode: "visual" | "oquery";
+  oqueryText: string;
+  oqueryStatus: "idle" | "loading" | "applying";
+  oqueryError: string;
+  oqueryValidationMessage: string;
+  onOqueryTextChange: (text: string) => void;
   onOQuerySelectionChange: (text: string) => void;
-  onFormatYaml: () => void;
-  onInsertYamlTemplate: () => void;
-  onApplyYaml: () => void;
+  onExecuteOQueryContext?: (contextName: string) => void;
+  onFormatOquery: () => void;
+  onInsertOqueryTemplate: () => void;
+  onApplyOquery: () => void;
 };
 
 function orderContextEntries(contextDefinitions: ApiQueryContextDefinition[]) {
@@ -223,395 +223,6 @@ function orderContextEntries(contextDefinitions: ApiQueryContextDefinition[]) {
     .sort((left, right) => left.depth - right.depth || left.index - right.index);
 }
 
-function highlightYaml(text: string, functionDefinitions: FunctionDefinition[], errorFunctionName: string): string {
-  const keys = getOQueryContextKeys(text);
-  let position = 0;
-  const parts: string[] = [];
-  for (const key of keys) {
-    parts.push(highlightYamlTokens(text.slice(position, key.start), functionDefinitions, errorFunctionName));
-    const name = text.slice(key.start, key.end)
-      .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
-      .replaceAll("\"", "&quot;").replaceAll("'", "&#39;");
-    parts.push(`<span class="query-yaml-context-key">${name}</span>`);
-    position = key.end;
-  }
-  parts.push(highlightYamlTokens(text.slice(position), functionDefinitions, errorFunctionName));
-  return parts.join("");
-}
-
-function highlightYamlTokens(text: string, functionDefinitions: FunctionDefinition[], errorFunctionName: string): string {
-  const escaped = text
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll("\"", "&quot;")
-    .replaceAll("'", "&#39;");
-
-  const builtinFunctions = new Set(
-    functionDefinitions.filter((definition) => definition.isBuiltin).map((definition) => definition.name),
-  );
-  const customFunctions = new Set(
-    functionDefinitions
-      .filter((definition) => !definition.isBuiltin && !builtinFunctions.has(definition.name))
-      .map((definition) => definition.name),
-  );
-  const functionNames = [...builtinFunctions, ...customFunctions]
-    .sort((left, right) => right.length - left.length)
-    .map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  const highlightedFunctions = functionNames.length
-    ? escaped.replace(new RegExp(`\\b(${functionNames.join("|")})(?=\\s*\\()`, "gi"), (match) => {
-      const className = errorFunctionName && match.toLocaleLowerCase() === errorFunctionName.toLocaleLowerCase()
-        ? "query-yaml-function query-yaml-error-function"
-        : "query-yaml-function";
-      return `<span class="${className}">${match}</span>`;
-    })
-    : escaped;
-
-  return highlightedFunctions.replace(
-    /\b(where|order|skip|take|join|left|inner|right|full|on|asc|desc|and|or|is|in|between|not|like|contains|null|true|false)\b/gi,
-    "<span class=\"query-yaml-protected-key\">$1</span>",
-  );
-}
-
-function toggleYamlComments(text: string, selectionStart: number, selectionEnd: number) {
-  const lineStart = text.lastIndexOf("\n", Math.max(0, selectionStart - 1)) + 1;
-  const selectedEnd = selectionEnd > selectionStart && text[selectionEnd - 1] === "\n"
-    ? selectionEnd - 1
-    : selectionEnd;
-  const lineEnd = text.indexOf("\n", selectedEnd);
-  const end = lineEnd < 0 ? text.length : lineEnd;
-  const selected = text.slice(lineStart, end);
-  const lines = selected.split("\n");
-  const contentLines = lines.filter((line) => line.trim());
-  const uncomment = contentLines.length > 0
-    && contentLines.every((line) => /^\s*#(?:\s|$)/.test(line));
-  const updatedLines = lines.map((line) => {
-    if (!line.trim()) return line;
-    const indentation = line.match(/^\s*/)?.[0] ?? "";
-    const content = line.slice(indentation.length);
-    if (uncomment) return `${indentation}${content.replace(/^#\s?/, "")}`;
-    return `${indentation}# ${content}`;
-  });
-  const updated = `${text.slice(0, lineStart)}${updatedLines.join("\n")}${text.slice(end)}`;
-  const delta = updated.length - text.length;
-  return {
-    text: updated,
-    selectionStart,
-    selectionEnd: selectionEnd + delta,
-  };
-}
-
-const yamlListSections = new Set(["Projection", "Sorts", "Contexts"]);
-
-function getYamlLineContext(value: string, position: number) {
-  const beforeCursor = value.slice(0, position);
-  const lineStart = beforeCursor.lastIndexOf("\n") + 1;
-  const currentLine = beforeCursor.slice(lineStart);
-  const lines = value.slice(0, lineStart).split(/\r?\n/);
-  const currentIndentation = currentLine.match(/^\s*/)?.[0] ?? "";
-  const keyHeaders = lines.flatMap((line) => {
-    const match = /^(\s*)([A-Za-z_][A-Za-z0-9_]*)\s*:\s*$/.exec(line);
-    return match ? [{ indentation: match[1]!, name: match[2]! }] : [];
-  });
-  const parentHeader = [...keyHeaders]
-    .reverse()
-    .find((header) => header.indentation.length < currentIndentation.length)
-    ?? keyHeaders[keyHeaders.length - 1];
-
-  return {
-    beforeCursor,
-    lineStart,
-    currentLine,
-    section: parentHeader?.name ?? "",
-    sectionIndentation: parentHeader?.indentation ?? "",
-  };
-}
-
-function getYamlEnterEdit(value: string, selectionStart: number, selectionEnd: number) {
-  const { beforeCursor, lineStart, currentLine, section, sectionIndentation } = getYamlLineContext(value, selectionStart);
-  const afterCursor = value.slice(selectionEnd);
-  const isListSection = yamlListSections.has(section);
-  const trimmedLine = currentLine.trim();
-  const sectionHeader = /^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*$/.exec(trimmedLine);
-  const isListSectionHeader = sectionHeader ? yamlListSections.has(sectionHeader[1]!) : false;
-  const isTopLevelKey = !/^\s/.test(currentLine)
-    && /^[A-Za-z_][A-Za-z0-9_]*\s*:/.test(trimmedLine);
-  const isEmptyListItem = /^-\s*$/.test(trimmedLine);
-
-  if (isEmptyListItem) {
-    const indentation = currentLine.match(/^\s*/)?.[0] ?? "";
-    const parentIndentation = indentation.slice(0, Math.max(0, indentation.length - 2));
-    const normalizedBeforeCursor = `${value.slice(0, lineStart)}${parentIndentation}`;
-    return {
-      value: `${normalizedBeforeCursor}${afterCursor}`,
-      caret: normalizedBeforeCursor.length,
-    };
-  }
-
-  if (!trimmedLine) {
-    const indentation = currentLine.match(/^\s*/)?.[0] ?? "";
-    if (!indentation) {
-      const inserted = "\n";
-      return {
-        value: `${beforeCursor}${inserted}${afterCursor}`,
-        caret: beforeCursor.length + inserted.length,
-      };
-    }
-    const parentIndentation = indentation.slice(0, Math.max(0, indentation.length - 2));
-    const normalizedBeforeCursor = `${value.slice(0, lineStart)}${parentIndentation}`;
-    return {
-      value: `${normalizedBeforeCursor}${afterCursor}`,
-      caret: normalizedBeforeCursor.length,
-    };
-  }
-
-  if ((!isListSection && !isListSectionHeader) || (isTopLevelKey && !isListSectionHeader)) {
-    const indentation = currentLine.match(/^\s*/)?.[0] ?? "";
-    return {
-      value: `${beforeCursor}\n${indentation}${afterCursor}`,
-      caret: beforeCursor.length + indentation.length + 1,
-    };
-  }
-
-  if (isListSectionHeader) {
-    const indentation = currentLine.match(/^\s*/)?.[0] ?? "";
-    const inserted = `\n${indentation}  - `;
-    return {
-      value: `${beforeCursor}${inserted}${afterCursor}`,
-      caret: beforeCursor.length + inserted.length,
-    };
-  }
-
-  const itemText = trimmedLine.replace(/^-+\s*/, "");
-  const listIndentation = `${sectionIndentation}  `;
-  const normalizedLine = `${listIndentation}- ${itemText}`;
-  const normalizedBeforeCursor = `${value.slice(0, lineStart)}${normalizedLine}`;
-  const inserted = `\n${listIndentation}- `;
-  return {
-    value: `${normalizedBeforeCursor}${inserted}${afterCursor}`,
-    caret: normalizedBeforeCursor.length + inserted.length,
-  };
-}
-
-function getSelectedLineEdit(
-  value: string,
-  selectionStart: number,
-  selectionEnd: number,
-  operation: "indent" | "outdent" | "delete",
-) {
-  const start = value.lastIndexOf("\n", Math.max(0, selectionStart - 1)) + 1;
-  if (selectionStart === selectionEnd) {
-    const line = value.slice(start, value.indexOf("\n", selectionStart) < 0
-      ? value.length
-      : value.indexOf("\n", selectionStart));
-    if (operation === "indent") {
-      return {
-        value: `${value.slice(0, start)}  ${value.slice(start)}`,
-        selectionStart: selectionStart + 2,
-        selectionEnd: selectionEnd + 2,
-      };
-    }
-
-    const removed = line.match(/^ {1,2}/)?.[0].length ?? 0;
-    return {
-      value: `${value.slice(0, start)}${value.slice(start + removed)}`,
-      selectionStart: Math.max(start, selectionStart - removed),
-      selectionEnd: Math.max(start, selectionEnd - removed),
-    };
-  }
-
-  const selectedEnd = selectionEnd > selectionStart && value[selectionEnd - 1] === "\n"
-    ? selectionEnd - 1
-    : selectionEnd;
-  const lineEndIndex = value.indexOf("\n", selectedEnd);
-  const end = lineEndIndex < 0 ? value.length : lineEndIndex + 1;
-  const selectedLines = value.slice(start, end).split("\n");
-
-  if (operation === "delete") {
-    return {
-      value: `${value.slice(0, start)}${value.slice(end)}`,
-      selectionStart: start,
-      selectionEnd: start,
-    };
-  }
-
-  const updatedLines = selectedLines.map((line) => operation === "indent"
-    ? `  ${line}`
-    : line.replace(/^ {1,2}/, ""));
-  const replacement = updatedLines.join("\n");
-  return {
-    value: `${value.slice(0, start)}${replacement}${value.slice(end)}`,
-    selectionStart: start,
-    selectionEnd: start + replacement.length,
-  };
-}
-
-function YamlEditor({
-  value,
-  disabled,
-  onChange,
-  onBlur,
-  functionDefinitions,
-  errorFunctionName,
-  onSelectionChange,
-}: {
-  value: string;
-  disabled: boolean;
-  onChange: (value: string) => void;
-  onSelectionChange: (value: string) => void;
-  onBlur: () => void;
-  functionDefinitions: FunctionDefinition[];
-  errorFunctionName: string;
-}) {
-  const highlightRef = useRef<HTMLPreElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const lineNumbersRef = useRef<HTMLDivElement>(null);
-  const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
-  const [foldMessage, setFoldMessage] = useState("");
-  const projection = getFoldedYaml(value, collapsed);
-  const visibleLines = new Set(projection.visible.map(item => item.line));
-  const folds = getYamlFolds(value);
-  const foldsByLine = new Map(folds.map(fold => [fold.start, fold]));
-  const changeVisibleText = (next: string, caret?: number) => {
-    const updated = applyFoldedYamlEdit(value, collapsed, next);
-    if (updated === null) {
-      setCollapsed(new Set());
-      setFoldMessage("Blocks expanded: retry the edit so hidden OQuery text is not accidentally removed.");
-      return;
-    }
-    let nextCaret = caret;
-    if (next.split("\n").length !== projection.text.split("\n").length) {
-      if (caret !== undefined) {
-        let start = 0;
-        while (start < projection.text.length && start < next.length && projection.text[start] === next[start]) start++;
-        const row = [...projection.visible].reverse().find(item => item.offset <= start)!;
-        nextCaret = caret + row.source - row.offset;
-      }
-      setCollapsed(new Set());
-    }
-    setFoldMessage("");
-    onChange(updated);
-    if (nextCaret !== undefined)
-      requestAnimationFrame(() => textareaRef.current?.setSelectionRange(nextCaret, nextCaret));
-  };
-
-  return (
-    <>
-    <div className="query-yaml-code-editor">
-      <div className="query-yaml-fold-actions" role="toolbar" aria-label="OQuery folding">
-        <button type="button" disabled={disabled || !folds.length}
-          aria-label="Collapse all OQuery sections" title="Collapse all OQuery sections"
-          onClick={() => setCollapsed(new Set(folds.map(fold => fold.start)))}>
-          <Icon name="chevron-down" size={13} />
-        </button>
-        <button type="button" disabled={disabled || !collapsed.size}
-          aria-label="Expand all OQuery sections" title="Expand all OQuery sections"
-          onClick={() => setCollapsed(new Set())}>
-          <Icon name="chevron-right" size={13} />
-        </button>
-      </div>
-      <div ref={lineNumbersRef} className="query-yaml-line-numbers">
-        {projection.visible.map(({ line }) => {
-          const fold = foldsByLine.get(line);
-          return <div key={line} className="query-yaml-gutter-line">
-            <span aria-hidden="true">{line + 1}</span>
-            {fold && <button type="button" disabled={disabled}
-              aria-label={`${collapsed.has(line) ? "Expand" : "Collapse"} ${fold.label} at line ${line + 1}`}
-              aria-expanded={!collapsed.has(line)}
-              className={`query-yaml-fold-button${collapsed.has(line) ? " collapsed" : ""}`}
-              title={`${collapsed.has(line) ? "Expand" : "Collapse"} ${fold.end - fold.start} lines`}
-              onClick={() => setCollapsed(previous => {
-                const next = new Set(previous);
-                if (next.has(line)) next.delete(line); else next.add(line);
-                return next;
-              })} />}
-          </div>;
-        })}
-      </div>
-      <pre
-        ref={highlightRef}
-        className="query-yaml-highlight"
-        aria-hidden="true"
-        dangerouslySetInnerHTML={{ __html: highlightYaml(value, functionDefinitions, errorFunctionName)
-          .split("\n").flatMap((text, line) => !visibleLines.has(line) ? [] : [
-            collapsed.has(line) && foldsByLine.has(line)
-              ? `<span class="query-yaml-collapsed-line">${text}</span>`
-              : text,
-          ]).join("\n") || " " }}
-      />
-      <textarea
-        ref={textareaRef}
-        className="query-yaml-textarea"
-        aria-label="Query OQuery text"
-        value={projection.text}
-        onChange={(event) => changeVisibleText(event.target.value, event.target.selectionStart)}
-        onSelect={(event) => {
-          const textarea = event.currentTarget;
-          onSelectionChange(textarea.value.slice(textarea.selectionStart, textarea.selectionEnd));
-        }}
-        onBlur={(event) => {
-          const textarea = event.currentTarget;
-          onSelectionChange(textarea.value.slice(textarea.selectionStart, textarea.selectionEnd));
-          onBlur();
-        }}
-        onKeyDown={(event) => {
-          const textarea = event.currentTarget;
-          if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "x" && textarea.selectionStart !== textarea.selectionEnd) {
-            event.preventDefault();
-            const edit = getSelectedLineEdit(
-              textarea.value,
-              textarea.selectionStart,
-              textarea.selectionEnd,
-              "delete",
-            );
-            changeVisibleText(edit.value, edit.selectionStart);
-            requestAnimationFrame(() => textarea.setSelectionRange(edit.selectionStart, edit.selectionEnd));
-            return;
-          }
-          if (event.key === "Tab") {
-            event.preventDefault();
-            const edit = getSelectedLineEdit(
-              textarea.value,
-              textarea.selectionStart,
-              textarea.selectionEnd,
-              event.shiftKey ? "outdent" : "indent",
-            );
-            changeVisibleText(edit.value, edit.selectionStart);
-            requestAnimationFrame(() => textarea.setSelectionRange(edit.selectionStart, edit.selectionEnd));
-            return;
-          }
-          if ((event.ctrlKey || event.metaKey) && event.key === "/") {
-            event.preventDefault();
-            const toggled = toggleYamlComments(projection.text, textarea.selectionStart, textarea.selectionEnd);
-            changeVisibleText(toggled.text);
-            requestAnimationFrame(() => {
-              textarea.setSelectionRange(toggled.selectionStart, toggled.selectionEnd);
-            });
-            return;
-          }
-          if (event.key !== "Enter") return;
-          event.preventDefault();
-          const start = textarea.selectionStart;
-          const end = textarea.selectionEnd;
-          const edit = event.key === "Enter"
-            ? getYamlEnterEdit(textarea.value, start, end)
-            : { value: `${textarea.value.slice(0, start)}  ${textarea.value.slice(end)}`, caret: start + 2 };
-          changeVisibleText(edit.value, edit.caret);
-        }}
-        onScroll={(event) => {
-          if (!highlightRef.current) return;
-          highlightRef.current.scrollTop = event.currentTarget.scrollTop;
-          highlightRef.current.scrollLeft = event.currentTarget.scrollLeft;
-          if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = event.currentTarget.scrollTop;
-        }}
-        spellCheck={false}
-        disabled={disabled}
-      />
-    </div>
-    {foldMessage && <p className="query-message" role="status">{foldMessage}</p>}
-    </>
-  );
-}
 
 export default function QueryDesign({
   metadata,
@@ -636,15 +247,16 @@ export default function QueryDesign({
   onRequestNameChange,
   onDefinitionChange,
   editorMode,
-  yamlText,
-  yamlStatus,
-  yamlError,
-  yamlValidationMessage,
-  onYamlTextChange,
+  oqueryText,
+  oqueryStatus,
+  oqueryError,
+  oqueryValidationMessage,
+  onOqueryTextChange,
   onOQuerySelectionChange,
-  onFormatYaml,
-  onInsertYamlTemplate,
-  onApplyYaml,
+  onExecuteOQueryContext,
+  onFormatOquery,
+  onInsertOqueryTemplate,
+  onApplyOquery,
 }: QueryDesignProps) {
   const [draggedProjectionField, setDraggedProjectionField] = useState<string | null>(null);
   const [contextDialogOpen, setContextDialogOpen] = useState(false);
@@ -791,21 +403,21 @@ export default function QueryDesign({
           </div>
         </form>
       </div>}
-      {editorMode === "yaml" ? (
-        <div className="query-yaml-editor" role="tabpanel" aria-label="OQuery text editor">
-          <div className="query-yaml-editor-header">
+      {editorMode === "oquery" ? (
+        <div className="query-oquery-editor" role="tabpanel" aria-label="OQuery text editor">
+          <div className="query-oquery-editor-header">
             <div>
               <span className="section-kicker">OQUERY TEXT</span>
               <p>Use the compact query syntax, edit values, and check the text when ready.</p>
-              <div className="query-yaml-function-legend" aria-label="Function color legend">
-                <span className="query-yaml-function">Function</span>
+              <div className="query-oquery-function-legend" aria-label="Function color legend">
+                <span className="query-oquery-function">Function</span>
               </div>
             </div>
-            <div className="query-yaml-editor-actions">
-              <button type="button" className="button secondary" onClick={onInsertYamlTemplate} disabled={yamlStatus !== "idle"}>
+            <div className="query-oquery-editor-actions">
+              <button type="button" className="button secondary" onClick={onInsertOqueryTemplate} disabled={oqueryStatus !== "idle"}>
                 <Icon name="file-plus" size={14} /> Template
               </button>
-              <button type="button" className="button secondary" onClick={onFormatYaml} disabled={yamlStatus !== "idle" || !yamlText.trim()}>
+              <button type="button" className="button secondary" onClick={onFormatOquery} disabled={oqueryStatus !== "idle" || !oqueryText.trim()}>
                 <Icon name="code" size={14} /> Format
               </button>
               {selectedContextIndex === null && <button type="button" className="button secondary" onClick={openContextDialog}>
@@ -814,25 +426,27 @@ export default function QueryDesign({
               <button
                 type="button"
                 className="button primary"
-                onClick={onApplyYaml}
-                disabled={yamlStatus !== "idle" || !yamlText.trim()}
+                onClick={onApplyOquery}
+                disabled={oqueryStatus !== "idle" || !oqueryText.trim()}
               >
-                {yamlStatus === "applying" ? "Checking…" : "Check OQuery"}
+                {oqueryStatus === "applying" ? "Checking…" : "Check OQuery"}
               </button>
             </div>
           </div>
-          <YamlEditor
-            value={yamlText}
-            onChange={onYamlTextChange}
-            onSelectionChange={onOQuerySelectionChange}
-            onBlur={onApplyYaml}
+          <OQueryEditor
+            textOverride={oqueryText}
+            onTextChange={onOqueryTextChange}
+            oquery
             functionDefinitions={functionDefinitions}
-            errorFunctionName={yamlError.match(/:\s+([A-Za-z_][A-Za-z0-9_]*) requires at least/i)?.[1] ?? ""}
-            disabled={yamlStatus !== "idle"}
+            onSelectionChange={onOQuerySelectionChange}
+            onExecuteContext={onExecuteOQueryContext}
+            onBlur={onApplyOquery}
+            errorFunctionName={oqueryError.match(/:\s+([A-Za-z_][A-Za-z0-9_]*) requires at least/i)?.[1] ?? ""}
+            disabled={oqueryStatus !== "idle"}
           />
-          {yamlStatus === "loading" && <p className="query-message">Loading OQuery…</p>}
-          {yamlValidationMessage && <p className="query-yaml-valid" role="status">{yamlValidationMessage}</p>}
-          {yamlError && <p className="query-message error" role="alert">{yamlError}</p>}
+          {oqueryStatus === "loading" && <p className="query-message">Loading OQuery…</p>}
+          {oqueryValidationMessage && <p className="query-oquery-valid" role="status">{oqueryValidationMessage}</p>}
+          {oqueryError && <p className="query-message error" role="alert">{oqueryError}</p>}
         </div>
       ) : <><div className="query-builder-toolbar">
         <div className="query-entity-field">

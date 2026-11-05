@@ -48,12 +48,6 @@ The API and demo projects are in `src/`; the OQuery engine is in
 dotnet build .\src\OQuery.UI.slnx
 ```
 
-Run the UI-specific tests with:
-
-```powershell
-dotnet test .\src\OQuery.UI.UnitTest\OQuery.UI.UnitTest.csproj
-```
-
 Run the core provider tests against every database service with:
 
 ```powershell
@@ -65,3 +59,19 @@ The compose file starts SQL Server, PostgreSQL, CockroachDB, MariaDB,
 Firebird, Oracle, SAP HANA, SQLite, and IBM Db2. The provider tests run all
 cases on .NET 10; Db2 cases are intentionally skipped on .NET 8 and .NET 9
 because the IBM native client is only available for the .NET 10 target.
+
+If Windows reserves PostgreSQL's default host port, start the services with a
+different host port. The container continues to use PostgreSQL's standard
+internal port:
+
+```powershell
+.\oquery\docker\start-dbservers.ps1 -PostgresHostPort 15432
+$env:POSTGRES_HOST_PORT = "15432"
+```
+
+Set `POSTGRES_HOST_PORT` before running the provider tests so their PostgreSQL
+connection uses the same host port:
+
+```powershell
+dotnet test .\oquery\src\OQuery.UnitTest\OQuery.UnitTest.csproj
+```

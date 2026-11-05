@@ -1,8 +1,8 @@
-export type YamlFold = { start: number; end: number; label: string };
+export type OqueryFold = { start: number; end: number; label: string };
 
-export function getYamlFolds(value: string): YamlFold[] {
+export function getOqueryFolds(value: string): OqueryFold[] {
   const lines = value.split("\n");
-  const folds: YamlFold[] = [];
+  const folds: OqueryFold[] = [];
   for (let start = 0; start < lines.length; start++) {
     const line = lines[start]!;
     if (!line.trim() || line.trimStart().startsWith("#")) continue;
@@ -19,9 +19,9 @@ export function getYamlFolds(value: string): YamlFold[] {
   return folds;
 }
 
-export function getFoldedYaml(value: string, collapsed: Set<number>) {
+export function getFoldedOquery(value: string, collapsed: Set<number>) {
   const lines = value.split("\n");
-  const folds = new Map(getYamlFolds(value).map(fold => [fold.start, fold]));
+  const folds = new Map(getOqueryFolds(value).map(fold => [fold.start, fold]));
   const visible: { line: number; offset: number; source: number }[] = [];
   let source = 0;
   let offset = 0;
@@ -37,8 +37,9 @@ export function getFoldedYaml(value: string, collapsed: Set<number>) {
   return { text: visible.map(item => lines[item.line]).join("\n"), visible };
 }
 
-export function applyFoldedYamlEdit(value: string, collapsed: Set<number>, next: string): string | null {
-  const projection = getFoldedYaml(value, collapsed);
+export function applyFoldedOqueryEdit(value: string, collapsed: Set<number>, next: string): string | null {
+  if (collapsed.size === 0) return next;
+  const projection = getFoldedOquery(value, collapsed);
   const previous = projection.text;
   let start = 0;
   while (start < previous.length && start < next.length && previous[start] === next[start]) start++;

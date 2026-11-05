@@ -21,13 +21,13 @@ builder.Services
     .AddControllers()
     .AddJsonOptions(options =>
     {
-        JsonQueryDefinitionParser.Configure(options.JsonSerializerOptions);
+        QueryDefinitionJsonParser.Configure(options.JsonSerializerOptions);
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter<DataType>());
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter<RelationType>());
     });
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    JsonQueryDefinitionParser.Configure(options.SerializerOptions);
+    QueryDefinitionJsonParser.Configure(options.SerializerOptions);
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<DataType>());
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter<RelationType>());
 });

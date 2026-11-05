@@ -8,12 +8,24 @@ namespace OQuery.UI.Application.Controllers;
 [ApiController]
 [Route("dynamic-query/query")]
 public sealed class DynamicQueryController(
-    IDynamicQueryService dynamicQueryService,
-    IReportService reportService) : ControllerBase
+    IDynamicQueryService dynamicQueryService) : ControllerBase
 {
     [HttpPost("to-string")]
     public IActionResult GetSqlQueryString([FromBody] QueryDefinition query)
         => Content(dynamicQueryService.GetSqlQueryString(query), "text/plain");
+
+    [HttpPost("to-oquery")]
+    public IActionResult GetQueryRequestString([FromBody] QueryDefinition query)
+        => Content(dynamicQueryService.GetQueryRequestString(query), "text/plain");
+
+    [HttpPost("from-oquery")]
+    public IActionResult ParseQueryRequest([FromBody] OQueryTextRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Text) || string.IsNullOrWhiteSpace(request.Entity))
+            return BadRequest("Request text and entity are required.");
+
+        return Ok(dynamicQueryService.ParseQueryRequestString(request.Text, request.Entity));
+    }
 
     [HttpPost]
     public async Task<IActionResult> ExecuteQuery(
@@ -26,7 +38,7 @@ public sealed class DynamicQueryController(
     {
         using var reader = new StreamReader(Request.Body, Encoding.UTF8);
         var text = await reader.ReadToEndAsync(cancellationToken);
-        var query = reportService.ParseQueryRequestString(text);
+        var query = dynamicQueryService.ParseQueryRequestString(text);
         return Content(dynamicQueryService.GetSqlQueryString(query), "text/plain");
     }
 
@@ -35,7 +47,20 @@ public sealed class DynamicQueryController(
     {
         using var reader = new StreamReader(Request.Body, Encoding.UTF8);
         var text = await reader.ReadToEndAsync(cancellationToken);
-        var query = reportService.ParseQueryRequestString(text);
+        var query = dynamicQueryService.ParseQueryRequestString(text);
         return Ok(await dynamicQueryService.ExecuteQueryAsync(query, cancellationToken));
     }
+
+    [HttpPost("from-text/{contextName}")]
+    public async Task<IActionResult> ExecuteContextFromText(
+        [FromRoute] string contextName,
+        CancellationToken cancellationToken)
+    {
+        using var reader = new StreamReader(Request.Body, Encoding.UTF8);
+        var text = await reader.ReadToEndAsync(cancellationToken);
+        return Ok(await dynamicQueryService.ExecuteContextQueryAsync(text, contextName, cancellationToken));
+    }
+
+
+    public sealed record OQueryTextRequest(string? Text, string? Entity);
 }

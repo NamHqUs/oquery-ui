@@ -50,8 +50,8 @@ test("saving, reloading, and saving again preserve null and explicit joins", asy
     const second = await save(fromApiQuery(view.query, view.projectionRows));
     assert.equal(second.type, saveQueryRequest.fulfilled.type);
     for (const payload of payloads) {
-      assert.equal(payload.relations[0].joinType, joinType);
-      assert.equal(payload.contexts.Managers.relations[0].joinType, joinType);
+      assert.equal(payload.joins[0].joinType, joinType);
+      assert.equal(payload.contexts.Managers.joins[0].joinType, joinType);
     }
     t.mock.restoreAll();
   }

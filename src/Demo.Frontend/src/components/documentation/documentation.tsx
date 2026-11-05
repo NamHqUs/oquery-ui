@@ -142,7 +142,7 @@ Users: Id, Name
   Take 25
 
 // Alias expressions with the expression-first pipe
-Users: Id, Count(Members.Id) | TotalMembers`}</CodeBlock>
+Users: Id, Count(Members.Id) TotalMembers`}</CodeBlock>
           <div className="documentation-callout"><Icon name="check" size={16} /><span><strong>One rule to remember:</strong> the expression is on the left of <code>|</code>, and its result name is on the right.</span></div>
         </section>
 
@@ -156,10 +156,10 @@ Users: Id, Count(Members.Id) | TotalMembers`}</CodeBlock>
 Users: Id, Name, Manager.Name
 
 // Aggregate projection establishes the result grain
-Users: Id, Name, Count(Members.Id) | TotalMembers
+Users: Id, Name, Count(Members.Id) TotalMembers
 
 // Aggregate aliases are routed to HAVING
-Users: Id, Name, Count(Members.Id) | TotalMembers
+Users: Id, Name, Count(Members.Id) TotalMembers
   Where TotalMembers > 12`}</CodeBlock>
           <div className="documentation-feature-grid">
             <div className="documentation-feature"><span><Icon name="schema" size={18} /></span><strong>Traversal</strong><p>Follow a metadata relationship such as <code>Manager.Name</code> without hand-writing the join.</p></div>
