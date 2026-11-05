@@ -173,6 +173,8 @@ export default function ReportDashboard({
   const [showTraversalSql, setShowTraversalSql] = useState(false);
   const [showRevenueSql, setShowRevenueSql] = useState(false);
   const [showRecursiveSql, setShowRecursiveSql] = useState(false);
+  const [expandedHierarchyNodes, setExpandedHierarchyNodes] = useState<Set<string> | null>(null);
+  const [expandedHierarchyLists, setExpandedHierarchyLists] = useState<Set<string>>(new Set());
   const [demoQueries, setDemoQueries] = useState<Record<ReportDemoExampleKey, string>>({
     products: PRODUCTS_OQUERY,
     traversal: TRAVERSAL_OQUERY,
@@ -198,6 +200,11 @@ export default function ReportDashboard({
     window.sessionStorage.setItem(REPORT_COLUMN_STORAGE_KEY, JSON.stringify(columnByFileName));
   }, [columnByFileName]);
 
+  useEffect(() => {
+    setExpandedHierarchyNodes(null);
+    setExpandedHierarchyLists(new Set());
+  }, [demoResults.recursive]);
+
   const clearDragPreview = () => {
     dragPreview.current?.remove();
     dragPreview.current = null;
@@ -205,17 +212,123 @@ export default function ReportDashboard({
     setDropIndicator(null);
   };
 
+  const renderRecursiveHierarchyChart = (result: QueryResult) => {
+    const normalizeColumn = (column: string) => column.replace(/[^a-z0-9]/gi, "").toLowerCase();
+    const managerIndex = result.columns.findIndex((column) => normalizeColumn(column) === "managername");
+    const memberIndex = result.columns.findIndex((column) => normalizeColumn(column) === "membername");
+    const totalIndex = result.columns.findIndex((column) => normalizeColumn(column) === "totalmembers");
+    if (managerIndex < 0 || memberIndex < 0 || totalIndex < 0) return null;
+
+    const groups = new Map<string, { total: number; members: string[] }>();
+    result.rows.slice(0, 20).forEach((row) => {
+      const manager = row[managerIndex]?.trim();
+      const member = row[memberIndex]?.trim();
+      if (!manager || !member) return;
+      const total = Number(row[totalIndex]);
+      const group = groups.get(manager) || { total: Number.isFinite(total) ? total : 0, members: [] };
+      if (!group.members.includes(member)) group.members.push(member);
+      groups.set(manager, group);
+    });
+    type HierarchyNode = { name: string; total?: number; members: HierarchyNode[] };
+    const memberNames = new Set([...groups.values()].flatMap((group) => group.members));
+    const roots = [...groups.keys()].filter((manager) => !memberNames.has(manager));
+    const buildNode = (name: string, path: Set<string>): HierarchyNode => {
+      const group = groups.get(name);
+      if (!group || path.has(name)) return { name, members: [] };
+      const nextPath = new Set(path).add(name);
+      return {
+        name,
+        total: group.total,
+        members: group.members
+          .map((member) => buildNode(member, nextPath))
+          .sort((left, right) => Number(right.members.length > 0) - Number(left.members.length > 0)),
+      };
+    };
+    const rootName = (roots.length ? roots : [...groups.keys()])[0];
+    if (!rootName) return null;
+    const hierarchyRoot = buildNode(rootName, new Set());
+    const expandedNodes = expandedHierarchyNodes ?? new Set([rootName]);
+    const visibleRecordCount = Math.min(result.rows.length, 20);
+    const resultLabel = result.totalRecords > visibleRecordCount
+      ? `Top ${visibleRecordCount} of ${result.totalRecords} records · partial hierarchy`
+      : `Top ${visibleRecordCount} records`;
+    const toggleNode = (path: string) => setExpandedHierarchyNodes((current) => {
+      const next = new Set(current ?? [rootName]);
+      if (next.has(path)) {
+        if (expandedHierarchyLists.has(path)) {
+          setExpandedHierarchyLists((lists) => {
+            const nextLists = new Set(lists);
+            nextLists.delete(path);
+            return nextLists;
+          });
+          return next;
+        }
+        next.delete(path);
+        setExpandedHierarchyLists((lists) => {
+          const nextLists = new Set(lists);
+          nextLists.delete(path);
+          return nextLists;
+        });
+      } else {
+        next.add(path);
+      }
+      return next;
+    });
+    const toggleMemberList = (path: string) => {
+      const next = new Set(expandedHierarchyLists);
+      if (next.has(path)) next.delete(path); else next.add(path);
+      setExpandedHierarchyLists(next);
+    };
+    const renderNode = (node: HierarchyNode, path: string): ReactNode => {
+      const hasMembers = node.members.length > 0;
+      const isExpanded = expandedNodes.has(path);
+      const isMemberListExpanded = expandedHierarchyLists.has(path);
+      const visibleMembers = node.members.slice(0, 6);
+      const additionalMembers = isMemberListExpanded ? node.members.slice(6) : [];
+      const hasMoreMembers = node.members.length > visibleMembers.length;
+      const nodeContent = <><strong>{node.name}</strong>{node.total !== undefined && <span>{node.total} members</span>}</>;
+      return (
+      <div className="new-home-hierarchy-branch" key={path}>
+        {hasMembers
+          ? <button type="button" className={`new-home-hierarchy-node${isExpanded ? " expanded" : ""}`} aria-expanded={isExpanded} onClick={() => toggleNode(path)}>{nodeContent}</button>
+          : <div className="new-home-hierarchy-node">{nodeContent}</div>}
+        {hasMembers && isExpanded && <div className="new-home-hierarchy-children">
+          <div className="new-home-hierarchy-visible-children">
+            {visibleMembers.map((member, index) => renderNode(member, `${path}.${index}:${member.name}`))}
+          </div>
+          {hasMoreMembers && <div className="new-home-hierarchy-overflow">
+            {additionalMembers.map((member, index) => renderNode(member, `${path}.${index + 6}:${member.name}`))}
+            <button type="button" className="new-home-hierarchy-more" onClick={() => toggleMemberList(path)}>{isMemberListExpanded ? "Show less" : `+ ${node.members.length - visibleMembers.length} More`}</button>
+          </div>}
+        </div>}
+      </div>
+      );
+    };
+
+    return (
+      <div className="new-home-hierarchy-chart" role="img" aria-label="Members grouped by organization hierarchy">
+        <div className="new-home-example-result-head"><span>{resultLabel}</span><button className="report-icon-button" type="button" aria-label="Close query result" title="Close query result" onClick={() => onCloseDemo("recursive")}><Icon name="close" size={13} /></button></div>
+        <div className="new-home-hierarchy-chart-body">
+          <div className="new-home-hierarchy-tree">{renderNode(hierarchyRoot, rootName)}</div>
+        </div>
+      </div>
+    );
+  };
+
   const renderDemoResult = (example: ReportDemoExampleKey) => {
     const result = demoResults[example];
     const loading = Boolean(demoLoading[example]);
     const error = demoErrors[example];
+    const hierarchyChart = result && example === "recursive"
+      ? renderRecursiveHierarchyChart(result)
+      : null;
     return (
       <div className="new-home-example-result">
         {error && <p className="query-message error" role="alert">{error}</p>}
         {loading && !result
           ? <p className="new-home-example-result-status">Loading the first 20 records…</p>
           : result
-            ? <div className="new-home-example-table"><div className="new-home-example-result-head"><span>Top 20 records</span><button className="report-icon-button" type="button" aria-label="Close query result" title="Close query result" onClick={() => onCloseDemo(example)}><Icon name="close" size={13} /></button></div><div className="table-wrap"><table><thead><tr>{result.columns.map((column, index) => <th key={`${column}-${index}`}>{column}</th>)}</tr></thead><tbody>{result.rows.slice(0, 20).map((row, rowIndex) => <tr key={rowIndex}>{result.columns.map((_, columnIndex) => <td key={columnIndex}>{row[columnIndex] ?? ""}</td>)}</tr>)}</tbody></table>{!result.rows.length && <p className="empty-state">No records matched this query.</p>}</div></div>
+            ? hierarchyChart || <div className="new-home-example-table"><div className="new-home-example-result-head"><span>Top 20 records</span><button className="report-icon-button" type="button" aria-label="Close query result" title="Close query result" onClick={() => onCloseDemo(example)}><Icon name="close" size={13} /></button></div><div className="table-wrap"><table><thead><tr>{result.columns.map((column, index) => <th key={`${column}-${index}`}>{column}</th>)}</tr></thead><tbody>{result.rows.slice(0, 20).map((row, rowIndex) => <tr key={rowIndex}>{result.columns.map((_, columnIndex) => <td key={columnIndex}>{row[columnIndex] ?? ""}</td>)}</tr>)}</tbody></table>{!result.rows.length && <p className="empty-state">No records matched this query.</p>}</div></div>
             : null}
       </div>
     );

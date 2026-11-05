@@ -329,6 +329,23 @@
 .new-home-example-result-head .report-icon-button { width: 22px; height: 22px; }
 .new-home-example-table .table-wrap { margin-top: 0; }
 .new-home-example-result-status { margin: 8px 0 0; color: #8994a5; font-size: 10px; }
+.new-home-hierarchy-chart { overflow: hidden; border: 1px solid #252b38; background: #0e1117; }
+.new-home-hierarchy-chart-body { width: 100%; min-width: 0; overflow-x: scroll; scrollbar-gutter: stable; padding: 18px 28px 20px 14px; }
+.new-home-hierarchy-tree { display: flex; justify-content: center; width: max-content; min-width: 100%; }
+.new-home-hierarchy-branch { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.new-home-hierarchy-node { position: relative; z-index: 1; display: grid; gap: 4px; min-width: 82px; max-width: 130px; padding: 8px 9px; border: 1px solid #59608a; border-radius: 6px; color: inherit; background: #18212d; box-shadow: 0 5px 12px #05070c44; font: inherit; text-align: center; }
+.new-home-hierarchy-node:has(+ .new-home-hierarchy-children), .new-home-hierarchy-node.expanded { border-color: #8068d1; }
+.new-home-hierarchy-node:not(:disabled):hover { border-color: #58d5b1; background: #202c3a; cursor: pointer; }
+.new-home-hierarchy-node strong { overflow: hidden; color: #d3d9e5; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.new-home-hierarchy-node span { color: #58d5b1; font-size: 10px; }
+.new-home-hierarchy-children { position: relative; display: flex; align-items: flex-start; width: max-content; margin-top: 20px; padding-top: 16px; }
+.new-home-hierarchy-visible-children { position: relative; display: flex; align-items: flex-start; gap: 12px; width: max-content; }
+.new-home-hierarchy-visible-children::before { position: absolute; top: -16px; left: 10%; right: 10%; border-top: 1px solid #59608a; content: ""; }
+.new-home-hierarchy-branch > .new-home-hierarchy-children::after { position: absolute; top: -20px; left: 50%; height: 20px; border-left: 1px solid #59608a; content: ""; }
+.new-home-hierarchy-visible-children > .new-home-hierarchy-branch::before { position: absolute; top: -16px; left: 50%; height: 16px; border-left: 1px solid #59608a; content: ""; }
+.new-home-hierarchy-overflow { position: absolute; top: 16px; left: 100%; display: flex; align-items: flex-start; gap: 12px; margin-left: 12px; }
+.new-home-hierarchy-more { align-self: flex-start; margin: 1px 0 0 -8px; padding: 8px 4px; border: 0; color: #b7a9ef; background: transparent; font-size: 10px; text-align: center; white-space: nowrap; }
+.new-home-hierarchy-more:hover { color: #58d5b1; background: transparent; }
 .new-home-example-result .query-message { margin: 8px 0 0; font-size: 10px; }
 .new-home-example small { grid-column: 1 / -1; margin-top: 9px; color: #7f8a9b; font-size: 9px; }
 .new-home-query { padding: 54px 42px 48px; border-bottom: 1px solid #2e2a43; background: #111720; }
