@@ -283,9 +283,10 @@ public sealed class DynamicQueryService(
        
         logger.LogInformation("Dynamic query returned {TotalRecords} total records.", result.TotalRecords);
 
+        var projections = preparedQuery.Projections ?? [];
         return new TableDataDto(
             Name: preparedQuery.Entity,
-            Columns: string.Join(",", preparedQuery.Projections.Select(field => field.Alias ?? field.ToText())),
+            Columns: string.Join(",", projections.Select(field => field.Alias ?? field.ToText())),
             Rows: result.Records.Select(row => string.Join(",", row.Select(value => value.Value))).ToArray(),
             Page: query.Skip is { } skip && query.Take is { } take
                 ? skip / take + 1
@@ -300,7 +301,8 @@ public sealed class DynamicQueryService(
         CancellationToken cancellationToken = default)
     {
         var definition = ParseQueryRequestString(text);
-        if (definition.Contexts?.TryGetValue(contextName, out var context) != true)
+        if (definition.Contexts is not { } contexts ||
+            !contexts.TryGetValue(contextName, out var context))
             throw new KeyNotFoundException($"Query context [{contextName}] was not found.");
 
         return ExecuteQueryAsync(new QueryDefinition(context.Entity)
