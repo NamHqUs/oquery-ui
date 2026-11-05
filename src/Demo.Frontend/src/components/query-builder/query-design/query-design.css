@@ -15,7 +15,10 @@
 .query-oquery-code-editor { position: relative; min-height: 520px; overflow: hidden; border: 1px solid #323947; border-radius: 7px; background: #0b1018; }
 .query-oquery-highlight, .query-oquery-textarea, .query-oquery-line-numbers { position: absolute; inset: 0; height: 100%; box-sizing: border-box; margin: 0; padding: 16px; font-family: "Cascadia Mono", "Consolas", ui-monospace, SFMono-Regular, Menlo, Monaco, "Liberation Mono", "Courier New", monospace; font-size: 13px; font-weight: 300; line-height: 1.6; font-variant-ligatures: none; letter-spacing: normal; tab-size: 2; white-space: pre; overflow: auto; }
 .query-oquery-line-numbers { z-index: 3; width: 76px; padding: 16px 4px; overflow: hidden; color: #596477; border-right: 1px solid #252d3b; text-align: right; user-select: none; }
+.query-oquery-code-editor.no-fold-controls:not(.no-line-numbers) .query-oquery-line-numbers { width: 52px; }
+.query-oquery-code-editor.no-line-numbers .query-oquery-line-numbers { width: 28px; }
 .query-oquery-gutter-line { display: flex; justify-content: flex-end; align-items: center; gap: 5px; height: 20.8px; padding-right: 23px; position: relative; }
+.query-oquery-code-editor.no-fold-controls .query-oquery-gutter-line { padding-right: 4px; }
 .query-oquery-gutter-line button { position: absolute; right: 0; width: 20px; height: 19px; padding: 0; border: 0; border-radius: 3px; background: transparent; color: #b6a7df; font: inherit; cursor: pointer; opacity: 0; transition: opacity .12s ease, background .12s ease; }
 .query-oquery-gutter-line .query-oquery-context-run { left: 0; right: auto; display: grid; place-items: center; color: #80d8bb; }
 .query-oquery-gutter-line .query-oquery-context-run { top: 50%; transform: translateY(-50%); }
@@ -31,18 +34,23 @@
 .query-oquery-fold-actions button { display: grid; width: 24px; height: 24px; place-items: center; padding: 0; color: #a69abf; border: 1px solid #3a4050; border-radius: 4px; background: #171d28dd; cursor: pointer; }
 .query-oquery-fold-actions button:hover:not(:disabled), .query-oquery-fold-actions button:focus-visible { color: #f0ecff; border-color: #8068d1; background: #28233bdd; outline: 0; }
 .query-oquery-fold-actions button:disabled { opacity: .4; cursor: not-allowed; }
-.query-oquery-highlight { left: 76px; width: calc(100% - 76px); color: #dce1eb; pointer-events: none; }
+.query-oquery-highlight { left: 76px; width: calc(100% - 76px); color: #8d99aa; pointer-events: none; }
+.query-oquery-code-editor.no-fold-controls:not(.no-line-numbers) .query-oquery-highlight { left: 52px; width: calc(100% - 52px); }
+.query-oquery-code-editor.no-line-numbers .query-oquery-highlight { left: 28px; width: calc(100% - 28px); }
 .query-oquery-code-editor.no-gutter .query-oquery-highlight { left: 0; width: 100%; }
 .query-oquery-collapsed-line { display: inline-block; white-space: nowrap; border-radius: 3px; background: #8d78ba1c; box-shadow: 0 0 7px 2px #8d78ba14; }
 .query-oquery-collapsed-line::after { content: "..."; color: #a69abf; font-weight: 700; }
-.query-oquery-protected-key { color: #d7bdff; font-weight: 700; text-decoration: none; }
-.query-oquery-context-key { color: #f2c14e; font-weight: 700; }
+.query-oquery-protected-key { color: #aaa4bd; font-weight: 600; text-decoration: none; }
+.query-oquery-context-key { color: #b8aa82; font-weight: 700; }
+.query-oquery-table-key { color: #8d846a; font-weight: 700; }
 .query-oquery-comment { color: #687080; }
 .query-oquery-highlight .query-oquery-function { color: #7296c7; }
 .query-oquery-highlight .query-oquery-error-function { color: #ff5668; }
 .query-oquery-textarea { z-index: 2; width: 100%; resize: none; color: transparent; caret-color: #f0ecff; border: 0; border-radius: 0; background: transparent; outline: 0; -webkit-text-fill-color: transparent; padding-left: 92px; }
+.query-oquery-code-editor.no-fold-controls:not(.no-line-numbers) .query-oquery-textarea { padding-left: 68px; }
+.query-oquery-code-editor.no-line-numbers .query-oquery-textarea { padding-left: 44px; }
 .query-oquery-code-editor.no-gutter .query-oquery-textarea { padding-left: 16px; }
-.query-oquery-textarea { overflow-y: scroll; scrollbar-color: #514476 transparent; scrollbar-gutter: stable; }
+.query-oquery-textarea { overflow-y: auto; scrollbar-color: #514476 transparent; scrollbar-gutter: stable; }
 .query-oquery-textarea::selection { color: transparent; background: #7054d488; }
 .query-oquery-code-editor:focus-within { border-color: #7054d4; box-shadow: 0 0 0 2px #7054d433; }
 .query-oquery-textarea:disabled { opacity: .7; }

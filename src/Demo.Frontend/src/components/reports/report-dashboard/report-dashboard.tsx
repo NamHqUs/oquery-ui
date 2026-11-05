@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Icon from "../../icon/icon";
+import type { FunctionDefinition } from "../../function-definition/types";
 import OQueryEditor from "../../query-builder/oquery-editor/oquery-editor";
 import ToastNotice from "../../toast-notice/toast-notice";
 import type { QueryResult, ReportDto } from "../../query-builder/query-design/query-builder-slice";
@@ -44,8 +45,10 @@ WHERE ps.TotalRevenue > (
         GROUP BY ProductId
     ) t
 );`;
-const EMPLOYEE_TREE_OQUERY = `EmployeeTree is Employees: FirstName ManagerName,
-    EmployeeTree.FirstName MemberName
+const EMPLOYEE_TREE_OQUERY = `EmployeeTree is Employees:
+    FirstName ManagerName,
+    member.FirstName MemberName,
+    CountOver(member.Id, manager.Id) TotalMembers
   INNER JOIN EmployeeTree member on Id = member.ManagerId`;
 const EMPLOYEE_TREE_SQL = `WITH EmployeeTree AS
 (
@@ -60,27 +63,26 @@ const EMPLOYEE_TREE_SQL = `WITH EmployeeTree AS
     JOIN EmployeeTree t ON e.ManagerId = t.Id
 )
 SELECT manager.FirstName AS ManagerName,
-       member.FirstName AS MemberName
+       member.FirstName AS MemberName,
+       COUNT(member.Id) OVER (
+           PARTITION BY manager.Id
+       ) AS TotalMembers
 FROM EmployeeTree tree
 JOIN Main.Employees member ON member.Id = tree.Id
 LEFT JOIN Main.Employees manager ON manager.Id = tree.ManagerId;`;
 
-type DemoQueryLanguage = "oquery" | "sql";
+type DemoQueryLanguage = "sql";
 
 const demoQueryPatterns: Record<DemoQueryLanguage, RegExp> = {
-  oquery: /\b(EmployeeTree|Employees|Manager|ProductSales|OrderItems|Product|Products|AVG|SUM|Left\s+Join|Join|Is|On|Order|Desc|Asc|Take|Where|And|Or|Group|By|Having|Skip|Full|Inner|Right|Recursive)\b/gi,
   sql: /\b(EmployeeTree|Employees|ProductSales|OrderItems|Products|AVG|SUM|WITH|AS|SELECT|FROM|WHERE|GROUP|BY|HAVING|ORDER|LIMIT|OFFSET|ASC|DESC|AND|OR|IN|IS|NULL|LIKE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|DISTINCT|TOP|UNION|ALL)\b/gi,
 };
-const demoQueryFunctionNames = new Set(["avg", "sum"]);
 
 function highlightDemoQuery(query: string, language: DemoQueryLanguage) {
   const pattern = demoQueryPatterns[language];
   const keywordPattern = new RegExp(pattern.source, "i");
   return query.split(pattern).map((token, index) => (
     keywordPattern.test(token)
-      ? <span className={demoQueryFunctionNames.has(token.toLocaleLowerCase())
-        ? "demo-query-function"
-        : ["employeetree", "productsales", "revenuebymonth", "products"].includes(token.toLocaleLowerCase())
+      ? <span className={["employeetree", "productsales", "revenuebymonth", "products"].includes(token.toLocaleLowerCase())
         ? "demo-query-reference"
         : "demo-query-keyword"} key={`${token}-${index}`}>{token}</span>
       : token
@@ -118,6 +120,7 @@ type ReportDashboardProps = {
   reportsError: string | null;
   metadataStatus: string;
   metadataError: string | null;
+  functionDefinitions: FunctionDefinition[];
   reportResults: Record<string, QueryResult>;
   reportLoading: Record<string, boolean>;
   reportErrors: Record<string, string>;
@@ -157,6 +160,7 @@ export default function ReportDashboard({
   onNavigateToPage,
   groups, sortedReports, filteredReports, category, search, numberOfBuiltins, numberOfCustom,
   reportsStatus, reportsError, metadataStatus, metadataError, reportResults, reportLoading,
+  functionDefinitions,
   reportErrors, demoResults, demoLoading, demoErrors, chartTypeOverrides, chartSettingsOverrides, detailReport, detailResult, detailChartType, detailChartSettings, detailLoading, detailError,
   message, messageIsError, onCreateReport, onSelectCategory, onSearchChange,
   onDismissMessage, onRun, onRunDemo, onCloseDemo, onOpenDetails, onReorderReports, onCloseDetails, onRunDetails, onApplyLayout, onChartTypeChange, onChartSettingsChange, onEdit, onEditQuery, onDelete,
@@ -209,9 +213,9 @@ export default function ReportDashboard({
       <div className="new-home-example-result">
         {error && <p className="query-message error" role="alert">{error}</p>}
         {loading && !result
-          ? <p className="new-home-example-result-status">Loading the first 10 records…</p>
+          ? <p className="new-home-example-result-status">Loading the first 20 records…</p>
           : result
-            ? <div className="new-home-example-table"><div className="new-home-example-result-head"><span>Top 10 records</span><button className="report-icon-button" type="button" aria-label="Close query result" title="Close query result" onClick={() => onCloseDemo(example)}><Icon name="close" size={13} /></button></div><div className="table-wrap"><table><thead><tr>{result.columns.map((column, index) => <th key={`${column}-${index}`}>{column}</th>)}</tr></thead><tbody>{result.rows.slice(0, 10).map((row, rowIndex) => <tr key={rowIndex}>{result.columns.map((_, columnIndex) => <td key={columnIndex}>{row[columnIndex] ?? ""}</td>)}</tr>)}</tbody></table>{!result.rows.length && <p className="empty-state">No records matched this query.</p>}</div></div>
+            ? <div className="new-home-example-table"><div className="new-home-example-result-head"><span>Top 20 records</span><button className="report-icon-button" type="button" aria-label="Close query result" title="Close query result" onClick={() => onCloseDemo(example)}><Icon name="close" size={13} /></button></div><div className="table-wrap"><table><thead><tr>{result.columns.map((column, index) => <th key={`${column}-${index}`}>{column}</th>)}</tr></thead><tbody>{result.rows.slice(0, 20).map((row, rowIndex) => <tr key={rowIndex}>{result.columns.map((_, columnIndex) => <td key={columnIndex}>{row[columnIndex] ?? ""}</td>)}</tr>)}</tbody></table>{!result.rows.length && <p className="empty-state">No records matched this query.</p>}</div></div>
             : null}
       </div>
     );
@@ -236,6 +240,7 @@ export default function ReportDashboard({
       showFoldControls={false}
       rows={Math.max(1, query.split("\n").length)}
       initialText={query}
+      functionDefinitions={functionDefinitions}
       onTextChange={(text) => setDemoQueries((current) => ({ ...current, [example]: text }))}
       onSelectionChange={(text) => {
         demoSelectionsRef.current[example] = text;

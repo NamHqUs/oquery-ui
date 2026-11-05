@@ -40,7 +40,10 @@ function highlightOquery(text: string, functionDefinitions: FunctionDefinition[]
     const name = text.slice(key.start, key.end)
       .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
       .replaceAll("\"", "&quot;").replaceAll("'", "&#39;");
-    parts.push(`<span class="query-oquery-context-key">${name}</span>`);
+    const className = key.kind === "table"
+      ? "query-oquery-table-key"
+      : "query-oquery-context-key";
+    parts.push(`<span class="${className}">${name}</span>`);
     position = key.end;
   }
   parts.push(highlightOqueryTokens(text.slice(position), functionDefinitions, errorFunctionName));
@@ -307,9 +310,15 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
   const visibleLines = new Set(projection.visible.map(item => item.line));
   const folds = getOqueryFolds(text);
   const foldsByLine = new Map(folds.map(fold => [fold.start, fold]));
+  const hasVisibleFoldControls = showFoldControls
+    && projection.visible.some(({ line }) => foldsByLine.has(line));
   const contextAtLine = (line: string) =>
     line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?::|is\s+[A-Za-z_][A-Za-z0-9_]*\s*:)/i)?.[1]
       ?? null;
+  const hasVisibleContextActions = Boolean(onExecuteContext)
+    && projection.visible.some(({ line }) => contextAtLine(text.split("\n")[line]!) !== null);
+  const hasGutterContent = showLineNumbers || hasVisibleFoldControls || hasVisibleContextActions;
+  const compactHeight = Math.max(1, projection.visible.length) * 20.8 + 34;
   const changeVisibleText = (next: string, caret?: number) => {
     const updated = applyFoldedOqueryEdit(text, collapsed, next);
     if (updated === null) {
@@ -336,7 +345,7 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
 
   return (
     <>
-    <div className={`query-oquery-code-editor${showGutter ? "" : " no-gutter"}${showLineNumbers ? "" : " no-line-numbers"}${showContextRunAlways ? " show-context-run-always" : ""}`} style={compact ? { height: `${Math.max(1, projection.visible.length) * 19.2 + 22}px` } : undefined}>
+    <div className={`query-oquery-code-editor${showGutter && hasGutterContent ? "" : " no-gutter"}${showLineNumbers ? "" : " no-line-numbers"}${hasVisibleFoldControls ? "" : " no-fold-controls"}${showContextRunAlways ? " show-context-run-always" : ""}`} style={compact ? { height: `${compactHeight}px` } : undefined}>
       {showFoldControls && <div className="query-oquery-fold-actions" role="toolbar" aria-label="OQuery folding">
         <button type="button" disabled={disabled || !folds.length}
           aria-label="Collapse all OQuery sections" title="Collapse all OQuery sections"

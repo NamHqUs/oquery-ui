@@ -116,7 +116,7 @@ export default function Reports({
 }) {
   const dispatch = useDispatch();
   const showMessageBox = useMessageBox();
-  const { reports, reportsStatus, reportsError, metadata, metadataStatus, metadataError } = useSelector((state) => state.queryBuilder);
+  const { reports, reportsStatus, reportsError, metadata, metadataStatus, metadataError, functionDefinitions } = useSelector((state) => state.queryBuilder);
   const [reportResults, setReportResults] = useState<Record<string, QueryResult>>({});
   const [reportLoading, setReportLoading] = useState<Record<string, boolean>>({});
   const [reportErrors, setReportErrors] = useState<Record<string, string>>({});
@@ -365,6 +365,7 @@ export default function Reports({
         reportsError={reportsError}
         metadataStatus={metadataStatus}
         metadataError={metadataError}
+        functionDefinitions={functionDefinitions}
         reportResults={reportResults}
         reportLoading={reportLoading}
         reportErrors={reportErrors}
