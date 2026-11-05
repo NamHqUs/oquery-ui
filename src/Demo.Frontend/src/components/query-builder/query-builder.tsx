@@ -25,6 +25,13 @@ const OQUERY_DESIGN_HEIGHT_STORAGE_KEY = "OQuery.query-builder.oquery-design-hei
 const OQUERY_DESIGN_HEIGHT_DEFAULT = 840;
 const OQUERY_DESIGN_HEIGHT_MIN = 440;
 const OQUERY_DESIGN_HEIGHT_MAX = 1100;
+const EDITOR_MODE_SEARCH_PARAM = "mode";
+
+type EditorMode = "visual" | "oquery";
+
+function getEditorMode(searchParams: URLSearchParams): EditorMode {
+  return searchParams.get(EDITOR_MODE_SEARCH_PARAM) === "oquery" ? "oquery" : "visual";
+}
 
 export function resetQueryBuilderCache() {
   cachedDefinition = null;
@@ -548,7 +555,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   };
   const boundModelRef = useRef(JSON.stringify({ definition, requestName }));
   const boundOqueryTextRef = useRef("");
-  const [editorMode, setEditorMode] = useState<"visual" | "oquery">("visual");
+  const [editorMode, setEditorMode] = useState<EditorMode>(() => getEditorMode(searchParams));
   const hasUnsavedChanges = JSON.stringify({ definition, requestName }) !== boundModelRef.current
     || (editorMode === "oquery" && oqueryText !== boundOqueryTextRef.current);
   const [selectedContextIndex, setSelectedContextIndex] = useState<number | null>(null);
@@ -633,14 +640,21 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
         setOqueryStatus("idle");
     }
   };
-  const changeEditorMode = (mode: "visual" | "oquery") => {
+  useEffect(() => {
+    const urlEditorMode = getEditorMode(searchParams);
+    setEditorMode((currentMode) => currentMode === urlEditorMode ? currentMode : urlEditorMode);
+  }, [searchParams]);
+  const changeEditorMode = (mode: EditorMode) => {
     if (mode === editorMode) return;
     if (mode === "oquery") {
       setEditorMode(mode);
-      return;
+    } else {
+      setOqueryError("");
+      setEditorMode(mode);
     }
-    setOqueryError("");
-    setEditorMode(mode);
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.set(EDITOR_MODE_SEARCH_PARAM, mode);
+    setSearchParams(nextSearchParams);
   };
   useEffect(() => {
     if (editorMode !== "oquery") return;
