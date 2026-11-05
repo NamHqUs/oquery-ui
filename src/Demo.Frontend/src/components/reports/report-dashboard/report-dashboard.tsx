@@ -6,6 +6,8 @@ import ToastNotice from "../../toast-notice/toast-notice";
 import type { QueryResult, ReportDto } from "../../query-builder/query-design/query-builder-slice";
 import ReportDetail from "../report-detail/report-detail";
 import ReportItem from "../report-item/report-item";
+import BarChart from "../charts/bar-chart/bar-chart";
+import type { SimpleChartData } from "../charts/chart-types";
 import type { ReportDemoExampleKey } from "../report-demo-examples";
 import {
   categoryTone,
@@ -18,18 +20,17 @@ import {
 
 type ReportGroup = { name: string; reports: ReportDto[] };
 type DropPosition = "before" | "after";
+type DemoResultView = "grid" | "orgchart" | "report";
 const REPORT_COLUMN_STORAGE_KEY = "OQuery-report-columns";
 const PRODUCTS_OQUERY = "Products:";
 const TRAVERSAL_OQUERY = "Orders: Id, OrderDate, User.FirstName, User.LastName";
 const PRODUCT_SALES_OQUERY = `ProductSales is OrderItems: ProductId,
-     SUM(Quantity * UnitPrice) TotalRevenue
-  GROUP BY ProductId
+     Sum(Quantity * UnitPrice) TotalRevenue
 
 Products: Id, Name,
      ProductSales.TotalRevenue
   INNER JOIN ProductSales on Id = ProductSales.ProductId
-  WHERE ProductSales.TotalRevenue >
-    (AVG(ProductSales.TotalRevenue))`;
+  WHERE ProductSales.TotalRevenue > Avg(ProductSales.TotalRevenue)`;
 const PRODUCT_SALES_SQL = `SELECT p.Id, p.Name, ps.TotalRevenue
 FROM sa.Products p
 JOIN (
@@ -52,29 +53,37 @@ const EMPLOYEE_TREE_OQUERY = `EmployeeTree is Employees:
   INNER JOIN EmployeeTree member on Id = member.ManagerId`;
 const EMPLOYEE_TREE_SQL = `WITH EmployeeTree AS
 (
-    SELECT e.Id, e.ManagerId
-    FROM Main.Employees e
+    SELECT
+        e.Id,
+        e.ManagerId
+    FROM Main.Employees AS e
     WHERE e.ManagerId IS NULL
 
     UNION ALL
 
-    SELECT e.Id, e.ManagerId
-    FROM Main.Employees e
-    JOIN EmployeeTree t ON e.ManagerId = t.Id
+    SELECT
+        e.Id,
+        e.ManagerId
+    FROM Main.Employees AS e
+    INNER JOIN EmployeeTree AS tree
+        ON e.ManagerId = tree.Id
 )
-SELECT manager.FirstName AS ManagerName,
-       member.FirstName AS MemberName,
-       COUNT(member.Id) OVER (
-           PARTITION BY manager.Id
-       ) AS TotalMembers
-FROM EmployeeTree tree
-JOIN Main.Employees member ON member.Id = tree.Id
-LEFT JOIN Main.Employees manager ON manager.Id = tree.ManagerId;`;
+SELECT
+    manager.FirstName AS ManagerName,
+    member.FirstName AS MemberName,
+    COUNT(member.Id) OVER (
+        PARTITION BY manager.Id
+    ) AS TotalMembers
+FROM EmployeeTree AS tree
+INNER JOIN Main.Employees AS member
+    ON member.Id = tree.Id
+LEFT JOIN Main.Employees AS manager
+    ON manager.Id = tree.ManagerId;`;
 
 type DemoQueryLanguage = "sql";
 
 const demoQueryPatterns: Record<DemoQueryLanguage, RegExp> = {
-  sql: /\b(EmployeeTree|Employees|ProductSales|OrderItems|Products|AVG|SUM|WITH|AS|SELECT|FROM|WHERE|GROUP|BY|HAVING|ORDER|LIMIT|OFFSET|ASC|DESC|AND|OR|IN|IS|NULL|LIKE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|DISTINCT|TOP|UNION|ALL)\b/gi,
+  sql: /\b(EmployeeTree|Employees|ProductSales|OrderItems|Products|AVG|SUM|COUNT|WITH|AS|SELECT|FROM|WHERE|GROUP|BY|HAVING|ORDER|LIMIT|OFFSET|ASC|DESC|AND|OR|IN|IS|NULL|LIKE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|DISTINCT|TOP|UNION|ALL|OVER|PARTITION)\b/gi,
 };
 
 function highlightDemoQuery(query: string, language: DemoQueryLanguage) {
@@ -175,6 +184,9 @@ export default function ReportDashboard({
   const [showRecursiveSql, setShowRecursiveSql] = useState(false);
   const [expandedHierarchyNodes, setExpandedHierarchyNodes] = useState<Set<string> | null>(null);
   const [expandedHierarchyLists, setExpandedHierarchyLists] = useState<Set<string>>(new Set());
+  const [demoResultViews, setDemoResultViews] = useState<Partial<Record<ReportDemoExampleKey, DemoResultView>>>({});
+  const [openDemoViewMenu, setOpenDemoViewMenu] = useState<ReportDemoExampleKey | null>(null);
+  const [activeDemoPopup, setActiveDemoPopup] = useState<ReportDemoExampleKey | null>(null);
   const [demoQueries, setDemoQueries] = useState<Record<ReportDemoExampleKey, string>>({
     products: PRODUCTS_OQUERY,
     traversal: TRAVERSAL_OQUERY,
@@ -210,6 +222,15 @@ export default function ReportDashboard({
     dragPreview.current = null;
     draggedReport.current = null;
     setDropIndicator(null);
+  };
+
+  const runDemo = (example: ReportDemoExampleKey, query: string) => {
+    setActiveDemoPopup(example);
+    onRunDemo(example, query);
+  };
+  const closeDemo = (example: ReportDemoExampleKey) => {
+    if (activeDemoPopup === example) setActiveDemoPopup(null);
+    onCloseDemo(example);
   };
 
   const renderRecursiveHierarchyChart = (result: QueryResult) => {
@@ -248,10 +269,6 @@ export default function ReportDashboard({
     if (!rootName) return null;
     const hierarchyRoot = buildNode(rootName, new Set());
     const expandedNodes = expandedHierarchyNodes ?? new Set([rootName]);
-    const visibleRecordCount = Math.min(result.rows.length, 20);
-    const resultLabel = result.totalRecords > visibleRecordCount
-      ? `Top ${visibleRecordCount} of ${result.totalRecords} records · partial hierarchy`
-      : `Top ${visibleRecordCount} records`;
     const toggleNode = (path: string) => setExpandedHierarchyNodes((current) => {
       const next = new Set(current ?? [rootName]);
       if (next.has(path)) {
@@ -307,7 +324,6 @@ export default function ReportDashboard({
 
     return (
       <div className="new-home-hierarchy-chart" role="img" aria-label="Members grouped by organization hierarchy">
-        <div className="new-home-example-result-head"><span>{resultLabel}</span><button className="report-icon-button" type="button" aria-label="Close query result" title="Close query result" onClick={() => onCloseDemo("recursive")}><Icon name="close" size={13} /></button></div>
         <div className="new-home-hierarchy-chart-body">
           <div className="new-home-hierarchy-tree">{renderNode(hierarchyRoot, rootName)}</div>
         </div>
@@ -315,20 +331,66 @@ export default function ReportDashboard({
     );
   };
 
+  const renderDemoReport = (result: QueryResult) => {
+    const metricIndex = result.columns.findIndex((_, index) =>
+      result.rows.some((row) => Number.isFinite(Number(row[index]))));
+    if (metricIndex < 0) {
+      return <div className="new-home-demo-report-empty">No numeric result field is available for this report.</div>;
+    }
+    const data: SimpleChartData = {
+      kind: "simple",
+      points: result.rows.slice(0, 12).flatMap((row, index) => {
+        const value = Number(row[metricIndex]);
+        return Number.isFinite(value)
+          ? [{ label: row[0] || `Record ${index + 1}`, value, xValue: index + 1 }]
+          : [];
+      }),
+    };
+    return <div className="new-home-demo-report"><BarChart data={data} /></div>;
+  };
+
   const renderDemoResult = (example: ReportDemoExampleKey) => {
+    if (activeDemoPopup !== example) return null;
     const result = demoResults[example];
     const loading = Boolean(demoLoading[example]);
     const error = demoErrors[example];
     const hierarchyChart = result && example === "recursive"
       ? renderRecursiveHierarchyChart(result)
       : null;
+    const selectedView = demoResultViews[example] ?? (example === "recursive" ? "orgchart" : "grid");
+    const viewOptions: { value: DemoResultView; label: string }[] = [
+      { value: "grid", label: "DataGrid" },
+      { value: "orgchart", label: "OrgChart" },
+      { value: "report", label: "Report" },
+    ];
     return (
       <div className="new-home-example-result">
         {error && <p className="query-message error" role="alert">{error}</p>}
         {loading && !result
           ? <p className="new-home-example-result-status">Loading the first 20 records…</p>
           : result
-            ? hierarchyChart || <div className="new-home-example-table"><div className="new-home-example-result-head"><span>Top 20 records</span><button className="report-icon-button" type="button" aria-label="Close query result" title="Close query result" onClick={() => onCloseDemo(example)}><Icon name="close" size={13} /></button></div><div className="table-wrap"><table><thead><tr>{result.columns.map((column, index) => <th key={`${column}-${index}`}>{column}</th>)}</tr></thead><tbody>{result.rows.slice(0, 20).map((row, rowIndex) => <tr key={rowIndex}>{result.columns.map((_, columnIndex) => <td key={columnIndex}>{row[columnIndex] ?? ""}</td>)}</tr>)}</tbody></table>{!result.rows.length && <p className="empty-state">No records matched this query.</p>}</div></div>
+            ? <div className="new-home-example-view-container">
+              <div className="new-home-example-result-head">
+                <span>{result.totalRecords > Math.min(result.rows.length, 20) ? `Top ${Math.min(result.rows.length, 20)} of ${result.totalRecords} records · partial result` : `Top ${Math.min(result.rows.length, 20)} records`}</span>
+                <div className="new-home-example-result-actions">
+                  <div className="new-home-example-view-menu">
+                    <button type="button" className="new-home-example-view-trigger" aria-haspopup="menu" aria-expanded={openDemoViewMenu === example} onClick={() => setOpenDemoViewMenu(openDemoViewMenu === example ? null : example)}>
+                      {viewOptions.find((option) => option.value === selectedView)?.label} <span aria-hidden="true">⌄</span>
+                    </button>
+                    {openDemoViewMenu === example && <div className="new-home-example-view-popup" role="menu">
+                      {viewOptions.map((option) => <button key={option.value} type="button" role="menuitem" className={option.value === selectedView ? "active" : ""} onClick={() => {
+                        setDemoResultViews((current) => ({ ...current, [example]: option.value }));
+                        setOpenDemoViewMenu(null);
+                      }}>{option.label}</button>)}
+                    </div>}
+                  </div>
+                  <button className="report-icon-button" type="button" aria-label="Close query result" title="Close query result" onClick={() => closeDemo(example)}><Icon name="close" size={13} /></button>
+                </div>
+              </div>
+              {selectedView === "orgchart" && hierarchyChart}
+              {selectedView === "report" && renderDemoReport(result)}
+              {selectedView === "grid" && <div className="new-home-example-table"><div className="table-wrap"><table><thead><tr>{result.columns.map((column, index) => <th key={`${column}-${index}`}>{column}</th>)}</tr></thead><tbody>{result.rows.slice(0, 20).map((row, rowIndex) => <tr key={rowIndex}>{result.columns.map((_, columnIndex) => <td key={columnIndex}>{row[columnIndex] ?? ""}</td>)}</tr>)}</tbody></table>{!result.rows.length && <p className="empty-state">No records matched this query.</p>}</div></div>}
+            </div>
             : null}
       </div>
     );
@@ -358,8 +420,8 @@ export default function ReportDashboard({
       onSelectionChange={(text) => {
         demoSelectionsRef.current[example] = text;
       }}
-      onExecuteContext={() => onRunDemo(example, demoRunQuery(example))}
-      onExecuteSelectedText={(text) => onRunDemo(example, text)}
+      onExecuteContext={() => runDemo(example, demoRunQuery(example))}
+      onExecuteSelectedText={(text) => runDemo(example, text)}
     /></div>;
 
   const dropPositionFor = (target: HTMLElement, clientY: number): DropPosition => {

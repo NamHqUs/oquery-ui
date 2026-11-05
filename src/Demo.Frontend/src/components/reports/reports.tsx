@@ -7,6 +7,7 @@ import {
   deleteReport,
   executeQuery,
   executeQueryFromText,
+  fetchFunctionDefinitions,
   fetchQueryMetadata,
   fetchReports,
   fromApiQuery,
@@ -116,7 +117,7 @@ export default function Reports({
 }) {
   const dispatch = useDispatch();
   const showMessageBox = useMessageBox();
-  const { reports, reportsStatus, reportsError, metadata, metadataStatus, metadataError, functionDefinitions } = useSelector((state) => state.queryBuilder);
+  const { reports, reportsStatus, reportsError, metadata, metadataStatus, metadataError, functionDefinitions, functionDefinitionsStatus } = useSelector((state) => state.queryBuilder);
   const [reportResults, setReportResults] = useState<Record<string, QueryResult>>({});
   const [reportLoading, setReportLoading] = useState<Record<string, boolean>>({});
   const [reportErrors, setReportErrors] = useState<Record<string, string>>({});
@@ -148,7 +149,8 @@ export default function Reports({
   useEffect(() => {
     if (reportsStatus === "idle") dispatch(fetchReports());
     if (metadataStatus === "idle") dispatch(fetchQueryMetadata());
-  }, [dispatch, metadataStatus, reportsStatus]);
+    if (functionDefinitionsStatus === "idle") dispatch(fetchFunctionDefinitions());
+  }, [dispatch, functionDefinitionsStatus, metadataStatus, reportsStatus]);
 
   const sortedReports = useMemo(() => {
     const alphabeticalReports = [...reports].sort((left, right) => (

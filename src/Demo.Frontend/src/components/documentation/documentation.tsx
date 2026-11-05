@@ -183,7 +183,7 @@ Users: Id, Name, Count(Members.Id) TotalMembers
 
 RevenueByMonth is InvoiceLines: ProductId,
   MonthKey(Invoice.IssueDate) | Month,
-  SUM(Quantity * UnitPrice) | Revenue,
+  Sum(Quantity * UnitPrice) | Revenue,
   CountDistinct(InvoiceId) | Orders
   Where Invoice.Status = <Paid>`}</CodeBlock>
           <CodeBlock>{`// A dependent context can use another context privately
@@ -194,7 +194,7 @@ ref1 is User: Id, Name
 
 ref2 is User: Id, Name, ManagerId
   Left Join ref1 On ManagerId = ref1.Id`}</CodeBlock>
-          <div className="documentation-callout"><Icon name="check" size={16} /><span><strong>Test in layers.</strong> Select and execute <code>RevenueByMonth is InvoiceLines: ProductId, SUM(Quantity * UnitPrice) | Revenue</code> by itself, then run the product query.</span></div>
+          <div className="documentation-callout"><Icon name="check" size={16} /><span><strong>Test in layers.</strong> Select and execute <code>RevenueByMonth is InvoiceLines: ProductId, Sum(Quantity * UnitPrice) | Revenue</code> by itself, then run the product query.</span></div>
         </section>
 
         <section id="ui-guide" className="documentation-section">
