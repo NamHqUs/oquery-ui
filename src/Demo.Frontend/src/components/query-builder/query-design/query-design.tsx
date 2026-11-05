@@ -412,6 +412,12 @@ export default function QueryDesign({
               <div className="query-oquery-function-legend" aria-label="Function color legend">
                 <span className="query-oquery-function">Function</span>
               </div>
+              <div className="query-oquery-feedback" aria-label="OQuery validation feedback">
+                {oqueryStatus === "loading" && <p className="query-message" role="status">Loading OQuery…</p>}
+                {oqueryStatus === "applying" && <p className="query-message" role="status">Checking OQuery…</p>}
+                {oqueryValidationMessage && <p className="query-oquery-valid" role="status">{oqueryValidationMessage}</p>}
+                {oqueryError && <p className="query-message error" role="alert">{oqueryError}</p>}
+              </div>
             </div>
             <div className="query-oquery-editor-actions">
               <button type="button" className="button secondary" onClick={onInsertOqueryTemplate} disabled={oqueryStatus !== "idle"}>
@@ -427,9 +433,10 @@ export default function QueryDesign({
                 type="button"
                 className="button primary"
                 onClick={onApplyOquery}
+                aria-busy={oqueryStatus === "applying"}
                 disabled={oqueryStatus !== "idle" || !oqueryText.trim()}
               >
-                {oqueryStatus === "applying" ? "Checking…" : "Check OQuery"}
+                Check OQuery
               </button>
             </div>
           </div>
@@ -444,9 +451,6 @@ export default function QueryDesign({
             errorFunctionName={oqueryError.match(/:\s+([A-Za-z_][A-Za-z0-9_]*) requires at least/i)?.[1] ?? ""}
             disabled={oqueryStatus !== "idle"}
           />
-          {oqueryStatus === "loading" && <p className="query-message">Loading OQuery…</p>}
-          {oqueryValidationMessage && <p className="query-oquery-valid" role="status">{oqueryValidationMessage}</p>}
-          {oqueryError && <p className="query-message error" role="alert">{oqueryError}</p>}
         </div>
       ) : <><div className="query-builder-toolbar">
         <div className="query-entity-field">

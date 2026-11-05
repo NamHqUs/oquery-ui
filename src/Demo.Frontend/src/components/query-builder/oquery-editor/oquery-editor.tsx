@@ -3,6 +3,8 @@ import Icon from "../../icon/icon";
 import type { FunctionDefinition } from "../../function-definition/types";
 import { getOQueryContextKeys } from "../query-design/oquery-context-colors";
 import { applyFoldedOqueryEdit, getFoldedOquery, getOqueryFolds } from "../query-design/oquery-folding";
+import { toggleOqueryComments } from "./oquery-comments";
+import { normalizeOqueryEditorText } from "./oquery-editor-text";
 import "../query-design/query-design.css";
 
 type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange" | "value"> & {
@@ -46,6 +48,11 @@ function highlightOquery(text: string, functionDefinitions: FunctionDefinition[]
 }
 
 function highlightOqueryTokens(text: string, functionDefinitions: FunctionDefinition[], errorFunctionName: string): string {
+  if (text.includes("\n")) {
+    return text.split("\n")
+      .map((line) => highlightOqueryTokens(line, functionDefinitions, errorFunctionName))
+      .join("\n");
+  }
   const commentStart = findCommentStart(text);
   if (commentStart >= 0) {
     return `${highlightOqueryTokens(text.slice(0, commentStart), functionDefinitions, errorFunctionName)}<span class="query-oquery-comment">${text.slice(commentStart)
@@ -100,34 +107,6 @@ function findCommentStart(text: string): number {
     }
   }
   return -1;
-}
-
-function toggleOqueryComments(text: string, selectionStart: number, selectionEnd: number) {
-  const lineStart = text.lastIndexOf("\n", Math.max(0, selectionStart - 1)) + 1;
-  const selectedEnd = selectionEnd > selectionStart && text[selectionEnd - 1] === "\n"
-    ? selectionEnd - 1
-    : selectionEnd;
-  const lineEnd = text.indexOf("\n", selectedEnd);
-  const end = lineEnd < 0 ? text.length : lineEnd;
-  const selected = text.slice(lineStart, end);
-  const lines = selected.split("\n");
-  const contentLines = lines.filter((line) => line.trim());
-  const uncomment = contentLines.length > 0
-    && contentLines.every((line) => /^\s*#(?:\s|$)/.test(line));
-  const updatedLines = lines.map((line) => {
-    if (!line.trim()) return line;
-    const indentation = line.match(/^\s*/)?.[0] ?? "";
-    const content = line.slice(indentation.length);
-    if (uncomment) return `${indentation}${content.replace(/^#\s?/, "")}`;
-    return `${indentation}# ${content}`;
-  });
-  const updated = `${text.slice(0, lineStart)}${updatedLines.join("\n")}${text.slice(end)}`;
-  const delta = updated.length - text.length;
-  return {
-    text: updated,
-    selectionStart,
-    selectionEnd: selectionEnd + delta,
-  };
 }
 
 const oqueryListSections = new Set(["Projection", "Sorts", "Contexts"]);
@@ -305,16 +284,18 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
   const pendingCaretRef = useRef<number | null>(null);
-  const [text, setInternalText] = useState(textOverride ?? initialText ?? value ?? "");
+  const [text, setInternalText] = useState(() =>
+    normalizeOqueryEditorText(textOverride ?? initialText ?? value ?? ""));
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const [foldMessage, setFoldMessage] = useState("");
   useLayoutEffect(() => {
-    if (textOverride === undefined || textOverride === text) return;
-    setInternalText(textOverride);
+    if (textOverride === undefined) return;
+    const normalizedText = normalizeOqueryEditorText(textOverride);
+    if (normalizedText !== text) setInternalText(normalizedText);
   }, [textOverride, text]);
   useImperativeHandle(ref, () => ({
     getText: () => text,
-    setText: (nextText: string) => setInternalText(nextText),
+    setText: (nextText: string) => setInternalText(normalizeOqueryEditorText(nextText)),
   }), [text]);
   const projection = getFoldedOquery(text, collapsed);
   useLayoutEffect(() => {
@@ -387,8 +368,10 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
             {contextName && onExecuteContext && <button
               type="button"
               className="query-oquery-context-run"
+              disabled={disabled}
               aria-label={`Run ${contextName} context`}
               title={`Run ${contextName} context`}
+              onMouseDown={(event) => event.preventDefault()}
               onClick={() => onExecuteContext(contextName)}
             >
               <Icon name="play" size={14} />
@@ -454,9 +437,24 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
           }
           if ((event.ctrlKey || event.metaKey) && event.key === "/") {
             event.preventDefault();
-            const toggled = toggleOqueryComments(projection.text, textarea.selectionStart, textarea.selectionEnd);
-            pendingCaretRef.current = toggled.selectionStart;
-            changeVisibleText(toggled.text);
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const toggled = toggleOqueryComments(projection.text, start, end);
+            if (toggled.text === projection.text) return;
+            if (applyFoldedOqueryEdit(text, collapsed, toggled.text) === null) {
+              changeVisibleText(toggled.text);
+              return;
+            }
+            textarea.setSelectionRange(toggled.start, toggled.end);
+            // A native edit keeps the comment toggle in the textarea's undo history.
+            if (!textarea.ownerDocument.execCommand("insertText", false, toggled.replacement)) {
+              textarea.setSelectionRange(start, end);
+              setFoldMessage("Unable to toggle comments: this browser does not support undoable textarea edits.");
+              return;
+            }
+            pendingCaretRef.current = null;
+            const caret = Math.min(start, toggled.start + toggled.replacement.length);
+            textarea.setSelectionRange(caret, caret);
             return;
           }
           if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {

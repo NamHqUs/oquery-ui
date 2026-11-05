@@ -320,7 +320,7 @@
 .new-home-example-editor .query-oquery-highlight,
 .new-home-example-editor .query-oquery-textarea,
 .new-home-example-editor .query-oquery-line-numbers { padding-top: 11px; padding-bottom: 11px; font-size: 12px; line-height: 1.6; }
-.new-home-example-editor .query-oquery-highlight { border-left: 0; }
+.new-home-example-editor .query-oquery-highlight { margin: 0; border-left: 0; }
 .new-home-example-editor .query-oquery-line-numbers { width: 35px; padding-left: 3px; padding-right: 3px; }
 .new-home-example-editor .query-oquery-highlight { left: 35px; width: calc(100% - 35px); }
 .new-home-example-editor .query-oquery-textarea { padding-left: 48px; }

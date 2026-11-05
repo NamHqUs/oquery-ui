@@ -212,7 +212,9 @@ ref2 is User: Id, Name, ManagerId
 Tab          increase indentation
 Shift + Tab  decrease indentation
 Ctrl + X     delete selected rows
+Ctrl + /     toggle line comments
 Ctrl + Z     undo the edit
+Ctrl + Y     redo the edit
 
 // Run only the selected query graph
 ref1 is User: Id, Name`}</CodeBlock>

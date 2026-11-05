@@ -1397,51 +1397,54 @@ const queryBuilderSlice = createSlice({
       .addCase(executeQuery.pending, (state) => {
         state.queryStatus = "loading";
         state.queryError = "";
-        state.result = null;
-        state.sqlStatement = null;
-        state.resultView = "data";
       })
       .addCase(executeQuery.fulfilled, (state, action) => {
         state.result = action.payload;
+        state.sqlStatement = null;
         state.resultView = "data";
         state.queryStatus = "succeeded";
         state.queryError = "";
       })
       .addCase(executeQuery.rejected, (state, action) => {
+        state.result = null;
+        state.sqlStatement = null;
+        state.resultView = "data";
         state.queryStatus = "failed";
         state.queryError = String(action.payload || action.error.message || "Unable to execute query.");
       })
       .addCase(executeQueryFromText.pending, (state) => {
         state.queryStatus = "loading";
         state.queryError = "";
-        state.result = null;
-        state.sqlStatement = null;
-        state.resultView = "data";
       })
       .addCase(executeQueryFromText.fulfilled, (state, action) => {
         state.result = action.payload;
+        state.sqlStatement = null;
         state.resultView = "data";
         state.queryStatus = "succeeded";
         state.queryError = "";
       })
       .addCase(executeQueryFromText.rejected, (state, action) => {
+        state.result = null;
+        state.sqlStatement = null;
+        state.resultView = "data";
         state.queryStatus = "failed";
         state.queryError = String(action.payload || action.error.message || "Unable to execute query.");
       })
       .addCase(executeContextFromText.pending, (state) => {
         state.queryStatus = "loading";
         state.queryError = "";
-        state.result = null;
-        state.sqlStatement = null;
-        state.resultView = "data";
       })
       .addCase(executeContextFromText.fulfilled, (state, action) => {
         state.result = action.payload;
+        state.sqlStatement = null;
         state.resultView = "data";
         state.queryStatus = "succeeded";
         state.queryError = "";
       })
       .addCase(executeContextFromText.rejected, (state, action) => {
+        state.result = null;
+        state.sqlStatement = null;
+        state.resultView = "data";
         state.queryStatus = "failed";
         state.queryError = String(action.payload || action.error.message || "Unable to execute context.");
       });

@@ -40,7 +40,7 @@ export default function QueryResult({ result, sqlStatement, resultView, onRunQue
   };
 
   return (
-    <section className="results-card query-results">
+    <section className="results-card query-results" aria-busy={queryLoading}>
       <div className="results-head">
         <div className="query-result-title">
           <div>

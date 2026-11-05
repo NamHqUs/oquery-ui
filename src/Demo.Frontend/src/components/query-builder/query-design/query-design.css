@@ -2,6 +2,11 @@
 .query-editor-tabs { margin-left: 0; }
 .query-oquery-editor { display: grid; gap: 12px; }
 .query-oquery-editor-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.query-oquery-editor-header > div:first-child { flex: 1; min-width: 0; }
+.query-oquery-feedback { height: 52px; margin-top: 8px; overflow: auto; }
+.query-oquery-editor-header .query-oquery-feedback p { margin: 0; }
+.query-oquery-editor-header .query-oquery-feedback .query-oquery-valid { color: #77d7b0; }
+.query-oquery-editor-header .query-oquery-feedback .error { color: #f0a6ae; }
 .query-oquery-editor-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .query-oquery-editor-header p { margin: 6px 0 0; color: #9299aa; font-size: 12px; line-height: 1.5; }
 .query-oquery-function-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; font-size: 11px; }

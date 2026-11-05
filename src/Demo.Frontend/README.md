@@ -54,6 +54,44 @@ To change the default, edit `debugUiEnabled` in `src/components/query-builder/qu
 
 ## OQuery text editor
 
+The home-page OQuery examples preserve leading spaces and align the highlighted
+text with the textarea caret. Their highlight layer resets the static example
+margin so the cursor does not appear shifted by roughly two characters.
+Run the layout regression test with:
+
+```powershell
+node --test .\src\components\query-builder\oquery-editor\oquery-editor-layout.test.mjs
+```
+
+Use **Ctrl+/** (or **Cmd+/**) to toggle comments on the current line when no text
+is selected, or on all explicitly selected lines. Comment highlighting stops
+at each newline; commenting a line does not gray out the rest of its context.
+Comment toggles use native textarea edits, so **Ctrl+Z** undoes them and
+**Ctrl+Y** or **Ctrl+Shift+Z** redoes them without discarding earlier typing
+history. Leading indentation and blank lines are preserved.
+Bound documents normalize CRLF and CR line endings to LF, matching native
+textarea offsets. This prevents the first comment after loading Windows text
+from adding indentation or deleting characters from the next context.
+
+Query Builder reserves a fixed-height validation feedback area above the
+OQuery editor. Loading, checking, success, and error messages do not move the
+editor or the result-grid Run Query button; long messages scroll within that
+area. The Check OQuery label stays fixed while its busy state is announced.
+Blur validation remains enabled, and one click on the result-grid Run Query
+button executes valid OQuery directly without requiring a second click.
+
+Gutter Run controls preserve editor focus and selection instead of triggering
+blur validation. Query execution keeps the displayed result (or SQL view)
+visible while the result panel is busy, preventing a temporary page-height
+collapse and scroll jump. Success replaces the displayed result; failure clears
+it and shows the execution error. Editing still clears obsolete results.
+
+```powershell
+node --test .\src\components\query-builder\oquery-editor\oquery-comments.test.mjs
+node --test .\src\components\query-builder\query-design\oquery-feedback.test.mjs
+node --test .\src\components\query-builder\query-design\query-loading.test.mjs
+```
+
 Query Builder provides Visual and OQuery tabs in the page header. The OQuery tab
 loads the canonical query request from the backend, supports editing or
 creating a query definition, provides a starter **Template**, indentation with
