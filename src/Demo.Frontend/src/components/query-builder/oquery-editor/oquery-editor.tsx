@@ -405,6 +405,15 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
         aria-label="Query OQuery text"
         value={projection.text}
         onChange={(event) => changeVisibleText(event.target.value, textareaRef.current?.selectionStart)}
+        onPaste={(event) => {
+          event.preventDefault();
+          const textarea = event.currentTarget;
+          const pastedText = normalizeOqueryEditorText(event.clipboardData.getData("text/plain"));
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const next = `${textarea.value.slice(0, start)}${pastedText}${textarea.value.slice(end)}`;
+          changeVisibleText(next, start + pastedText.length);
+        }}
         onSelect={(event) => {
           const textarea = event.currentTarget;
           onSelectionChange(textarea.value.slice(textarea.selectionStart, textarea.selectionEnd));

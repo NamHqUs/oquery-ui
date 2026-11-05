@@ -14,7 +14,7 @@ export function getOQueryContextKeys(text: string): OQueryContextKey[] {
   for (const match of searchableText.matchAll(/^([A-Za-z_][A-Za-z0-9_]*)\s+is\s+([A-Za-z_][A-Za-z0-9_]*)\s*:/gim)) {
     contextNames.add(match[1]!);
     keys.push({ start: match.index!, end: match.index! + match[1]!.length, kind: "context" });
-    const tableStart = match.index! + match[0]!.indexOf(match[2]!);
+    const tableStart = match.index! + match[0]!.indexOf(match[2]!, match[1]!.length);
     keys.push({ start: tableStart, end: tableStart + match[2]!.length, kind: "table" });
   }
 

@@ -10,8 +10,7 @@ export default function BarChart({ data }: { data: ChartData }) {
         {data.points.map((point, index) => (
           <div className="report-bar-row" key={`${point.label}-${index}`}>
             <span className="report-bar-label">{point.label}</span>
-            <div className="report-bar-track"><i style={{ width: `${Math.max(3, (point.value / max) * 100)}%`, opacity: 1 - index * 0.035 }} /></div>
-            <b>{formatChartValue(point.value)}</b>
+            <div className="report-bar-track"><i style={{ width: `${Math.max(3, (point.value / max) * 100)}%`, opacity: 1 - index * 0.035 }}><b>{formatChartValue(point.value)}</b></i></div>
           </div>
         ))}
       </div>
