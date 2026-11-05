@@ -327,7 +327,7 @@ LEFT JOIN Main.Users AS u
         </article>
         <article className="new-home-example">
           <div className="new-home-example-marker">03</div>
-          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>How big is your organization really?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Recursive hierarchy example representation"><button type="button" role="tab" aria-selected={!showRecursiveSql} className={!showRecursiveSql ? "active" : ""} onClick={() => setShowRecursiveSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showRecursiveSql} className={showRecursiveSql ? "active" : ""} onClick={() => setShowRecursiveSql(true)}>SQL</button></div></div><p>The engine detects the self-reference and generates the recursive SQL automatically.</p></div>
+          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>Do you know the total members at each hierarchy level?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Recursive hierarchy example representation"><button type="button" role="tab" aria-selected={!showRecursiveSql} className={!showRecursiveSql ? "active" : ""} onClick={() => setShowRecursiveSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showRecursiveSql} className={showRecursiveSql ? "active" : ""} onClick={() => setShowRecursiveSql(true)}>SQL</button></div></div><p>The engine detects the self-reference and generates the recursive SQL automatically.</p></div>
           {renderDemoQuery("recursive", demoQueries.recursive, EMPLOYEE_TREE_SQL, showRecursiveSql)}
           {renderDemoResult("recursive")}
         </article>
