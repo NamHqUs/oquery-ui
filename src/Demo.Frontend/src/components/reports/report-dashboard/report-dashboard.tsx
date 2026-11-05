@@ -7,6 +7,7 @@ import type { QueryResult, ReportDto } from "../../query-builder/query-design/qu
 import ReportDetail from "../report-detail/report-detail";
 import ReportItem from "../report-item/report-item";
 import BarChart from "../charts/bar-chart/bar-chart";
+import DonutChart from "../charts/donut-chart/donut-chart";
 import type { SimpleChartData } from "../charts/chart-types";
 import type { ReportDemoExampleKey } from "../report-demo-examples";
 import {
@@ -24,28 +25,20 @@ type DemoResultView = "grid" | "orgchart" | "report";
 const REPORT_COLUMN_STORAGE_KEY = "OQuery-report-columns";
 const PRODUCTS_OQUERY = "Products:";
 const TRAVERSAL_OQUERY = "Orders: Id, OrderDate, User.FirstName, User.LastName";
-const PRODUCT_SALES_OQUERY = `ProductSales is OrderItems: ProductId,
-     Sum(Quantity * UnitPrice) TotalRevenue
-
-Products: Id, Name,
-     ProductSales.TotalRevenue
-  INNER JOIN ProductSales on Id = ProductSales.ProductId
-  WHERE ProductSales.TotalRevenue > Avg(ProductSales.TotalRevenue)`;
-const PRODUCT_SALES_SQL = `SELECT p.Id, p.Name, ps.TotalRevenue
-FROM sa.Products p
-JOIN (
-    SELECT ProductId, SUM(Quantity * UnitPrice) AS TotalRevenue
-    FROM sa.OrderItems
-    GROUP BY ProductId
-) ps ON p.Id = ps.ProductId
-WHERE ps.TotalRevenue > (
-    SELECT AVG(TotalRevenue)
-    FROM (
-        SELECT SUM(Quantity * UnitPrice) AS TotalRevenue
-        FROM sa.OrderItems
-        GROUP BY ProductId
-    ) t
-);`;
+const PRODUCT_SALES_OQUERY = `OrderItems: ProductId, Product.Name,
+    Sum(Quantity * UnitPrice) TotalRevenue,
+    AverageOver(TotalRevenue) Average
+WHERE TotalRevenue > Average`;
+const PRODUCT_SALES_SQL = `SELECT *
+FROM (
+    SELECT oi.ProductId, p.Name,
+        SUM(oi.Quantity * oi.UnitPrice) AS TotalRevenue,
+        AVG(SUM(oi.Quantity * oi.UnitPrice)) OVER () AS Average
+    FROM sa.OrderItems oi
+    JOIN sa.Products p ON p.Id = oi.ProductId
+    GROUP BY oi.ProductId, p.Name
+) ProductSales
+WHERE ProductSales.TotalRevenue > ProductSales.Average;`;
 const EMPLOYEE_TREE_OQUERY = `EmployeeTree is Employees:
     FirstName ManagerName,
     member.FirstName MemberName,
@@ -331,9 +324,14 @@ export default function ReportDashboard({
     );
   };
 
-  const renderDemoReport = (result: QueryResult) => {
-    const metricIndex = result.columns.findIndex((_, index) =>
-      result.rows.some((row) => Number.isFinite(Number(row[index]))));
+  const renderDemoReport = (example: ReportDemoExampleKey, result: QueryResult) => {
+    const normalizeColumn = (column: string) => column.replace(/[^a-z0-9]/gi, "").toLowerCase();
+    const labelIndex = result.columns.findIndex((column) => normalizeColumn(column) === "name");
+    const preferredMetric = result.columns.findIndex((column) => normalizeColumn(column) === "totalrevenue");
+    const metricIndex = preferredMetric >= 0
+      ? preferredMetric
+      : result.columns.findIndex((_, index) =>
+        result.rows.some((row) => Number.isFinite(Number(row[index]))));
     if (metricIndex < 0) {
       return <div className="new-home-demo-report-empty">No numeric result field is available for this report.</div>;
     }
@@ -342,11 +340,11 @@ export default function ReportDashboard({
       points: result.rows.slice(0, 12).flatMap((row, index) => {
         const value = Number(row[metricIndex]);
         return Number.isFinite(value)
-          ? [{ label: row[0] || `Record ${index + 1}`, value, xValue: index + 1 }]
+          ? [{ label: row[labelIndex >= 0 ? labelIndex : 0] || `Record ${index + 1}`, value, xValue: index + 1 }]
           : [];
       }),
     };
-    return <div className="new-home-demo-report"><BarChart data={data} /></div>;
+    return <div className="new-home-demo-report">{example === "revenue" ? <DonutChart data={data} /> : <BarChart data={data} />}</div>;
   };
 
   const renderDemoResult = (example: ReportDemoExampleKey) => {
@@ -357,7 +355,7 @@ export default function ReportDashboard({
     const hierarchyChart = result && example === "recursive"
       ? renderRecursiveHierarchyChart(result)
       : null;
-    const selectedView = demoResultViews[example] ?? (example === "recursive" ? "orgchart" : "grid");
+    const selectedView = demoResultViews[example] ?? (example === "recursive" ? "orgchart" : example === "revenue" ? "report" : "grid");
     const viewOptions: { value: DemoResultView; label: string }[] = [
       { value: "grid", label: "DataGrid" },
       { value: "orgchart", label: "OrgChart" },
@@ -388,7 +386,7 @@ export default function ReportDashboard({
                 </div>
               </div>
               {selectedView === "orgchart" && hierarchyChart}
-              {selectedView === "report" && renderDemoReport(result)}
+              {selectedView === "report" && renderDemoReport(example, result)}
               {selectedView === "grid" && <div className="new-home-example-table"><div className="table-wrap"><table><thead><tr>{result.columns.map((column, index) => <th key={`${column}-${index}`}>{column}</th>)}</tr></thead><tbody>{result.rows.slice(0, 20).map((row, rowIndex) => <tr key={rowIndex}>{result.columns.map((_, columnIndex) => <td key={columnIndex}>{row[columnIndex] ?? ""}</td>)}</tr>)}</tbody></table>{!result.rows.length && <p className="empty-state">No records matched this query.</p>}</div></div>}
             </div>
             : null}
@@ -508,7 +506,7 @@ LEFT JOIN Main.Users AS u
         </article>
         <article className="new-home-example">
           <div className="new-home-example-marker">04</div>
-          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>Which products sell above average?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Product sales example representation"><button type="button" role="tab" aria-selected={!showRevenueSql} className={!showRevenueSql ? "active" : ""} onClick={() => setShowRevenueSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showRevenueSql} className={showRevenueSql ? "active" : ""} onClick={() => setShowRevenueSql(true)}>SQL</button></div></div><p>Aggregate sales once, compare each product with the overall average, and keep the question readable.</p></div>
+          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>Which products sell above average?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Product sales example representation"><button type="button" role="tab" aria-selected={!showRevenueSql} className={!showRevenueSql ? "active" : ""} onClick={() => setShowRevenueSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showRevenueSql} className={showRevenueSql ? "active" : ""} onClick={() => setShowRevenueSql(true)}>SQL</button></div></div><p>Build product sales from a reusable context, calculate the overall average, and filter in an outer query.</p></div>
           {renderDemoQuery("revenue", demoQueries.revenue, PRODUCT_SALES_SQL, showRevenueSql)}
           {renderDemoResult("revenue")}
         </article>
