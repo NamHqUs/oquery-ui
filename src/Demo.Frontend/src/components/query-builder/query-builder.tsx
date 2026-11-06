@@ -220,11 +220,6 @@ function getOqueryEntity(text: string): string {
   return match?.[2] ?? match?.[1] ?? "";
 }
 
-function getOqueryContextName(text: string): string {
-  const header = text.split(/\r?\n/).find((line) => line.trim() && !line.trimStart().startsWith("#") && !/^\s/.test(line));
-  return header?.match(/^([A-Za-z_][A-Za-z0-9_]*)(?:\s+is\s+[A-Za-z_][A-Za-z0-9_]*)?\s*:/i)?.[1] ?? "";
-}
-
 function stripOqueryLineComments(text: string): string {
   return text.split(/\r?\n/).map((line) => {
     let quote: "'" | "\"" | null = null;
@@ -874,10 +869,6 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   const runOQueryContext = (contextName: string) => {
     const text = selectedOQueryTextRef.current.trim() || oqueryText;
     if (!text.trim()) return;
-    if (activeContextIndex === null && contextName === getOqueryContextName(text)) {
-      dispatch(executeQueryFromText(text));
-      return;
-    }
     dispatch(executeContextFromText({ text, context: contextName }));
   };
 
