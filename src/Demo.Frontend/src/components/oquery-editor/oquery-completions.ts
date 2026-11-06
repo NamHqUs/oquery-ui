@@ -136,6 +136,40 @@ function getDynamicCandidates(text: string) {
   return { contexts, aliases };
 }
 
+function getDynamicContextFields(text: string) {
+  const contextFields = new Map<string, string[]>();
+  let currentContext = "";
+  const addProjection = (contextName: string, projection: string) => {
+    const fields = contextFields.get(contextName) ?? [];
+    for (const item of projection.split(",")) {
+      const trimmedItem = item.trim();
+      const expression = /^[A-Za-z_][A-Za-z0-9_.]*/.exec(trimmedItem)?.[0];
+      const asAlias = /\bas\s+([A-Za-z_][A-Za-z0-9_]*)\s*$/i.exec(trimmedItem)?.[1];
+      const whitespaceAlias = /^[A-Za-z_][A-Za-z0-9_.]*\s+([A-Za-z_][A-Za-z0-9_]*)\s*$/.exec(trimmedItem)?.[1];
+      const field = asAlias ?? whitespaceAlias ?? expression;
+      if (field && !fields.includes(field)) fields.push(field);
+    }
+    contextFields.set(contextName, fields);
+  };
+
+  for (const line of text.split(/\r?\n/)) {
+    const contextHeader = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s+is\s+[A-Za-z_][A-Za-z0-9_]*\s*:\s*(.*)$/i.exec(line);
+    if (contextHeader) {
+      currentContext = contextHeader[1]!;
+      addProjection(currentContext, contextHeader[2]!);
+      continue;
+    }
+    if (/^\s*[A-Za-z_][A-Za-z0-9_]*(?:\s+is\s+[A-Za-z_][A-Za-z0-9_]*)?\s*:/.test(line)
+      || /^\s*(?:where|order|skip|take|join|(?:inner|left|right|full)\s+join)\b/i.test(line)) {
+      currentContext = "";
+      continue;
+    }
+    if (currentContext && line.trim()) addProjection(currentContext, line);
+  }
+
+  return contextFields;
+}
+
 function getCompletionContext(lineBeforeCursor: string, text: string, position: number): CompletionContext {
   const trimmed = lineBeforeCursor.trimStart();
   const lower = trimmed.toLocaleLowerCase();
@@ -207,7 +241,31 @@ function getSuggestionContext(
   relationPath: string | null,
   entities: OQuerySuggestionEntity[],
   fallbackFields: string[],
+  dynamicContextFields: Map<string, string[]>,
 ) {
+  if (relationPath) {
+    const segments = relationPath.split(".");
+    const declaredFields = dynamicContextFields.get(segments[0]!);
+    if (declaredFields) {
+      let fields = declaredFields;
+      for (const segment of segments.slice(1)) {
+        const prefix = `${segment}.`;
+        fields = fields
+          .filter((field) => field.startsWith(prefix))
+          .map((field) => field.slice(prefix.length));
+      }
+      const relations = [...new Set(
+        fields
+          .filter((field) => field.includes("."))
+          .map((field) => field.split(".")[0]!),
+      )].map((name) => ({ name, target: "" }));
+      return {
+        fields: fields.filter((field) => !field.includes(".")),
+        relations,
+      };
+    }
+  }
+
   let entity = entities.find((candidate) => candidate.name === rootEntityName);
   if (!entity || !relationPath) {
     return {
@@ -276,9 +334,10 @@ export function getOQueryCompletions(
   const isAliasPosition = context === "projection" && isProjectionAliasPosition(lineBeforeCursor);
   const isNewLine = lineStart > 0 && text[lineStart - 1] === "\n";
   const dynamic = getDynamicCandidates(text);
+  const dynamicContextFields = getDynamicContextFields(text);
   const candidates: Candidate[] = [];
   const activeEntityName = getActiveEntityName(text, safePosition, rootEntityName);
-  const suggestionContext = getSuggestionContext(activeEntityName, relationPath, suggestionEntities, fields);
+  const suggestionContext = getSuggestionContext(activeEntityName, relationPath, suggestionEntities, fields, dynamicContextFields);
 
   if (context === "document" || context === "header") {
     entities.forEach((entity) => addCandidate(candidates, entity, "Entity", "entity", 0, context === "document" ? `${entity}: ` : entity, context === "document" ? entity.length + 2 : undefined));
@@ -288,23 +347,22 @@ export function getOQueryCompletions(
 
   if (!isAliasPosition && (context === "projection" || context === "where" || context === "on" || context === "order" || context === "value")) {
     suggestionContext.relations.forEach((relation) => addCandidate(candidates, relation.name, "Relation", "relation", 0));
+    dynamic.contexts.forEach((name) => addCandidate(candidates, name, "Declared context", "context", 1));
     suggestionContext.fields.forEach((field) => addCandidate(candidates, field, "Field", "field", 0));
     if (isNewLine) addKeywords(candidates, clauseKeywords, 2);
     dynamic.aliases.forEach((alias) => addCandidate(candidates, alias, "Alias from this query", "alias", 4));
   }
 
   if (context === "projection" || context === "on") {
-    if (query) {
-      functionDefinitions.forEach((definition) => addCandidate(
-        candidates,
-        definition.name,
-        definition.isAggregate ? "Aggregate function" : "Function",
-        "function",
-        3,
-        `${definition.name}()`,
-        definition.name.length + 1,
-      ));
-    }
+    functionDefinitions.forEach((definition) => addCandidate(
+      candidates,
+      definition.name,
+      definition.isAggregate ? "Aggregate function" : "Function",
+      "function",
+      3,
+      `${definition.name}()`,
+      definition.name.length + 1,
+    ));
   } else if (context === "clause") {
     addKeywords(candidates, clauseKeywords);
   } else if (context === "where" || context === "on") {
