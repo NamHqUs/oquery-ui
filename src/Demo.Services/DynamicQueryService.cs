@@ -51,20 +51,22 @@ public sealed class DynamicQueryService(
             dialect);
         var preparedQuery = EnsureDefaultProjection(PrepareQuery(query, dialect), metadataProvider);
         var result = await context.Query(preparedQuery)
-            .ToListWithTotalRecordsAsync(cancellationToken);
+            .ToListWithTotalRecordsAndColumnsAsync(cancellationToken);
        
         logger.LogInformation("Dynamic query returned {TotalRecords} total records.", result.TotalRecords);
 
-        var projections = preparedQuery.Projections ?? [];
-        return new TableDataDto(
+        var data = new TableDataDto(
             Name: preparedQuery.Entity,
-            Columns: string.Join(",", projections.Select(field => field.Alias ?? field.ToText())),
+            Columns: string.Join(",", result.Columns),
             Rows: result.Records.Select(row => string.Join(",", row.Select(value => value.Value))).ToArray(),
             Page: query.Skip is { } skip && query.Take is { } take
                 ? skip / take + 1
                 : null,
             PageSize: query.Take,
             TotalRecords: result.TotalRecords);
+
+        logger.LogInformation(data.ToString());
+        return data;
     }
 
     public Task<TableDataDto> ExecuteContextQueryAsync(
@@ -72,21 +74,7 @@ public sealed class DynamicQueryService(
         string contextName,
         CancellationToken cancellationToken = default)
     {
-        var parsed = QueryDefinitionOQueryParser.Parse(text);
-        var definition = string.Equals(parsed.Entity, contextName, StringComparison.OrdinalIgnoreCase)
-            ? parsed
-            : parsed.Contexts?.TryGetValue(contextName, out var context) == true
-                ? new QueryDefinition(context.Entity)
-                {
-                    Projections = context.Projections,
-                    Filter = context.Filter,
-                    Sorts = context.Sorts,
-                    Take = context.Take,
-                    Skip = context.Skip,
-                    Joins = context.Joins,
-                    Contexts = parsed.Contexts,
-                }
-                : throw new KeyNotFoundException($"Query context [{contextName}] was not found.");
+        var definition = QueryDefinitionOQueryParser.Parse(text, contextName);
         return ExecuteQueryAsync(definition, cancellationToken);
     }
 
@@ -94,7 +82,7 @@ public sealed class DynamicQueryService(
         QueryDefinition query,
         IMetadataProvider metadataProvider)
     {
-        if (query.Projections is { Count: > 0 } || query.Contexts is { Count: > 0 })
+        if (query.Projections is { Count: > 0 })
             return query;
 
         var entity = metadataProvider.GetEntity(query.Entity);

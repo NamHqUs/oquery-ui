@@ -371,7 +371,7 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
       ?? null;
   const hasVisibleContextActions = Boolean(onExecuteContext)
     && projection.visible.some(({ line }) => contextAtLine(text.split("\n")[line]!) !== null);
-  const hasGutterContent = showLineNumbers || hasVisibleFoldControls || hasVisibleContextActions;
+  const hasGutterContent = showLineNumbers || hasVisibleFoldControls || hasVisibleContextActions || showContextRunAlways;
   const compactHeight = Math.max(1, projection.visible.length) * 20.8 + 34;
   const changeVisibleText = (next: string, caret?: number) => {
     const updated = applyFoldedOqueryEdit(text, collapsed, next);
@@ -415,16 +415,6 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
     setCompletionIndex(0);
     requestAnimationFrame(() => textareaRef.current?.focus());
   };
-  const insertFunction = (name: string) => {
-    if (!name) return;
-    const textarea = textareaRef.current;
-    const start = textarea?.selectionStart ?? projection.text.length;
-    const end = textarea?.selectionEnd ?? start;
-    const insertText = `${name}()`;
-    changeVisibleText(`${projection.text.slice(0, start)}${insertText}${projection.text.slice(end)}`, start + name.length + 1);
-    setCompletionPosition(null);
-    requestAnimationFrame(() => textareaRef.current?.focus());
-  };
   const updateCompletionPosition = (textarea: HTMLTextAreaElement, open = true) => {
     setCompletionPosition(open ? textarea.selectionStart : null);
     setCompletionIndex(0);
@@ -456,21 +446,7 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
           <Icon name="chevron-right" size={13} />
         </button>
       </div>}
-      {functionDefinitions.length > 0 && <label className="query-oquery-function-picker">
-        <span>Insert function</span>
-        <select
-          aria-label="Insert function"
-          value=""
-          disabled={disabled}
-          onChange={(event) => insertFunction(event.target.value)}
-        >
-          <option value="">Function...</option>
-          {functionDefinitions.map((definition) => <option key={definition.name} value={definition.name}>
-            {definition.name}{definition.isAggregate ? " · aggregate" : ""}
-          </option>)}
-        </select>
-      </label>}
-      {showGutter && <div ref={lineNumbersRef} className="query-oquery-line-numbers">
+      {showGutter && hasGutterContent && <div ref={lineNumbersRef} className="query-oquery-line-numbers">
         {projection.visible.map(({ line }) => {
           const fold = foldsByLine.get(line);
           const contextName = contextAtLine(text.split("\n")[line]!);

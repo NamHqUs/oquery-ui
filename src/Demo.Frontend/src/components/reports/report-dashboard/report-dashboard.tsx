@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import Icon from "../../icon/icon";
+import Icon, { type IconName } from "../../icon/icon";
 import type { FunctionDefinition } from "../../function-definition/types";
 import OQueryEditor from "../../oquery-editor/oquery-editor";
 import { getOQuerySuggestionData } from "../../oquery-editor/oquery-suggestion-data";
@@ -21,7 +21,28 @@ import {
 
 type ReportGroup = { name: string; reports: ReportDto[] };
 type DropPosition = "before" | "after";
-type DemoResultView = "grid" | "orgchart" | "report";
+type DemoResultView = "grid" | "orgchart" | "barchart";
+type DemoResultViewOption = { value: DemoResultView; label: string };
+const demoViewOptions: Record<ReportDemoExampleKey, DemoResultViewOption[]> = {
+  products: [{ value: "grid", label: "Grid" }],
+  traversal: [{ value: "grid", label: "Grid" }],
+  recursive: [
+    { value: "orgchart", label: "OrgChart" },
+    { value: "grid", label: "Grid" },
+  ],
+  revenue: [
+    { value: "barchart", label: "BarChart" },
+    { value: "grid", label: "Grid" },
+  ],
+};
+
+function demoViewIcon(view: DemoResultView): IconName {
+  switch (view) {
+    case "grid": return "table";
+    case "orgchart": return "schema";
+    case "barchart": return "chart-bar";
+  }
+}
 const REPORT_COLUMN_STORAGE_KEY = "OQuery-report-columns";
 const PRODUCTS_OQUERY = "Products:";
 const TRAVERSAL_OQUERY = "Orders: Id, OrderDate, User.FirstName, User.LastName";
@@ -179,7 +200,6 @@ export default function ReportDashboard({
   const [expandedHierarchyNodes, setExpandedHierarchyNodes] = useState<Set<string> | null>(null);
   const [expandedHierarchyLists, setExpandedHierarchyLists] = useState<Set<string>>(new Set());
   const [demoResultViews, setDemoResultViews] = useState<Partial<Record<ReportDemoExampleKey, DemoResultView>>>({});
-  const [openDemoViewMenu, setOpenDemoViewMenu] = useState<ReportDemoExampleKey | null>(null);
   const [activeDemoPopup, setActiveDemoPopup] = useState<ReportDemoExampleKey | null>(null);
   const [demoQueries, setDemoQueries] = useState<Record<ReportDemoExampleKey, string>>({
     products: PRODUCTS_OQUERY,
@@ -352,12 +372,11 @@ export default function ReportDashboard({
     const hierarchyChart = result && example === "recursive"
       ? renderRecursiveHierarchyChart(result)
       : null;
-    const selectedView = demoResultViews[example] ?? (example === "recursive" ? "orgchart" : example === "revenue" ? "report" : "grid");
-    const viewOptions: { value: DemoResultView; label: string }[] = [
-      { value: "grid", label: "DataGrid" },
-      { value: "orgchart", label: "OrgChart" },
-      { value: "report", label: "Report" },
-    ];
+    const viewOptions = demoViewOptions[example];
+    const selectedView = demoResultViews[example]
+      && viewOptions.some((option) => option.value === demoResultViews[example])
+      ? demoResultViews[example]!
+      : viewOptions[0]!.value;
     return (
       <div className="new-home-example-result">
         {error && <p className="query-message error" role="alert">{error}</p>}
@@ -370,22 +389,24 @@ export default function ReportDashboard({
                   ? `Showing ${Math.min(result.rows.length, 20)} records · total unavailable`
                   : `${result.totalRecords} total records${result.rows.length > 20 ? ` · showing first 20` : ""}`}</span>
                 <div className="new-home-example-result-actions">
-                  <div className="new-home-example-view-menu">
-                    <button type="button" className="new-home-example-view-trigger" aria-haspopup="menu" aria-expanded={openDemoViewMenu === example} onClick={() => setOpenDemoViewMenu(openDemoViewMenu === example ? null : example)}>
-                      {viewOptions.find((option) => option.value === selectedView)?.label} <span aria-hidden="true">⌄</span>
-                    </button>
-                    {openDemoViewMenu === example && <div className="new-home-example-view-popup" role="menu">
-                      {viewOptions.map((option) => <button key={option.value} type="button" role="menuitem" className={option.value === selectedView ? "active" : ""} onClick={() => {
-                        setDemoResultViews((current) => ({ ...current, [example]: option.value }));
-                        setOpenDemoViewMenu(null);
-                      }}>{option.label}</button>)}
-                    </div>}
-                  </div>
+                  {viewOptions.length > 1 && <div className="new-home-example-view-controls" role="group" aria-label="Choose display type">
+                    {viewOptions.map((option) => <button
+                      key={option.value}
+                      type="button"
+                      className={`new-home-example-view-button${option.value === selectedView ? " active" : ""}`}
+                      aria-label={option.label}
+                      aria-pressed={option.value === selectedView}
+                      title={option.label}
+                      onClick={() => setDemoResultViews((current) => ({ ...current, [example]: option.value }))}
+                    >
+                      <Icon name={demoViewIcon(option.value)} size={13} />
+                    </button>)}
+                  </div>}
                   <button className="report-icon-button" type="button" aria-label="Close query result" title="Close query result" onClick={() => closeDemo(example)}><Icon name="close" size={13} /></button>
                 </div>
               </div>
               {selectedView === "orgchart" && hierarchyChart}
-              {selectedView === "report" && renderDemoReport(result)}
+              {selectedView === "barchart" && renderDemoReport(result)}
               {selectedView === "grid" && <div className="new-home-example-table"><div className="table-wrap"><table><thead><tr>{result.columns.map((column, index) => <th key={`${column}-${index}`}>{column}</th>)}</tr></thead><tbody>{result.rows.slice(0, 20).map((row, rowIndex) => <tr key={rowIndex}>{result.columns.map((_, columnIndex) => <td key={columnIndex}>{row[columnIndex] ?? ""}</td>)}</tr>)}</tbody></table>{!result.rows.length && <p className="empty-state">No records matched this query.</p>}</div></div>}
             </div>
             : null}

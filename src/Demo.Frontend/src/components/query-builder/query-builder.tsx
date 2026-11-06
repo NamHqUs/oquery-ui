@@ -854,7 +854,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     }
   };
   const runOQueryContext = (contextName: string) => {
-    const text = selectedOQueryTextRef.current.trim() || oqueryText;
+    const text = oqueryText;
     if (!text.trim()) return;
     if (!connectedProvider || connectionStatus !== "succeeded") {
       onRequestConnection();
