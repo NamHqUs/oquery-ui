@@ -1,26 +1,15 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Icon, { type IconName } from "../icon/icon";
 import type { FunctionDefinition } from "../function-definition/types";
 import OQueryEditor from "../oquery-editor/oquery-editor";
 import { getOQuerySuggestionData } from "../oquery-editor/oquery-suggestion-data";
-import type { MetadataEntity, QueryResult, ReportDto } from "../query-builder/query-design/query-builder-slice";
+import type { MetadataEntity, QueryResult } from "../query-builder/query-design/query-builder-slice";
 import BarChart from "../charts/bar-chart/bar-chart";
 import type { SimpleChartData } from "../charts/chart-types";
-import type { ReportDemoExampleKey } from "./home-demo-examples";
-import {
-  categoryTone,
-  defaultReportChartSettings,
-  presentationFor,
-  reportTitle,
-  type ChartType,
-  type ReportChartSettings,
-} from "../charts/chart-model";
-
-type ReportGroup = { name: string; reports: ReportDto[] };
-type DropPosition = "before" | "after";
+import type { DemoExampleKey } from "./home-demo-examples";
 type DemoResultView = "grid" | "orgchart" | "barchart";
 type DemoResultViewOption = { value: DemoResultView; label: string };
-const demoViewOptions: Record<ReportDemoExampleKey, DemoResultViewOption[]> = {
+const demoViewOptions: Record<DemoExampleKey, DemoResultViewOption[]> = {
   products: [{ value: "grid", label: "Grid" }],
   traversal: [{ value: "grid", label: "Grid" }],
   recursive: [
@@ -40,7 +29,6 @@ function demoViewIcon(view: DemoResultView): IconName {
     case "barchart": return "chart-bar";
   }
 }
-const REPORT_COLUMN_STORAGE_KEY = "OQuery-report-columns";
 const PRODUCTS_OQUERY = "Products:";
 const TRAVERSAL_OQUERY = "Orders: Id, OrderDate, User.FirstName, User.LastName";
 const PRODUCT_SALES_OQUERY = `OrderItems: Product.Name,
@@ -91,120 +79,67 @@ INNER JOIN Main.Employees AS member
 LEFT JOIN Main.Employees AS manager
     ON manager.Id = tree.ManagerId;`;
 
-type DemoQueryLanguage = "sql";
+const demoSqlKeywords = new Set([
+  "WITH", "SELECT", "FROM", "WHERE", "GROUP", "BY", "HAVING", "ORDER", "LIMIT", "OFFSET",
+  "ASC", "DESC", "AS", "AND", "OR", "IN", "IS", "NULL", "LIKE", "JOIN", "LEFT", "RIGHT",
+  "INNER", "OUTER", "ON", "DISTINCT", "TOP", "UNION", "ALL", "OVER", "PARTITION",
+]);
+const demoSqlFunctions = new Set(["AVG", "SUM", "COUNT"]);
+const demoSqlContexts = new Set(["EMPLOYEETREE", "PRODUCTSALES"]);
+const demoSqlTables = new Set(["EMPLOYEES", "ORDERITEMS", "PRODUCTS"]);
 
-const demoQueryPatterns: Record<DemoQueryLanguage, RegExp> = {
-  sql: /\b(EmployeeTree|Employees|ProductSales|OrderItems|Products|AVG|SUM|COUNT|WITH|AS|SELECT|FROM|WHERE|GROUP|BY|HAVING|ORDER|LIMIT|OFFSET|ASC|DESC|AND|OR|IN|IS|NULL|LIKE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|DISTINCT|TOP|UNION|ALL|OVER|PARTITION)\b/gi,
-};
-
-function highlightDemoQuery(query: string, language: DemoQueryLanguage) {
-  const pattern = demoQueryPatterns[language];
-  const keywordPattern = new RegExp(pattern.source, "i");
-  return query.split(pattern).map((token, index) => (
-    keywordPattern.test(token)
-      ? <span className={["employeetree", "productsales", "revenuebymonth", "products"].includes(token.toLocaleLowerCase())
-        ? "demo-query-reference"
-        : "demo-query-keyword"} key={`${token}-${index}`}>{token}</span>
-      : token
-  ));
-}
-
-function readReportColumns(): Record<string, number> {
-  const savedColumns = window.sessionStorage.getItem(REPORT_COLUMN_STORAGE_KEY);
-  if (!savedColumns) return {};
-  const parsedColumns: unknown = JSON.parse(savedColumns);
-  if (typeof parsedColumns !== "object" || parsedColumns === null || Array.isArray(parsedColumns)) {
-    throw new Error("Invalid report columns in browser session storage.");
-  }
-
-  const columns: Record<string, number> = {};
-  Object.entries(parsedColumns).forEach(([fileName, column]) => {
-    if (typeof column !== "number" || !Number.isSafeInteger(column) || column < 0) {
-      throw new Error("Invalid report column index in browser session storage.");
-    }
-    columns[fileName] = column;
+function highlightDemoQuery(query: string, language: "sql") {
+  if (language !== "sql") return query;
+  return query.split(/(\b[A-Za-z_][A-Za-z0-9_]*\b)/).map((token, index) => {
+    const upperToken = token.toLocaleUpperCase();
+    const className = demoSqlKeywords.has(upperToken)
+      ? "query-oquery-protected-key"
+      : demoSqlFunctions.has(upperToken)
+        ? "query-oquery-function"
+        : demoSqlContexts.has(upperToken)
+          ? "query-oquery-context-key"
+          : demoSqlTables.has(upperToken)
+            ? "query-oquery-table-key"
+            : null;
+    return className
+      ? <span className={className} key={`${token}-${index}`}>{token}</span>
+      : token;
   });
-  return columns;
 }
 
-type ReportDashboardProps = {
+type HomePageProps = {
   onNavigateToPage: (page: "sources" | "metadata" | "builder") => void;
-  groups: ReportGroup[];
-  sortedReports: ReportDto[];
-  filteredReports: ReportDto[];
-  category: string;
-  search: string;
-  numberOfBuiltins: number;
-  numberOfCustom: number;
-  reportsStatus: string;
-  reportsError: string | null;
   metadataStatus: string;
   metadataError: string | null;
   metadata: MetadataEntity[];
   functionDefinitions: FunctionDefinition[];
-  reportResults: Record<string, QueryResult>;
-  reportLoading: Record<string, boolean>;
-  reportErrors: Record<string, string>;
-  demoResults: Partial<Record<ReportDemoExampleKey, QueryResult>>;
-  demoLoading: Partial<Record<ReportDemoExampleKey, boolean>>;
-  demoErrors: Partial<Record<ReportDemoExampleKey, string>>;
-  chartTypeOverrides: Record<string, ChartType>;
-  chartSettingsOverrides: Record<string, ReportChartSettings>;
-  detailReport: ReportDto | null;
-  detailResult?: QueryResult;
-  detailChartType: ChartType;
-  detailChartSettings: ReportChartSettings;
-  detailLoading: boolean;
-  detailError?: string;
-  message: string;
-  messageIsError: boolean;
-  onCreateReport: () => void;
-  onSelectCategory: (category: string) => void;
-  onSearchChange: (search: string) => void;
-  onDismissMessage: () => void;
-  onRun: (report: ReportDto) => void;
-  onRunDemo: (example: ReportDemoExampleKey, query: string) => void;
-  onCloseDemo: (example: ReportDemoExampleKey) => void;
-  onOpenDetails: (report: ReportDto) => void;
-  onReorderReports: (sourceFileName: string, targetFileName: string, position: DropPosition) => void;
-  onCloseDetails: () => void;
-  onRunDetails: () => void;
-  onApplyLayout: (report: ReportDto) => string | null;
-  onChartTypeChange: (report: ReportDto, chartType: ChartType) => void;
-  onChartSettingsChange: (report: ReportDto, settings: ReportChartSettings) => void;
-  onEdit: (report: ReportDto) => void;
-  onEditQuery: (report: ReportDto) => void;
-  onDelete: (report: ReportDto) => void;
+  demoResults: Partial<Record<DemoExampleKey, QueryResult>>;
+  demoLoading: Partial<Record<DemoExampleKey, boolean>>;
+  demoErrors: Partial<Record<DemoExampleKey, string>>;
+  onRunDemo: (example: DemoExampleKey, query: string) => void;
+  onCloseDemo: (example: DemoExampleKey) => void;
 };
 
 export default function HomePage({
   onNavigateToPage,
-  groups, sortedReports, filteredReports, category, search, numberOfBuiltins, numberOfCustom,
-  reportsStatus, reportsError, metadataStatus, metadataError, metadata, reportResults, reportLoading,
-  functionDefinitions,
-  reportErrors, demoResults, demoLoading, demoErrors, chartTypeOverrides, chartSettingsOverrides, detailReport, detailResult, detailChartType, detailChartSettings, detailLoading, detailError,
-  message, messageIsError, onCreateReport, onSelectCategory, onSearchChange,
-  onDismissMessage, onRun, onRunDemo, onCloseDemo, onOpenDetails, onReorderReports, onCloseDetails, onRunDetails, onApplyLayout, onChartTypeChange, onChartSettingsChange, onEdit, onEditQuery, onDelete,
-}: ReportDashboardProps) {
-  const draggedReport = useRef<string | null>(null);
-  const dragPreview = useRef<HTMLElement | null>(null);
-  const [dropIndicator, setDropIndicator] = useState<{ fileName: string; position: DropPosition } | null>(null);
-  const [columnByFileName, setColumnByFileName] = useState(readReportColumns);
+  metadataStatus, metadataError, metadata, functionDefinitions,
+  demoResults, demoLoading, demoErrors, onRunDemo, onCloseDemo,
+}: HomePageProps) {
   const [showProductsSql, setShowProductsSql] = useState(false);
   const [showTraversalSql, setShowTraversalSql] = useState(false);
   const [showRevenueSql, setShowRevenueSql] = useState(false);
   const [showRecursiveSql, setShowRecursiveSql] = useState(false);
   const [expandedHierarchyNodes, setExpandedHierarchyNodes] = useState<Set<string> | null>(null);
   const [expandedHierarchyLists, setExpandedHierarchyLists] = useState<Set<string>>(new Set());
-  const [demoResultViews, setDemoResultViews] = useState<Partial<Record<ReportDemoExampleKey, DemoResultView>>>({});
-  const [activeDemoPopup, setActiveDemoPopup] = useState<ReportDemoExampleKey | null>(null);
-  const [demoQueries, setDemoQueries] = useState<Record<ReportDemoExampleKey, string>>({
+  const [demoResultViews, setDemoResultViews] = useState<Partial<Record<DemoExampleKey, DemoResultView>>>({});
+  const [activeDemoPopup, setActiveDemoPopup] = useState<DemoExampleKey | null>(null);
+  const [demoQueries, setDemoQueries] = useState<Record<DemoExampleKey, string>>({
     products: PRODUCTS_OQUERY,
     traversal: TRAVERSAL_OQUERY,
     recursive: EMPLOYEE_TREE_OQUERY,
     revenue: PRODUCT_SALES_OQUERY,
   });
-  const demoSelectionsRef = useRef<Partial<Record<ReportDemoExampleKey, string>>>({});
+  const demoSelectionsRef = useRef<Partial<Record<DemoExampleKey, string>>>({});
   const [columnCount, setColumnCount] = useState(() => {
     const width = window.innerWidth;
     return width <= 600 ? 1 : width <= 860 ? 2 : 3;
@@ -220,26 +155,15 @@ export default function HomePage({
   }, []);
 
   useEffect(() => {
-    window.sessionStorage.setItem(REPORT_COLUMN_STORAGE_KEY, JSON.stringify(columnByFileName));
-  }, [columnByFileName]);
-
-  useEffect(() => {
     setExpandedHierarchyNodes(null);
     setExpandedHierarchyLists(new Set());
   }, [demoResults.recursive]);
 
-  const clearDragPreview = () => {
-    dragPreview.current?.remove();
-    dragPreview.current = null;
-    draggedReport.current = null;
-    setDropIndicator(null);
-  };
-
-  const runDemo = (example: ReportDemoExampleKey, query: string) => {
+  const runDemo = (example: DemoExampleKey, query: string) => {
     setActiveDemoPopup(example);
     onRunDemo(example, query);
   };
-  const closeDemo = (example: ReportDemoExampleKey) => {
+  const closeDemo = (example: DemoExampleKey) => {
     if (activeDemoPopup === example) setActiveDemoPopup(null);
     onCloseDemo(example);
   };
@@ -342,12 +266,12 @@ export default function HomePage({
     );
   };
 
-  const renderDemoReport = (result: QueryResult) => {
+  const renderDemoChart = (result: QueryResult) => {
     const normalizeColumn = (column: string) => column.replace(/[^a-z0-9]/gi, "").toLowerCase();
     const labelIndex = result.columns.findIndex((column) => normalizeColumn(column) === "name");
     const metricIndex = result.columns.length - 1;
     if (metricIndex < 0) {
-      return <div className="new-home-demo-report-empty">No numeric result field is available for this report.</div>;
+      return <div className="new-home-demo-chart-empty">No numeric result field is available for this sample.</div>;
     }
     const data: SimpleChartData = {
       kind: "simple",
@@ -358,10 +282,10 @@ export default function HomePage({
           : [];
       }),
     };
-    return <div className="new-home-demo-report"><BarChart data={data} /></div>;
+    return <div className="new-home-demo-chart"><BarChart data={data} /></div>;
   };
 
-  const renderDemoResult = (example: ReportDemoExampleKey) => {
+  const renderDemoResult = (example: DemoExampleKey) => {
     if (activeDemoPopup !== example) return null;
     const result = demoResults[example];
     const loading = Boolean(demoLoading[example]);
@@ -399,11 +323,11 @@ export default function HomePage({
                       <Icon name={demoViewIcon(option.value)} size={13} />
                     </button>)}
                   </div>}
-                  <button className="report-icon-button" type="button" aria-label="Close query result" title="Close query result" onClick={() => closeDemo(example)}><Icon name="close" size={13} /></button>
+                  <button className="demo-icon-button" type="button" aria-label="Close query result" title="Close query result" onClick={() => closeDemo(example)}><Icon name="close" size={13} /></button>
                 </div>
               </div>
               {selectedView === "orgchart" && hierarchyChart}
-              {selectedView === "barchart" && renderDemoReport(result)}
+              {selectedView === "barchart" && renderDemoChart(result)}
               {selectedView === "grid" && <div className="new-home-example-table"><div className="table-wrap"><table><thead><tr>{result.columns.map((column, index) => <th key={`${column}-${index}`}>{column}</th>)}</tr></thead><tbody>{result.rows.slice(0, 20).map((row, rowIndex) => <tr key={rowIndex}>{result.columns.map((_, columnIndex) => <td key={columnIndex}>{row[columnIndex] ?? ""}</td>)}</tr>)}</tbody></table>{!result.rows.length && <p className="empty-state">No records matched this query.</p>}</div></div>}
             </div>
             : null}
@@ -411,44 +335,51 @@ export default function HomePage({
     );
   };
 
-  const demoRunQuery = (example: ReportDemoExampleKey) =>
+  const demoRunQuery = (example: DemoExampleKey) =>
     demoSelectionsRef.current[example]?.trim() || demoQueries[example];
   const suggestionData = getOQuerySuggestionData(metadata);
 
   const renderDemoQuery = (
-    example: ReportDemoExampleKey,
+    example: DemoExampleKey,
     query: string,
     sqlQuery: string,
     sqlSelected: boolean,
-  ) => sqlSelected
-    ? <pre><code>{highlightDemoQuery(sqlQuery, "sql")}</code></pre>
-    : <div className="new-home-example-editor"><OQueryEditor
-      aria-label={`${example} OQuery example`}
-      oquery
-      compact
-      showLineNumbers={false}
-      showContextRunAlways
-      showFoldControls={false}
-      rows={Math.max(1, query.split("\n").length)}
-      initialText={query}
-      functionDefinitions={functionDefinitions}
-      suggestionFields={suggestionData.fields}
-      suggestionEntities={suggestionData.entities}
-      suggestionEntitiesMetadata={suggestionData.entitiesMetadata}
-      onTextChange={(text) => setDemoQueries((current) => ({ ...current, [example]: text }))}
-      onSelectionChange={(text) => {
-        demoSelectionsRef.current[example] = text;
-      }}
-      onExecuteContext={() => runDemo(example, demoRunQuery(example))}
-      onExecuteSelectedText={(text) => runDemo(example, text)}
-    /></div>;
+    onSqlSelectedChange: (selected: boolean) => void,
+  ) => <div className="new-home-example-code">
+    <div className="new-home-example-toggle" role="tablist" aria-label={`${example} example representation`}>
+      <button type="button" role="tab" aria-selected={!sqlSelected} className={!sqlSelected ? "active" : ""} onClick={() => onSqlSelectedChange(false)}>OQuery</button>
+      <button type="button" role="tab" aria-selected={sqlSelected} className={sqlSelected ? "active" : ""} onClick={() => onSqlSelectedChange(true)}>SQL</button>
+    </div>
+    {sqlSelected
+      ? <pre><code>{highlightDemoQuery(sqlQuery, "sql")}</code></pre>
+      : <div className="new-home-example-editor"><OQueryEditor
+        aria-label={`${example} OQuery example`}
+        oquery
+        compact
+        showLineNumbers={false}
+        showContextRunAlways
+        showFoldControls={false}
+        rows={Math.max(1, query.split("\n").length)}
+        initialText={query}
+        functionDefinitions={functionDefinitions}
+        suggestionFields={suggestionData.fields}
+        suggestionEntities={suggestionData.entities}
+        suggestionEntitiesMetadata={suggestionData.entitiesMetadata}
+        onTextChange={(text) => setDemoQueries((current) => ({ ...current, [example]: text }))}
+        onSelectionChange={(text) => {
+          demoSelectionsRef.current[example] = text;
+        }}
+        onExecuteContext={() => runDemo(example, demoRunQuery(example))}
+        onExecuteSelectedText={(text) => runDemo(example, text)}
+      /></div>}
+  </div>;
 
   return (
-    <div className="reports-workspace">
-    <section className="new-home-intro" aria-labelledby="reports-hero-title">
+    <div className="home-workspace">
+    <section className="new-home-intro" aria-labelledby="home-hero-title">
       <div className="new-home-hero">
         <div className="new-home-copy">
-          <h1 id="reports-hero-title">Your data has a shape.<br /><span>Give it a language.</span></h1>
+          <h1 id="home-hero-title">Your data has a shape.<br /><span>Give it a language.</span></h1>
           <p>Stop writing queries as nested SQL structures. Start building them as independent, reusable components.</p>
           <div className="new-home-actions">
             <button className="button primary" type="button" onClick={() => onNavigateToPage("sources")}><Icon name="database" size={15} /> Connect a data source</button>
@@ -457,7 +388,7 @@ export default function HomePage({
         </div>
         <div className="new-home-signal" aria-label="OQuery architecture">
           <span className="new-home-signal-label">ONE FOUNDATION Â· MANY SURFACES</span>
-          <div className="new-home-signal-line"><span className="new-home-signal-node"><Icon name="database" size={17} /><b>Physical data</b><small>Tables Â· providers</small></span><i /><span className="new-home-signal-node primary"><Icon name="schema" size={17} /><b>OQuery</b><small>Entities Â· contexts</small></span><i /><span className="new-home-signal-node output"><Icon name="query" size={17} /><b>Product features</b><small>APIs Â· reports Â· apps</small></span></div>
+          <div className="new-home-signal-line"><span className="new-home-signal-node"><Icon name="database" size={17} /><b>Physical data</b><small>Tables Â· providers</small></span><i /><span className="new-home-signal-node primary"><Icon name="schema" size={17} /><b>OQuery</b><small>Entities Â· contexts</small></span><i /><span className="new-home-signal-node output"><Icon name="query" size={17} /><b>Product features</b><small>APIs Â· apps</small></span></div>
           <p>Keep the database you have. Add a vocabulary your application can share.</p>
         </div>
       </div>
@@ -474,13 +405,13 @@ export default function HomePage({
       <div className="new-home-example-rail">
         <article className="new-home-example">
           <div className="new-home-example-marker">01</div>
-          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>How do I explore a product?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Product example representation"><button type="button" role="tab" aria-selected={!showProductsSql} className={!showProductsSql ? "active" : ""} onClick={() => setShowProductsSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showProductsSql} className={showProductsSql ? "active" : ""} onClick={() => setShowProductsSql(true)}>SQL</button></div></div><p>A business entity is enough to begin exploring its exposed data.</p></div>
-          {renderDemoQuery("products", demoQueries.products, "SELECT *\nFROM sa.Products;", showProductsSql)}
+          <div className="new-home-example-copy"><strong>How do I explore a product?</strong><p>A business entity is enough to begin exploring its exposed data.</p></div>
+          {renderDemoQuery("products", demoQueries.products, "SELECT *\nFROM sa.Products;", showProductsSql, setShowProductsSql)}
           {renderDemoResult("products")}
         </article>
         <article className="new-home-example">
           <div className="new-home-example-marker">02</div>
-          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>Who placed each order?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Order customer example representation"><button type="button" role="tab" aria-selected={!showTraversalSql} className={!showTraversalSql ? "active" : ""} onClick={() => setShowTraversalSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showTraversalSql} className={showTraversalSql ? "active" : ""} onClick={() => setShowTraversalSql(true)}>SQL</button></div></div><p>Follow an orderâ€™s customer relationship without writing the join by hand.</p></div>
+          <div className="new-home-example-copy"><strong>Who placed each order?</strong><p>Follow an orderâ€™s customer relationship without writing the join by hand.</p></div>
           {renderDemoQuery("traversal", demoQueries.traversal, `SELECT
     o.Id,
     o.OrderDate,
@@ -488,19 +419,19 @@ export default function HomePage({
     u.LastName
 FROM sa.Orders AS o
 LEFT JOIN Main.Users AS u
-    ON o.UserId = u.Id;`, showTraversalSql)}
+    ON o.UserId = u.Id;`, showTraversalSql, setShowTraversalSql)}
           {renderDemoResult("traversal")}
         </article>
         <article className="new-home-example">
           <div className="new-home-example-marker">03</div>
-          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>Do you know the total members at each hierarchy level?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Recursive hierarchy example representation"><button type="button" role="tab" aria-selected={!showRecursiveSql} className={!showRecursiveSql ? "active" : ""} onClick={() => setShowRecursiveSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showRecursiveSql} className={showRecursiveSql ? "active" : ""} onClick={() => setShowRecursiveSql(true)}>SQL</button></div></div><p>The engine detects the self-reference and generates the recursive SQL automatically.</p></div>
-          {renderDemoQuery("recursive", demoQueries.recursive, EMPLOYEE_TREE_SQL, showRecursiveSql)}
+          <div className="new-home-example-copy"><strong>Do you know the total members at each hierarchy level?</strong><p>The engine detects the self-reference and generates the recursive SQL automatically.</p></div>
+          {renderDemoQuery("recursive", demoQueries.recursive, EMPLOYEE_TREE_SQL, showRecursiveSql, setShowRecursiveSql)}
           {renderDemoResult("recursive")}
         </article>
         <article className="new-home-example">
           <div className="new-home-example-marker">04</div>
-          <div className="new-home-example-copy"><div className="new-home-example-copy-head"><strong>Which products sell above average?</strong><div className="new-home-example-toggle" role="tablist" aria-label="Product sales example representation"><button type="button" role="tab" aria-selected={!showRevenueSql} className={!showRevenueSql ? "active" : ""} onClick={() => setShowRevenueSql(false)}>OQuery</button><button type="button" role="tab" aria-selected={showRevenueSql} className={showRevenueSql ? "active" : ""} onClick={() => setShowRevenueSql(true)}>SQL</button></div></div><p>Build product sales from a reusable context, calculate the overall average, and filter in an outer query.</p></div>
-          {renderDemoQuery("revenue", demoQueries.revenue, PRODUCT_SALES_SQL, showRevenueSql)}
+          <div className="new-home-example-copy"><strong>Which products sell above average?</strong><p>Build product sales from a reusable context, calculate the overall average, and filter in an outer query.</p></div>
+          {renderDemoQuery("revenue", demoQueries.revenue, PRODUCT_SALES_SQL, showRevenueSql, setShowRevenueSql)}
           {renderDemoResult("revenue")}
         </article>
       </div>

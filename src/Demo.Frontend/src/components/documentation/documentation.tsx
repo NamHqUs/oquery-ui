@@ -63,7 +63,7 @@ export default function Documentation() {
         <header className="documentation-hero">
           <span className="eyebrow"><i /> PRODUCT GUIDE · .NET QUERY ENGINE</span>
           <h1>Build configurable data experiences with oQuery</h1>
-          <p>oQuery turns query intent, runtime metadata, and domain vocabulary into safe, provider-specific SQL. Follow relationships, derive grouping and HAVING, compose reusable contexts, and power data grids, reports, admin screens, and APIs without creating a CLR class for every table.</p>
+          <p>oQuery turns query intent, runtime metadata, and domain vocabulary into safe, provider-specific SQL. Follow relationships, derive grouping and HAVING, compose reusable contexts, and power data grids, saved queries, admin screens, and APIs without creating a CLR class for every table.</p>
           <div className="documentation-hero-actions">
             <a className="button primary" href="#quickstart"><Icon name="play" size={14} /> Start the quickstart</a>
             <a className="documentation-text-link" href="https://github.com/NamHqUs/OQuery" target="_blank" rel="noreferrer">View source on GitHub <Icon name="chevron" size={13} /></a>
@@ -112,7 +112,7 @@ var rows = db.Query("User")
           <div className="documentation-section-heading">
             <span className="section-kicker">02 · QUERY MODEL</span>
             <h2>Choose the input that fits your product</h2>
-            <p>The compiler translates each input into the same expression pipeline, so a saved report and an interactive grid behave consistently.</p>
+            <p>The compiler translates each input into the same expression pipeline, so a saved query and an interactive grid behave consistently.</p>
           </div>
           <div className="documentation-model-grid">
             <div className="documentation-model-card"><span className="documentation-model-number">A</span><strong>C# expressions</strong><p>Ideal for application-defined queries and reusable base queries.</p><code>db.Query("Order").Where(...)</code></div>
@@ -171,7 +171,7 @@ Users: Id, Name, Count(Members.Id) TotalMembers
         <section id="contexts" className="documentation-section">
           <div className="documentation-section-heading">
             <span className="section-kicker">05 · COMPOSITION</span>
-            <h2>Build complex reports from reusable contexts</h2>
+            <h2>Build complex queries from reusable contexts</h2>
             <p>A context is a named query definition. Consumers choose when and how to join it, and the same context can be used more than once with different aliases.</p>
           </div>
           <CodeBlock>{`Products: Id, Name,

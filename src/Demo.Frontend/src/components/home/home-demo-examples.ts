@@ -1,1 +1,1 @@
-export type ReportDemoExampleKey = "products" | "traversal" | "recursive" | "revenue";
+export type DemoExampleKey = "products" | "traversal" | "recursive" | "revenue";

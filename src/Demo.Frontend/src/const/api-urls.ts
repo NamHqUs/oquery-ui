@@ -36,12 +36,6 @@ export const apiUrls = {
     fromOQuery: `${backendApiUrl}/dynamic-query/query/from-oquery`,
     toStringText: `${backendApiUrl}/dynamic-query/query/to-string-from-text`,
   },
-  reports: {
-    list: `${backendApiUrl}/report`,
-    toString: `${backendApiUrl}/report/to-string`,
-    parse: `${backendApiUrl}/report/parse`,
-    byFileName: (fileName: string) => `${backendApiUrl}/report/${encodeURIComponent(fileName)}`,
-  },
   queryRequests: {
     list: `${backendApiUrl}/query-request`,
     create: `${backendApiUrl}/query-request`,

@@ -7,13 +7,12 @@ import Icon, { getDatabaseIconName } from "./components/icon/icon";
 import DataSources from "./components/data-sources/data-sources";
 import DatabaseConnection from "./components/data-sources/database-connection/database-connection";
 import { fetchDbProvider, fetchDbSchema, fetchDbTables } from "./components/data-sources/database-slice";
-import QueryBuilder, { setQueryBuilderDefinition } from "./components/query-builder/query-builder";
+import QueryBuilder from "./components/query-builder/query-builder";
 import MetadataBuilder from "./components/metadata-builder/metadata-builder";
 import FunctionDefinitionsWorkspace from "./components/function-definition/function-definition";
-import Reports from "./components/reports/reports";
+import Home from "./components/home/home";
 import Documentation from "./components/documentation/documentation";
 import { MessageBoxProvider } from "./components/message-box/message-box";
-import type { QueryDefinition } from "./components/query-builder/query-design/query-builder-slice";
 import { store, type RootState } from "./store/store";
 import "./styles.css";
 
@@ -182,18 +181,13 @@ function App() {
       </header>
 
       <Routes>
-        <Route path={PAGE_PATHS.home} element={<div className="page-transition page-transition-no-slide"><Reports onNavigateToPage={navigateToPage} onEditQuery={(definition: QueryDefinition) => {
-          setQueryBuilderDefinition(definition);
-          setQueryBuilderInstance((current) => current + 1);
-          navigateToPage("builder", true);
-        }} /></div>} />
+        <Route path={PAGE_PATHS.home} element={<div className="page-transition page-transition-no-slide"><Home onNavigateToPage={navigateToPage} /></div>} />
         <Route path={PAGE_PATHS.documentation} element={<div className="page-transition page-transition-no-slide"><Documentation /></div>} />
         <Route path={PAGE_PATHS.builder} element={null} />
         <Route path={PAGE_PATHS.metadata} element={null} />
         <Route path={PAGE_PATHS.functions} element={null} />
         <Route path={LEGACY_FUNCTIONS_PATH} element={<Navigate to={PAGE_PATHS.functions} replace />} />
         <Route path={PAGE_PATHS.sources} element={<div className="page-transition page-transition-no-slide"><DataSources onRequestConnection={requestDatabaseConnection} /></div>} />
-        <Route path="/reports" element={<Navigate to={PAGE_PATHS.home} replace />} />
         <Route path="*" element={<Navigate to={PAGE_PATHS.home} replace />} />
       </Routes>
       {connectionDialogOpen && createPortal(

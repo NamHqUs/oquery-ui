@@ -17,7 +17,6 @@ export default defineConfig(({ mode }) => {
           bypass: (req) => req.headers.accept?.includes("text/html") ? "/index.html" : undefined,
         },
         "/dynamic-query": backendApiUrl,
-        "^/report(?:/|$)": backendApiUrl,
         "^/query-request(?:/|$)": backendApiUrl,
       },
     },

@@ -6,7 +6,6 @@ This is the React/Vite front end for the oQuery demo. It demonstrates a metadata
 - Selectable projection fields and aggregates, organized into drag-and-drop rows
 - Dynamic filter controls and quick search
 - A responsive dark data grid
-- A Reports studio with 20 curated built-in analyses, query-backed visualizations, and CRUD for custom reports
 - A Saved Queries library that distinguishes built-in and custom requests, loads a selected request into Query Builder, and saves/deletes custom requests per user section
 - URL-backed pages with browser back/forward support; Query Builder inputs remain in place while visiting other pages and its design is restored after a refresh
 - A Data Sources explorer with Data View and a draggable schema Diagram, including table columns, primary keys, foreign-key cardinalities, and a top-10 row preview
@@ -23,8 +22,6 @@ shared by all clients; `POST /db/disconnect` does not release or dispose it, so
 one client's disconnect cannot interrupt other clients.
 
 After connecting, the Data View groups tables by schema, displays column and relationship metadata, and previews up to 10 rows. Schema and relationship metadata come from `GET /db/schema`; preview data comes from `GET /db/data/{tableName}` with `schema` and `limit=10` query parameters. The schema Diagram remains available as the metadata-builder view.
-
-Built-in reports choose a visualization based on the analysis (for example, monthly revenue trends, customer rankings, channel mix, invoice-status funnels, and customer-value scatter plots). Custom reports save their name, description, visualization, and query with the demo backend.
 
 Run it with:
 
@@ -54,9 +51,8 @@ To change the default, edit `debugUiEnabled` in `src/components/query-builder/qu
 
 ## OQuery text editor
 
-The home-page OQuery examples preserve leading spaces and align the highlighted
-text with the textarea caret. Their highlight layer resets the static example
-margin so the cursor does not appear shifted by roughly two characters.
+The OQuery editor preserves leading spaces and aligns highlighted text with the
+textarea caret.
 Run the layout regression test with:
 
 ```powershell
