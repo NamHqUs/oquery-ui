@@ -4,7 +4,7 @@ import type { FunctionDefinition } from "../function-definition/types";
 import { getOQueryContextKeys } from "../query-builder/query-design/oquery-context-colors";
 import { applyFoldedOqueryEdit, getFoldedOquery, getOqueryFolds } from "../query-builder/query-design/oquery-folding";
 import { toggleOqueryComments } from "./oquery-comments";
-import { getOQueryCompletions, type OQueryCompletion } from "./oquery-completions";
+import { getOQueryCompletions, type OQueryCompletion, type OQuerySuggestionEntity } from "./oquery-completions";
 import { normalizeOqueryEditorText } from "./oquery-editor-text";
 import "../query-builder/query-design/query-design.css";
 
@@ -17,8 +17,9 @@ type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onCh
   oquery?: boolean;
   functionDefinitions?: FunctionDefinition[];
   suggestionFields?: string[];
-  suggestionRelationFields?: string[];
   suggestionEntities?: string[];
+  suggestionEntityName?: string;
+  suggestionEntitiesMetadata?: OQuerySuggestionEntity[];
   errorFunctionName?: string;
   compact?: boolean;
   showGutter?: boolean;
@@ -329,8 +330,9 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
   onSelectionChange = () => undefined,
   onExecuteContext,
   suggestionFields = [],
-  suggestionRelationFields = [],
   suggestionEntities = [],
+  suggestionEntityName = "",
+  suggestionEntitiesMetadata = [],
   ...props
 }, ref) => {
   const highlightRef = useRef<HTMLPreElement>(null);
@@ -396,7 +398,7 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
   };
   const completionResult = completionPosition === null
     ? null
-    : getOQueryCompletions(projection.text, completionPosition, suggestionFields, suggestionRelationFields, suggestionEntities, functionDefinitions);
+    : getOQueryCompletions(projection.text, completionPosition, suggestionFields, [], suggestionEntities, functionDefinitions, suggestionEntityName, suggestionEntitiesMetadata);
   const completions = completionResult?.items ?? [];
   const completionQuery = completionResult
     ? projection.text.slice(completionResult.replaceStart, completionResult.replaceEnd)
@@ -432,9 +434,11 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
     const caret = event.currentTarget.selectionStart;
     const insertedCharacter = inputEvent.data
       ?? event.currentTarget.value.slice(Math.max(0, caret - 1), caret);
+    const isCompletionStopCharacter = ",<>()[]{}=!:;+-*/%&|#".includes(insertedCharacter);
     return inputEvent.inputType === "insertText"
       && insertedCharacter.length === 1
-      && !/\s/.test(insertedCharacter);
+      && !/\s/.test(insertedCharacter)
+      && !isCompletionStopCharacter;
   };
 
   return (

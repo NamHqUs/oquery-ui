@@ -25,6 +25,12 @@ export type OQueryCompletionResult = {
   replaceEnd: number;
 };
 
+export type OQuerySuggestionEntity = {
+  name: string;
+  fields: string[];
+  relations: { name: string; target: string }[];
+};
+
 type Candidate = OQueryCompletion & {
   relevance: number;
 };
@@ -45,6 +51,7 @@ const clauseKeywords = [
   ["Order", "Sort results"] as const,
   ["Skip", "Skip rows"] as const,
   ["Take", "Limit rows"] as const,
+  ["Join", "Inner join a context"] as const,
   ["Inner Join", "Join a context"] as const,
   ["Left Join", "Join a context"] as const,
   ["Right Join", "Join a context"] as const,
@@ -129,19 +136,38 @@ function getDynamicCandidates(text: string) {
   return { contexts, aliases };
 }
 
-function getCompletionContext(lineBeforeCursor: string, text: string): CompletionContext {
+function getCompletionContext(lineBeforeCursor: string, text: string, position: number): CompletionContext {
   const trimmed = lineBeforeCursor.trimStart();
   const lower = trimmed.toLocaleLowerCase();
   const hasHeader = /^[A-Za-z_][A-Za-z0-9_]*(?:\s+is\s+[A-Za-z_][A-Za-z0-9_]*)?\s*:/.test(trimmed);
   const isIndented = /^\s/.test(lineBeforeCursor);
+  const lineStart = text.lastIndexOf("\n", Math.max(0, position - 1)) + 1;
+  const beforeCurrentLine = text.slice(0, lineStart);
+  const previousLines = beforeCurrentLine.split(/\r?\n/);
+  const lastHeaderIndex = previousLines.reduce(
+    (index, line, lineIndex) => /^\s*[A-Za-z_][A-Za-z0-9_]*(?:\s+is\s+[A-Za-z_][A-Za-z0-9_]*)?\s*:/.test(line)
+      ? lineIndex
+      : index,
+    -1,
+  );
+  const lastClauseIndex = previousLines.reduce(
+    (index, line, lineIndex) => /^\s*(?:where|order|skip|take|join|(?:inner|left|right|full)\s+join)\b/i.test(line)
+      ? lineIndex
+      : index,
+    -1,
+  );
+  const isProjectionParagraph = lastHeaderIndex > lastClauseIndex;
+  const isContextDeclaration = /^[A-Za-z_][A-Za-z0-9_]*\s+is\s+[A-Za-z_][A-Za-z0-9_]*(?:\s*:|\s*$)/i.test(trimmed);
 
   if (!text.trim()) return "document";
-  if (/\b(?:inner|left|right|full)\s+join(?:\s+|$)/i.test(trimmed)) return "join";
   if (/^on(?:\s+|$)/i.test(trimmed) || /\bjoin\s+\S+\s+on(?:\s+|$)/i.test(lower)) return "on";
+  if (/\b(?:join|(?:inner|left|right|full)\s+join)(?:\s+|$)/i.test(trimmed)) return "join";
   if (/^where(?:\s+|$)/i.test(trimmed)) {
     return /(?:=|!=|>=|<=|>|<)\s*$/.test(lineBeforeCursor) ? "value" : "where";
   }
   if (/^order(?:\s+|$)/i.test(trimmed)) return "order";
+  if (isContextDeclaration && !/:\s*/.test(trimmed)) return "header";
+  if (isProjectionParagraph && !lineBeforeCursor.includes(":")) return "projection";
   if (!isIndented && !hasHeader && !lineBeforeCursor.includes(":")) return "header";
   if (hasHeader) return "projection";
   if (isIndented && !trimmed.includes(" ")) return "clause";
@@ -151,6 +177,64 @@ function getCompletionContext(lineBeforeCursor: string, text: string): Completio
 function getRelationPath(lineBeforeCursor: string) {
   const match = /(?:^|[\s,(])([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\.([A-Za-z_][A-Za-z0-9_]*)?$/.exec(lineBeforeCursor);
   return match?.[1] ?? null;
+}
+
+function isProjectionAliasPosition(lineBeforeCursor: string) {
+  const colonIndex = lineBeforeCursor.indexOf(":");
+  const projection = colonIndex >= 0 ? lineBeforeCursor.slice(colonIndex + 1) : lineBeforeCursor;
+  const currentItem = projection.slice(projection.lastIndexOf(",") + 1);
+  let parenthesisDepth = 0;
+  let hasExpression = false;
+
+  for (const character of currentItem) {
+    if (character === "(") {
+      parenthesisDepth++;
+      hasExpression = true;
+    } else if (character === ")") {
+      parenthesisDepth = Math.max(0, parenthesisDepth - 1);
+    } else if (/\S/.test(character)) {
+      hasExpression = true;
+    } else if (hasExpression && parenthesisDepth === 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function getSuggestionContext(
+  rootEntityName: string,
+  relationPath: string | null,
+  entities: OQuerySuggestionEntity[],
+  fallbackFields: string[],
+) {
+  let entity = entities.find((candidate) => candidate.name === rootEntityName);
+  if (!entity || !relationPath) {
+    return {
+      fields: fallbackFields,
+      relations: entity?.relations ?? [],
+    };
+  }
+
+  for (const relationName of relationPath.split(".")) {
+    const relation = entity.relations.find((candidate) => candidate.name === relationName);
+    if (!relation) return { fields: [], relations: [] };
+    entity = entities.find((candidate) => candidate.name === relation.target);
+    if (!entity) return { fields: [], relations: [] };
+  }
+
+  return { fields: entity.fields, relations: entity.relations };
+}
+
+function getActiveEntityName(text: string, position: number, fallback: string) {
+  const lines = text.slice(0, position).split(/\r?\n/).reverse();
+  for (const line of lines) {
+    const contextHeader = /^\s*[A-Za-z_][A-Za-z0-9_]*\s+is\s+([A-Za-z_][A-Za-z0-9_]*)\s*:/.exec(line);
+    if (contextHeader?.[1]) return contextHeader[1];
+    const queryHeader = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*:/.exec(line);
+    if (queryHeader?.[1]) return queryHeader[1];
+  }
+  return fallback;
 }
 
 function scoreCandidate(candidate: Candidate, query: string) {
@@ -164,7 +248,11 @@ function scoreCandidate(candidate: Candidate, query: string) {
   const index = label.indexOf(normalizedQuery);
   if (!exact && index < 0) return Number.POSITIVE_INFINITY;
   const matchScore = exact ? 0 : startsWith ? 100 : wordStart ? 200 : 300;
-  return categoryScore + matchScore + candidate.relevance + index;
+  return matchScore * 100000
+    + label.length * 100
+    + kindPriority[candidate.kind] * 10
+    + candidate.relevance
+    + index;
 }
 
 export function getOQueryCompletions(
@@ -174,6 +262,8 @@ export function getOQueryCompletions(
   relationFields: string[] = [],
   entities: string[],
   functionDefinitions: FunctionDefinition[],
+  rootEntityName = "",
+  suggestionEntities: OQuerySuggestionEntity[] = [],
 ): OQueryCompletionResult {
   const safePosition = Math.max(0, Math.min(position, text.length));
   const lineStart = text.lastIndexOf("\n", safePosition - 1) + 1;
@@ -181,10 +271,14 @@ export function getOQueryCompletions(
   const tokenMatch = /[A-Za-z_][A-Za-z0-9_]*$/.exec(lineBeforeCursor);
   const query = tokenMatch?.[0] ?? "";
   const replaceStart = safePosition - query.length;
-  const context = getCompletionContext(lineBeforeCursor, text);
+  const context = getCompletionContext(lineBeforeCursor, text, safePosition);
   const relationPath = getRelationPath(lineBeforeCursor);
+  const isAliasPosition = context === "projection" && isProjectionAliasPosition(lineBeforeCursor);
+  const isNewLine = lineStart > 0 && text[lineStart - 1] === "\n";
   const dynamic = getDynamicCandidates(text);
   const candidates: Candidate[] = [];
+  const activeEntityName = getActiveEntityName(text, safePosition, rootEntityName);
+  const suggestionContext = getSuggestionContext(activeEntityName, relationPath, suggestionEntities, fields);
 
   if (context === "document" || context === "header") {
     entities.forEach((entity) => addCandidate(candidates, entity, "Entity", "entity", 0, context === "document" ? `${entity}: ` : entity, context === "document" ? entity.length + 2 : undefined));
@@ -192,27 +286,14 @@ export function getOQueryCompletions(
     if (context === "header") addKeywords(candidates, expressionKeywords.filter(([label]) => label === "Is"), 10);
   }
 
-  if (context === "projection" || context === "where" || context === "on" || context === "order" || context === "value") {
-    [...new Set(relationPath ? [...fields, ...relationFields] : fields)]
-      .filter((field) => !relationPath || field.startsWith(`${relationPath}.`))
-      .forEach((field) => {
-        const isRelationField = field.includes(".");
-        const label = relationPath && isRelationField
-          ? field.slice(relationPath.length + 1)
-          : field;
-        addCandidate(
-          candidates,
-          label,
-          isRelationField ? `${relationPath} field` : "Field",
-          isRelationField ? "relation" : "field",
-          0,
-          label,
-        );
-      });
+  if (!isAliasPosition && (context === "projection" || context === "where" || context === "on" || context === "order" || context === "value")) {
+    suggestionContext.relations.forEach((relation) => addCandidate(candidates, relation.name, "Relation", "relation", 0));
+    suggestionContext.fields.forEach((field) => addCandidate(candidates, field, "Field", "field", 0));
+    if (isNewLine) addKeywords(candidates, clauseKeywords, 2);
     dynamic.aliases.forEach((alias) => addCandidate(candidates, alias, "Alias from this query", "alias", 4));
   }
 
-  if (context === "projection") {
+  if (context === "projection" || context === "on") {
     if (query) {
       functionDefinitions.forEach((definition) => addCandidate(
         candidates,

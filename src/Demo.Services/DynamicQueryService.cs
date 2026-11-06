@@ -72,7 +72,21 @@ public sealed class DynamicQueryService(
         string contextName,
         CancellationToken cancellationToken = default)
     {
-        var definition = QueryDefinitionOQueryParser.Parse(text, contextName);
+        var parsed = QueryDefinitionOQueryParser.Parse(text);
+        var definition = string.Equals(parsed.Entity, contextName, StringComparison.OrdinalIgnoreCase)
+            ? parsed
+            : parsed.Contexts?.TryGetValue(contextName, out var context) == true
+                ? new QueryDefinition(context.Entity)
+                {
+                    Projections = context.Projections,
+                    Filter = context.Filter,
+                    Sorts = context.Sorts,
+                    Take = context.Take,
+                    Skip = context.Skip,
+                    Joins = context.Joins,
+                    Contexts = parsed.Contexts,
+                }
+                : throw new KeyNotFoundException($"Query context [{contextName}] was not found.");
         return ExecuteQueryAsync(definition, cancellationToken);
     }
 
