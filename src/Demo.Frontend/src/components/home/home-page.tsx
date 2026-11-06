@@ -8,6 +8,7 @@ import BarChart from "../charts/bar-chart/bar-chart";
 import type { SimpleChartData } from "../charts/chart-types";
 import type { DemoExampleKey } from "./home-demo-examples";
 type DemoResultView = "grid" | "orgchart" | "barchart";
+type DemoRepresentation = "query" | "csharp" | "sql";
 type DemoResultViewOption = { value: DemoResultView; label: string };
 const demoViewOptions: Record<DemoExampleKey, DemoResultViewOption[]> = {
   products: [{ value: "grid", label: "Grid" }],
@@ -78,27 +79,55 @@ INNER JOIN Main.Employees AS member
     ON member.Id = tree.Id
 LEFT JOIN Main.Employees AS manager
     ON manager.Id = tree.ManagerId;`;
+const PRODUCTS_CSHARP = `var products = db.Query("Products")
+    .ToList();`;
+const TRAVERSAL_CSHARP = `var orders = db.Query("Orders")
+    .Select("Id", "OrderDate", "User.FirstName", "User.LastName")
+    .ToList();`;
+const RECURSIVE_CSHARP = `var employees = db.Query("Employees")
+    .Recursive("Members", (manager, members) => new
+    {
+        ManagerName = manager["FirstName"],
+        MemberName = members["FirstName"],
+        TotalMembers = members["Id"].Count()
+    })
+    .ToList();`;
+const REVENUE_CSHARP = `var sales = db.Query("OrderItems")
+    .Select(item => new
+    {
+        ProductName = "Product.Name",
+        TotalRevenue = "SUM(Quantity * UnitPrice)",
+        Average = "AverageOver(TotalRevenue)"
+    })
+    .Where(item => item["TotalRevenue"] > item["Average"])
+    .ToList();`;
 
 const demoSqlKeywords = new Set([
   "WITH", "SELECT", "FROM", "WHERE", "GROUP", "BY", "HAVING", "ORDER", "LIMIT", "OFFSET",
   "ASC", "DESC", "AS", "AND", "OR", "IN", "IS", "NULL", "LIKE", "JOIN", "LEFT", "RIGHT",
   "INNER", "OUTER", "ON", "DISTINCT", "TOP", "UNION", "ALL", "OVER", "PARTITION",
 ]);
-const demoSqlFunctions = new Set(["AVG", "SUM", "COUNT"]);
 const demoSqlContexts = new Set(["EMPLOYEETREE", "PRODUCTSALES"]);
 const demoSqlTables = new Set(["EMPLOYEES", "ORDERITEMS", "PRODUCTS"]);
+const demoCSharpKeywords = new Set([
+  "VAR", "NEW", "OBJECT", "NULL", "TRUE", "FALSE", "USING", "DICTIONARY", "QUERY", "RECURSIVE", "SELECT", "WHERE", "TOLIST"
+]);
+const demoCSharpTypes = new Set(["DICTIONARY", "STRING", "OBJECT"]);
 
-function highlightDemoQuery(query: string, language: "sql") {
-  if (language !== "sql") return query;
+function highlightDemoQuery(query: string, language: DemoRepresentation, functionDefinitions: FunctionDefinition[]) {
+  const keywords = language === "sql" ? demoSqlKeywords : demoCSharpKeywords;
+  const functions = new Set(functionDefinitions.map((definition) => definition.name.toLocaleUpperCase()));
+  const contexts = language === "sql" ? demoSqlContexts : new Set(["DB"]);
+  const tables = language === "sql" ? demoSqlTables : demoCSharpTypes;
   return query.split(/(\b[A-Za-z_][A-Za-z0-9_]*\b)/).map((token, index) => {
     const upperToken = token.toLocaleUpperCase();
-    const className = demoSqlKeywords.has(upperToken)
+    const className = keywords.has(upperToken)
       ? "query-oquery-protected-key"
-      : demoSqlFunctions.has(upperToken)
+      : functions.has(upperToken)
         ? "query-oquery-function"
-        : demoSqlContexts.has(upperToken)
+        : contexts.has(upperToken)
           ? "query-oquery-context-key"
-          : demoSqlTables.has(upperToken)
+          : tables.has(upperToken)
             ? "query-oquery-table-key"
             : null;
     return className
@@ -125,10 +154,7 @@ export default function HomePage({
   metadataStatus, metadataError, metadata, functionDefinitions,
   demoResults, demoLoading, demoErrors, onRunDemo, onCloseDemo,
 }: HomePageProps) {
-  const [showProductsSql, setShowProductsSql] = useState(false);
-  const [showTraversalSql, setShowTraversalSql] = useState(false);
-  const [showRevenueSql, setShowRevenueSql] = useState(false);
-  const [showRecursiveSql, setShowRecursiveSql] = useState(false);
+  const [demoRepresentations, setDemoRepresentations] = useState<Partial<Record<DemoExampleKey, DemoRepresentation>>>({});
   const [expandedHierarchyNodes, setExpandedHierarchyNodes] = useState<Set<string> | null>(null);
   const [expandedHierarchyLists, setExpandedHierarchyLists] = useState<Set<string>>(new Set());
   const [demoResultViews, setDemoResultViews] = useState<Partial<Record<DemoExampleKey, DemoResultView>>>({});
@@ -342,16 +368,22 @@ export default function HomePage({
   const renderDemoQuery = (
     example: DemoExampleKey,
     query: string,
+    csharpQuery: string,
     sqlQuery: string,
-    sqlSelected: boolean,
-    onSqlSelectedChange: (selected: boolean) => void,
+    representation: DemoRepresentation,
+    onRepresentationChange: (next: DemoRepresentation) => void,
   ) => <div className="new-home-example-code">
     <div className="new-home-example-toggle" role="tablist" aria-label={`${example} example representation`}>
-      <button type="button" role="tab" aria-selected={!sqlSelected} className={!sqlSelected ? "active" : ""} onClick={() => onSqlSelectedChange(false)}>OQuery</button>
-      <button type="button" role="tab" aria-selected={sqlSelected} className={sqlSelected ? "active" : ""} onClick={() => onSqlSelectedChange(true)}>SQL</button>
+      <button type="button" role="tab" aria-selected={representation === "query"} className={representation === "query" ? "active" : ""} onClick={() => onRepresentationChange("query")}>OQuery</button>
+      <button type="button" role="tab" aria-selected={representation === "csharp"} className={representation === "csharp" ? "active" : ""} onClick={() => onRepresentationChange("csharp")}>C#</button>
+      <button type="button" role="tab" aria-selected={representation === "sql"} className={representation === "sql" ? "active" : ""} onClick={() => onRepresentationChange("sql")}>SQL</button>
     </div>
-    {sqlSelected
-      ? <pre><code>{highlightDemoQuery(sqlQuery, "sql")}</code></pre>
+    {representation !== "query"
+      ? <pre><code>{highlightDemoQuery(
+        representation === "sql" ? sqlQuery : csharpQuery,
+        representation,
+        functionDefinitions,
+      )}</code></pre>
       : <div className="new-home-example-editor"><OQueryEditor
         aria-label={`${example} OQuery example`}
         oquery
@@ -406,32 +438,32 @@ export default function HomePage({
         <article className="new-home-example">
           <div className="new-home-example-marker">01</div>
           <div className="new-home-example-copy"><strong>How do I explore a product?</strong><p>A business entity is enough to begin exploring its exposed data.</p></div>
-          {renderDemoQuery("products", demoQueries.products, "SELECT *\nFROM sa.Products;", showProductsSql, setShowProductsSql)}
+          {renderDemoQuery("products", demoQueries.products, PRODUCTS_CSHARP, "SELECT *\nFROM sa.Products;", demoRepresentations.products || "query", (next) => setDemoRepresentations((current) => ({ ...current, products: next })))}
           {renderDemoResult("products")}
         </article>
         <article className="new-home-example">
           <div className="new-home-example-marker">02</div>
           <div className="new-home-example-copy"><strong>Who placed each order?</strong><p>Follow an orderâ€™s customer relationship without writing the join by hand.</p></div>
-          {renderDemoQuery("traversal", demoQueries.traversal, `SELECT
+          {renderDemoQuery("traversal", demoQueries.traversal, TRAVERSAL_CSHARP, `SELECT
     o.Id,
     o.OrderDate,
     u.FirstName,
     u.LastName
 FROM sa.Orders AS o
 LEFT JOIN Main.Users AS u
-    ON o.UserId = u.Id;`, showTraversalSql, setShowTraversalSql)}
+    ON o.UserId = u.Id;`, demoRepresentations.traversal || "query", (next) => setDemoRepresentations((current) => ({ ...current, traversal: next })))}
           {renderDemoResult("traversal")}
         </article>
         <article className="new-home-example">
           <div className="new-home-example-marker">03</div>
           <div className="new-home-example-copy"><strong>Do you know the total members at each hierarchy level?</strong><p>The engine detects the self-reference and generates the recursive SQL automatically.</p></div>
-          {renderDemoQuery("recursive", demoQueries.recursive, EMPLOYEE_TREE_SQL, showRecursiveSql, setShowRecursiveSql)}
+          {renderDemoQuery("recursive", demoQueries.recursive, RECURSIVE_CSHARP, EMPLOYEE_TREE_SQL, demoRepresentations.recursive || "query", (next) => setDemoRepresentations((current) => ({ ...current, recursive: next })))}
           {renderDemoResult("recursive")}
         </article>
         <article className="new-home-example">
           <div className="new-home-example-marker">04</div>
           <div className="new-home-example-copy"><strong>Which products sell above average?</strong><p>Build product sales from a reusable context, calculate the overall average, and filter in an outer query.</p></div>
-          {renderDemoQuery("revenue", demoQueries.revenue, PRODUCT_SALES_SQL, showRevenueSql, setShowRevenueSql)}
+          {renderDemoQuery("revenue", demoQueries.revenue, REVENUE_CSHARP, PRODUCT_SALES_SQL, demoRepresentations.revenue || "query", (next) => setDemoRepresentations((current) => ({ ...current, revenue: next })))}
           {renderDemoResult("revenue")}
         </article>
       </div>
