@@ -1,11 +1,12 @@
-import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, useState, type ReactNode, type TextareaHTMLAttributes } from "react";
-import Icon from "../../icon/icon";
-import type { FunctionDefinition } from "../../function-definition/types";
-import { getOQueryContextKeys } from "../query-design/oquery-context-colors";
-import { applyFoldedOqueryEdit, getFoldedOquery, getOqueryFolds } from "../query-design/oquery-folding";
+import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, useState, type ChangeEvent, type ReactNode, type TextareaHTMLAttributes } from "react";
+import Icon, { type IconName } from "../icon/icon";
+import type { FunctionDefinition } from "../function-definition/types";
+import { getOQueryContextKeys } from "../query-builder/query-design/oquery-context-colors";
+import { applyFoldedOqueryEdit, getFoldedOquery, getOqueryFolds } from "../query-builder/query-design/oquery-folding";
 import { toggleOqueryComments } from "./oquery-comments";
+import { getOQueryCompletions, type OQueryCompletion } from "./oquery-completions";
 import { normalizeOqueryEditorText } from "./oquery-editor-text";
-import "../query-design/query-design.css";
+import "../query-builder/query-design/query-design.css";
 
 type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange" | "value"> & {
   value?: string;
@@ -15,6 +16,9 @@ type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onCh
   highlight?: (text: string) => ReactNode;
   oquery?: boolean;
   functionDefinitions?: FunctionDefinition[];
+  suggestionFields?: string[];
+  suggestionRelationFields?: string[];
+  suggestionEntities?: string[];
   errorFunctionName?: string;
   compact?: boolean;
   showGutter?: boolean;
@@ -110,6 +114,49 @@ function findCommentStart(text: string): number {
     }
   }
   return -1;
+}
+
+function getOqueryCaretPosition(textarea: HTMLTextAreaElement, position: number) {
+  const style = window.getComputedStyle(textarea);
+  const beforeCaret = textarea.value.slice(0, position);
+  const lineStart = beforeCaret.lastIndexOf("\n") + 1;
+  const line = beforeCaret.slice(lineStart);
+  const lineHeight = Number.parseFloat(style.lineHeight) || Number.parseFloat(style.fontSize) * 1.6;
+  const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
+  const paddingTop = Number.parseFloat(style.paddingTop) || 0;
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (context) context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  const textWidth = context?.measureText(line).width ?? line.length * (Number.parseFloat(style.fontSize) || 13) * .6;
+  return {
+    left: paddingLeft + textWidth - textarea.scrollLeft,
+    top: paddingTop + (beforeCaret.match(/\n/g)?.length ?? 0) * lineHeight + lineHeight - textarea.scrollTop,
+  };
+}
+
+function getCompletionIcon(kind: OQueryCompletion["kind"]): IconName {
+  switch (kind) {
+    case "field": return "key";
+    case "relation": return "link";
+    case "context": return "schema";
+    case "function": return "function";
+    case "operator": return "operator";
+    case "value": return "type";
+    case "entity": return "table";
+    case "alias": return "type";
+    default: return "code";
+  }
+}
+
+function highlightCompletionLabel(label: string, query: string): ReactNode {
+  if (!query) return label;
+  const index = label.toLocaleLowerCase().indexOf(query.toLocaleLowerCase());
+  if (index < 0) return label;
+  return <>
+    {label.slice(0, index)}
+    <mark>{label.slice(index, index + query.length)}</mark>
+    {label.slice(index + query.length)}
+  </>;
 }
 
 const oqueryListSections = new Set(["Projection", "Sorts", "Contexts"]);
@@ -281,6 +328,9 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
   showFoldControls = true,
   onSelectionChange = () => undefined,
   onExecuteContext,
+  suggestionFields = [],
+  suggestionRelationFields = [],
+  suggestionEntities = [],
   ...props
 }, ref) => {
   const highlightRef = useRef<HTMLPreElement>(null);
@@ -291,6 +341,8 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
     normalizeOqueryEditorText(textOverride ?? initialText ?? value ?? ""));
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const [foldMessage, setFoldMessage] = useState("");
+  const [completionPosition, setCompletionPosition] = useState<number | null>(null);
+  const [completionIndex, setCompletionIndex] = useState(0);
   useLayoutEffect(() => {
     if (textOverride === undefined) return;
     const normalizedText = normalizeOqueryEditorText(textOverride);
@@ -342,6 +394,48 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
     setInternalText(updated);
     onTextChange(updated);
   };
+  const completionResult = completionPosition === null
+    ? null
+    : getOQueryCompletions(projection.text, completionPosition, suggestionFields, suggestionRelationFields, suggestionEntities, functionDefinitions);
+  const completions = completionResult?.items ?? [];
+  const completionQuery = completionResult
+    ? projection.text.slice(completionResult.replaceStart, completionResult.replaceEnd)
+    : "";
+  const completionStyle = completionPosition === null || !textareaRef.current
+    ? undefined
+    : getOqueryCaretPosition(textareaRef.current, completionPosition);
+  const applyCompletion = (completion: OQueryCompletion) => {
+    if (!completionResult) return;
+    const next = `${projection.text.slice(0, completionResult.replaceStart)}${completion.insertText}${projection.text.slice(completionResult.replaceEnd)}`;
+    const caret = completionResult.replaceStart + (completion.cursorOffset ?? completion.insertText.length);
+    changeVisibleText(next, caret);
+    setCompletionPosition(completion.kind === "entity" ? caret : null);
+    setCompletionIndex(0);
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  };
+  const insertFunction = (name: string) => {
+    if (!name) return;
+    const textarea = textareaRef.current;
+    const start = textarea?.selectionStart ?? projection.text.length;
+    const end = textarea?.selectionEnd ?? start;
+    const insertText = `${name}()`;
+    changeVisibleText(`${projection.text.slice(0, start)}${insertText}${projection.text.slice(end)}`, start + name.length + 1);
+    setCompletionPosition(null);
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  };
+  const updateCompletionPosition = (textarea: HTMLTextAreaElement, open = true) => {
+    setCompletionPosition(open ? textarea.selectionStart : null);
+    setCompletionIndex(0);
+  };
+  const isCompletionTrigger = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    const inputEvent = event.nativeEvent as InputEvent;
+    const caret = event.currentTarget.selectionStart;
+    const insertedCharacter = inputEvent.data
+      ?? event.currentTarget.value.slice(Math.max(0, caret - 1), caret);
+    return inputEvent.inputType === "insertText"
+      && insertedCharacter.length === 1
+      && !/\s/.test(insertedCharacter);
+  };
 
   return (
     <>
@@ -358,6 +452,20 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
           <Icon name="chevron-right" size={13} />
         </button>
       </div>}
+      {functionDefinitions.length > 0 && <label className="query-oquery-function-picker">
+        <span>Insert function</span>
+        <select
+          aria-label="Insert function"
+          value=""
+          disabled={disabled}
+          onChange={(event) => insertFunction(event.target.value)}
+        >
+          <option value="">Function...</option>
+          {functionDefinitions.map((definition) => <option key={definition.name} value={definition.name}>
+            {definition.name}{definition.isAggregate ? " · aggregate" : ""}
+          </option>)}
+        </select>
+      </label>}
       {showGutter && <div ref={lineNumbersRef} className="query-oquery-line-numbers">
         {projection.visible.map(({ line }) => {
           const fold = foldsByLine.get(line);
@@ -404,7 +512,10 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
         className="query-oquery-textarea"
         aria-label="Query OQuery text"
         value={projection.text}
-        onChange={(event) => changeVisibleText(event.target.value, textareaRef.current?.selectionStart)}
+        onChange={(event) => {
+          changeVisibleText(event.target.value, textareaRef.current?.selectionStart);
+          updateCompletionPosition(event.currentTarget, isCompletionTrigger(event));
+        }}
         onPaste={(event) => {
           event.preventDefault();
           const textarea = event.currentTarget;
@@ -422,9 +533,41 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
           const textarea = event.currentTarget;
           onSelectionChange(textarea.value.slice(textarea.selectionStart, textarea.selectionEnd));
           onBlur?.(event);
+          window.setTimeout(() => setCompletionPosition(null), 0);
         }}
         onKeyDown={(event) => {
           const textarea = event.currentTarget;
+          if ((event.ctrlKey || event.metaKey) && event.key === " ") {
+            event.preventDefault();
+            updateCompletionPosition(textarea);
+            return;
+          }
+          const isPrintableCharacter = event.key.length === 1
+            && !event.ctrlKey && !event.metaKey && !event.altKey
+            && !/\s/.test(event.key);
+          if (completions.length) {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              setCompletionIndex(index => (index + 1) % completions.length);
+              return;
+            }
+            if (event.key === "ArrowUp") {
+              event.preventDefault();
+              setCompletionIndex(index => (index - 1 + completions.length) % completions.length);
+              return;
+            }
+            if (event.key === "Enter" || event.key === "Tab") {
+              event.preventDefault();
+              applyCompletion(completions[completionIndex]!);
+              return;
+            }
+          }
+          if (!isPrintableCharacter) setCompletionPosition(null);
+          if (event.key === "Escape" && completionPosition !== null) {
+            event.preventDefault();
+            setCompletionPosition(null);
+            return;
+          }
           if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "x") {
             event.preventDefault();
             const lineStart = textarea.value.lastIndexOf("\n", Math.max(0, textarea.selectionStart - 1)) + 1;
@@ -501,6 +644,27 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
         spellCheck={false}
         disabled={disabled}
       />
+      {completions.length > 0 && !disabled && <div
+        className="query-oquery-completions"
+        role="listbox"
+        aria-label="OQuery suggestions"
+        style={completionStyle}
+        onMouseDown={(event) => event.preventDefault()}
+      >
+        {completions.map((completion, index) => <button
+          type="button"
+          role="option"
+          aria-selected={index === completionIndex}
+          className={index === completionIndex ? "selected" : ""}
+          key={`${completion.kind}-${completion.label}`}
+          onClick={() => applyCompletion(completion)}
+        >
+          <span className={`query-oquery-completion-kind ${completion.kind}`} title={completion.kind}>
+            <Icon name={getCompletionIcon(completion.kind)} size={13} />
+          </span>
+          <span className="query-oquery-completion-label">{highlightCompletionLabel(completion.label, completionQuery)}</span>
+        </button>)}
+      </div>}
     </div>
     {foldMessage && <p className="query-message" role="status">{foldMessage}</p>}
     </>

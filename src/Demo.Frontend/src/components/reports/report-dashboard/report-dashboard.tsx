@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Icon from "../../icon/icon";
 import type { FunctionDefinition } from "../../function-definition/types";
-import OQueryEditor from "../../query-builder/oquery-editor/oquery-editor";
+import OQueryEditor from "../../oquery-editor/oquery-editor";
 import ToastNotice from "../../toast-notice/toast-notice";
 import type { QueryResult, ReportDto } from "../../query-builder/query-design/query-builder-slice";
 import ReportDetail from "../report-detail/report-detail";

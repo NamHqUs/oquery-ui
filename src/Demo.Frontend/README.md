@@ -60,7 +60,7 @@ margin so the cursor does not appear shifted by roughly two characters.
 Run the layout regression test with:
 
 ```powershell
-node --test .\src\components\query-builder\oquery-editor\oquery-editor-layout.test.mjs
+node --test .\src\components\oquery-editor\oquery-editor-layout.test.mjs
 ```
 
 Use **Ctrl+/** (or **Cmd+/**) to toggle comments on the current line when no text
@@ -87,7 +87,7 @@ collapse and scroll jump. Success replaces the displayed result; failure clears
 it and shows the execution error. Editing still clears obsolete results.
 
 ```powershell
-node --test .\src\components\query-builder\oquery-editor\oquery-comments.test.mjs
+node --test .\src\components\oquery-editor\oquery-comments.test.mjs
 node --test .\src\components\query-builder\query-design\oquery-feedback.test.mjs
 node --test .\src\components\query-builder\query-design\query-loading.test.mjs
 ```

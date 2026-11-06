@@ -7,7 +7,7 @@ import ProjectionBuilder from "./projection-builder/projection-builder";
 import SortBuilder from "./sort-builder/sort-builder";
 import FilterBuilder from "./filter-builder/filter-builder";
 import JoinsBuilder from "./joins-builder/joins-builder";
-import OQueryEditor from "../oquery-editor/oquery-editor";
+import OQueryEditor from "../../oquery-editor/oquery-editor";
 import "./query-design.css";
 
 type EntityMenuProps = {
@@ -221,6 +221,37 @@ function orderContextEntries(contextDefinitions: ApiQueryContextDefinition[]) {
   return contextDefinitions
     .map((context, index) => ({ context, index, depth: getDepth(context.name, new Set<string>()) }))
     .sort((left, right) => left.depth - right.depth || left.index - right.index);
+}
+
+function getOquerySuggestionFields(entity: MetadataEntity | undefined, metadata: MetadataEntity[]) {
+  if (!entity) return [];
+  const fields = new Set(entity.fields.map((field) => field.name));
+  const relationNames = new Set(entity.relations?.map((relation) => relation.name) ?? []);
+  const projectedRelationNames = new Set(entity.fields.map((field) => field.name));
+  const relations = [
+    ...(entity.relations ?? []),
+    ...metadata.flatMap((source) => (source.relations ?? []).filter((relation) =>
+      (source.name === entity.name || projectedRelationNames.has(relation.name))
+      && !relationNames.has(relation.name))),
+  ];
+  const addRelationFields = (source: MetadataEntity, prefix: string, visited: Set<string>) => {
+    for (const relation of relations) {
+      const relationPath = `${prefix}${relation.name}`;
+      fields.add(relationPath);
+      const target = metadata.find((item) => item.name === relation.refEntity);
+      if (!target || visited.has(target.name)) continue;
+      for (const field of target.fields) fields.add(`${relationPath}.${field.name}`);
+    }
+  };
+  addRelationFields(entity, "", new Set([entity.name]));
+  return [...fields];
+}
+
+function getOqueryRelationSuggestionFields(metadata: MetadataEntity[]) {
+  return [...new Set(metadata.flatMap((source) => (source.relations ?? []).flatMap((relation) => {
+    const target = metadata.find((item) => item.name === relation.refEntity);
+    return target?.fields.map((field) => `${relation.name}.${field.name}`) ?? [];
+  })))];
 }
 
 
@@ -445,6 +476,15 @@ export default function QueryDesign({
             onTextChange={onOqueryTextChange}
             oquery
             functionDefinitions={functionDefinitions}
+            suggestionFields={getOquerySuggestionFields(
+              metadata.find((item) => item.name === definition.entity) ?? entity,
+              metadata,
+            )}
+            suggestionRelationFields={getOqueryRelationSuggestionFields(metadata)}
+            suggestionEntities={[...new Set([
+              ...metadata.map((item) => item.name),
+              ...contextDefinitions.map((context) => context.name),
+            ])]}
             onSelectionChange={onOQuerySelectionChange}
             onExecuteContext={onExecuteOQueryContext}
             onBlur={onApplyOquery}

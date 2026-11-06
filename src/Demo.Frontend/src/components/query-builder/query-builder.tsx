@@ -612,6 +612,15 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   };
   const loadOquery = async (definitionToSerialize: QueryDefinition) => {
     const requestId = ++oqueryLoadRequestRef.current;
+    if (!definitionToSerialize.entity.trim()) {
+      setOqueryText("");
+      updateSelectedOQueryText("");
+      boundOqueryTextRef.current = "";
+      setOqueryError("");
+      setOqueryValidationMessage("");
+      setOqueryStatus("idle");
+      return;
+    }
     setOqueryStatus("loading");
     setOqueryError("");
     try {
