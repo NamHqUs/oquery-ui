@@ -1163,12 +1163,12 @@ export const getQueryRequestText = createAsyncThunk(
 
 export const parseQueryRequestText = createAsyncThunk(
   "queryBuilder/parseQueryRequestText",
-  async ({ text, entity }: { text: string; entity: string }, { rejectWithValue }) => {
+  async (text: string, { rejectWithValue }) => {
     try {
       const payload = await requestJson(apiUrls.dynamicQuery.fromOQuery, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, entity }),
+        body: JSON.stringify({ text }),
       });
       if (!payload || typeof payload !== "object" || typeof (payload as { entity?: unknown }).entity !== "string"
         || !Array.isArray((payload as { projection?: unknown }).projection)) {

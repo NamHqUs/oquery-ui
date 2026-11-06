@@ -21,10 +21,10 @@ public sealed class DynamicQueryController(
     [HttpPost("from-oquery")]
     public IActionResult ParseQueryRequest([FromBody] OQueryTextRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Text) || string.IsNullOrWhiteSpace(request.Entity))
-            return BadRequest("Request text and entity are required.");
+        if (string.IsNullOrWhiteSpace(request.Text))
+            return BadRequest("Request text is required.");
 
-        return Ok(dynamicQueryService.ParseQueryRequestString(request.Text, request.Entity));
+        return Ok(dynamicQueryService.ParseQueryRequestString(request.Text));
     }
 
     [HttpPost]
@@ -62,5 +62,5 @@ public sealed class DynamicQueryController(
     }
 
 
-    public sealed record OQueryTextRequest(string? Text, string? Entity);
+    public sealed record OQueryTextRequest(string? Text);
 }

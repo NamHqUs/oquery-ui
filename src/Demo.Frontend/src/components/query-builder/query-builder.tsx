@@ -214,12 +214,6 @@ function QuerySectionSplitter({ height, onHeightChange }: { height: number; onHe
   );
 }
 
-function getOqueryEntity(text: string): string {
-  const header = text.split(/\r?\n/).find((line) => line.trim() && !line.trimStart().startsWith("#") && !/^\s/.test(line));
-  const match = header?.match(/^([A-Za-z_][A-Za-z0-9_]*)(?:\s+is\s+([A-Za-z_][A-Za-z0-9_]*))?\s*:/i);
-  return match?.[2] ?? match?.[1] ?? "";
-}
-
 function stripOqueryLineComments(text: string): string {
   return text.split(/\r?\n/).map((line) => {
     let quote: "'" | "\"" | null = null;
@@ -667,15 +661,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
         return;
       }
       const normalizedOqueryText = oqueryText;
-      const entityForParse = getOqueryEntity(normalizedOqueryText) || activeDefinition.entity.trim();
-      if (!entityForParse) {
-        setOqueryError("Missing query header: OQuery text must start with an entity, such as \"Users: Id, Name\".");
-        return;
-      }
-      const parsed = await dispatch(parseQueryRequestText({
-        text: normalizedOqueryText,
-        entity: entityForParse,
-      })).unwrap();
+      const parsed = await dispatch(parseQueryRequestText(normalizedOqueryText)).unwrap();
       updateDefinitionFromDesign(fromApiQueryDefinition(parsed));
       setOqueryValidationMessage("Valid OQuery");
     } catch (error) {
@@ -696,15 +682,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
         return;
       }
       const normalizedOqueryText = oqueryText;
-      const entityForParse = getOqueryEntity(normalizedOqueryText) || activeDefinition.entity.trim();
-      if (!entityForParse) {
-        setOqueryError("Missing query header: OQuery text must start with an entity, such as \"Users: Id, Name\".");
-        return;
-      }
-      const parsed = await dispatch(parseQueryRequestText({
-        text: normalizedOqueryText,
-        entity: entityForParse,
-      })).unwrap();
+      const parsed = await dispatch(parseQueryRequestText(normalizedOqueryText)).unwrap();
       const formatted = await dispatch(getQueryRequestText(fromApiQueryDefinition(parsed))).unwrap();
       setOqueryText(preserveOqueryKeys(formatted, oqueryText));
       updateSelectedOQueryText("");
@@ -869,6 +847,10 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   const runOQueryContext = (contextName: string) => {
     const text = selectedOQueryTextRef.current.trim() || oqueryText;
     if (!text.trim()) return;
+    if (!connectedProvider || connectionStatus !== "succeeded") {
+      onRequestConnection();
+      return;
+    }
     dispatch(executeContextFromText({ text, context: contextName }));
   };
 
@@ -1017,12 +999,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
         return;
       }
       const normalizedOqueryText = oqueryText;
-      const entity = getOqueryEntity(normalizedOqueryText) || activeDefinition.entity.trim();
-      if (!entity) {
-        setOqueryError("Missing query entity: select an entity before saving.");
-        return;
-      }
-      const parsed = await dispatch(parseQueryRequestText({ text: normalizedOqueryText, entity })).unwrap();
+      const parsed = await dispatch(parseQueryRequestText(normalizedOqueryText)).unwrap();
       const nextActiveDefinition = fromApiQueryDefinition(parsed);
       const nextDefinition = activeContextIndex === null
         ? nextActiveDefinition

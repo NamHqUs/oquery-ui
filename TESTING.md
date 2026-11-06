@@ -14,6 +14,9 @@
   scroll position stayed at 481px, page height stayed at 1381px, all three rows
   remained visible, and the textarea stayed focused and enabled throughout.
   Busy status changed from true to false when the new result arrived.
+- Context gutter Run checks the active database connection before executing a
+  standalone context, matching the main-query Run behavior and avoiding a
+  request-time warning when the connection is unavailable.
 - All 20 targeted tests passed, including loading, success, rejection, and
   explicit-clearing tests for all three execution actions.
 - `npm run build` and `git diff --check` passed; the existing bundle-size
