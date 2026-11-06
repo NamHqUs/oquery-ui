@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { apiUrls } from "../../const/api-urls";
+import { fetchFunctionDefinitions, invalidateFunctionDefinitions } from "../query-builder/query-design/query-builder-slice";
+import type { RootState } from "../../store/store";
 import PanelSplitter from "../panel-splitter/panel-splitter";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
 import { useMessageBox } from "../message-box/message-box";
@@ -88,9 +91,10 @@ function toPayload(draft: EditableFunctionDefinition): FunctionDefinition {
 }
 
 export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }: FunctionDefinitionWorkspaceProps) {
+  const dispatch = useDispatch();
+  const definitions = useSelector((state: RootState) => state.queryBuilder.functionDefinitions);
   const showMessageBox = useMessageBox();
   const panel = useResizablePanel("metadata-functions");
-  const [definitions, setDefinitions] = useState<FunctionDefinition[]>([]);
   const [selectedName, setSelectedName] = useState("");
   const [draft, setDraft] = useState<EditableFunctionDefinition | null>(null);
   const [status, setStatus] = useState("loading");
@@ -106,9 +110,11 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
     setStatus("loading");
     setMessage("");
     try {
-      const payload = await request<FunctionDefinition[]>(apiUrls.metadata.functions);
-      if (!Array.isArray(payload)) throw new Error("Function definition API must return an array.");
-      setDefinitions(payload);
+      const result = await dispatch(fetchFunctionDefinitions());
+      if (!fetchFunctionDefinitions.fulfilled.match(result)) {
+        throw new Error(String(result.payload || "Unable to load function definitions."));
+      }
+      const payload = result.payload;
       const preferred = payload.find((definition) => definition.name === preferredName);
       const next = selectFirst ? payload[0] : preferred;
       setSelectedName(next?.name || "");
@@ -162,16 +168,8 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
       if (!savedDefinition) {
         throw new Error("Function definition API did not return the saved definition.");
       }
-      setDefinitions((current) => {
-        const updated = current.filter((definition) =>
-          definition.name.toLowerCase() !== selectedName.toLowerCase()
-          && definition.name.toLowerCase() !== savedDefinition.name.toLowerCase(),
-        );
-        updated.push(savedDefinition);
-        return updated.sort((left, right) =>
-          left.name.localeCompare(right.name, undefined, { sensitivity: "base" }),
-        );
-      });
+      dispatch(invalidateFunctionDefinitions());
+      await loadDefinitions(false, savedDefinition.name);
       setSelectedName(savedDefinition.name);
       setDraft(toEditableFunction(savedDefinition));
       setDirty(false);
@@ -229,6 +227,7 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
     try {
       await request(apiUrls.metadata.functionByName(selectedName), { method: "DELETE" });
       setSelectedName("");
+      dispatch(invalidateFunctionDefinitions());
       await loadDefinitions(true);
     } catch (error) {
       setStatus("failed");

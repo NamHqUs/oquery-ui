@@ -8,7 +8,7 @@ import SortBuilder from "./sort-builder/sort-builder";
 import FilterBuilder from "./filter-builder/filter-builder";
 import JoinsBuilder from "./joins-builder/joins-builder";
 import OQueryEditor from "../../oquery-editor/oquery-editor";
-import type { OQuerySuggestionEntity } from "../../oquery-editor/oquery-completions";
+import { getOQuerySuggestionData } from "../../oquery-editor/oquery-suggestion-data";
 import "./query-design.css";
 
 type EntityMenuProps = {
@@ -224,11 +224,6 @@ function orderContextEntries(contextDefinitions: ApiQueryContextDefinition[]) {
     .sort((left, right) => left.depth - right.depth || left.index - right.index);
 }
 
-function getOquerySuggestionFields(entity: MetadataEntity | undefined) {
-  return entity?.fields.map((field) => field.name) ?? [];
-}
-
-
 export default function QueryDesign({
   metadata,
   metadataStatus,
@@ -285,6 +280,7 @@ export default function QueryDesign({
       fields: [...new Set(fields)].map((name) => ({ name, dbColumn: name })),
     };
   });
+  const suggestionData = getOQuerySuggestionData(metadata);
   const metadataWithContexts = [
     ...metadata,
     ...contextEntities.filter((context) => !metadata.some((item) => item.name === context.name)),
@@ -450,20 +446,13 @@ export default function QueryDesign({
             onTextChange={onOqueryTextChange}
             oquery
             functionDefinitions={functionDefinitions}
-            suggestionFields={getOquerySuggestionFields(metadata.find((item) => item.name === definition.entity) ?? entity)}
+            suggestionFields={suggestionData.fields}
             suggestionEntities={[...new Set([
-              ...metadata.map((item) => item.name),
+              ...suggestionData.entities,
               ...contextDefinitions.map((context) => context.name),
             ])]}
             suggestionEntityName={definition.entity}
-            suggestionEntitiesMetadata={metadata.map((item): OQuerySuggestionEntity => ({
-              name: item.name,
-              fields: item.fields.map((field) => field.name),
-              relations: (item.relations ?? []).map((relation) => ({
-                name: relation.name,
-                target: relation.refEntity,
-              })),
-            }))}
+            suggestionEntitiesMetadata={suggestionData.entitiesMetadata}
             onSelectionChange={onOQuerySelectionChange}
             onExecuteContext={onExecuteOQueryContext}
             onBlur={onApplyOquery}

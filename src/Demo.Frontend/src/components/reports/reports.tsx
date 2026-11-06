@@ -367,6 +367,7 @@ export default function Reports({
         reportsError={reportsError}
         metadataStatus={metadataStatus}
         metadataError={metadataError}
+        metadata={metadata}
         functionDefinitions={functionDefinitions}
         reportResults={reportResults}
         reportLoading={reportLoading}

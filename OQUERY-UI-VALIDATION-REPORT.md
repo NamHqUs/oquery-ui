@@ -1,5 +1,44 @@
 # OQuery UI validation report
 
+## Shared HomePage and Design Builder OQuery suggestions
+
+The Metadata and Function Definition management pages previously kept their
+own fetched entity and function arrays in component state. HomePage and
+Design Builder consumed the Redux query-builder state, so the management
+pages and consumers could become inconsistent.
+
+The existing Redux query-builder slice is now the single global store for
+managed metadata and function definitions. The management pages load and
+refresh that store through the shared backend thunks; their local state is
+limited to selection, drafts, dirty state, and page feedback.
+
+The metadata transformation used by both editors is centralized in
+`src\Demo.Frontend\src\components\oquery-editor\oquery-suggestion-data.ts`.
+Both HomePage and Design Builder use this shared data for:
+
+- Metadata entities
+- Entity fields
+- Entity relations
+- Function definitions from the shared Redux store
+
+Contexts and OQuery statements remain local to each editor, as intended.
+OQuery keywords remain shared language definitions in the completion engine;
+they are not duplicated by either page.
+
+Validation:
+
+| Check | Result |
+|---|---|
+| `npm run build` from `src\Demo.Frontend` | Passed after global-store refactor |
+
+## Entity-scoped completion suggestions
+
+Completion fallback now uses the resolved current entity when no relation path
+is present. For example, `Products:` offers only fields and relations from
+`Products`; relation paths continue resolving from the selected relation
+target. The all-metadata field list is used only when the current entity
+cannot be resolved.
+
 ## Remediation
 
 The OQuery parse/check path now performs metadata validation after parsing:

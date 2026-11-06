@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import Icon from "../../icon/icon";
 import type { FunctionDefinition } from "../../function-definition/types";
 import OQueryEditor from "../../oquery-editor/oquery-editor";
+import { getOQuerySuggestionData } from "../../oquery-editor/oquery-suggestion-data";
 import ToastNotice from "../../toast-notice/toast-notice";
-import type { QueryResult, ReportDto } from "../../query-builder/query-design/query-builder-slice";
+import type { MetadataEntity, QueryResult, ReportDto } from "../../query-builder/query-design/query-builder-slice";
 import ReportDetail from "../report-detail/report-detail";
 import ReportItem from "../report-item/report-item";
 import BarChart from "../charts/bar-chart/bar-chart";
@@ -121,6 +122,7 @@ type ReportDashboardProps = {
   reportsError: string | null;
   metadataStatus: string;
   metadataError: string | null;
+  metadata: MetadataEntity[];
   functionDefinitions: FunctionDefinition[];
   reportResults: Record<string, QueryResult>;
   reportLoading: Record<string, boolean>;
@@ -160,7 +162,7 @@ type ReportDashboardProps = {
 export default function ReportDashboard({
   onNavigateToPage,
   groups, sortedReports, filteredReports, category, search, numberOfBuiltins, numberOfCustom,
-  reportsStatus, reportsError, metadataStatus, metadataError, reportResults, reportLoading,
+  reportsStatus, reportsError, metadataStatus, metadataError, metadata, reportResults, reportLoading,
   functionDefinitions,
   reportErrors, demoResults, demoLoading, demoErrors, chartTypeOverrides, chartSettingsOverrides, detailReport, detailResult, detailChartType, detailChartSettings, detailLoading, detailError,
   message, messageIsError, onCreateReport, onSelectCategory, onSearchChange,
@@ -393,6 +395,7 @@ export default function ReportDashboard({
 
   const demoRunQuery = (example: ReportDemoExampleKey) =>
     demoSelectionsRef.current[example]?.trim() || demoQueries[example];
+  const suggestionData = getOQuerySuggestionData(metadata);
 
   const renderDemoQuery = (
     example: ReportDemoExampleKey,
@@ -411,6 +414,9 @@ export default function ReportDashboard({
       rows={Math.max(1, query.split("\n").length)}
       initialText={query}
       functionDefinitions={functionDefinitions}
+      suggestionFields={suggestionData.fields}
+      suggestionEntities={suggestionData.entities}
+      suggestionEntitiesMetadata={suggestionData.entitiesMetadata}
       onTextChange={(text) => setDemoQueries((current) => ({ ...current, [example]: text }))}
       onSelectionChange={(text) => {
         demoSelectionsRef.current[example] = text;

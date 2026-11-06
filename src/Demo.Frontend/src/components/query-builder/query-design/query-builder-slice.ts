@@ -1352,6 +1352,11 @@ const queryBuilderSlice = createSlice({
       state.metadataStatus = "idle";
       state.metadataError = "";
     },
+    invalidateFunctionDefinitions(state) {
+      state.functionDefinitions = [];
+      state.functionDefinitionsStatus = "idle";
+      state.functionDefinitionsError = "";
+    },
     setExpressionDebugUiEnabled(state, action: PayloadAction<boolean>) {
       state.debugUiEnabled = action.payload;
     },
@@ -1536,6 +1541,7 @@ const queryBuilderSlice = createSlice({
 
 export const {
   clearQueryResult,
+  invalidateFunctionDefinitions,
   invalidateQueryMetadata,
   setExpressionDebugUiEnabled,
 } = queryBuilderSlice.actions;

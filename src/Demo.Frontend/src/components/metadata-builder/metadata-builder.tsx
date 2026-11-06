@@ -7,7 +7,7 @@ import Icon from "../icon/icon";
 import PanelSplitter from "../panel-splitter/panel-splitter";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
 import { fetchDbSchema } from "../data-sources/database-slice";
-import { MetadataEntity, invalidateQueryMetadata } from "../query-builder/query-design/query-builder-slice";
+import { fetchQueryMetadata, MetadataEntity, invalidateQueryMetadata } from "../query-builder/query-design/query-builder-slice";
 import EntityList from "./entity-definition/entity-list/entity-list";
 import EntityBuilder, { type DatabaseTableOption } from "./entity-definition/entity-builder/entity-builder";
 import EntityDiagram from "./entity-diagram/entity-diagram";
@@ -69,6 +69,7 @@ type MetadataBuilderProps = {
 export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = false, embedded = false }: MetadataBuilderProps) {
   const dispatch = useDispatch();
   const databaseState = useSelector((state: RootState) => state.database);
+  const entities = useSelector((state: RootState) => state.queryBuilder.metadata);
   const showMessageBox = useMessageBox();
   const [searchParams, setSearchParams] = useSearchParams();
   const [functionNavigationGuard, setFunctionNavigationGuard] = useState<NavigationGuard | null>(null);
@@ -81,7 +82,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
     (guard: NavigationGuard | null) => setOperatorNavigationGuard(() => guard),
     [],
   );
-  const [entities, setEntities] = useState<MetadataEntity[]>([]);
   const [selectedName, setSelectedName] = useState("");
   const [selectedTableKey, setSelectedTableKey] = useState("");
   const selectedNameRef = useRef(selectedName);
@@ -115,9 +115,11 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
     setStatus("loading");
     setMessage("");
     try {
-      const payload = await request(apiUrls.metadata.list);
-      if (!Array.isArray(payload)) throw new Error("Metadata API must return an array of entities.");
-      setEntities(payload);
+      const result = await dispatch(fetchQueryMetadata());
+      if (!fetchQueryMetadata.fulfilled.match(result)) {
+        throw new Error(String(result.payload || "Unable to load metadata."));
+      }
+      const payload = result.payload;
       const preferred = payload.find((entity) => entity.name === preferredName);
       if (selectFirst || !preferredName || !preferred) {
         const next = selectFirst ? payload[0] : preferred;

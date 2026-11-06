@@ -316,7 +316,7 @@
 .new-home-example-copy p { margin: 4px 0 0; color: #8994a5; font-size: 10px; line-height: 1.45; }
 .new-home-example > .new-home-example-toggle { grid-column: 1 / -1; margin-top: 17px; }
 .new-home-example > pre { grid-column: 3; grid-row: 1 / span 2; overflow-x: auto; margin: 0 0 0 13px; padding: 11px 13px; border-left: 2px solid #5b4b96; color: #d3cef4; background: #0b1017; font: 12px/1.6 "Cascadia Mono","Consolas",monospace; white-space: pre; }
-.new-home-example-editor { grid-column: 3; grid-row: 1 / span 2; overflow: hidden; margin-left: 13px; border-left: 2px solid #5b4b96; background: #0b1017; text-align: left; direction: ltr; }
+.new-home-example-editor { grid-column: 3; grid-row: 1 / span 2; overflow: visible; margin-left: 13px; border-left: 2px solid #5b4b96; background: #0b1017; text-align: left; direction: ltr; }
 .new-home-example-editor .query-oquery-code-editor { min-height: 0; height: auto; border: 0; border-radius: 0; }
 .new-home-example-editor .query-oquery-fold-actions { top: 5px; right: 5px; }
 .new-home-example-result { position: absolute; z-index: 10; top: 100%; right: 19px; left: 19px; min-width: 0; margin-top: 2px; box-shadow: 0 16px 30px #0009; }

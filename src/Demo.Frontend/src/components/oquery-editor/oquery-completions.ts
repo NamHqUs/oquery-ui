@@ -267,12 +267,13 @@ function getSuggestionContext(
   }
 
   let entity = entities.find((candidate) => candidate.name === rootEntityName);
-  if (!entity || !relationPath) {
+  if (!entity) {
     return {
       fields: fallbackFields,
-      relations: entity?.relations ?? [],
+      relations: [],
     };
   }
+  if (!relationPath) return { fields: entity.fields, relations: entity.relations };
 
   for (const relationName of relationPath.split(".")) {
     const relation = entity.relations.find((candidate) => candidate.name === relationName);
