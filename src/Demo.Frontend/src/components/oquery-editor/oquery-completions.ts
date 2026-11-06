@@ -117,19 +117,8 @@ function addKeywords(candidates: Candidate[], keywords: readonly (readonly [stri
 
 function getDynamicCandidates(text: string) {
   const contexts: string[] = [];
-  const contextFields = new Map<string, Set<string>>();
-  let currentContext: string | null = null;
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
-    const header = /^\s*([A-Za-z_][A-Za-z0-9_]*)(?:\s+is\s+[A-Za-z_][A-Za-z0-9_]*)?\s*:/i.exec(line);
-    if (header?.[1]) {
-      currentContext = header[1];
-      contexts.push(currentContext);
-      if (!contextFields.has(currentContext)) contextFields.set(currentContext, new Set());
-      addProjectionAliases(trimmed.slice(trimmed.indexOf(":") + 1), contextFields.get(currentContext)!);
-    } else if (currentContext && trimmed && !/^(?:where|order|skip|take|on|(?:inner|left|right|full)\s+join)\b/i.test(trimmed)) {
-      addProjectionAliases(trimmed, contextFields.get(currentContext)!);
-    }
+  for (const match of text.matchAll(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s+is\s+[A-Za-z_][A-Za-z0-9_]*\s*:/gim)) {
+    if (match[1]) contexts.push(match[1]);
   }
 
   const aliases: string[] = [];
@@ -137,19 +126,7 @@ function getDynamicCandidates(text: string) {
     if (match[1]) aliases.push(match[1]);
   }
 
-  contextFields.forEach((fields) => fields.forEach((field) => aliases.push(field)));
-  return { contexts, aliases, contextFields };
-}
-
-function addProjectionAliases(projection: string, fields: Set<string>) {
-  for (const item of projection.split(",")) {
-    const trimmed = item.trim();
-    const asAlias = /\bas\s+([A-Za-z_][A-Za-z0-9_]*)$/i.exec(trimmed);
-    const whitespaceAlias = /(?:\)|\])\s+([A-Za-z_][A-Za-z0-9_]*)$/.exec(trimmed);
-    const fieldAlias = /^[A-Za-z_][A-Za-z0-9_]*\s+([A-Za-z_][A-Za-z0-9_]*)$/.exec(trimmed);
-    const alias = asAlias?.[1] ?? whitespaceAlias?.[1] ?? fieldAlias?.[1];
-    if (alias) fields.add(alias);
-  }
+  return { contexts, aliases };
 }
 
 function getCompletionContext(lineBeforeCursor: string, text: string): CompletionContext {
@@ -216,9 +193,7 @@ export function getOQueryCompletions(
   }
 
   if (context === "projection" || context === "where" || context === "on" || context === "order" || context === "value") {
-    const contextName = lineBeforeCursor.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*:/)?.[1];
-    const contextFields = contextName ? [...(dynamic.contextFields.get(contextName) ?? [])] : [];
-    [...new Set(relationPath ? [...fields, ...relationFields] : [...fields, ...contextFields])]
+    [...new Set(relationPath ? [...fields, ...relationFields] : fields)]
       .filter((field) => !relationPath || field.startsWith(`${relationPath}.`))
       .forEach((field) => {
         const isRelationField = field.includes(".");

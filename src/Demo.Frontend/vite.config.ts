@@ -3,8 +3,7 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const backendApiUrl = env.VITE_BACKEND_API_URL || "";
-  const backendProxyUrl = env.VITE_BACKEND_PROXY_URL || env.VITE_BACKEND_API_URL || "http://localhost:21210";
+  const backendApiUrl = env.VITE_BACKEND_API_URL || "http://localhost:21210";
 
   return {
     plugins: [react()],
@@ -12,15 +11,14 @@ export default defineConfig(({ mode }) => {
       host: "127.0.0.1",
       port: 4173,
       proxy: {
-        "/db": backendProxyUrl,
+        "/db": backendApiUrl,
         "/metadata": {
-          target: backendProxyUrl,
+          target: backendApiUrl,
           bypass: (req) => req.headers.accept?.includes("text/html") ? "/index.html" : undefined,
         },
-        "/dynamic-query": backendProxyUrl,
-        "/oquery": backendProxyUrl,
-        "^/report(?:/|$)": backendProxyUrl,
-        "^/query-request(?:/|$)": backendProxyUrl,
+        "/dynamic-query": backendApiUrl,
+        "^/report(?:/|$)": backendApiUrl,
+        "^/query-request(?:/|$)": backendApiUrl,
       },
     },
   };

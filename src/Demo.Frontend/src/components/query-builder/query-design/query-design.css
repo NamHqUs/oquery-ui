@@ -322,29 +322,3 @@
 .filter-row.filter-drop-preview-before { border-top: 2px solid #a78bfa; }
 .filter-row.filter-drop-preview-after { border-bottom: 2px solid #a78bfa; }
 @media (max-width: 760px) { .query-builder-toolbar { flex-wrap: wrap; } .query-oquery-editor-header { flex-direction: column; } .query-oquery-editor-actions { justify-content: flex-start; } .query-oquery-code-editor { min-height: 420px; } .filter-row { flex-wrap: wrap; } .filter-row select, .filter-row input { min-width: 130px; } }
-.query-oquery-monaco {
-  min-height: 360px;
-  position: relative;
-}
-
-.query-oquery-monaco .monaco-editor,
-.query-oquery-monaco .monaco-editor-background,
-.query-oquery-monaco .margin {
-  background-color: #111827;
-}
-
-.query-oquery-context-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px 10px;
-  background: #111827;
-}
-
-.query-oquery-monaco-help {
-  display: block;
-  padding: 6px 10px;
-  color: #94a3b8;
-  font-size: 12px;
-  background: #111827;
-}

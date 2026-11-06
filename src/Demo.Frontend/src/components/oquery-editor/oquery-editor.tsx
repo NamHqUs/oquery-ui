@@ -1,6 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type ChangeEvent, type ReactNode, type TextareaHTMLAttributes } from "react";
-import Editor, { type OnMount } from "@monaco-editor/react";
-import type * as Monaco from "monaco-editor";
+import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, useState, type ChangeEvent, type ReactNode, type TextareaHTMLAttributes } from "react";
 import Icon, { type IconName } from "../icon/icon";
 import type { FunctionDefinition } from "../function-definition/types";
 import { getOQueryContextKeys } from "../query-builder/query-design/oquery-context-colors";
@@ -8,8 +6,6 @@ import { applyFoldedOqueryEdit, getFoldedOquery, getOqueryFolds } from "../query
 import { toggleOqueryComments } from "./oquery-comments";
 import { getOQueryCompletions, type OQueryCompletion } from "./oquery-completions";
 import { normalizeOqueryEditorText } from "./oquery-editor-text";
-import { fetchOQuerySuggestions, validateOQueryText } from "./oquery-suggestion-client";
-import { configureOQueryLanguage, registerOQueryFormattingProviders, registerOQueryHoverProvider, type OQueryFieldDocumentation } from "./oquery-language";
 import "../query-builder/query-design/query-design.css";
 
 type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange" | "value"> & {
@@ -23,7 +19,6 @@ type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onCh
   suggestionFields?: string[];
   suggestionRelationFields?: string[];
   suggestionEntities?: string[];
-  suggestionFieldDocumentation?: OQueryFieldDocumentation[];
   errorFunctionName?: string;
   compact?: boolean;
   showGutter?: boolean;
@@ -33,233 +28,12 @@ type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onCh
   onSelectionChange?: (text: string) => void;
   onExecuteSelectedText?: (text: string) => void;
   onExecuteContext?: (contextName: string) => void;
-  onTextBlur?: () => void;
 };
 
 export type OQueryEditorHandle = {
   getText: () => string;
   setText: (text: string) => void;
 };
-
-function getMonacoCompletionKind(monaco: typeof Monaco, kind: string) {
-  switch (kind) {
-    case "field": return monaco.languages.CompletionItemKind.Field;
-    case "relation": return monaco.languages.CompletionItemKind.Reference;
-    case "entity": return monaco.languages.CompletionItemKind.Struct;
-    case "function": return monaco.languages.CompletionItemKind.Function;
-    case "operator": return monaco.languages.CompletionItemKind.Operator;
-    case "value": return monaco.languages.CompletionItemKind.Value;
-    case "alias": return monaco.languages.CompletionItemKind.Variable;
-    default: return monaco.languages.CompletionItemKind.Keyword;
-  }
-}
-
-const MonacoOqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
-  value,
-  initialText,
-  textOverride,
-  disabled,
-  onTextChange,
-  onTextBlur,
-  onSelectionChange,
-  onExecuteContext,
-  functionDefinitions = [],
-  suggestionEntities = [],
-  suggestionFields = [],
-  suggestionFieldDocumentation = [],
-  ...props
-}, ref) => {
-  const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
-  const monacoRef = useRef<typeof Monaco | null>(null);
-  const providerRef = useRef<Monaco.IDisposable | null>(null);
-  const [text, setText] = useState(() => normalizeOqueryEditorText(textOverride ?? initialText ?? value ?? ""));
-  const versionRef = useRef(0);
-  const abortRef = useRef<AbortController | null>(null);
-  const diagnosticAbortRef = useRef<AbortController | null>(null);
-  const diagnosticTimerRef = useRef<number | null>(null);
-  const contexts = [...new Set([...text.matchAll(/^\s*([A-Za-z_][A-Za-z0-9_]*)(?:\s+is\s+[A-Za-z_][A-Za-z0-9_]*)?\s*:/gim)]
-    .map((match) => match[1])
-    .filter((name): name is string => Boolean(name)))];
-
-  useEffect(() => {
-    const monaco = monacoRef.current;
-    const model = editorRef.current?.getModel();
-    if (!monaco || !model) return;
-    const fieldDocumentation = suggestionFieldDocumentation.length
-      ? suggestionFieldDocumentation
-      : suggestionFields.map((name) => ({ name, documentation: `Metadata field: ${name}` }));
-    configureOQueryLanguage(monaco, suggestionEntities, fieldDocumentation, functionDefinitions);
-    monaco.editor.setModelLanguage(model, "oquery");
-  }, [functionDefinitions, suggestionEntities, suggestionFieldDocumentation, suggestionFields]);
-
-  useEffect(() => () => {
-    abortRef.current?.abort();
-    diagnosticAbortRef.current?.abort();
-    if (diagnosticTimerRef.current !== null) window.clearTimeout(diagnosticTimerRef.current);
-    providerRef.current?.dispose();
-  }, []);
-
-  useEffect(() => {
-    if (textOverride === undefined || textOverride === text) return;
-    const normalized = normalizeOqueryEditorText(textOverride);
-    setText(normalized);
-    editorRef.current?.setValue(normalized);
-  }, [textOverride, text]);
-
-  useImperativeHandle(ref, () => ({
-    getText: () => editorRef.current?.getValue() ?? text,
-    setText: (nextText) => {
-      const normalized = normalizeOqueryEditorText(nextText);
-      setText(normalized);
-      editorRef.current?.setValue(normalized);
-    },
-  }), [text]);
-
-  const handleMount: OnMount = (editor, monaco) => {
-    editorRef.current = editor;
-    monacoRef.current = monaco;
-    configureOQueryLanguage(monaco, suggestionEntities, suggestionFieldDocumentation.length ? suggestionFieldDocumentation : suggestionFields.map((name) => ({ name, documentation: `Metadata field: ${name}` })), functionDefinitions);
-    const model = editor.getModel();
-    if (model) monaco.editor.setModelLanguage(model, "oquery");
-    const formatting = registerOQueryFormattingProviders(monaco);
-    const hover = registerOQueryHoverProvider(monaco, suggestionFieldDocumentation.length ? suggestionFieldDocumentation : suggestionFields.map((name) => ({ name, documentation: `Metadata field: ${name}` })), functionDefinitions, suggestionEntities);
-    providerRef.current?.dispose();
-    const provider = monaco.languages.registerCompletionItemProvider("oquery", {
-      triggerCharacters: [".", " "],
-      provideCompletionItems: async (model, position, _context, token) => {
-        abortRef.current?.abort();
-        const controller = new AbortController();
-        abortRef.current = controller;
-        const timeout = window.setTimeout(() => controller.abort(), 2000);
-        try {
-          await new Promise<void>((resolve) => window.setTimeout(resolve, 150));
-          if (token.isCancellationRequested) return { suggestions: [] };
-          const lineNumber = Math.min(model.getLineCount(), Math.max(1, position.lineNumber));
-          const column = Math.min(
-            model.getLineMaxColumn(lineNumber),
-            Math.max(1, position.column),
-          );
-          const response = await fetchOQuerySuggestions({
-            text: model.getValue(),
-            line: lineNumber,
-            column,
-            documentVersion: versionRef.current,
-          }, controller.signal);
-          if (token.isCancellationRequested || response.documentVersion !== versionRef.current) {
-            return { suggestions: [] };
-          }
-          const start = model.getPositionAt(response.replaceStart);
-          const end = model.getPositionAt(response.replaceEnd);
-          return {
-            suggestions: response.items.map((item) => ({
-              label: item.label,
-              insertText: item.insertText,
-              detail: item.detail,
-              kind: getMonacoCompletionKind(monaco, item.kind),
-              sortText: String(item.sortOrder).padStart(4, "0"),
-              range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
-            })),
-          };
-        } catch (error) {
-          if (error instanceof DOMException && error.name === "AbortError") return { suggestions: [] };
-          console.error("OQuery suggestion request failed.", error);
-          return { suggestions: [] };
-        } finally {
-          window.clearTimeout(timeout);
-        }
-      },
-    });
-    const scheduleDiagnostics = (nextText: string) => {
-      if (diagnosticTimerRef.current !== null) window.clearTimeout(diagnosticTimerRef.current);
-      diagnosticTimerRef.current = window.setTimeout(() => {
-        const model = editor.getModel();
-        if (!model || !nextText.trim()) {
-          if (model) monaco.editor.setModelMarkers(model, "oquery", []);
-          return;
-        }
-        diagnosticAbortRef.current?.abort();
-        const controller = new AbortController();
-        const requestVersion = versionRef.current;
-        diagnosticAbortRef.current = controller;
-        void validateOQueryText(nextText, controller.signal).then((message) => {
-          if (controller.signal.aborted || versionRef.current !== requestVersion) return;
-          const lineMatch = message?.match(/\bline\s+(\d+)\b/i);
-          const line = Math.min(model.getLineCount(), Math.max(1, Number(lineMatch?.[1] ?? 1)));
-          monaco.editor.setModelMarkers(model, "oquery", message ? [{
-            severity: monaco.MarkerSeverity.Error,
-            message,
-            startLineNumber: line,
-            startColumn: 1,
-            endLineNumber: line,
-            endColumn: model.getLineMaxColumn(line),
-          }] : []);
-        }).catch((error: unknown) => {
-          if (error instanceof DOMException && error.name === "AbortError") return;
-          console.error("OQuery diagnostics request failed.", error);
-        });
-      }, 300);
-    };
-    const contentListener = editor.onDidChangeModelContent(() => {
-      versionRef.current++;
-      const nextText = editor.getValue();
-      setText(nextText);
-      onTextChange(nextText);
-      scheduleDiagnostics(nextText);
-    });
-    scheduleDiagnostics(editor.getValue());
-    const selectionListener = editor.onDidChangeCursorSelection(() => {
-      const selection = editor.getSelection();
-      onSelectionChange?.(selection ? editor.getModel()?.getValueInRange(selection) ?? "" : "");
-    });
-    editor.onDidBlurEditorText(() => onTextBlur?.());
-    editor.addAction({
-      id: "oquery.toggle-comment",
-      label: "Toggle OQuery Comment",
-      keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Slash],
-      run: () => editor.getAction("editor.action.commentLine")?.run(),
-    });
-    providerRef.current = provider;
-    return () => {
-      abortRef.current?.abort();
-      contentListener.dispose();
-      selectionListener.dispose();
-      provider.dispose();
-      formatting.dispose();
-      hover.dispose();
-    };
-  };
-
-  return <div className="query-oquery-monaco">
-    <Editor
-      {...props}
-      language="oquery"
-      theme="vs-dark"
-      value={text}
-      onMount={handleMount}
-      onChange={() => undefined}
-      options={{
-        automaticLayout: true,
-        folding: true,
-        glyphMargin: true,
-        minimap: { enabled: false },
-        wordBasedSuggestions: "off",
-        suggestOnTriggerCharacters: true,
-        lineNumbers: "on",
-        tabSize: 2,
-        padding: { top: 12, bottom: 12 },
-        readOnly: disabled,
-      }}
-    />
-    {onExecuteContext && contexts.length > 0 && <div className="query-oquery-context-actions" role="toolbar" aria-label="OQuery context actions">
-      {contexts.map((context) => <button key={context} type="button" className="button secondary" onClick={() => onExecuteContext(context)}>
-        Run {context}
-      </button>)}
-    </div>}
-    {functionDefinitions.length > 0 && <span className="query-oquery-monaco-help">
-      {functionDefinitions.length} functions available
-    </span>}
-  </div>;
-});
 
 function highlightOquery(text: string, functionDefinitions: FunctionDefinition[], errorFunctionName: string): string {
   const keys = getOQueryContextKeys(text);
@@ -898,10 +672,10 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
 });
 
 const OQueryEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((props, ref) => {
-  if (props.oquery) return <MonacoOqueryTextEditor {...props} ref={ref} />;
+  if (props.oquery) return <OqueryTextEditor {...props} ref={ref} />;
   const {
     onTextChange, highlight, value, onSelectionChange, onExecuteSelectedText,
-    onTextBlur, oquery, functionDefinitions, errorFunctionName, compact, showGutter, showFoldControls, ...textareaProps
+    oquery, functionDefinitions, errorFunctionName, compact, showGutter, showFoldControls, ...textareaProps
   } = props;
   const selectionText = (textarea: HTMLTextAreaElement) => textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
   return (

@@ -318,7 +318,6 @@
 .new-home-example > pre { grid-column: 3; grid-row: 1 / span 2; overflow-x: auto; margin: 0 0 0 13px; padding: 11px 13px; border-left: 2px solid #5b4b96; color: #d3cef4; background: #0b1017; font: 12px/1.6 "Cascadia Mono","Consolas",monospace; white-space: pre; }
 .new-home-example-editor { grid-column: 3; grid-row: 1 / span 2; overflow: hidden; margin-left: 13px; border-left: 2px solid #5b4b96; background: #0b1017; text-align: left; direction: ltr; }
 .new-home-example-editor .query-oquery-code-editor { min-height: 0; height: auto; border: 0; border-radius: 0; }
-.new-home-example-editor .query-oquery-highlight { margin: 0; border-left: 0; }
 .new-home-example-editor .query-oquery-fold-actions { top: 5px; right: 5px; }
 .new-home-example-result { position: absolute; z-index: 10; top: 100%; right: 19px; left: 19px; min-width: 0; margin-top: 2px; box-shadow: 0 16px 30px #0009; }
 .new-home-example-run { position: static; display: grid; flex: 0 0 25px; width: 25px; height: 25px; place-items: center; margin-left: 0; padding: 0; border: 1px solid #62529a; border-radius: 6px; color: #ddd5fa; background: #352957; cursor: pointer; }

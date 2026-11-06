@@ -8,7 +8,6 @@ import SortBuilder from "./sort-builder/sort-builder";
 import FilterBuilder from "./filter-builder/filter-builder";
 import JoinsBuilder from "./joins-builder/joins-builder";
 import OQueryEditor from "../../oquery-editor/oquery-editor";
-import type { OQueryFieldDocumentation } from "../../oquery-editor/oquery-language";
 import "./query-design.css";
 
 type EntityMenuProps = {
@@ -255,13 +254,6 @@ function getOqueryRelationSuggestionFields(metadata: MetadataEntity[]) {
   })))];
 }
 
-function getOqueryFieldDocumentation(metadata: MetadataEntity[]): OQueryFieldDocumentation[] {
-  return metadata.flatMap((source) => source.fields.map((field) => ({
-    name: field.name,
-    documentation: `${source.name}.${field.name} (${field.dataType ?? "String"})`,
-  })));
-}
-
 
 export default function QueryDesign({
   metadata,
@@ -493,10 +485,9 @@ export default function QueryDesign({
               ...metadata.map((item) => item.name),
               ...contextDefinitions.map((context) => context.name),
             ])]}
-            suggestionFieldDocumentation={getOqueryFieldDocumentation(metadata)}
             onSelectionChange={onOQuerySelectionChange}
             onExecuteContext={onExecuteOQueryContext}
-            onTextBlur={onApplyOquery}
+            onBlur={onApplyOquery}
             errorFunctionName={oqueryError.match(/:\s+([A-Za-z_][A-Za-z0-9_]*) requires at least/i)?.[1] ?? ""}
             disabled={oqueryStatus !== "idle"}
           />
