@@ -36,6 +36,9 @@ export const apiUrls = {
     fromOQuery: `${backendApiUrl}/dynamic-query/query/from-oquery`,
     toStringText: `${backendApiUrl}/dynamic-query/query/to-string-from-text`,
   },
+  oquery: {
+    suggestions: `${backendApiUrl}/oquery/suggestions`,
+  },
   reports: {
     list: `${backendApiUrl}/report`,
     toString: `${backendApiUrl}/report/to-string`,

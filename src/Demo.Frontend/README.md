@@ -55,7 +55,7 @@ To change the default, edit `debugUiEnabled` in `src/components/query-builder/qu
 ## OQuery text editor
 
 The home-page OQuery examples preserve leading spaces and align the highlighted
-text with the textarea caret. Their highlight layer resets the static example
+text with the editor caret. Their highlight layer resets the static example
 margin so the cursor does not appear shifted by roughly two characters.
 Run the layout regression test with:
 
@@ -66,12 +66,9 @@ node --test .\src\components\oquery-editor\oquery-editor-layout.test.mjs
 Use **Ctrl+/** (or **Cmd+/**) to toggle comments on the current line when no text
 is selected, or on all explicitly selected lines. Comment highlighting stops
 at each newline; commenting a line does not gray out the rest of its context.
-Comment toggles use native textarea edits, so **Ctrl+Z** undoes them and
-**Ctrl+Y** or **Ctrl+Shift+Z** redoes them without discarding earlier typing
-history. Leading indentation and blank lines are preserved.
-Bound documents normalize CRLF and CR line endings to LF, matching native
-textarea offsets. This prevents the first comment after loading Windows text
-from adding indentation or deleting characters from the next context.
+The query-builder OQuery editor uses Monaco's native undo/redo, folding, and
+comment actions. Leading indentation and blank lines are preserved. Bound
+documents normalize CRLF and CR line endings to LF before loading.
 
 Query Builder reserves a fixed-height validation feedback area above the
 OQuery editor. Loading, checking, success, and error messages do not move the
@@ -94,10 +91,16 @@ node --test .\src\components\query-builder\query-design\query-loading.test.mjs
 
 Query Builder provides Visual and OQuery tabs in the page header. The OQuery tab
 loads the canonical query request from the backend, supports editing or
-creating a query definition, provides a starter **Template**, indentation with
-the Tab key, line numbers, local syntax diagnostics, and backend-backed
-**Format** and **Check OQuery** actions. Complete OQuery documents can be pasted
-or replaced freely; required values are validated rather than blocking editing.
+creating a query definition, provides a starter **Template**, Monaco indentation,
+line numbers, folding, Monarch syntax coloring, syntax-aware indentation and
+formatting, metadata/function hover documentation, metadata-aware completion,
+and backend-backed **Format** and **Check OQuery** actions. Monaco diagnostics
+use `setModelMarkers` with debounced backend parsing, so invalid OQuery is
+underlined without blocking editing. Completion requests include the full document,
+one-based cursor coordinates, and a document version; the API returns ranked
+items and an exact replacement range. Stale or cancelled browser requests are
+discarded. Complete OQuery documents can be pasted or replaced freely; required
+values are validated rather than blocking editing.
 While
 OQuery is selected, **Run query** and **Get SQL statement** execute the edited
 text directly through the backend text-query endpoints.
@@ -123,26 +126,20 @@ it is not replaced with `Left`. Run the saved-query round-trip regression with:
 node --test .\src\components\query-builder\query-design\query-save.test.mjs
 ```
 
-All OQuery context keys share the gold color previously used for
-functions. Functions use a darker muted blue, while schema keywords remain
-purple.
+The OQuery suggestion endpoint is editor-independent and resolves entities,
+fields, relations, aliases, functions, clauses, operators, and literal values
+from the configured metadata and function services. Monaco maps its completion
+kinds and replacement ranges without duplicating query-language rules in the
+browser.
+
+All OQuery context keys share the gold color previously used for functions.
+Functions use a darker muted blue, while schema keywords remain purple.
 Context names in `RefContext` values use the same gold as context definition
 keys only when the referenced name exists in the `Contexts` dictionary,
 including references inside context relations. Unknown references remain
 normal text so invalid links are visible.
 
-The OQuery line-number gutter provides collapse/expand buttons for indented
-context definitions, projections, and relations.
-Use **Collapse all** and **Expand all** for the whole editor.
-Fold arrows are hidden until the pointer enters the line-number gutter. Once
-the gutter is hovered, all foldable lines show their arrows. A collapsed line
-keeps its right-pointing expand arrow visible; expanded lines show a
-down-pointing collapse arrow.
-Collapsed headers show a visual `...` suffix directly beside the parent text
-with a soft background highlight;
-neither decoration is inserted into the OQuery text. The collapsed header remains a
-single editor line, and the suffix sits immediately beside the parent text.
-Line numbers keep their original source positions, and folding never changes the saved/executed
-document. Edits to visible lines preserve hidden children. If an edit spans
-hidden content, the editor expands the document and asks you to retry rather
-than accidentally deleting unseen OQuery text.
+Monaco folding handles indented context definitions, projections, and relations.
+Folding never changes the saved or executed document, and the context action
+buttons below the editor execute individual contexts without changing the
+current query text.

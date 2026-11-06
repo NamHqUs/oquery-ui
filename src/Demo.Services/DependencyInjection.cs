@@ -10,6 +10,7 @@ public static class DependencyInjection
         services.AddSingleton<IMetadataService, MetadataService>();
         services.AddSingleton<IFunctionDefinitionService, FunctionDefinitionService>();
         services.AddSingleton<IOperatorDefinitionService, OperatorDefinitionService>();
+        services.AddSingleton<IOQuerySuggestionService, OQuerySuggestionService>();
         services.AddSingleton<IDynamicQueryService, DynamicQueryService>();
         services.AddSingleton<IQueryRequestService, QueryRequestService>();
         return services;
