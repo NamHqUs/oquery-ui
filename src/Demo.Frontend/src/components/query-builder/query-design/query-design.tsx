@@ -188,42 +188,6 @@ type QueryDesignProps = {
   onApplyOquery: () => void;
 };
 
-function orderContextEntries(contextDefinitions: ApiQueryContextDefinition[]) {
-  const contextNames = new Set(contextDefinitions.map((context) => context.name));
-  const dependencies = new Map<string, Set<string>>();
-
-  for (const context of contextDefinitions) {
-    const names = new Set<string>();
-    const addQueryDependencies = (query: ApiQueryContextDefinition["query"]) => {
-      if (query.entity !== context.name && contextNames.has(query.entity)) names.add(query.entity);
-      query.contexts?.forEach((nestedContext) => {
-        if (nestedContext.name !== context.name && contextNames.has(nestedContext.name)) names.add(nestedContext.name);
-        addQueryDependencies(nestedContext.query);
-      });
-    };
-    addQueryDependencies(context.query);
-    dependencies.set(context.name, names);
-  }
-
-  const depthCache = new Map<string, number>();
-  const getDepth = (name: string, resolving: Set<string>): number => {
-    const cached = depthCache.get(name);
-    if (cached !== undefined) return cached;
-    if (resolving.has(name)) return 0;
-    const nextResolving = new Set(resolving).add(name);
-    const depth = Math.max(
-      0,
-      ...Array.from(dependencies.get(name) ?? [], (dependency) => getDepth(dependency, nextResolving) + 1),
-    );
-    depthCache.set(name, depth);
-    return depth;
-  };
-
-  return contextDefinitions
-    .map((context, index) => ({ context, index, depth: getDepth(context.name, new Set<string>()) }))
-    .sort((left, right) => left.depth - right.depth || left.index - right.index);
-}
-
 export default function QueryDesign({
   metadata,
   metadataStatus,
@@ -262,7 +226,6 @@ export default function QueryDesign({
   const [contextDialogOpen, setContextDialogOpen] = useState(false);
   const [newContextName, setNewContextName] = useState("");
   const [contextNameError, setContextNameError] = useState("");
-  const orderedContextEntries = orderContextEntries(contextDefinitions);
   const contextEntities = contextDefinitions.map((context) => {
     const fields = context.query.projection?.flatMap((projection) => {
       const alias = projection.alias?.trim();
@@ -327,35 +290,6 @@ export default function QueryDesign({
 
   return (
     <section className="query-builder-card">
-      {contextDefinitions.length > 0 && <nav className="query-context-bar" aria-label="Query contexts">
-        {orderedContextEntries.map(({ context, index }) => {
-          const contextError = context.query.entity.trim() ? null : "Select an entity.";
-          return <div className="query-context-tab-wrap" key={`${context.id ?? context.name}-${index}`}>
-            <button
-              type="button"
-              className={`query-context-tab${selectedContextIndex === index ? " selected" : ""}`}
-              aria-pressed={selectedContextIndex === index}
-              aria-label={contextError ? `${context.name}: ${contextError}` : undefined}
-              title={contextError ? `${context.name}: ${contextError}` : undefined}
-              onClick={() => onSelectContext(index)}
-            >
-              <Icon name="table" size={14} /> {context.name}
-              {contextError && <span className="query-context-error-indicator" aria-hidden="true">!</span>}
-            </button>
-            <button type="button" className="query-context-delete" aria-label={`Delete ${context.name} context`} title={`Delete ${context.name} context`} onClick={() => onDeleteContext(index)}>
-              <Icon name="close" size={12} />
-            </button>
-          </div>;
-        })}
-        <button
-          type="button"
-          className={`query-context-tab${selectedContextIndex === null ? " selected" : ""}`}
-          aria-pressed={selectedContextIndex === null}
-          onClick={() => onSelectContext(null)}
-        >
-          <Icon name="query" size={14} /> Main Query
-        </button>
-      </nav>}
       <div className="query-name-row">
         <div className="query-name-field">
           <div className="query-name-label-row">
@@ -409,10 +343,6 @@ export default function QueryDesign({
           <div className="query-oquery-editor-header">
             <div>
               <span className="section-kicker">OQUERY TEXT</span>
-              <p>Use the compact query syntax, edit values, and check the text when ready.</p>
-              <div className="query-oquery-function-legend" aria-label="Function color legend">
-                <span className="query-oquery-function">Function</span>
-              </div>
               <div className="query-oquery-feedback" aria-label="OQuery validation feedback">
                 {oqueryStatus === "loading" && <p className="query-message" role="status">Loading OQuery…</p>}
                 {oqueryStatus === "applying" && <p className="query-message" role="status">Checking OQuery…</p>}
@@ -421,23 +351,24 @@ export default function QueryDesign({
               </div>
             </div>
             <div className="query-oquery-editor-actions">
-              <button type="button" className="button secondary" onClick={onInsertOqueryTemplate} disabled={oqueryStatus !== "idle"}>
-                <Icon name="file-plus" size={14} /> Template
+              <button type="button" className="button secondary" onClick={onInsertOqueryTemplate}
+                aria-label="Insert OQuery template" title="Insert OQuery template" disabled={oqueryStatus !== "idle"}>
+                <Icon name="file-plus" size={14} />
               </button>
-              <button type="button" className="button secondary" onClick={onFormatOquery} disabled={oqueryStatus !== "idle" || !oqueryText.trim()}>
-                <Icon name="code" size={14} /> Format
+              <button type="button" className="button secondary" onClick={onFormatOquery}
+                aria-label="Format OQuery" title="Format OQuery" disabled={oqueryStatus !== "idle" || !oqueryText.trim()}>
+                <Icon name="code" size={14} />
               </button>
-              {selectedContextIndex === null && <button type="button" className="button secondary" onClick={openContextDialog}>
-                <Icon name="plus" size={14} /> Add context
-              </button>}
               <button
                 type="button"
                 className="button primary"
                 onClick={onApplyOquery}
                 aria-busy={oqueryStatus === "applying"}
+                aria-label="Check OQuery"
+                title="Check OQuery"
                 disabled={oqueryStatus !== "idle" || !oqueryText.trim()}
               >
-                Check OQuery
+                <Icon name="check" size={15} />
               </button>
             </div>
           </div>
@@ -455,7 +386,10 @@ export default function QueryDesign({
             suggestionEntitiesMetadata={suggestionData.entitiesMetadata}
             onSelectionChange={onOQuerySelectionChange}
             onExecuteContext={onExecuteOQueryContext}
-            onBlur={onApplyOquery}
+            onBlur={(event) => {
+              if (event.relatedTarget instanceof Element && event.relatedTarget.closest(".saved-query-item")) return;
+              onApplyOquery();
+            }}
             errorFunctionName={oqueryError.match(/:\s+([A-Za-z_][A-Za-z0-9_]*) requires at least/i)?.[1] ?? ""}
             disabled={oqueryStatus !== "idle"}
           />

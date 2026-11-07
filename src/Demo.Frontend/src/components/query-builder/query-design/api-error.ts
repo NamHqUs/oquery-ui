@@ -5,6 +5,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function fieldLabel(path: string): string {
   return path
     .replace(/^\$\.?/, "")
+    .replace(/^projection\[(\d+)\]/i, (_, index: string) => `Projection ${Number(index) + 1}`)
     .replace(/Contexts\[(\d+)\]\.Value/gi, (_, index: string) => `Context ${Number(index) + 1}`)
     .replace(/Contexts\.([^.[]+)/gi, 'Context "$1"')
     .replace(/\./g, " > ") || "Request";

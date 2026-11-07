@@ -278,6 +278,42 @@ async function requestJson(url: string, options?: RequestInit) {
   }
 }
 
+function toApiProjectionNode(expression: IFieldDefinition): ApiProjectionNode {
+  switch (expression.kind) {
+    case "group":
+      return {
+        kind: "group",
+        fields: expression.arguments.map(toApiProjectionNode),
+        ...(expression.oper ? { oper: expression.oper } : {}),
+      };
+    case "function":
+      return {
+        kind: "function",
+        function: expression.function,
+        arguments: expression.arguments.map(toApiProjectionNode),
+        ...(expression.oper ? { oper: expression.oper } : {}),
+      };
+    case "condition":
+      return {
+        kind: "condition",
+        condition: expression.condition,
+        ...(expression.oper ? { oper: expression.oper } : {}),
+      };
+    case "field":
+      return {
+        kind: "field",
+        field: expression.field,
+        ...(expression.oper ? { oper: expression.oper } : {}),
+      };
+    case "value":
+      return {
+        kind: "value",
+        value: expression.value,
+        ...(expression.oper ? { oper: expression.oper } : {}),
+      };
+  }
+}
+
 function normalizeQueryRequestProjection(item: Record<string, unknown>): Record<string, unknown> {
   const normalizeContext = (name: string, value: Record<string, unknown>) => {
     const joins = value.relations ?? value.joins;
@@ -355,7 +391,7 @@ export function createApiQuery(definition: QueryDefinition) {
     ...query,
     contexts,
     projection: columns.map(({ field, alias, expression }) => ({
-      field: expression ?? { kind: "field", field },
+      field: expression ? toApiProjectionNode(expression) : { kind: "field", field },
       alias,
     })),
     page: noPaging ? null : query.page,
@@ -864,14 +900,17 @@ function toApiSavedRequest(request: { name: string; definition: QueryDefinition;
   const rows = getSavedProjectionRows(request.definition);
   const projection = rows.flatMap((row, rowIndex) => [
     ...(rowIndex > 0
-      ? [{ field: { kind: "field" as const, field: "" }, alias: "NEW_LINE" }]
+      ? [{ fields: [{ kind: "field" as const, field: "" }], alias: "NEW_LINE" }]
       : []),
     ...row.map((field) => {
       const index = request.definition.columns.findIndex((candidate) => candidate.field === field);
-      return apiQuery.projection[index] ?? {
-        fields: [{ kind: "field" as const, field }],
-        alias: null,
-      };
+      const projectionDefinition = apiQuery.projection[index];
+      return projectionDefinition && "fields" in projectionDefinition
+        ? projectionDefinition
+        : {
+          fields: [projectionDefinition?.field ?? { kind: "field" as const, field }],
+          alias: projectionDefinition?.alias ?? null,
+        };
     }),
   ]);
 
@@ -1267,6 +1306,9 @@ const queryBuilderSlice = createSlice({
       state.resultView = "data";
       state.queryError = "";
     },
+    clearQueryRequestError(state) {
+      state.queryRequestsError = "";
+    },
     invalidateQueryMetadata(state) {
       state.metadata = [];
       state.metadataStatus = "idle";
@@ -1436,6 +1478,7 @@ const queryBuilderSlice = createSlice({
 });
 
 export const {
+  clearQueryRequestError,
   clearQueryResult,
   invalidateFunctionDefinitions,
   invalidateQueryMetadata,

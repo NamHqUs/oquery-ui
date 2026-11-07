@@ -6,7 +6,7 @@ import Icon from "../icon/icon";
 import { useMessageBox } from "../message-box/message-box";
 import PanelSplitter from "../panel-splitter/panel-splitter";
 import ToastNotice from "../toast-notice/toast-notice";
-import { ApiQueryContextDefinition, clearQueryResult, createApiQuery, deleteQueryRequest, executeContextFromText, executeQuery, executeQueryFromText, fetchFilterOperators, fetchFunctionDefinitions, fetchQueryMetadata, fetchQueryRequests, fromApiQuery, fromApiQueryDefinition, getQueryRequestText, getSqlStatement, getSqlStatementFromText, IFieldDefinition, MetadataEntity, MetadataField, parseQueryRequestText, QueryDefinition, QueryFilterGroup, QueryFilterNode, saveQueryRequest, toQueryBuilderSavedView } from "./query-design/query-builder-slice";
+import { ApiQueryContextDefinition, clearQueryRequestError, clearQueryResult, createApiQuery, deleteQueryRequest, executeContextFromText, executeQuery, executeQueryFromText, fetchFilterOperators, fetchFunctionDefinitions, fetchQueryMetadata, fetchQueryRequests, fromApiQuery, fromApiQueryDefinition, getQueryRequestText, getSqlStatement, getSqlStatementFromText, IFieldDefinition, MetadataEntity, MetadataField, parseQueryRequestText, QueryDefinition, QueryFilterGroup, QueryFilterNode, saveQueryRequest, toQueryBuilderSavedView } from "./query-design/query-builder-slice";
 import QueryDesign from "./query-design/query-design";
 import QueryResult from "./query-result/query-result";
 import SavedQueryList from "./saved-query-list/saved-query-list";
@@ -28,9 +28,12 @@ const OQUERY_DESIGN_HEIGHT_MAX = 1100;
 const EDITOR_MODE_SEARCH_PARAM = "mode";
 
 type EditorMode = "visual" | "oquery";
+const VISUAL_QUERY_DESIGN_ENABLED = false;
 
 function getEditorMode(searchParams: URLSearchParams): EditorMode {
-  return searchParams.get(EDITOR_MODE_SEARCH_PARAM) === "oquery" ? "oquery" : "visual";
+  return VISUAL_QUERY_DESIGN_ENABLED && searchParams.get(EDITOR_MODE_SEARCH_PARAM) === "visual"
+    ? "visual"
+    : "oquery";
 }
 
 export function resetQueryBuilderCache() {
@@ -843,6 +846,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
         onRequestConnection();
         return;
       }
+      setOqueryError("");
       if (activeContextIndex !== null) {
         updateDefinition(updateContextDefinition(activeContextIndex, activeDefinition));
       }
@@ -860,6 +864,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
       onRequestConnection();
       return;
     }
+    setOqueryError("");
     dispatch(executeContextFromText({ text, context: contextName }));
   };
 
@@ -967,6 +972,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     updateRoute = true,
   ) => {
     if (!(await confirmModelReplacement())) return;
+    dispatch(clearQueryRequestError());
     oqueryLoadRequestRef.current++;
     dispatch(clearQueryResult());
     if (debugUiEnabled) console.log("Saved Query Request:", savedRequest);
@@ -1064,14 +1070,6 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
           </div>
         </div>
         <div className="heading-actions">
-          <nav className="database-section-tabs query-editor-tabs" role="tablist" aria-label="Query editor">
-            <button type="button" role="tab" aria-selected={editorMode === "visual"} className={editorMode === "visual" ? "active" : ""} onClick={() => changeEditorMode("visual")}>
-              <Icon name="query" size={14} /> Visual
-            </button>
-            <button type="button" role="tab" aria-selected={editorMode === "oquery"} className={editorMode === "oquery" ? "active" : ""} onClick={() => changeEditorMode("oquery")}>
-              <Icon name="code" size={14} /> OQuery
-            </button>
-          </nav>
           {onBackToHome && <button className="button secondary" onClick={onBackToHome}><Icon name="arrow-left" size={14} /> Back to home</button>}
           {!selectedRequestIsBuiltin && <>
             {selectedRequestName && <button type="button" className="button secondary query-icon-button query-delete-button" aria-label="Delete query" title="Delete query" onClick={() => void removeCurrentRequest()}>
