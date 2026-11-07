@@ -32,10 +32,11 @@ function demoViewIcon(view: DemoResultView): IconName {
 }
 const PRODUCTS_OQUERY = "Products:";
 const TRAVERSAL_OQUERY = "Orders: Id, OrderDate, User.FirstName, User.LastName";
-const PRODUCT_SALES_OQUERY = `OrderItems: Product.Name,
-    AverageOver(TotalRevenue) Average,
-    Sum(Quantity * UnitPrice) TotalRevenue
-WHERE TotalRevenue > Average`;
+const PRODUCT_SALES_OQUERY = `Products: 
+    Name,
+    Revenue.Avg() Average,
+    OrderItems.Sum(Quantity * UnitPrice) Revenue
+WHERE Revenue > Average`;
 const PRODUCT_SALES_SQL = `SELECT *
 FROM (
     SELECT p.Name,
@@ -48,9 +49,9 @@ FROM (
 WHERE ProductSales.TotalRevenue > ProductSales.Average;`;
 const EMPLOYEE_TREE_OQUERY = `EmployeeTree is Employees:
     FirstName ManagerName,
-    member.FirstName MemberName,
-    CountOver(member.Id, manager.Id) TotalMembers
-  INNER JOIN EmployeeTree member on Id = member.ManagerId`;
+    Members.Count(Id) TotalMembers,
+    tree.FirstName MemberName,
+  INNER JOIN EmployeeTree tree on Id = tree.ManagerId`;
 const EMPLOYEE_TREE_SQL = `WITH EmployeeTree AS
 (
     SELECT
@@ -424,11 +425,7 @@ export default function HomePage({
           <p>Keep the database you have. Add a vocabulary your application can share.</p>
         </div>
       </div>
-      <div className="new-home-principles">
-        <div><span>01</span><strong>Define once</strong><small>Reusable entities and relationships</small></div>
-        <div><span>02</span><strong>Compose safely</strong><small>Contexts that match business meaning</small></div>
-        <div><span>03</span><strong>Deliver anywhere</strong><small>Dialect-aware SQL for each provider</small></div>
-      </div>
+   
     </section>
     <section className="new-home-examples" aria-labelledby="new-home-examples-title">
       <div className="new-home-examples-heading">
@@ -437,13 +434,13 @@ export default function HomePage({
       <div className="new-home-example-rail">
         <article className="new-home-example">
           <div className="new-home-example-marker">01</div>
-          <div className="new-home-example-copy"><strong>How do I explore a product?</strong><p>A business entity is enough to begin exploring its exposed data.</p></div>
+          <div className="new-home-example-copy"><strong>How do I explore a product?</strong><p>Start with a runtime entity and select the fields and relationships that matter.</p><p>No generated CLR model, fixed projection class, or physical table name is required.</p></div>
           {renderDemoQuery("products", demoQueries.products, PRODUCTS_CSHARP, "SELECT *\nFROM sa.Products;", demoRepresentations.products || "query", (next) => setDemoRepresentations((current) => ({ ...current, products: next })))}
           {renderDemoResult("products")}
         </article>
         <article className="new-home-example">
           <div className="new-home-example-marker">02</div>
-          <div className="new-home-example-copy"><strong>Who placed each order?</strong><p>Follow an orderâ€™s customer relationship without writing the join by hand.</p></div>
+          <div className="new-home-example-copy"><strong>Who placed each order?</strong><p>Follow relationships through readable metadata paths instead of physical table names.</p><p>The metadata compiler resolves each path and creates the required join, instead of making you hand-write join SQL.</p></div>
           {renderDemoQuery("traversal", demoQueries.traversal, TRAVERSAL_CSHARP, `SELECT
     o.Id,
     o.OrderDate,
@@ -456,13 +453,13 @@ LEFT JOIN Main.Users AS u
         </article>
         <article className="new-home-example">
           <div className="new-home-example-marker">03</div>
-          <div className="new-home-example-copy"><strong>Do you know the total members at each hierarchy level?</strong><p>The engine detects the self-reference and generates the recursive SQL automatically.</p></div>
+          <div className="new-home-example-copy"><strong>Do you know the total members at each hierarchy level?</strong><p>Keep the hierarchy and its calculated results in one named query context.</p><p>Reusable contexts let complex derived queries and CTE-shaped logic stay composable instead of becoming one fragile SQL script.</p></div>
           {renderDemoQuery("recursive", demoQueries.recursive, RECURSIVE_CSHARP, EMPLOYEE_TREE_SQL, demoRepresentations.recursive || "query", (next) => setDemoRepresentations((current) => ({ ...current, recursive: next })))}
           {renderDemoResult("recursive")}
         </article>
         <article className="new-home-example">
           <div className="new-home-example-marker">04</div>
-          <div className="new-home-example-copy"><strong>Which products sell above average?</strong><p>Build product sales from a reusable context, calculate the overall average, and filter in an outer query.</p></div>
+          <div className="new-home-example-copy"><strong>Which products sell above average?</strong><p>Use aliases and window functions to compare each result with a scalar value while preserving the row set.</p><p>Define custom functions once with typed arguments and a SQL template for each dialect. OQuery selects the right implementation at runtime.</p></div>
           {renderDemoQuery("revenue", demoQueries.revenue, REVENUE_CSHARP, PRODUCT_SALES_SQL, demoRepresentations.revenue || "query", (next) => setDemoRepresentations((current) => ({ ...current, revenue: next })))}
           {renderDemoResult("revenue")}
         </article>

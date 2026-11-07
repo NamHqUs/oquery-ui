@@ -1,6 +1,6 @@
 .query-builder-card { --field-box-height: 34px; background: linear-gradient(135deg, #11141c, #0f1218); border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
 .query-editor-tabs { margin-left: 0; }
-.query-oquery-editor { display: grid; gap: 12px; }
+.query-oquery-editor { position: relative; z-index: 3000; display: grid; gap: 12px; }
 .query-oquery-editor-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .query-oquery-editor-header > div:first-child { flex: 1; min-width: 0; }
 .query-oquery-feedback { height: 52px; margin-top: 8px; overflow: auto; }
@@ -54,7 +54,7 @@
 .query-oquery-textarea::selection { color: transparent; background: #7054d488; }
 .query-oquery-code-editor:focus-within { border-color: #7054d4; box-shadow: 0 0 0 2px #7054d433; }
 .query-oquery-textarea:disabled { opacity: .7; }
-.query-oquery-completions { position: absolute; z-index: 2001; top: 48px; left: 92px; width: min(200px, calc(100% - 108px)); overflow: hidden; padding: 2px; border: 0; border-radius: 5px; background: #151a27f8; box-shadow: 0 10px 24px #00000066; }
+.query-oquery-completions { position: absolute; z-index: 3001; top: 48px; left: 92px; width: min(200px, calc(100% - 108px)); overflow: hidden; padding: 2px; border: 0; border-radius: 5px; background: #151a27f8; box-shadow: 0 10px 24px #00000066; }
 .query-oquery-code-editor.no-fold-controls:not(.no-line-numbers) .query-oquery-completions { left: 68px; width: min(200px, calc(100% - 84px)); }
 .query-oquery-code-editor.no-line-numbers .query-oquery-completions { left: 44px; width: min(200px, calc(100% - 60px)); }
 .query-oquery-code-editor.no-gutter .query-oquery-completions { left: 16px; width: min(200px, calc(100% - 32px)); }
