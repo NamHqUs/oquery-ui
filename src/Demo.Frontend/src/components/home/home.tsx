@@ -343,23 +343,53 @@ export default function Home({
       <section className="hp-section" aria-labelledby="hp-interfaces-title">
         <SectionIntro
           id="hp-interfaces-title"
-          kicker="ONE ENGINE"
-          title="Your interface. One query engine."
-          text={`Use the interface that fits your application and development style. Every interface uses the same data model and feeds the ${PRODUCT_NAME} engine.`}
+          kicker="ONE ENGINE · DATABASE SUPPORT"
+          title="Rich inputs. One engine. Multiple databases."
+          text={`Use the input style that fits your application and development workflow. Text queries, structured definitions, fluent code, and frontend requests all use the same data model, then ${PRODUCT_NAME} generates the database-specific SQL needed for execution.`}
         />
-        <div className="hp-interfaces">
-          {INTERFACE_CARDS.map((card) => <article className="hp-card hp-interface" key={card.title}>
-            <div className="hp-card-title-row">
-              <div className="hp-card-icon"><Icon name={card.icon} size={17} /></div>
-              <strong>{card.title}</strong>
+        <div className="hp-engine-layout">
+          <div className="hp-engine-input-panel">
+            <span className="hp-engine-panel-label">Separate input types</span>
+            <div className="hp-interfaces">
+              {INTERFACE_CARDS.map((card) => <article className="hp-card hp-interface" key={card.title}>
+                <div className="hp-card-title-row">
+                  <div className="hp-card-icon"><Icon name={card.icon} size={17} /></div>
+                  <strong>{card.title}</strong>
+                </div>
+                <p className="hp-interface-lead">{card.text}</p>
+                <p>{card.audience}</p>
+                {card.code && <code>{card.code}</code>}
+              </article>)}
             </div>
-            <p className="hp-interface-lead">{card.text}</p>
-            <p>{card.audience}</p>
-            {card.code && <code>{card.code}</code>}
-          </article>)}
-          <div className="hp-engine-bar"><Icon name="database" size={14} /> {PRODUCT_NAME} engine · metadata · SQL dialects</div>
+            <TextAction onClick={openDocs}>Explore query interfaces</TextAction>
+          </div>
+          <div className="hp-engine-output-panel">
+            <figure className="hp-engine-diagram" aria-labelledby="hp-engine-diagram-title">
+              <div className="hp-engine-diagram-flow">
+                <div className="hp-engine-diagram-column">
+                  <span className="hp-engine-diagram-label">Rich input types</span>
+                  <div className="hp-engine-diagram-nodes">
+                    {INTERFACE_CARDS.map((card) => <span className="hp-engine-node" key={card.title}><Icon name={card.icon} size={13} /> {card.title}</span>)}
+                  </div>
+                </div>
+                <span className="hp-engine-diagram-arrow" aria-hidden="true">↓</span>
+                <div className="hp-engine-diagram-engine">
+                  <Icon name="database" size={18} />
+                  <strong>{PRODUCT_NAME} engine</strong>
+                  <small>Metadata · SQL Functions · SQL dialects</small>
+                </div>
+                <span className="hp-engine-diagram-arrow" aria-hidden="true">↓</span>
+                <div className="hp-engine-diagram-column">
+                  <span className="hp-engine-diagram-label">Database execution</span>
+                  <div className="hp-engine-diagram-nodes">
+                    {DATABASE_PROVIDERS.map((provider) => <span className="hp-engine-node" key={provider.name}><Icon name={provider.icon} size={13} /> {provider.name}</span>)}
+                  </div>
+                </div>
+              </div>
+            </figure>
+            <TextAction onClick={() => onNavigateToPage("sources")}>View database connections</TextAction>
+          </div>
         </div>
-        <TextAction onClick={openDocs}>Explore query interfaces</TextAction>
       </section>
 
       <section className="hp-section" id="hp-reveal" aria-labelledby="hp-reveal-title">
@@ -449,19 +479,6 @@ export default function Home({
           </ul>
           <TextAction onClick={openDocs}>Read the security documentation</TextAction>
         </div>
-      </section>
-
-      <section className="hp-section" aria-labelledby="hp-databases-title">
-        <SectionIntro
-          id="hp-databases-title"
-          kicker="DATABASE SUPPORT"
-          title="One query model. Multiple databases."
-          text={`${PRODUCT_NAME} translates its common query representation into database-specific SQL through its SQL dialect architecture.`}
-        />
-        <ul className="hp-providers">
-          {DATABASE_PROVIDERS.map((provider) => <li key={provider.name}><Icon name={provider.icon} size={16} /> {provider.name}</li>)}
-        </ul>
-        <TextAction onClick={() => onNavigateToPage("sources")}>View database connections</TextAction>
       </section>
 
       <section className="hp-final" aria-labelledby="hp-final-title">
