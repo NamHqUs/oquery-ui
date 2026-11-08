@@ -129,8 +129,7 @@ function Playground({
 
   useEffect(() => {
     void run(initialQuery);
-    // Run once on mount so visitors never see an empty result.
-  }, []);
+  }, [initialQuery]);
 
   const toggleSql = () => {
     const next = !sqlOpen;
@@ -155,6 +154,7 @@ function Playground({
       </div>
       <div className="hp-playground-editor" ref={editorHostRef} onKeyDownCapture={handleKeyDownCapture}>
         <OQueryEditor
+          key={initialQuery}
           aria-label={label}
           oquery
           compact
@@ -170,8 +170,8 @@ function Playground({
           onSelectionChange={(text) => { selectionRef.current = text; }}
           onExecuteSelectedText={(text) => void run(text)}
         />
-        <button className="button primary hp-run" type="button" onClick={runCurrent} disabled={running}>
-          <Icon name="play" size={12} /> {running ? "Running…" : "Run"}
+        <button className="button primary hp-run" type="button" onClick={runCurrent} disabled={running} aria-busy={running}>
+          <Icon name="play" size={12} /> Run
         </button>
       </div>
       <div className="hp-result" aria-live="polite" aria-busy={running}>
@@ -325,10 +325,10 @@ export default function Home({
               <span className="hp-example-letter">{example.letter}</span>
               <span><strong>{example.title}</strong><small>{example.summary}</small></span>
             </button>)}
+          <TextAction onClick={openBuilder}>Explore all examples in the Query builder</TextAction>
           </div>
           <div className="hp-example-panel" id="hp-example-panel" role="tabpanel" aria-labelledby={`hp-tab-${activeExample.id}`}>
             <Playground
-              key={activeExample.id}
               initialQuery={activeExample.query}
               label={`Example ${activeExample.letter} · ${activeExample.title}`}
               functionDefinitions={functionDefinitions}
@@ -336,7 +336,6 @@ export default function Home({
             />
           </div>
         </div>
-        <TextAction onClick={openBuilder}>Explore all examples in the Query builder</TextAction>
       </section>
 
       <section className="hp-section" id="hp-reveal" aria-labelledby="hp-reveal-title">
