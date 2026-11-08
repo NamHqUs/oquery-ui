@@ -364,7 +364,7 @@ export default function Home({
             <figure className="hp-engine-diagram" aria-labelledby="hp-engine-diagram-title">
               <div className="hp-engine-diagram-flow">
                 <div className="hp-engine-diagram-column hp-engine-diagram-group">
-                  <span className="hp-engine-diagram-label">Rich input types</span>
+                  <span className="hp-engine-diagram-label">Input types</span>
                   <div className="hp-engine-diagram-nodes">
                     {INTERFACE_CARDS.map((card) => <span className="hp-engine-node" key={card.title}><Icon name={card.icon} size={13} /> {card.title}</span>)}
                   </div>
@@ -377,7 +377,7 @@ export default function Home({
                 </div>
                 <span className="hp-engine-diagram-arrow" aria-hidden="true">↓</span>
                 <div className="hp-engine-diagram-column hp-engine-diagram-group">
-                  <span className="hp-engine-diagram-label">Database execution</span>
+                  <span className="hp-engine-diagram-label">Database TYPES</span>
                   <div className="hp-engine-diagram-nodes">
                     {DATABASE_PROVIDERS.map((provider) => <span className="hp-engine-node" key={provider.name}><Icon name={provider.icon} size={13} /> {provider.name}</span>)}
                   </div>

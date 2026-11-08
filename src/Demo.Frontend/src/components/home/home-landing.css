@@ -82,7 +82,7 @@
 .hp-engine-diagram-flow { display: grid; grid-template-columns: 1fr; justify-items: center; gap: 10px; min-width: 0; }
 .hp-engine-diagram-column { min-width: 0; }
 .hp-engine-diagram-group { width: fit-content; max-width: 100%; box-sizing: border-box; padding: 12px; border: 0; background: #10131a; overflow-wrap: anywhere; }
-.hp-engine-diagram-label { display: block; margin-bottom: 8px; color: #d8d1f5; font: 700 12px "Space Grotesk", "Manrope", sans-serif; letter-spacing: .6px; text-align: center; text-transform: uppercase; }
+.hp-engine-diagram-label { display: block; margin-bottom: 8px; color: #a7dfc9; font: 700 12px "Space Grotesk", "Manrope", sans-serif; letter-spacing: .6px; text-align: center; text-transform: uppercase; }
 .hp-engine-diagram-nodes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
 .hp-engine-diagram-column:first-child .hp-engine-diagram-nodes { display: flex; flex-wrap: nowrap; justify-content: center; }
 .hp-engine-diagram-column:first-child .hp-engine-node { width: 120px; justify-content: center; text-align: center; white-space: nowrap; }
@@ -93,7 +93,7 @@
 .hp-engine-diagram-engine { display: flex; width: fit-content; max-width: 100%; min-width: 0; min-height: 92px; box-sizing: border-box; flex-wrap: wrap; align-content: center; align-items: center; justify-content: center; gap: 5px 8px; padding: 12px; border: 0; border-radius: 9px; color: #eeeaf8; background: #10131a; text-align: center; overflow-wrap: anywhere; }
 .hp-engine-diagram-engine .icon { color: var(--green); }
 .hp-engine-diagram-engine strong { min-width: 0; }
-.hp-engine-diagram-engine small { flex: 0 0 100%; min-width: 0; color: #bca9ff; font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+.hp-engine-diagram-engine small { flex: 0 0 100%; min-width: 0; color: #8993a5; font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
 .hp-engine-diagram-arrow { justify-self: center; color: #a78bfa; font-size: 22px; line-height: 1; }
 
 /* Examples */
@@ -163,6 +163,7 @@
 /* Interfaces */
 .hp-engine-layout { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 24px; align-items: start; }
 .hp-engine-input-panel, .hp-engine-output-panel { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.hp-engine-output-panel > .hp-text-action { align-self: center; }
 .hp-engine-panel-label { color: #8993a5; font: 600 10px "Space Grotesk", "Manrope", sans-serif; letter-spacing: .8px; text-transform: uppercase; }
 .hp-interfaces { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .hp-engine-input-panel .hp-interfaces { grid-template-columns: 1fr; }
