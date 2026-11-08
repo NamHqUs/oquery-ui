@@ -132,8 +132,9 @@
 .hp-card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .hp-card-grid-5 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .hp-card-grid-list { grid-template-columns: 1fr; }
-.hp-card { display: flex; gap: 13px; padding: 16px; border: 1px solid #2c3341; border-radius: 9px; background: #10131a; transition: border-color .16s ease, background .16s ease; }
-.hp-card:hover { border-color: #493b70; background: #141320; }
+.hp-card { display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 0; border-radius: 0; background: #10131a; transition: background .16s ease; }
+.hp-card:hover { background: #141320; }
+.hp-card-title-row { display: flex; align-items: center; gap: 10px; min-height: 34px; }
 .hp-card strong { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: #e9edf4; font-size: 14px; }
 .hp-card p { margin: 6px 0 0; color: #8993a5; font-size: 12.5px; line-height: 1.55; }
 .hp-card-icon { display: grid; flex: 0 0 auto; width: 34px; height: 34px; place-items: center; border: 1px solid #3a3352; border-radius: 8px; color: #bca9ff; background: #1b1730; }
@@ -142,10 +143,9 @@
 /* Interfaces */
 .hp-interfaces { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .hp-interface { flex-direction: column; gap: 6px; }
-.hp-interface .hp-card-icon { margin-bottom: 6px; }
 .hp-interface .hp-interface-lead { margin: 0; color: #c9c4d8; font-weight: 600; }
 .hp-interface p { margin: 0; }
-.hp-interface code { margin-top: auto; padding: 7px 9px; border: 1px solid #2d3441; border-radius: 5px; color: #ded5ff; background: #0c0f15; font: 11.5px ui-monospace, "Cascadia Code", Consolas, monospace; word-break: break-all; }
+.hp-interface code { margin-top: 0; padding: 7px 9px; border: 1px solid #2d3441; border-radius: 5px; color: #ded5ff; background: #0c0f15; font: 11.5px ui-monospace, "Cascadia Code", Consolas, monospace; word-break: break-all; }
 .hp-engine-bar { display: flex; grid-column: 1 / -1; align-items: center; justify-content: center; gap: 9px; padding: 11px; border: 1px solid #493b70; border-radius: 9px; color: #e7e2ff; background: linear-gradient(90deg, #211b36, #15232a); font: 600 12px "Space Grotesk", "Manrope", sans-serif; letter-spacing: .4px; }
 .hp-engine-bar .icon { color: var(--green); }
 
@@ -336,15 +336,16 @@
   border-radius: 0;
   background: transparent;
 }
-.hp-card:hover { border-color: #8064e8; background: linear-gradient(90deg, #211b3622, transparent); }
+.hp-card:hover { background: linear-gradient(90deg, #211b3622, transparent); }
 .hp-card-icon { width: 30px; height: 30px; border: 0; border-radius: 50%; background: #211b36; }
 .hp-card-grid .hp-card:nth-child(3n + 2) .hp-card-icon { color: #67d4b0; background: #15362f; }
 .hp-card-grid .hp-card:nth-child(3n) .hp-card-icon { color: #e8c889; background: #382d1a; }
 .hp-split { align-items: flex-start; }
 .hp-stats { border: 0; border-radius: 0; background: #101d1b88; }
 .hp-note { border: 0; border-radius: 0; background: #17152588; }
-.hp-interfaces { gap: 0; }
-.hp-interface { min-height: 248px; padding: 24px 20px; border-right: 1px solid #2c3341; }
+.hp-interfaces { gap: 0; align-items: start; }
+.hp-interface { min-height: 0; padding: 24px 20px; border-right: 0; }
+.hp-interface > .hp-card-title-row { padding-left: 10px; border-left: 4px solid #a78bfa; }
 .hp-engine-bar { border-radius: 0; }
 .hp-two-col { border-top: 0; }
 .hp-panel { padding: 24px 32px; }

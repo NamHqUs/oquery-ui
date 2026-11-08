@@ -227,9 +227,11 @@ function CardGrid({ cards, className = "" }: { cards: HomeCard[]; className?: st
   return (
     <div className={`hp-card-grid ${className}`}>
       {cards.map((card) => <article className="hp-card" key={card.title}>
-        <div className="hp-card-icon"><Icon name={card.icon} size={17} /></div>
-        <div>
+        <div className="hp-card-title-row">
+          <div className="hp-card-icon"><Icon name={card.icon} size={17} /></div>
           <strong>{card.title}{card.roadmap && <span className="hp-roadmap">Roadmap</span>}</strong>
+        </div>
+        <div>
           <p>{card.text}</p>
         </div>
       </article>)}
@@ -347,8 +349,10 @@ export default function Home({
         />
         <div className="hp-interfaces">
           {INTERFACE_CARDS.map((card) => <article className="hp-card hp-interface" key={card.title}>
-            <div className="hp-card-icon"><Icon name={card.icon} size={17} /></div>
-            <strong>{card.title}</strong>
+            <div className="hp-card-title-row">
+              <div className="hp-card-icon"><Icon name={card.icon} size={17} /></div>
+              <strong>{card.title}</strong>
+            </div>
             <p className="hp-interface-lead">{card.text}</p>
             <p>{card.audience}</p>
             {card.code && <code>{card.code}</code>}
