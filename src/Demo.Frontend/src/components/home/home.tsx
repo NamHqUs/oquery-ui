@@ -343,7 +343,7 @@ export default function Home({
       <section className="hp-section" aria-labelledby="hp-interfaces-title">
         <SectionIntro
           id="hp-interfaces-title"
-          kicker="ONE ENGINE · DATABASE SUPPORT"
+          kicker="ONE ENGINE · QUERY CAPABILITIES"
           title="Rich inputs. One engine. Multiple databases."
           text={`Use the input style that fits your application and development workflow. Text queries, structured definitions, fluent code, and frontend requests all use the same data model, then ${PRODUCT_NAME} generates the database-specific SQL needed for execution.`}
         />
@@ -449,10 +449,7 @@ export default function Home({
         <CardGrid cards={DEVELOPER_CARDS} />
         <p className="hp-note"><Icon name="schema" size={15} /><span>In {PRODUCT_NAME}&apos;s architecture these definitions are called <strong>Metadata</strong>—the context that lets the engine understand entity names, field paths, relationships, and available operations. Define it with YAML, JSON, or .NET.</span></p>
         <TextAction onClick={() => onNavigateToPage("metadata")}>Explore metadata and entity definitions</TextAction>
-      </section>
-
-      <section className="hp-section hp-two-col" aria-label="Extensibility and security">
-        <div className="hp-panel">
+        <div className="hp-developer-extension">
           <SectionIntro
             id="hp-extend-title"
             kicker="EXTENSIBILITY"
@@ -462,20 +459,21 @@ export default function Home({
           <CardGrid cards={EXTENSION_CARDS} className="hp-card-grid-list" />
           <TextAction onClick={() => onNavigateToPage("functions")}>Explore extensibility</TextAction>
         </div>
-        <div className="hp-panel hp-security">
-          <SectionIntro
-            id="hp-security-title"
-            kicker="SECURITY AND CONTROL"
-            title="Flexible data access. Defined boundaries."
-            text={`Dynamic querying should not mean unrestricted database access. ${PRODUCT_NAME} uses the application's data definitions and access rules to control what a query can reach.`}
-          />
-          <ul className="hp-points hp-points-stacked">
-            {SECURITY_POINTS.map((point) => <li key={point.text} className={point.roadmap ? "roadmap" : ""}>
-              <Icon name={point.roadmap ? "reset" : "key"} size={14} /><span>{point.text}{point.roadmap && <span className="hp-roadmap">Roadmap</span>}</span>
-            </li>)}
-          </ul>
-          <TextAction onClick={openDocs}>Read the security documentation</TextAction>
-        </div>
+      </section>
+
+      <section className="hp-section hp-security" aria-labelledby="hp-security-title">
+        <SectionIntro
+          id="hp-security-title"
+          kicker="SECURITY AND CONTROL"
+          title="Flexible data access. Defined boundaries."
+          text={`Dynamic querying should not mean unrestricted database access. ${PRODUCT_NAME} uses the application's data definitions and access rules to control what a query can reach.`}
+        />
+        <ul className="hp-points hp-points-stacked">
+          {SECURITY_POINTS.map((point) => <li key={point.text} className={point.roadmap ? "roadmap" : ""}>
+            <Icon name={point.roadmap ? "reset" : "key"} size={14} /><span>{point.text}{point.roadmap && <span className="hp-roadmap">Roadmap</span>}</span>
+          </li>)}
+        </ul>
+        <TextAction onClick={openDocs}>Read the security documentation</TextAction>
       </section>
 
       <section className="hp-final" aria-labelledby="hp-final-title">

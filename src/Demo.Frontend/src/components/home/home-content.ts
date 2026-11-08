@@ -86,7 +86,7 @@ export const DEVELOPER_CARDS: HomeCard[] = [
   { icon: "link", title: "Relationships", text: "Describe how entities connect so queries can navigate related data naturally." },
   { icon: "group", title: "Logical views", text: "Combine multiple physical tables into one logical entity, or expose different views of the same data." },
   { icon: "key", title: "Permissions", text: "Control which entities and fields are available to different consumers." },
-  { icon: "folder", title: "Tenant-specific definitions", text: "Provide different logical data models and permissions for different tenants.", roadmap: true },
+  { icon: "function", title: "Function definitions", text: "Extend the OQuery vocabulary with reusable business operations, typed arguments, and provider-specific SQL templates." },
 ];
 
 export const INTERFACE_CARDS: (HomeCard & { audience: string; code?: string })[] = [
