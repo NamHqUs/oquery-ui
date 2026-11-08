@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+﻿import { useEffect, useRef, useState, type PointerEvent } from "react";
 import Icon, { type IconName } from "../icon/icon";
 import type { FunctionDefinition } from "../function-definition/types";
 import OQueryEditor from "../oquery-editor/oquery-editor";
@@ -444,62 +444,53 @@ export default function HomePage({
     <section className="new-home-intro" aria-labelledby="home-hero-title">
       <div className="new-home-hero">
         <div className="new-home-copy">
-          <span className="eyebrow">DYNAMIC DATA INFRASTRUCTURE FOR APPLICATION DEVELOPERS</span>
-          <h1 id="home-hero-title">Your Data. Your Domain.<br /><span>Your Query Language.</span></h1>
+          <span className="eyebrow">OQUERY / METADATA-DRIVEN QUERYING</span>
+          <h1 id="home-hero-title">Dynamic data <span>infrastructure</span> <span className="new-home-h1-tail">for application developers</span></h1>
           <p>Build a dynamic data foundation for your application. Define business entities, compose relationships, and expose reusable data capabilities without rebuilding application-specific data-access code for every report, alert, or workflow.</p>
-          <div className="new-home-actions">
-            <button className="button primary" type="button" onClick={() => onNavigateToPage("builder")}><Icon name="code" size={15} /> Build a dynamic query</button>
-            <button className="new-home-text-action" type="button" onClick={() => onNavigateToPage("metadata")}>Explore the data model <Icon name="arrow-right" size={13} /></button>
+        </div>
+      </div>
+    </section>
+    <section id="oquery-problem" className="new-home-shift-section" aria-labelledby="oquery-problem-title">
+      <div className="new-home-shift-intro">
+        <span className="eyebrow">01 / THE PROBLEM → THE SOLUTION</span>
+        <h2 id="oquery-problem-title">A new data question should not <span>become a new release.</span></h2>
+        <p>Reports, filters, views, tenants, and business rules change faster than delivery cycles. Traditionally, each change is a new path through entities, query code, APIs, and deployment. OQuery turns it into a query definition over metadata you describe once.</p>
+      </div>
+      <div className="new-home-shift-board" role="table" aria-label="Delivering a new data requirement: traditional development compared with OQuery">
+        <div className="new-home-shift-head" role="row">
+          <span role="columnheader">New requirement</span>
+          <span role="columnheader" className="new-home-shift-head-before"><Icon name="code" size={13} /> Traditional delivery</span>
+          <span role="columnheader" className="new-home-shift-head-after"><Icon name="query" size={13} /> With OQuery</span>
+        </div>
+        {[
+          { need: "Revenue per product", hint: "New report", query: "Products: Name, OrderItems.Sum(Quantity * UnitPrice) Revenue" },
+          { need: "Orders with the customer who placed them", hint: "Different data view", query: "Orders: Id, OrderDate, User.FirstName, User.LastName" },
+          { need: "Team size for every manager", hint: "Changing business rule", query: "Employees: FirstName, Members.Count(Id) TotalMembers" },
+        ].map((row) => (
+          <div className="new-home-shift-row" role="row" key={row.need}>
+            <div className="new-home-shift-need" role="cell"><small>{row.hint}</small><strong>{row.need}</strong></div>
+            <div className="new-home-shift-before" role="cell" aria-label="Define entities, write query logic, build an API, test and deploy">
+              <span>Entity</span><i /><span>Query code</span><i /><span>API</span><i /><span>Deploy</span>
+            </div>
+            <div className="new-home-shift-after" role="cell"><code>{row.query}</code></div>
           </div>
+        ))}
+        <div className="new-home-shift-foot" role="row">
+          <span role="cell">Every change</span>
+          <span role="cell" className="new-home-shift-foot-before">4 steps, another endpoint to maintain</span>
+          <span role="cell" className="new-home-shift-foot-after"><Icon name="check" size={13} /> One definition, no new backend code</span>
         </div>
-        <div className="new-home-signal" aria-label="OQuery architecture">
-          <span className="new-home-signal-label">ONE FOUNDATION / MANY SURFACES</span>
-          <div className="new-home-signal-line"><span className="new-home-signal-node"><Icon name="database" size={17} /><b>Physical data</b><small>Tables / providers</small></span><i /><span className="new-home-signal-node primary"><Icon name="schema" size={17} /><b>OQuery</b><small>Entities / query rules</small></span><i /><span className="new-home-signal-node output"><Icon name="query" size={17} /><b>Useful outputs</b><small>Reports / alerts / jobs</small></span></div>
-          <p>Keep the database you have. Give your application a language for its business data.</p>
-        </div>
+      </div>
+      <div className="new-home-shift-pillars">
+        <div><Icon name="schema" size={16} /><strong>Logical entities, not tables</strong><small>Describe business concepts and relationships once in metadata.</small></div>
+        <div><Icon name="link" size={16} /><strong>Joins resolved for you</strong><small>Relationship paths compile into provider-specific SQL.</small></div>
+        <div><Icon name="grid" size={16} /><strong>One engine, many surfaces</strong><small>Reports, views, alert conditions, and tenants share the same foundation.</small></div>
       </div>
     </section>
-    <nav className="new-home-section-nav" aria-label="Home page sections">
-      <a href="#oquery-problem"><span>01</span><strong>Who it is for</strong><small>Configurable .NET products</small></a>
-      <a href="#oquery-foundation"><span>02</span><strong>What is OQuery?</strong><small>A dynamic query compiler</small></a>
-      <a href="#oquery-syntax"><span>03</span><strong>See it work</strong><small>Readable query composition</small></a>
-      <a href="#oquery-model"><span>04</span><strong>How it works</strong><small>Metadata, functions, dialects</small></a>
-      <a href="#oquery-permissions"><span>05</span><strong>Security</strong><small>One execution boundary</small></a>
-    </nav>
-    <section id="oquery-problem" className="new-home-problem-section" aria-labelledby="oquery-problem-title">
-      <div className="new-home-section-intro">
-        <span className="eyebrow">01 / WHO IS THIS FOR?</span>
-        <h2 id="oquery-problem-title">For teams whose product lets people configure data.</h2>
-        <p>OQuery is for .NET teams building configurable reports, admin screens, alert conditions, or scheduled jobs over an existing relational database. It is not a replacement for EF Core in a normal fixed-schema CRUD application.</p>
-      </div>
-      <div className="new-home-problem-path" aria-label="How data access complexity grows">
-        <div><span className="new-home-step-number">01</span><Icon name="database" size={18} /><strong>Existing data</strong><small>Customers, orders, products</small></div>
-        <i />
-        <div><span className="new-home-step-number">02</span><Icon name="code" size={18} /><strong>Changing questions</strong><small>Reports, filters, relationships, rules</small></div>
-        <i />
-        <div className="new-home-problem-end"><span className="new-home-step-number">03</span><Icon name="query" size={18} /><strong>One query foundation</strong><small>Configure once, reuse across features</small></div>
-      </div>
-    </section>
-    <section id="oquery-foundation" className="new-home-foundation-section" aria-labelledby="oquery-foundation-title">
-      <div className="new-home-section-intro">
-        <span className="eyebrow">02 / WHAT IS OQUERY?</span>
-        <h2 id="oquery-foundation-title">A dynamic data foundation between your application and database.</h2>
-        <p>OQuery helps software teams expose, organize, secure, compose, and evolve business data. It turns metadata and a readable query definition into a validated, parameterized SQL statement while keeping application meaning separate from physical storage.</p>
-      </div>
-      <div className="new-home-foundation-diagram" aria-label="OQuery dynamic data foundation">
-        <div className="new-home-foundation-source"><Icon name="database" size={20} /><strong>Physical data sources</strong><small>SQL Server / PostgreSQL / SQLite</small></div>
-        <div className="new-home-foundation-arrow"><span>query intent</span><i /></div>
-        <div className="new-home-foundation-core"><Icon name="schema" size={22} /><strong>OQuery compiler</strong><small>Parse / validate / compose / render</small></div>
-        <div className="new-home-foundation-outputs"><span><Icon name="file-text" size={15} /> Query definition</span><span><Icon name="code" size={15} /> Generated SQL</span><span><Icon name="play" size={15} /> Reusable result</span></div>
-      </div>
-      <div className="new-home-context-story">
-        <div><span className="eyebrow">SAME DATA / DIFFERENT DOMAINS</span><h3>Why should your physical schema dictate your application architecture?</h3><p>A Sales bounded context can expose Customers, Orders, and Products. Finance can expose Customers, Invoices, and Payments. They can share the same source while keeping their own projections, relationships, and permissions.</p></div>
-        <div className="new-home-context-lines"><span><b>Sales</b> Customers - Orders - Products</span><span><b>Finance</b> Customers - Invoices - Payments</span><span><b>Operations</b> Orders - Shipments - Warehouses</span></div>
-      </div>
-    </section>
+
     <section id="oquery-syntax" className="new-home-examples" aria-labelledby="new-home-examples-title">
       <div className="new-home-examples-heading">
-        <div>                <span className="eyebrow">03 / SEE IT WORK</span><h2 id="new-home-examples-title">Make difficult queries easier to configure.</h2><p>Describe the business question in small, readable parts. Let the compiler handle joins, grouping, windows, and provider-specific SQL.</p></div>
+        <div>                <span className="eyebrow">02 / SEE IT WORK</span><h2 id="new-home-examples-title">Make difficult queries easier to configure.</h2><p>Describe the business question in small, readable parts. Let the compiler handle joins, grouping, windows, and provider-specific SQL.</p></div>
         <button className="new-home-section-link" type="button" onClick={() => onNavigateToPage("builder")}>Open query builder <Icon name="arrow-right" size={13} /></button>
       </div>
       <div className="new-home-example-rail">
@@ -507,7 +498,6 @@ export default function HomePage({
           <div className="new-home-example-marker">01</div>
           <div className="new-home-example-copy"><strong>How do I explore a product?</strong><p>Start with a runtime entity and select the fields and relationships that matter.</p><p>No generated CLR model, fixed projection class, or physical table name is required.</p></div>
           {renderDemoQuery("products", demoQueries.products, PRODUCTS_CSHARP, "SELECT *\nFROM sa.Products;", demoRepresentations.products || "query", (next) => setDemoRepresentations((current) => ({ ...current, products: next })))}
-          {renderDemoResult("products")}
         </article>
         <article className="new-home-example">
           <div className="new-home-example-marker">02</div>
@@ -544,7 +534,7 @@ LEFT JOIN Main.Users AS u
         <button className="button primary" type="button" onClick={() => onNavigateToPage("builder")}><Icon name="code" size={15} /> Build a dynamic query</button>
       </div>
       <div className="new-home-ai-flow" aria-label="From a dynamic query to an application workflow">
-        <div><span>01</span><Icon name="edit" size={16} /><strong>Configure the query</strong><small>“Orders overdue by region”</small></div>
+        <div><span>01</span><Icon name="edit" size={16} /><strong>Configure the query</strong><small>â€œOrders overdue by regionâ€</small></div>
         <i />
         <div><span>02</span><Icon name="check" size={16} /><strong>Evaluate the result</strong><small>Report rows or alert condition</small></div>
         <i />
@@ -553,12 +543,12 @@ LEFT JOIN Main.Users AS u
     </section>
     <section id="oquery-model" className="new-home-product-section new-home-model-section" aria-labelledby="oquery-model-title">
       <div className="new-home-product-heading">
-        <span className="eyebrow">04 / HOW IT WORKS</span>
+        <span className="eyebrow">03 / HOW IT WORKS</span>
         <h2 id="oquery-model-title">Metadata, FunctionDefinition, and SqlDialect.</h2>
         <p>Three building blocks keep query intent separate from physical storage and provider-specific SQL.</p>
       </div>
       <div className="new-home-model-grid">
-        <article><div className="new-home-card-icon"><Icon name="schema" size={17} /></div><div><strong>Metadata</strong><p>Expose entities, fields, and relationships as a stable vocabulary for people and tools.</p><small>{metadata.length} entities available · {metadataStatus}</small></div></article>
+        <article><div className="new-home-card-icon"><Icon name="schema" size={17} /></div><div><strong>Metadata</strong><p>Expose entities, fields, and relationships as a stable vocabulary for people and tools.</p><small>{metadata.length} entities available Â· {metadataStatus}</small></div></article>
         <article><div className="new-home-card-icon"><Icon name="function" size={17} /></div><div><strong>Function definitions</strong><p>Describe reusable business operations once, with typed arguments and provider templates.</p><small>{functionDefinitions.length} functions available</small></div></article>
         <article><div className="new-home-card-icon"><Icon name="database" size={17} /></div><div><strong>SQL dialect</strong><p>Keep query intent portable while the compiler handles provider-specific SQL details.</p><small>Generated at execution time</small></div></article>
       </div>
@@ -578,7 +568,7 @@ LEFT JOIN Main.Users AS u
     <section id="oquery-permissions" className="new-home-product-section new-home-permissions-section" aria-labelledby="oquery-permissions-title">
       <div className="new-home-permission-mark"><Icon name="key" size={20} /></div>
       <div className="new-home-product-copy">
-        <span className="eyebrow">05 / SECURITY</span>
+        <span className="eyebrow">04 / SECURITY</span>
         <h2 id="oquery-permissions-title">Authorize the complete query before SQL runs.</h2>
         <p>Dynamic queries need one trustworthy execution boundary. OQuery is designed to check the complete statement after projections, filters, joins, contexts, and expressions have been composed, before SQL is rendered.</p>
       </div>

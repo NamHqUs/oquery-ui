@@ -142,8 +142,14 @@ function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <button className="brand" type="button" aria-label="Open Query home" onClick={() => navigateToPage("home")}><img className="brand-logo" src="/brand-concepts/23-oquery-orbit-core.svg" alt="" /></button>
-        <nav className="topnav"><button className={page === "builder" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("builder")}><Icon name="query" /> Query builder</button><button className={page === "sources" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("sources")}><Icon name="database" /> Data sources</button><button className={page === "metadata" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("metadata")}><Icon name="schema" /> Metadata</button><button className={page === "functions" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("functions")}><Icon name="function" /> Function definitions</button><button className={page === "documentation" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("documentation")}><Icon name="file-text" /> Docs</button></nav>
+        <div className="header-brand-group">
+          <button className="brand" type="button" aria-label="Open Query home" onClick={() => navigateToPage("home")}><img className="brand-logo" src="/brand-concepts/23-oquery-orbit-core.svg" alt="" /></button>
+          <span className="header-product-tag">DATA QUERY ENGINE</span>
+        </div>
+        <div className="topnav-wrap">
+          <span className="topnav-label">WORKSPACE</span>
+          <nav className="topnav" aria-label="Primary navigation"><button className={page === "builder" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("builder")}><Icon name="query" /> Query builder</button><button className={page === "sources" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("sources")}><Icon name="database" /> Data sources</button><button className={page === "metadata" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("metadata")}><Icon name="schema" /> Metadata</button><button className={page === "functions" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("functions")}><Icon name="function" /> Function definitions</button><button className={page === "documentation" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("documentation")}><Icon name="file-text" /> Docs</button></nav>
+        </div>
         <div className="top-actions">
           {database.providerCheckStatus === "loading" ? (
             <button className="database-status connecting" type="button" onClick={() => setConnectionDialogOpen(true)} aria-live="polite">
