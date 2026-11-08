@@ -338,6 +338,26 @@ export default function Home({
         </div>
       </section>
 
+      <section className="hp-section" aria-labelledby="hp-interfaces-title">
+        <SectionIntro
+          id="hp-interfaces-title"
+          kicker="ONE ENGINE"
+          title="Your interface. One query engine."
+          text={`Use the interface that fits your application and development style. Every interface uses the same data model and feeds the ${PRODUCT_NAME} engine.`}
+        />
+        <div className="hp-interfaces">
+          {INTERFACE_CARDS.map((card) => <article className="hp-card hp-interface" key={card.title}>
+            <div className="hp-card-icon"><Icon name={card.icon} size={17} /></div>
+            <strong>{card.title}</strong>
+            <p className="hp-interface-lead">{card.text}</p>
+            <p>{card.audience}</p>
+            {card.code && <code>{card.code}</code>}
+          </article>)}
+          <div className="hp-engine-bar"><Icon name="database" size={14} /> {PRODUCT_NAME} engine · metadata · SQL dialects</div>
+        </div>
+        <TextAction onClick={openDocs}>Explore query interfaces</TextAction>
+      </section>
+
       <section className="hp-section" id="hp-reveal" aria-labelledby="hp-reveal-title">
         <SectionIntro
           id="hp-reveal-title"
@@ -398,26 +418,6 @@ export default function Home({
         <CardGrid cards={DEVELOPER_CARDS} />
         <p className="hp-note"><Icon name="schema" size={15} /><span>In {PRODUCT_NAME}&apos;s architecture these definitions are called <strong>Metadata</strong>—the context that lets the engine understand entity names, field paths, relationships, and available operations. Define it with YAML, JSON, or .NET.</span></p>
         <TextAction onClick={() => onNavigateToPage("metadata")}>Explore metadata and entity definitions</TextAction>
-      </section>
-
-      <section className="hp-section" aria-labelledby="hp-interfaces-title">
-        <SectionIntro
-          id="hp-interfaces-title"
-          kicker="ONE ENGINE"
-          title="Your interface. One query engine."
-          text={`Use the interface that fits your application and development style. Every interface uses the same data model and feeds the ${PRODUCT_NAME} engine.`}
-        />
-        <div className="hp-interfaces">
-          {INTERFACE_CARDS.map((card) => <article className="hp-card hp-interface" key={card.title}>
-            <div className="hp-card-icon"><Icon name={card.icon} size={17} /></div>
-            <strong>{card.title}</strong>
-            <p className="hp-interface-lead">{card.text}</p>
-            <p>{card.audience}</p>
-            {card.code && <code>{card.code}</code>}
-          </article>)}
-          <div className="hp-engine-bar"><Icon name="database" size={14} /> {PRODUCT_NAME} engine · metadata · SQL dialects</div>
-        </div>
-        <TextAction onClick={openDocs}>Explore query interfaces</TextAction>
       </section>
 
       <section className="hp-section hp-two-col" aria-label="Extensibility and security">

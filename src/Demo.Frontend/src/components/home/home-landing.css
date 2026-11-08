@@ -10,11 +10,11 @@
 .hp-subnav-cta { padding: 8px 13px; font-size: 12px; white-space: nowrap; }
 
 /* Hero */
-.hp-hero { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 44px; align-items: start; margin-bottom: 22px; padding: 34px 6px 10px; scroll-margin-top: 70px; }
+.hp-hero { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 44px; align-items: start; margin-bottom: 6px; padding: 34px 6px 10px; scroll-margin-top: 70px; }
 .hp-hero-copy { padding-top: 0; }
 .hp-hero-copy > .eyebrow, .hp-demo-prompt { display: block; margin-top: 0; line-height: 1.2; }
 .hp-hero > *, .hp-examples > *, .hp-two-col > *, .hp-flow > * { min-width: 0; }
-.hp-hero-copy h1 { max-width: 560px; margin: 16px 0 18px; color: #f0eef9; font-size: clamp(32px, 4.2vw, 52px); font-weight: 700; line-height: 1.02; letter-spacing: -1.8px; text-wrap: balance; }
+.hp-hero-copy h1 { max-width: 560px; margin: 16px 0 18px; color: #f0eef9; font-size: clamp(24px, 2.7vw, 36px); font-weight: 700; line-height: 1.02; letter-spacing: -1.8px; text-wrap: balance; }
 .hp-hero-copy h1 span, .hp-final h2 span { background: var(--hp-accent); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 .hp-lede { max-width: 500px; margin: 0; color: #a9b1c1; font-size: 15px; line-height: 1.65; }
 .hp-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
@@ -69,7 +69,7 @@
 .hp-section-intro h2 { max-width: 700px; margin: 9px 0 10px; color: #eeeaf8; font-size: clamp(22px, 2.8vw, 32px); font-weight: 700; line-height: 1.12; letter-spacing: -.9px; text-wrap: balance; }
 #hp-reveal .hp-section-intro h2 { max-width: none; white-space: nowrap; }
 #hp-reveal .hp-section-intro p { max-width: none; }
-.hp-section-intro p { max-width: 680px; margin: 0; color: var(--muted); font-size: 14px; line-height: 1.65; }
+.hp-section-intro p { max-width: 640px; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
 .hp-text-action { display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; padding: 0; border: 0; color: #bca9ff; background: transparent; font: 600 13px "Manrope", sans-serif; }
 .hp-text-action:hover { color: #ded5ff; }
 .hp-text-action:hover .icon { transform: translateX(2px); }
@@ -232,7 +232,7 @@
   position: relative;
   min-height: 610px;
   gap: clamp(32px, 7vw, 104px);
-  padding: 48px 20px 56px;
+  padding: 32px 20px 16px;
   align-items: start;
 }
 .hp-hero::before {
@@ -250,7 +250,7 @@
 .hp-hero-copy { position: relative; z-index: 1; padding-top: 0; }
 .hp-hero .hp-actions { margin-top: 18px; }
 .hp-hero .hp-actions .button { padding: 9px 13px; }
-.hp-hero-copy h1 { font-size: clamp(30px, 3.6vw, 50px); letter-spacing: -2px; }
+.hp-hero-copy h1 { font-size: clamp(24px, 2.7vw, 36px); letter-spacing: -2px; }
 .hp-hero-copy .hp-lede { font-size: 13px; }
 .hp-hero .hp-actions .button { padding: 8px 12px; font-size: 11px; }
 .hp-hero-usecases {
@@ -276,15 +276,15 @@
   top: 0;
   right: 0;
   left: 0;
-  height: 46px;
-  background: linear-gradient(180deg, #8064e00a, transparent);
+  height: 28px;
+  background: linear-gradient(180deg, #8064e006, transparent);
   content: "";
   pointer-events: none;
 }
 .hp-section:nth-of-type(odd) { background: linear-gradient(100deg, #12101d66, transparent 58%); }
 .hp-section:nth-of-type(even) { background: linear-gradient(270deg, #101c1b44, transparent 62%); }
 .hp-section-intro { max-width: 760px; }
-.hp-section-intro h2 { font-size: clamp(22px, 2.5vw, 31px); letter-spacing: -1px; }
+.hp-section-intro h2 { margin-bottom: 8px; font-size: clamp(20px, 2.2vw, 27px); letter-spacing: -1px; }
 .hp-section-intro p { color: #b7bfcc; }
 .hp-section-intro h2::before {
   display: block;
@@ -361,13 +361,13 @@
 }
 
 @media (max-width: 980px) {
-  .hp-hero { padding: 42px 10px 48px; }
+  .hp-hero { padding: 28px 10px 16px; }
   .hp-section { padding: 32px 24px; }
   .hp-hero-usecases { margin-top: 20px; }
   .hp-interface { border-right: 0; }
 }
 @media (max-width: 640px) {
-  .hp-hero { padding: 34px 6px 42px; }
+  .hp-hero { padding: 24px 6px 14px; }
   .hp-hero-copy h1 { letter-spacing: -2px; }
   .hp-hero-demo::before { right: -10px; bottom: -10px; left: 10px; }
   .hp-section, .hp-panel { padding: 28px 18px; }
