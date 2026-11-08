@@ -102,6 +102,7 @@ export const USE_CASES: HomeCard[] = [
   { icon: "chart-line", title: "Workflows and alerts", text: "Use query results and evaluated conditions to trigger workflows, notifications, and alerts." },
   { icon: "grid", title: "Dynamic frontend experiences", text: "Allow frontend applications to request different data combinations through a controlled API." },
   { icon: "schema", title: "Multi-tenant applications", text: "Provide tenant-specific logical data models, relationships, and permissions." },
+  { icon: "query", title: "AI-assisted data exploration", text: "Help users discover and understand application data through guided, metadata-aware questions.", roadmap: true },
 ];
 
 export const EXTENSION_CARDS: HomeCard[] = [

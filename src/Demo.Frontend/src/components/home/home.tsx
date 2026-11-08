@@ -287,11 +287,9 @@ export default function Home({
           <span className="eyebrow">METADATA-DRIVEN QUERYING</span>
           <h1 id="hp-hero-title">What can <span>metadata</span> make possible?</h1>
           <p className="hp-lede">Define your data once. {PRODUCT_NAME} uses that understanding of your entities, fields, and relationships to make querying simpler.</p>
-          <div className="hp-actions">
-            <button className="button primary" type="button" onClick={focusPlayground}><Icon name="edit" size={14} /> Try it yourself</button>
-            <button className="button secondary" type="button" onClick={() => scrollToSection("hp-examples")}>Explore examples <Icon name="chevron-down" size={14} /></button>
-          </div>
-          <p className="hp-support"><i /> Metadata gives {PRODUCT_NAME} the context. You simply ask for the data.</p>
+          <section className="hp-hero-usecases" aria-label="Use cases">
+            <CardGrid cards={USE_CASES} className="hp-card-grid-5" />
+          </section>
         </div>
         <div className="hp-hero-demo">
           <p className="hp-demo-prompt">Ask for what your metadata makes possible:</p>
@@ -418,16 +416,6 @@ export default function Home({
           <div className="hp-engine-bar"><Icon name="database" size={14} /> {PRODUCT_NAME} engine · metadata · SQL dialects</div>
         </div>
         <TextAction onClick={openDocs}>Explore query interfaces</TextAction>
-      </section>
-
-      <section className="hp-section" aria-labelledby="hp-usecases-title">
-        <SectionIntro
-          id="hp-usecases-title"
-          kicker="USE CASES"
-          title="From querying data to building dynamic applications."
-          text="Use the same data model and query engine in different application scenarios."
-        />
-        <CardGrid cards={USE_CASES} className="hp-card-grid-5" />
       </section>
 
       <section className="hp-section hp-two-col" aria-label="Extensibility and security">
