@@ -100,6 +100,17 @@ function highlightOqueryTokens(text: string, functionDefinitions: FunctionDefini
   );
 }
 
+function highlightSelectedOccurrences(html: string, selection: string): string {
+  if (!selection || selection.includes("\n")) return html;
+  const escapedSelection = selection
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#39;");
+  return html.split(escapedSelection).join(`<mark class="query-oquery-match">${escapedSelection}</mark>`);
+}
+
 function findCommentStart(text: string): number {
   let quote: "'" | "\"" | null = null;
   for (let index = 0; index < text.length; index++) {
@@ -313,6 +324,21 @@ function getSelectedLineEdit(
     selectionEnd: start + replacement.length,
   };
 }
+
+function replaceTextareaSelection(
+  textarea: HTMLTextAreaElement,
+  replacement: string,
+  selectionStart: number,
+  selectionEnd: number,
+  nextSelectionStart: number,
+  nextSelectionEnd: number,
+): boolean {
+  textarea.setSelectionRange(selectionStart, selectionEnd);
+  if (!textarea.ownerDocument.execCommand("insertText", false, replacement)) return false;
+  textarea.setSelectionRange(nextSelectionStart, nextSelectionEnd);
+  return true;
+}
+
 const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
   value,
   initialText,
@@ -339,8 +365,10 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
   const pendingCaretRef = useRef<number | null>(null);
+  const pendingSelectionRef = useRef<{ start: number; end: number } | null>(null);
   const [text, setInternalText] = useState(() =>
     normalizeOqueryEditorText(textOverride ?? initialText ?? value ?? ""));
+  const [selectedText, setSelectedText] = useState("");
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const [foldMessage, setFoldMessage] = useState("");
   const [completionPosition, setCompletionPosition] = useState<number | null>(null);
@@ -359,7 +387,9 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
     const caret = pendingCaretRef.current;
     if (caret === null) return;
     pendingCaretRef.current = null;
-    textareaRef.current?.setSelectionRange(caret, caret);
+    const selection = pendingSelectionRef.current;
+    pendingSelectionRef.current = null;
+    textareaRef.current?.setSelectionRange(selection?.start ?? caret, selection?.end ?? caret);
   }, [projection.text]);
   const visibleLines = new Set(projection.visible.map(item => item.line));
   const folds = getOqueryFolds(text);
@@ -374,7 +404,7 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
     && projection.visible.some(({ line }) => contextAtLine(text.split("\n")[line]!) !== null);
   const hasGutterContent = showLineNumbers || hasVisibleFoldControls || hasVisibleContextActions || showContextRunAlways;
   const compactHeight = Math.max(1, projection.visible.length) * 20.8 + 34;
-  const changeVisibleText = (next: string, caret?: number) => {
+  const changeVisibleText = (next: string, caret?: number, selectionEnd?: number) => {
     const updated = applyFoldedOqueryEdit(text, collapsed, next);
     if (updated === null) {
       setCollapsed(new Set());
@@ -392,8 +422,13 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
       setCollapsed(new Set());
     }
     setFoldMessage("");
-    if (nextCaret !== undefined)
+    if (nextCaret !== undefined) {
       pendingCaretRef.current = nextCaret;
+      pendingSelectionRef.current = {
+        start: nextCaret,
+        end: selectionEnd ?? nextCaret,
+      };
+    }
     setInternalText(updated);
     onTextChange(updated);
   };
@@ -477,7 +512,7 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
         ref={highlightRef}
         className="query-oquery-highlight"
         aria-hidden="true"
-        dangerouslySetInnerHTML={{ __html: highlightOquery(text, functionDefinitions, errorFunctionName)
+        dangerouslySetInnerHTML={{ __html: highlightSelectedOccurrences(highlightOquery(text, functionDefinitions, errorFunctionName), selectedText)
           .split("\n").flatMap((text, line) => !visibleLines.has(line) ? [] : [
             collapsed.has(line) && foldsByLine.has(line)
               ? `<span class="query-oquery-collapsed-line">${text}</span>`
@@ -504,11 +539,15 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
         }}
         onSelect={(event) => {
           const textarea = event.currentTarget;
-          onSelectionChange(textarea.value.slice(textarea.selectionStart, textarea.selectionEnd));
+          const selection = textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
+          setSelectedText(selection);
+          onSelectionChange(selection);
         }}
         onBlur={(event) => {
           const textarea = event.currentTarget;
-          onSelectionChange(textarea.value.slice(textarea.selectionStart, textarea.selectionEnd));
+          const selection = textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
+          setSelectedText(selection);
+          onSelectionChange(selection);
           onBlur?.(event);
           window.setTimeout(() => setCompletionPosition(null), 0);
         }}
@@ -545,23 +584,6 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
             setCompletionPosition(null);
             return;
           }
-          if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "x") {
-            event.preventDefault();
-            const lineStart = textarea.value.lastIndexOf("\n", Math.max(0, textarea.selectionStart - 1)) + 1;
-            const lineEnd = textarea.value.indexOf("\n", textarea.selectionStart);
-            const lineSelectionEnd = lineEnd < 0 ? textarea.value.length : lineEnd + 1;
-            textarea.setSelectionRange(lineStart, lineSelectionEnd);
-            if (!document.execCommand("cut")) {
-              const edit = getSelectedLineEdit(
-                textarea.value,
-                lineStart,
-                lineSelectionEnd,
-                "delete",
-              );
-              changeVisibleText(edit.value, edit.selectionStart);
-            }
-            return;
-          }
           if (event.key === "Tab") {
             event.preventDefault();
             const edit = getSelectedLineEdit(
@@ -570,7 +592,45 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
               textarea.selectionEnd,
               event.shiftKey ? "outdent" : "indent",
             );
-            changeVisibleText(edit.value, edit.selectionStart);
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const unchangedAroundEdit = edit.value.slice(0, start) === textarea.value.slice(0, start)
+              && edit.value.slice(edit.value.length - (textarea.value.length - end))
+                === textarea.value.slice(end);
+            const nativeEditApplied = unchangedAroundEdit && replaceTextareaSelection(
+              textarea,
+              edit.value.slice(start, edit.value.length - (textarea.value.length - end)),
+              start,
+              end,
+              edit.selectionStart,
+              edit.selectionEnd,
+            );
+            if (!nativeEditApplied) changeVisibleText(edit.value, edit.selectionStart, edit.selectionEnd);
+            return;
+          }
+          if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === "x"
+            && textarea.selectionStart === textarea.selectionEnd) {
+            event.preventDefault();
+            const lineStart = textarea.value.lastIndexOf("\n", textarea.selectionStart - 1) + 1;
+            const lineBreak = textarea.value.indexOf("\n", textarea.selectionStart);
+            const lineEnd = lineBreak < 0 ? textarea.value.length : lineBreak + 1;
+            const nativeEditApplied = replaceTextareaSelection(
+              textarea,
+              "",
+              lineStart,
+              lineEnd,
+              lineStart,
+              lineStart,
+            );
+            if (!nativeEditApplied) {
+              const edit = getSelectedLineEdit(
+                textarea.value,
+                textarea.selectionStart,
+                textarea.selectionEnd,
+                "delete",
+              );
+              changeVisibleText(edit.value, edit.selectionStart, edit.selectionEnd);
+            }
             return;
           }
           if ((event.ctrlKey || event.metaKey) && event.key === "/") {
@@ -610,7 +670,18 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
           const edit = event.key === "Enter"
             ? getOqueryEnterEdit(textarea.value, start, end)
             : { value: `${textarea.value.slice(0, start)}  ${textarea.value.slice(end)}`, caret: start + 2 };
-          changeVisibleText(edit.value, edit.caret);
+          const unchangedAroundEdit = edit.value.slice(0, start) === textarea.value.slice(0, start)
+            && edit.value.slice(edit.value.length - (textarea.value.length - end))
+              === textarea.value.slice(end);
+          const nativeEditApplied = unchangedAroundEdit && replaceTextareaSelection(
+            textarea,
+            edit.value.slice(start, edit.value.length - (textarea.value.length - end)),
+            start,
+            end,
+            edit.caret,
+            edit.caret,
+          );
+          if (!nativeEditApplied) changeVisibleText(edit.value, edit.caret);
         }}
         onScroll={(event) => {
           if (!highlightRef.current) return;

@@ -6,19 +6,19 @@
 .entity-domain-list { display: flex; flex-wrap: wrap; gap: 7px; }
 .entity-domain-list button { display: inline-flex; align-items: center; gap: 7px; padding: 8px 10px; color: #aeb7c5; border: 1px solid transparent; border-radius: 6px; background: transparent; font-size: 11px; }
 .entity-domain-list button:hover, .entity-domain-list button.active { color: #f2f0fa; border-color: #8068b555; background: #211b32; }
-.entity-domain-list button span { min-width: 17px; padding: 2px 5px; border-radius: 999px; background: #252b35; text-align: center; font-size: 9px; }
+.entity-domain-list button span { min-width: 17px; padding: 2px 5px; border-radius: 999px; background: #252b35; text-align: center; font-size: 11px; }
 .entity-diagram-empty { color: #818b9d; font-size: 12px; }
 .entity-diagram-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; align-content: start; min-height: 420px; padding: 24px; background: radial-gradient(circle at 50% 20%, #1a2030, #10141c 65%); }
 .entity-diagram-card { min-height: 190px; padding: 13px; border: 1px solid #364052; border-radius: 7px; background: #171d28; box-shadow: 0 8px 20px #00000025; animation: entity-diagram-card-in .2s ease both; animation-delay: calc(var(--card-index) * 35ms); }
 .entity-diagram-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .entity-diagram-card-head button:first-child { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 0; color: #e6e6ed; border: 0; background: none; text-align: left; }
 .entity-diagram-card-head strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.entity-diagram-card-schema { margin: 7px 0 11px; color: #8d98aa; font-size: 10px; }
+.entity-diagram-card-schema { margin: 7px 0 11px; color: #8d98aa; font-size: 11px; }
 .entity-diagram-card-fields { display: grid; gap: 6px; min-height: 65px; color: #aeb7c5; font-size: 11px; }
 .entity-diagram-card-fields span { display: flex; align-items: center; gap: 6px; }
 .entity-diagram-card-fields span:first-child { color: #f0bd68; }
 .entity-diagram-card-fields small { color: #818b9d; }
-.entity-diagram-define { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 12px; padding: 8px 0 0; color: #b9a7ef; border: 0; border-top: 1px solid #2a3140; background: none; font-size: 10px; text-align: left; }
+.entity-diagram-define { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 12px; padding: 8px 0 0; color: #b9a7ef; border: 0; border-top: 1px solid #2a3140; background: none; font-size: 11px; text-align: left; }
 .entity-diagram-define.defined { color: #62d4b4; }
 .entity-diagram-board-empty, .entity-diagram-state { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 300px; color: #818b9d; font-size: 12px; }
 .entity-diagram-state { min-height: 500px; }

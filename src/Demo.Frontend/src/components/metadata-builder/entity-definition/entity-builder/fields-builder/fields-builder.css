@@ -40,7 +40,7 @@
 .schema-column-list label { display: grid; grid-template-columns: 14px 1fr auto; align-items: center; gap: 6px; padding: 5px 4px; color: #c0c5d1; font-size: 11px; font-weight: 400; }
 .schema-column-list label:hover { background: #211d32; }
 .schema-column-list input { width: 13px; height: 13px; margin: 0; accent-color: var(--purple); }
-.schema-column-list small { color: #858c9d; font-size: 9px; }
+.schema-column-list small { color: #858c9d; font-size: 11px; }
 .schema-column-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .schema-column-actions button { padding: 6px 8px; border-radius: 4px; font-size: 11px; }
 .schema-column-cancel { color: #aeb6c5; border: 1px solid #3b3d52; background: transparent; }

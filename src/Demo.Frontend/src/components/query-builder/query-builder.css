@@ -6,7 +6,7 @@ section.page-heading.query-page-heading { position: relative; z-index: 2; displa
 .query-heading-main { position: relative; z-index: 1; display: flex; align-self: flex-start; align-items: flex-start; gap: 16px; min-width: 0; }
 .query-heading-mark { display: grid; flex: 0 0 44px; width: 44px; height: 44px; place-items: center; margin-top: 0; border: 1px solid #7663ac80; border-radius: 11px; background: linear-gradient(145deg, #45366e, #28213c); color: #d0c2ff; box-shadow: inset 0 1px #ffffff12, 0 7px 18px #00000020; }
 .query-heading-copy { min-width: 0; }
-.query-heading-eyebrow { display: flex; align-items: center; gap: 9px; color: #b4a4e9; font: 500 10px "Manrope", sans-serif; letter-spacing: 1.15px; }
+.query-heading-eyebrow { display: flex; align-items: center; gap: 9px; color: #b4a4e9; font: 500 11px "Manrope", sans-serif; letter-spacing: 1.15px; }
 .query-heading-eyebrow i { width: 3px; height: 3px; border-radius: 50%; background: #7866aa; }
 section.page-heading.query-page-heading h2 { max-width: 680px; margin: 10px 0 8px; overflow: hidden; color: #f1eefb; font-size: 22px; line-height: 1.2; letter-spacing: -.8px; text-overflow: ellipsis; white-space: nowrap; }
 .query-page-heading p { color: #a4a0b3; font-size: 12px; }
@@ -23,9 +23,12 @@ section.page-heading.query-page-heading h2 { max-width: 680px; margin: 10px 0 8p
 .query-page-heading .query-save-button:disabled { opacity: .58; cursor: wait; }
 .query-section { margin-top: 22px; }
 .query-builder-sections.oquery-layout .query-design-section { height: auto; max-height: var(--oquery-design-height); margin-bottom: 0; overflow: auto; }
+.query-builder-sections.oquery-layout .query-design-section:has(.query-oquery-completions) { overflow: visible; }
 .query-builder-sections.oquery-layout.oquery-layout-resized .query-design-section { height: var(--oquery-design-height); max-height: var(--oquery-design-height); overflow: hidden; }
+.query-builder-sections.oquery-layout.oquery-layout-resized .query-design-section:has(.query-oquery-completions) { overflow: visible; }
 .query-builder-sections.oquery-layout.oquery-layout-resized .query-design-workspace { height: 100%; min-height: 0; }
 .query-builder-sections.oquery-layout.oquery-layout-resized .query-design-area { display: flex; min-height: 0; box-sizing: border-box; overflow: hidden; }
+.query-builder-sections.oquery-layout.oquery-layout-resized .query-design-area:has(.query-oquery-completions) { overflow: visible; }
 .query-builder-sections.oquery-layout.oquery-layout-resized .query-oquery-editor { flex: 1 1 auto; min-height: 0; grid-template-rows: auto minmax(0, 1fr); align-content: start; }
 .query-builder-sections.oquery-layout.oquery-layout-resized .query-oquery-code-editor { height: auto; min-height: 0; box-sizing: border-box; }
 .query-builder-sections.oquery-layout.oquery-layout-resized .query-builder-card { display: flex; height: 100%; min-height: 0; flex-direction: column; }
@@ -35,6 +38,8 @@ section.page-heading.query-page-heading h2 { max-width: 680px; margin: 10px 0 8p
 .query-section-splitter:hover::before, .query-section-splitter:focus-visible::before { background: var(--purple); box-shadow: 0 0 10px #7054d466; }
 .query-section-splitter:focus-visible { outline: 0; }
 .query-design-workspace { display: grid; min-height: 480px; grid-template-columns: var(--panel-width, 260px) minmax(0, 1fr); align-items: stretch; overflow: hidden; background: linear-gradient(135deg, #11141c, #0f1218); border: 1px solid var(--line); border-radius: 9px; box-shadow: 0 14px 40px #00000018; }
+.query-design-workspace:has(.query-oquery-completions) { overflow: visible; }
+.query-design-workspace:has(.query-oquery-completions) { position: relative; z-index: 3000; }
 .query-builder-error { margin: 0; padding: 12px 28px; border: 1px solid var(--line); border-top: 0; background: #11141c; }
 .query-design-area { grid-column: 2; min-width: 0; padding: 26px 28px 12px; border-left: 1px solid var(--line); }
 .query-design-area .query-builder-card { flex: 1 1 auto; min-width: 0; border: 0; border-radius: 0; }

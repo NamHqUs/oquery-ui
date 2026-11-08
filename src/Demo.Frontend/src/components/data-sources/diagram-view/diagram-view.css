@@ -160,7 +160,7 @@
   border-radius: 999px;
   color: #929cad;
   background: #252b35;
-  font: 9px "Manrope", sans-serif;
+  font: 11px "Manrope", sans-serif;
   text-align: center;
 }
 
@@ -212,7 +212,7 @@
   gap: 7px;
   padding-bottom: 2px;
   color: var(--diagram-accent);
-  font-size: 10px;
+  font-size: 11px;
   white-space: nowrap;
 }
 
@@ -350,7 +350,7 @@
   flex: 0 0 auto;
   margin-left: auto;
   color: #808a9c;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .diagram-table-schema {
@@ -360,7 +360,7 @@
   border: 1px solid #3d7180;
   border-radius: 4px;
   background: #263d4a;
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1;
 }
 
@@ -411,7 +411,7 @@
 .diagram-column-name {
   overflow: hidden;
   color: #c4cad5;
-  font-size: 10px;
+  font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -423,7 +423,7 @@
 .diagram-column-type {
   overflow: hidden;
   color: #858fa1;
-  font: 10px "Cascadia Code", Consolas, monospace;
+  font: 11px "Cascadia Code", Consolas, monospace;
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;

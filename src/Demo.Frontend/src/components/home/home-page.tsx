@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import Icon, { type IconName } from "../icon/icon";
 import type { FunctionDefinition } from "../function-definition/types";
 import OQueryEditor from "../oquery-editor/oquery-editor";
@@ -160,6 +160,8 @@ export default function HomePage({
   const [expandedHierarchyLists, setExpandedHierarchyLists] = useState<Set<string>>(new Set());
   const [demoResultViews, setDemoResultViews] = useState<Partial<Record<DemoExampleKey, DemoResultView>>>({});
   const [activeDemoPopup, setActiveDemoPopup] = useState<DemoExampleKey | null>(null);
+  const hierarchyChartRef = useRef<HTMLDivElement>(null);
+  const hierarchyDragRef = useRef<{ x: number; y: number; scrollLeft: number; scrollTop: number } | null>(null);
   const [demoQueries, setDemoQueries] = useState<Record<DemoExampleKey, string>>({
     products: PRODUCTS_OQUERY,
     traversal: TRAVERSAL_OQUERY,
@@ -284,9 +286,39 @@ export default function HomePage({
       );
     };
 
+    const handleHierarchyPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+      if (event.button !== 0
+        || !hierarchyChartRef.current
+        || (event.target instanceof Element
+          && event.target.closest(".new-home-hierarchy-node, .new-home-hierarchy-more"))) return;
+      hierarchyDragRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+        scrollLeft: hierarchyChartRef.current.scrollLeft,
+        scrollTop: hierarchyChartRef.current.scrollTop,
+      };
+      event.currentTarget.setPointerCapture(event.pointerId);
+    };
+    const handleHierarchyPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+      const drag = hierarchyDragRef.current;
+      if (!drag || !hierarchyChartRef.current) return;
+      hierarchyChartRef.current.scrollLeft = drag.scrollLeft - (event.clientX - drag.x);
+      hierarchyChartRef.current.scrollTop = drag.scrollTop - (event.clientY - drag.y);
+    };
+    const stopHierarchyDrag = (event: PointerEvent<HTMLDivElement>) => {
+      hierarchyDragRef.current = null;
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    };
     return (
       <div className="new-home-hierarchy-chart" role="img" aria-label="Members grouped by organization hierarchy">
-        <div className="new-home-hierarchy-chart-body">
+        <div
+          ref={hierarchyChartRef}
+          className="new-home-hierarchy-chart-body"
+          onPointerDown={handleHierarchyPointerDown}
+          onPointerMove={handleHierarchyPointerMove}
+          onPointerUp={stopHierarchyDrag}
+          onPointerCancel={stopHierarchyDrag}
+        >
           <div className="new-home-hierarchy-tree">{renderNode(hierarchyRoot, rootName)}</div>
         </div>
       </div>
@@ -408,7 +440,7 @@ export default function HomePage({
   </div>;
 
   return (
-    <div className="home-workspace">
+    <div className="home-workspace new-home-story">
     <section className="new-home-intro" aria-labelledby="home-hero-title">
       <div className="new-home-hero">
         <div className="new-home-copy">
@@ -425,11 +457,17 @@ export default function HomePage({
           <p>Keep the database you have. Add a vocabulary your application can share.</p>
         </div>
       </div>
-   
     </section>
-    <section className="new-home-examples" aria-labelledby="new-home-examples-title">
+    <nav className="new-home-section-nav" aria-label="Home page sections">
+      <a href="#oquery-syntax"><span>01</span><strong>OQuery Syntax</strong><small>Compose readable queries</small></a>
+      <a href="#oquery-ai"><span>02</span><strong>OQuery AI</strong><small>Describe what you need</small></a>
+      <a href="#oquery-model"><span>03</span><strong>The model</strong><small>Metadata, functions, dialects</small></a>
+      <a href="#oquery-permissions"><span>04</span><strong>Permissions</strong><small>Keep execution governed</small></a>
+    </nav>
+    <section id="oquery-syntax" className="new-home-examples" aria-labelledby="new-home-examples-title">
       <div className="new-home-examples-heading">
-        <div><span className="eyebrow">OQUERY SYNTAX</span><h2 id="new-home-examples-title">Build from reusable components.</h2><p>Compose business questions from clear, independent parts.</p></div>
+        <div><span className="eyebrow">01 / OQUERY SYNTAX</span><h2 id="new-home-examples-title">Build from reusable components.</h2><p>Compose business questions from clear, independent parts. Edit a statement, run it, and compare the same intent with C# and SQL.</p></div>
+        <button className="new-home-section-link" type="button" onClick={() => onNavigateToPage("builder")}>Open query builder <Icon name="arrow-right" size={13} /></button>
       </div>
       <div className="new-home-example-rail">
         <article className="new-home-example">
@@ -463,6 +501,47 @@ LEFT JOIN Main.Users AS u
           {renderDemoQuery("revenue", demoQueries.revenue, REVENUE_CSHARP, PRODUCT_SALES_SQL, demoRepresentations.revenue || "query", (next) => setDemoRepresentations((current) => ({ ...current, revenue: next })))}
           {renderDemoResult("revenue")}
         </article>
+      </div>
+    </section>
+    <section id="oquery-ai" className="new-home-product-section new-home-ai-section" aria-labelledby="oquery-ai-title">
+      <div className="new-home-product-copy">
+        <span className="eyebrow">02 / OQUERY AI</span>
+        <h2 id="oquery-ai-title">Start with the question, not the syntax.</h2>
+        <p>Use your organization’s metadata and function definitions as context for an AI-assisted OQuery workflow. The result is a statement your team can inspect, refine, and run.</p>
+        <button className="button primary" type="button" onClick={() => onNavigateToPage("builder")}><Icon name="code" size={15} /> Try the query workspace</button>
+      </div>
+      <div className="new-home-ai-flow" aria-label="OQuery AI workflow">
+        <div><span>01</span><Icon name="edit" size={16} /><strong>Describe the outcome</strong><small>“Show revenue by product”</small></div>
+        <i />
+        <div><span>02</span><Icon name="schema" size={16} /><strong>Ground in your model</strong><small>Entities · relations · functions</small></div>
+        <i />
+        <div><span>03</span><Icon name="query" size={16} /><strong>Review the OQuery</strong><small>Then run or keep editing</small></div>
+      </div>
+    </section>
+    <section id="oquery-model" className="new-home-product-section new-home-model-section" aria-labelledby="oquery-model-title">
+      <div className="new-home-product-heading">
+        <span className="eyebrow">03 / THE OQUERY MODEL</span>
+        <h2 id="oquery-model-title">One semantic layer. Three responsibilities.</h2>
+        <p>OQuery separates what your data means from how a provider executes it.</p>
+      </div>
+      <div className="new-home-model-grid">
+        <article><div className="new-home-card-icon"><Icon name="schema" size={17} /></div><div><strong>Metadata</strong><p>Expose entities, fields, and relationships as a stable vocabulary for people and tools.</p><small>{metadata.length} entities available · {metadataStatus}</small></div></article>
+        <article><div className="new-home-card-icon"><Icon name="function" size={17} /></div><div><strong>Function definitions</strong><p>Describe reusable business operations once, with typed arguments and provider templates.</p><small>{functionDefinitions.length} functions available</small></div></article>
+        <article><div className="new-home-card-icon"><Icon name="database" size={17} /></div><div><strong>SQL dialect</strong><p>Keep query intent portable while the compiler handles provider-specific SQL details.</p><small>Generated at execution time</small></div></article>
+      </div>
+      <button className="new-home-text-action new-home-model-action" type="button" onClick={() => onNavigateToPage("metadata")}>Explore the metadata model <Icon name="arrow-right" size={13} /></button>
+    </section>
+    <section id="oquery-permissions" className="new-home-product-section new-home-permissions-section" aria-labelledby="oquery-permissions-title">
+      <div className="new-home-permission-mark"><Icon name="key" size={20} /></div>
+      <div className="new-home-product-copy">
+        <span className="eyebrow">04 / PERMISSIONS</span>
+        <h2 id="oquery-permissions-title">Make the query surface safe to share.</h2>
+        <p>Permissions belong at the point where the complete query becomes executable. That gives every feature the same final boundary, whether a query came from the editor, an API, or an AI workflow.</p>
+      </div>
+      <div className="new-home-permission-list">
+        <div><Icon name="check" size={14} /><span><strong>One execution boundary</strong><small>Authorize the complete statement before SQL is generated.</small></span></div>
+        <div><Icon name="check" size={14} /><span><strong>Metadata-aware rules</strong><small>Use the same entities, relations, and functions users can see.</small></span></div>
+        <div><Icon name="check" size={14} /><span><strong>Consistent across surfaces</strong><small>Protect builder, API, saved queries, and AI-assisted flows together.</small></span></div>
       </div>
     </section>
     </div>

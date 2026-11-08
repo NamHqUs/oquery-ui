@@ -82,7 +82,7 @@
   border-radius: 6px;
   color: #aaa4bd;
   background: #ffffff06;
-  font-size: 10px;
+  font-size: 11px;
   white-space: nowrap;
 }
 
@@ -103,7 +103,7 @@
 .table-details-relation-head {
   min-height: 38px;
   color: #828b9d;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: .55px;
   text-transform: uppercase;
@@ -217,7 +217,7 @@
 .table-details-column-head {
   color: #828b9d;
   background: #10141c;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: .55px;
   text-transform: uppercase;
 }
@@ -240,7 +240,7 @@
   padding: 0 12px;
   border-bottom: 1px solid #252b38;
   color: #828b9d;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: .55px;
   text-transform: uppercase;
@@ -275,7 +275,7 @@
   border-radius: 4px;
   color: #c2b2fa;
   background: #5b478b2e;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: .3px;
 }
 

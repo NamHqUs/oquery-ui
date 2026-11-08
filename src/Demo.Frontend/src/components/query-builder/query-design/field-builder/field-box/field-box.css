@@ -12,7 +12,7 @@
 .field-box-menu .operator-trigger:hover, .field-box-menu .operator-trigger:focus-visible { border-color: #654f9f; color: #ded5ff; outline: 0; }
 .field-box-menu-selected .operator-trigger, .field-box-menu-selected .operator-trigger:hover, .field-box-menu-selected .operator-trigger:focus-visible { color: #ded5ff; border: 0; background: transparent; padding: 0; height: auto; max-height: none; outline: 0; }
 .field-box-menu .operator-menu { z-index: 20; transform: none; width: 200px; min-width: 200px; max-height: 420px; overflow-y: auto; }
-.operator-menu.field-box-menu-popup { z-index: 1300; transform: none; width: min(320px, calc(100vw - 8px)); min-width: min(320px, calc(100vw - 8px)); max-height: 420px; overflow-y: auto; }
+.operator-menu.field-box-menu-popup { z-index: 10001; transform: none; width: min(320px, calc(100vw - 8px)); min-width: min(320px, calc(100vw - 8px)); max-height: 420px; overflow-y: auto; }
 .operator-menu.field-box-menu-popup-value { width: min(360px, calc(100vw - 18px)); min-width: min(360px, calc(100vw - 18px)); }
 .operator-menu.field-box-menu-popup-calculation { width: min(560px, calc(100vw - 8px)); min-width: min(560px, calc(100vw - 8px)); max-height: none; overflow: visible; }
 .field-box-menu-popup .field-box-menu-label { margin-top: 4px; padding: 8px 12px 6px; color: #c5b5ff; border-top: 1px solid #4a4163; background: #211b32; font-weight: 700; letter-spacing: 1px; }
@@ -29,7 +29,7 @@
 .field-box-field-column .operator-option { box-sizing: border-box; width: 100%; max-width: min(250px, calc(100vw - 40px)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 12px "Manrope", sans-serif; }
 .field-box-chooser-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin: 7px 7px 4px; padding: 3px; background: #11141c; border: 1px solid #3a334e; border-radius: 6px; }
 .field-box-menu-popup-advanced .field-box-chooser-tabs { position: sticky; top: 0; z-index: 1; align-self: flex-start; width: var(--field-box-chooser-tabs-width); height: 38px; min-height: 38px; flex: 0 0 38px; box-sizing: border-box; }
-.field-box-chooser-tab { display: inline-flex; align-items: center; justify-content: center; gap: 3px; min-width: 0; padding: 7px 2px; color: #aab3c2; background: transparent; border: 0; border-radius: 4px; font: 10px "Manrope", sans-serif; cursor: pointer; }
+.field-box-chooser-tab { display: inline-flex; align-items: center; justify-content: center; gap: 3px; min-width: 0; padding: 7px 2px; color: #aab3c2; background: transparent; border: 0; border-radius: 4px; font: 11px "Manrope", sans-serif; cursor: pointer; }
 .field-box-chooser-tab:hover, .field-box-chooser-tab:focus-visible { color: #ded5ff; outline: 0; }
 .field-box-chooser-tab.active { color: #f0ecff; background: #29223e; box-shadow: inset 0 0 0 1px #654f9f; }
 .field-box-value-panel { display: grid; gap: 7px; padding: 10px; }

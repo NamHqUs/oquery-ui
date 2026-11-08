@@ -2,7 +2,7 @@
 .saved-query-library-heading { flex: 0 0 auto; padding: 19px 16px 15px; border-bottom: 1px solid #35364a; background: linear-gradient(105deg, #262238a6, #1a1c29a6); }
 .saved-query-library-heading h3 { display: flex; align-items: center; gap: 9px; margin: 7px 0 3px; color: #f0edfb; font-size: 15px; letter-spacing: -.2px; }
 .saved-query-library-heading p { margin: 0; color: #9299aa; font-size: 11px; line-height: 1.5; }
-.saved-query-total { display: inline-grid; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; place-items: center; border: 1px solid #50466e; border-radius: 7px; background: #8a70dd16; color: #cbbaff; font: 10px "Manrope", sans-serif; }
+.saved-query-total { display: inline-grid; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; place-items: center; border: 1px solid #50466e; border-radius: 7px; background: #8a70dd16; color: #cbbaff; font: 11px "Manrope", sans-serif; }
 .saved-query-library-content { min-width: 0; min-height: 0; flex: 1 1 auto; overflow-x: hidden; overflow-y: scroll; padding: 2px 10px 14px; overscroll-behavior: contain; }
 @media (min-width: 761px) {
   .saved-query-library { contain: size; }
@@ -24,7 +24,7 @@
 .saved-query-item:focus-visible { outline: 2px solid var(--purple); outline-offset: 1px; }
 .saved-query-item-copy { display: flex; min-width: 0; flex: 1 1 auto; flex-direction: column; gap: 3px; }
 .saved-query-item-name { min-width: 0; overflow: hidden; color: inherit; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.saved-query-item-description { overflow: hidden; color: #858c9d; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.saved-query-item-description { overflow: hidden; color: #858c9d; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) {
   .saved-query-search, .saved-query-item { transition: none; }
   .saved-query-item:hover { transform: none; }

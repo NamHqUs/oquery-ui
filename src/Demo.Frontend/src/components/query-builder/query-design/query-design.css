@@ -1,4 +1,6 @@
 .query-builder-card { --field-box-height: 34px; background: linear-gradient(135deg, #11141c, #0f1218); border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+.query-builder-card:has(.query-oquery-completions) { overflow: visible; }
+.query-builder-card:has(.query-oquery-completions) { position: relative; z-index: 3000; }
 .query-editor-tabs { margin-left: 0; }
 .query-oquery-editor { position: relative; z-index: 1; display: grid; width: 100%; min-width: 0; gap: 12px; }
 .query-oquery-editor-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
@@ -17,12 +19,14 @@
 .query-oquery-line-numbers { z-index: 3; width: 76px; padding: 16px 4px; overflow: hidden; color: #596477; border-right: 1px solid #252d3b; text-align: right; user-select: none; }
 .query-oquery-code-editor.no-fold-controls:not(.no-line-numbers) .query-oquery-line-numbers { width: 52px; }
 .query-oquery-code-editor.no-line-numbers .query-oquery-line-numbers { width: 28px; }
+.query-oquery-code-editor.no-line-numbers.no-fold-controls .query-oquery-line-numbers { width: 44px; }
 .query-oquery-gutter-line { display: flex; justify-content: flex-end; align-items: center; gap: 5px; height: 20.8px; padding: 0 23px; position: relative; }
 .query-oquery-code-editor.no-fold-controls .query-oquery-gutter-line { padding-left: 4px; }
 .query-oquery-gutter-line button { position: absolute; left: 0; width: 20px; height: 19px; padding: 0; border: 0; border-radius: 3px; background: transparent; color: #b6a7df; font: inherit; cursor: pointer; opacity: 0; transition: opacity .12s ease, background .12s ease; }
 .query-oquery-gutter-line .query-oquery-context-run { left: auto; right: 0; display: grid; place-items: center; color: #80d8bb; }
 .query-oquery-gutter-line .query-oquery-context-run { top: 50%; transform: translateY(-50%); }
 .query-oquery-code-editor.no-line-numbers .query-oquery-context-run { right: 0; transform: translateY(-50%); }
+.query-oquery-code-editor.no-line-numbers.no-fold-controls .query-oquery-context-run { right: auto; left: 50%; transform: translate(-50%, -50%); }
 .query-oquery-code-editor.show-context-run-always .query-oquery-context-run { opacity: 1; }
 .query-oquery-gutter-line:hover button { opacity: 1; }
 .query-oquery-line-numbers:hover .query-oquery-gutter-line button, .query-oquery-gutter-line button:focus-visible, .query-oquery-gutter-line button.collapsed { opacity: 1; }
@@ -46,6 +50,7 @@
 .query-oquery-comment { color: #687080; }
 .query-oquery-highlight .query-oquery-function { color: #86efac; }
 .query-oquery-highlight .query-oquery-error-function { color: #ff5668; }
+.query-oquery-match { color: inherit; background: #d7bdff55; border-radius: 2px; box-shadow: 0 0 0 1px #d7bdff44; }
 .query-oquery-textarea { z-index: 2; width: 100%; resize: none; color: transparent; caret-color: #f0ecff; border: 0; border-radius: 0; background: transparent; outline: 0; -webkit-text-fill-color: transparent; padding-left: 92px; }
 .query-oquery-code-editor.no-fold-controls:not(.no-line-numbers) .query-oquery-textarea { padding-left: 68px; }
 .query-oquery-code-editor.no-line-numbers .query-oquery-textarea { padding-left: 44px; }
@@ -218,10 +223,10 @@
 .logical-operator-select .operator-menu, .group-logical-operator-select .operator-menu { width: 80px; }
 .filter-operator-menu { z-index: 1300; box-sizing: border-box; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; width: min(380px, calc(100vw - 16px)); min-width: min(320px, calc(100vw - 16px)); max-width: min(380px, calc(100vw - 16px)); overflow-y: auto; }
 .filter-operator-group { min-width: 0; padding: 4px; border-radius: 4px; background: #211b32; }
-.filter-operator-group-label { display: block; margin-bottom: 3px; color: #a99bd0; font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+.filter-operator-group-label { display: block; margin-bottom: 3px; color: #a99bd0; font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
 .filter-operator-group .operator-option { display: flex; flex-direction: column; align-items: flex-start; box-sizing: border-box; width: 100%; min-height: 42px; padding: 6px 8px; white-space: nowrap; }
 .operator-option-label { line-height: 1.3; }
-.operator-option-hint { color: #b8accd; font-size: 10px; font-weight: 400; line-height: 1.3; }
+.operator-option-hint { color: #b8accd; font-size: 11px; font-weight: 400; line-height: 1.3; }
 .operator-option { color: #f0e4ff; border: 0; border-radius: 3px; background: transparent; padding: 8px 12px; cursor: pointer; text-align: left; font: inherit; font-size: 13px; }
 .operator-option:hover, .operator-option-selected { background: #40335f; }
 .filter-row > .logical-operator-select .operator-trigger:hover, .filter-row > .filter-operator-select .operator-trigger:hover, .filter-row > .logical-operator-select .operator-trigger:focus-visible, .filter-row > .filter-operator-select .operator-trigger:focus-visible { color: #c5b5ff; outline: 0; }

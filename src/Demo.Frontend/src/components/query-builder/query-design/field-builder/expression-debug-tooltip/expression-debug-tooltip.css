@@ -38,7 +38,7 @@
   color: #e7e5ef;
   background: #171521;
   box-shadow: 0 8px 24px #000a;
-  font: 10px "Manrope", sans-serif;
+  font: 11px "Manrope", sans-serif;
   pointer-events: none;
 }
 
@@ -54,7 +54,7 @@
 
 .expression-debug-tooltip strong {
   color: #c5b5ff;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: .6px;
   text-transform: uppercase;
 }
