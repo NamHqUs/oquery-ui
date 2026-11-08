@@ -444,9 +444,9 @@ export default function HomePage({
     <section className="new-home-intro" aria-labelledby="home-hero-title">
       <div className="new-home-hero">
         <div className="new-home-copy">
-          <span className="eyebrow">DYNAMIC QUERY INFRASTRUCTURE FOR .NET TEAMS</span>
-          <h1 id="home-hero-title">Build configurable data features<br /><span>without rebuilding SQL.</span></h1>
-          <p>For teams building reports, alert conditions, and scheduled jobs inside a .NET application. Let users configure difficult business queries without asking every developer to hand-write another join, grouping, or window function.</p>
+          <span className="eyebrow">DYNAMIC DATA INFRASTRUCTURE FOR APPLICATION DEVELOPERS</span>
+          <h1 id="home-hero-title">Your Data. Your Domain.<br /><span>Your Query Language.</span></h1>
+          <p>Build a dynamic data foundation for your application. Define business entities, compose relationships, and expose reusable data capabilities without rebuilding application-specific data-access code for every report, alert, or workflow.</p>
           <div className="new-home-actions">
             <button className="button primary" type="button" onClick={() => onNavigateToPage("builder")}><Icon name="code" size={15} /> Build a dynamic query</button>
             <button className="new-home-text-action" type="button" onClick={() => onNavigateToPage("metadata")}>Explore the data model <Icon name="arrow-right" size={13} /></button>
@@ -455,7 +455,7 @@ export default function HomePage({
         <div className="new-home-signal" aria-label="OQuery architecture">
           <span className="new-home-signal-label">ONE FOUNDATION / MANY SURFACES</span>
           <div className="new-home-signal-line"><span className="new-home-signal-node"><Icon name="database" size={17} /><b>Physical data</b><small>Tables / providers</small></span><i /><span className="new-home-signal-node primary"><Icon name="schema" size={17} /><b>OQuery</b><small>Entities / query rules</small></span><i /><span className="new-home-signal-node output"><Icon name="query" size={17} /><b>Useful outputs</b><small>Reports / alerts / jobs</small></span></div>
-          <p>Keep the database you have. Give your application a reusable query model.</p>
+          <p>Keep the database you have. Give your application a language for its business data.</p>
         </div>
       </div>
     </section>
@@ -483,8 +483,8 @@ export default function HomePage({
     <section id="oquery-foundation" className="new-home-foundation-section" aria-labelledby="oquery-foundation-title">
       <div className="new-home-section-intro">
         <span className="eyebrow">02 / WHAT IS OQUERY?</span>
-        <h2 id="oquery-foundation-title">A dynamic query compiler between your application and database.</h2>
-        <p>OQuery turns metadata and a readable query definition into a validated, parameterized SQL statement. The physical database stays where it is; your application gets a consistent way to describe complex data questions.</p>
+        <h2 id="oquery-foundation-title">A dynamic data foundation between your application and database.</h2>
+        <p>OQuery helps software teams expose, organize, secure, compose, and evolve business data. It turns metadata and a readable query definition into a validated, parameterized SQL statement while keeping application meaning separate from physical storage.</p>
       </div>
       <div className="new-home-foundation-diagram" aria-label="OQuery dynamic data foundation">
         <div className="new-home-foundation-source"><Icon name="database" size={20} /><strong>Physical data sources</strong><small>SQL Server / PostgreSQL / SQLite</small></div>
@@ -493,7 +493,7 @@ export default function HomePage({
         <div className="new-home-foundation-outputs"><span><Icon name="file-text" size={15} /> Query definition</span><span><Icon name="code" size={15} /> Generated SQL</span><span><Icon name="play" size={15} /> Reusable result</span></div>
       </div>
       <div className="new-home-context-story">
-        <div><span className="eyebrow">SAME DATA / DIFFERENT QUESTIONS</span><h3>Why should your physical schema dictate your application architecture?</h3><p>A Sales context can expose Customers, Orders, and Products. Finance can expose Customers, Invoices, and Payments. They can share the same source while keeping their own projections and permissions.</p></div>
+        <div><span className="eyebrow">SAME DATA / DIFFERENT DOMAINS</span><h3>Why should your physical schema dictate your application architecture?</h3><p>A Sales bounded context can expose Customers, Orders, and Products. Finance can expose Customers, Invoices, and Payments. They can share the same source while keeping their own projections, relationships, and permissions.</p></div>
         <div className="new-home-context-lines"><span><b>Sales</b> Customers - Orders - Products</span><span><b>Finance</b> Customers - Invoices - Payments</span><span><b>Operations</b> Orders - Shipments - Warehouses</span></div>
       </div>
     </section>
