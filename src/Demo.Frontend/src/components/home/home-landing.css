@@ -77,21 +77,23 @@
 .hp-text-action:focus-visible, .hp-subnav-links button:focus-visible, .hp-subnav-links a:focus-visible { border-radius: 4px; outline: 2px solid var(--purple); outline-offset: 3px; }
 
 /* Engine flow */
-.hp-engine-diagram { width: 100%; max-width: 760px; margin: 0; box-sizing: border-box; padding: 18px; border: 1px solid #342e4d; border-radius: 10px; background: linear-gradient(110deg, #151426, #10171a); }
+.hp-engine-diagram { width: 100%; max-width: 760px; margin: 0; box-sizing: border-box; padding: 0; }
 .hp-engine-diagram figcaption { margin-bottom: 16px; color: #e7e2ff; font: 600 12px "Space Grotesk", "Manrope", sans-serif; letter-spacing: .4px; text-transform: uppercase; }
-.hp-engine-diagram-flow { display: grid; grid-template-columns: 1fr; justify-items: stretch; gap: 10px; }
+.hp-engine-diagram-flow { display: grid; grid-template-columns: 1fr; justify-items: center; gap: 10px; min-width: 0; }
 .hp-engine-diagram-column { min-width: 0; }
-.hp-engine-diagram-label { display: block; margin-bottom: 8px; color: #8993a5; font: 600 10px "Space Grotesk", "Manrope", sans-serif; letter-spacing: .8px; text-transform: uppercase; }
+.hp-engine-diagram-group { width: fit-content; max-width: 100%; box-sizing: border-box; padding: 12px; border: 0; background: #10131a; overflow-wrap: anywhere; }
+.hp-engine-diagram-label { display: block; margin-bottom: 8px; color: #d8d1f5; font: 700 12px "Space Grotesk", "Manrope", sans-serif; letter-spacing: .6px; text-align: center; text-transform: uppercase; }
 .hp-engine-diagram-nodes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
 .hp-engine-diagram-column:first-child .hp-engine-diagram-nodes { display: flex; flex-wrap: nowrap; justify-content: center; }
 .hp-engine-diagram-column:first-child .hp-engine-node { width: 120px; justify-content: center; text-align: center; white-space: nowrap; }
 .hp-engine-node { display: inline-flex; min-width: 0; align-items: center; gap: 6px; padding: 7px 8px; border: 1px solid #333847; border-radius: 6px; color: #cbd1dc; background: #11151e; font-size: 12px; }
+.hp-engine-diagram-column:last-child .hp-engine-diagram-nodes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .hp-engine-diagram-column:last-child .hp-engine-node { white-space: normal; overflow-wrap: anywhere; }
-.hp-engine-diagram-column:last-child .hp-engine-node:nth-child(5) { grid-row: span 2; }
 .hp-engine-node .icon { color: var(--green); }
-.hp-engine-diagram-engine { display: flex; min-height: 92px; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 12px; border: 1px solid #7762c5; border-radius: 9px; color: #eeeaf8; background: #211b36; text-align: center; }
+.hp-engine-diagram-engine { display: flex; width: fit-content; max-width: 100%; min-width: 0; min-height: 92px; box-sizing: border-box; flex-wrap: wrap; align-content: center; align-items: center; justify-content: center; gap: 5px 8px; padding: 12px; border: 0; border-radius: 9px; color: #eeeaf8; background: #10131a; text-align: center; overflow-wrap: anywhere; }
 .hp-engine-diagram-engine .icon { color: var(--green); }
-.hp-engine-diagram-engine small { color: #bca9ff; font-size: 13px; line-height: 1.4; }
+.hp-engine-diagram-engine strong { min-width: 0; }
+.hp-engine-diagram-engine small { flex: 0 0 100%; min-width: 0; color: #bca9ff; font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
 .hp-engine-diagram-arrow { justify-self: center; color: #a78bfa; font-size: 22px; line-height: 1; }
 
 /* Examples */
@@ -164,10 +166,13 @@
 .hp-engine-panel-label { color: #8993a5; font: 600 10px "Space Grotesk", "Manrope", sans-serif; letter-spacing: .8px; text-transform: uppercase; }
 .hp-interfaces { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .hp-engine-input-panel .hp-interfaces { grid-template-columns: 1fr; }
+.hp-engine-input-panel .hp-interface { padding: 14px 16px; }
+.hp-engine-input-panel .hp-interface p { line-height: 1.35; }
 .hp-interface { flex-direction: column; gap: 6px; }
 .hp-interface .hp-interface-lead { margin: 0; color: #c9c4d8; font-weight: 600; }
 .hp-interface p { margin: 0; }
 .hp-interface code { margin-top: 0; padding: 7px 9px; border: 1px solid #2d3441; border-radius: 5px; color: #ded5ff; background: #0c0f15; font: 11.5px ui-monospace, "Cascadia Code", Consolas, monospace; word-break: break-all; }
+.hp-interface .hp-interface-inline-code { padding: 0; border: 0; color: #687385; background: transparent; font-size: inherit; white-space: nowrap; }
 .hp-engine-bar { display: flex; grid-column: 1 / -1; align-items: center; justify-content: center; gap: 9px; padding: 11px; border: 1px solid #493b70; border-radius: 9px; color: #e7e2ff; background: linear-gradient(90deg, #211b36, #15232a); font: 600 12px "Space Grotesk", "Manrope", sans-serif; letter-spacing: .4px; }
 .hp-engine-bar .icon { color: var(--green); }
 
@@ -215,6 +220,7 @@
   .hp-section, .hp-panel { padding: 20px 18px; }
   #hp-reveal .hp-section-intro h2 { white-space: normal; }
   .hp-engine-diagram-nodes, .hp-engine-diagram-column:first-child .hp-engine-diagram-nodes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hp-engine-diagram-column:last-child .hp-engine-diagram-nodes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hp-engine-diagram-column:first-child .hp-engine-node { width: auto; flex: 1 1 0; white-space: normal; }
   .hp-flow, .hp-card-grid, .hp-interfaces, .hp-engine-input-panel .hp-interfaces { grid-template-columns: 1fr; }
   .hp-playground-hint { display: none; }

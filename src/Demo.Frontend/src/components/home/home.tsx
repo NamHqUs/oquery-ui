@@ -349,16 +349,13 @@ export default function Home({
         />
         <div className="hp-engine-layout">
           <div className="hp-engine-input-panel">
-            <span className="hp-engine-panel-label">Separate input types</span>
             <div className="hp-interfaces">
               {INTERFACE_CARDS.map((card) => <article className="hp-card hp-interface" key={card.title}>
                 <div className="hp-card-title-row">
                   <div className="hp-card-icon"><Icon name={card.icon} size={17} /></div>
                   <strong>{card.title}</strong>
                 </div>
-                <p className="hp-interface-lead">{card.text}</p>
-                <p>{card.audience}</p>
-                {card.code && <code>{card.code}</code>}
+                <p className="hp-interface-lead">{card.text} {card.audience}{card.code && <> <code className="hp-interface-inline-code">{card.code}</code></>}</p>
               </article>)}
             </div>
             <TextAction onClick={openDocs}>Explore query interfaces</TextAction>
@@ -366,7 +363,7 @@ export default function Home({
           <div className="hp-engine-output-panel">
             <figure className="hp-engine-diagram" aria-labelledby="hp-engine-diagram-title">
               <div className="hp-engine-diagram-flow">
-                <div className="hp-engine-diagram-column">
+                <div className="hp-engine-diagram-column hp-engine-diagram-group">
                   <span className="hp-engine-diagram-label">Rich input types</span>
                   <div className="hp-engine-diagram-nodes">
                     {INTERFACE_CARDS.map((card) => <span className="hp-engine-node" key={card.title}><Icon name={card.icon} size={13} /> {card.title}</span>)}
@@ -379,7 +376,7 @@ export default function Home({
                   <small>Metadata · SQL Functions · SQL dialects</small>
                 </div>
                 <span className="hp-engine-diagram-arrow" aria-hidden="true">↓</span>
-                <div className="hp-engine-diagram-column">
+                <div className="hp-engine-diagram-column hp-engine-diagram-group">
                   <span className="hp-engine-diagram-label">Database execution</span>
                   <div className="hp-engine-diagram-nodes">
                     {DATABASE_PROVIDERS.map((provider) => <span className="hp-engine-node" key={provider.name}><Icon name={provider.icon} size={13} /> {provider.name}</span>)}
