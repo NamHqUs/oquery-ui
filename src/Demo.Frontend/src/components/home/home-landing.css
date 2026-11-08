@@ -106,7 +106,7 @@
 .hp-flow-result { border-color: #2d5a4c; background: linear-gradient(160deg, #10201c, #10131a); }
 .hp-flow-result p { margin: 0; color: #a7dfc9; font-size: 13px; line-height: 1.5; }
 .hp-flow-result .button { align-self: flex-start; margin-top: auto; padding: 7px 12px; font-size: 12px; }
-.hp-points-layout { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 22px; }
+.hp-points-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 22px; }
 .hp-points { display: contents; margin: 0; padding: 0; list-style: none; }
 .hp-points li { display: flex; align-items: flex-start; gap: 9px; color: #c0c7d3; font-size: 13px; line-height: 1.5; }
 .hp-points .icon { flex: 0 0 auto; margin-top: 2px; color: var(--green); }
@@ -114,7 +114,9 @@
 .hp-points li.roadmap { color: #8993a5; }
 .hp-points li.roadmap .icon { color: #7c879a; }
 .hp-points li .hp-roadmap { margin-left: 8px; }
-#hp-reveal .hp-points-layout > .hp-text-action { align-self: center; justify-self: start; padding-left: 23px; grid-column: 3; grid-row: 2; }
+.hp-points-feature { display: flex; align-items: flex-start; gap: 9px; color: #c0c7d3; font-size: 13px; line-height: 1.5; }
+.hp-points-feature .icon { flex: 0 0 auto; margin-top: 2px; color: var(--green); }
+#hp-reveal > .hp-text-action { margin-top: 12px; }
 
 /* Developers */
 .hp-split { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 22px; }
@@ -170,7 +172,6 @@
   .hp-flow-result { grid-column: 1 / -1; }
   .hp-interfaces { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hp-points-layout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  #hp-reveal .hp-points-layout > .hp-text-action { grid-column: auto; grid-row: auto; padding-left: 0; }
 }
 @media (max-width: 980px) {
   .hp-hero { grid-template-columns: 1fr; gap: 26px; padding-top: 20px; }
@@ -327,7 +328,7 @@
 .hp-flow-step:not(:last-child)::after { right: -5px; width: 10px; height: 10px; border-top: 1px solid #7d62e4; border-right: 1px solid #7d62e4; background: transparent; transform: rotate(45deg); }
 .hp-flow-result { background: linear-gradient(160deg, #10201c, #10131a99); }
 .hp-points { gap: 0 30px; }
-.hp-points li { padding: 12px 0; border-bottom: 1px solid #252b38; }
+.hp-points li { padding: 4px 0; }
 .hp-card-grid { gap: 0 28px; }
 .hp-card {
   min-height: 142px;

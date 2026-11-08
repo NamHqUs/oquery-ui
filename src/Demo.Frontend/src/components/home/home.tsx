@@ -375,8 +375,9 @@ export default function Home({
         </div>
         <div className="hp-points-layout">
           <ul className="hp-points">{REVEAL_POINTS.map((point) => <li key={point}><Icon name="check" size={14} /><span>{point}</span></li>)}</ul>
-          <TextAction onClick={() => onNavigateToPage("metadata")}>See how {PRODUCT_NAME} understands your data</TextAction>
+          <div className="hp-points-feature"><Icon name="check" size={14} /><span>Automatically handles aggregates over related collections and contexts.</span></div>
         </div>
+        <TextAction onClick={() => onNavigateToPage("metadata")}>See how {PRODUCT_NAME} understands your data</TextAction>
       </section>
 
       <section className="hp-section" id="hp-developers" aria-labelledby="hp-developers-title">
