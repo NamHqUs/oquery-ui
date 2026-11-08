@@ -593,7 +593,7 @@
   .new-home-story .new-home-example-code > pre { margin: 0; padding: 11px 13px; }
   .new-home-story .new-home-example-code > pre code { margin: 0; padding: 0; }
 
-.new-home-section-nav { display: grid; grid-template-columns: repeat(4, 1fr); max-width: none; margin: 0; border: 1px solid #2b3544; border-top: 0; background: #111721; }
+.new-home-section-nav { display: grid; grid-template-columns: repeat(5, 1fr); max-width: none; margin: 0; border: 1px solid #2b3544; border-top: 0; background: #111721; }
 .new-home-section-nav a { display: grid; grid-template-columns: auto 1fr; column-gap: 9px; padding: 14px 15px; border-right: 1px solid #2b3544; color: inherit; text-decoration: none; transition: background .16s ease; }
 .new-home-section-nav a:last-child { border-right: 0; }
 .new-home-section-nav a:hover { background: #1a1b2b; }
@@ -653,4 +653,54 @@
   .new-home-product-section { padding: 32px 22px; }
   .new-home-ai-flow { align-items: stretch; flex-direction: column; }
   .new-home-ai-flow > i { width: 1px; height: 14px; margin-left: 14px; }
+}
+.new-home-problem-section,.new-home-foundation-section,.new-home-vocabulary-section { padding: 58px 42px; border-bottom: 1px solid #2e2a43; background: #111720; }
+.new-home-section-intro { max-width: 930px; margin: 0 auto; }
+.new-home-section-intro h2 { max-width: 670px; margin: 9px 0 11px; color: #eeeaf8; font-size: clamp(24px,3vw,34px); letter-spacing: -.9px; line-height: 1.12; }
+.new-home-section-intro p { max-width: 650px; margin: 0; color: #929cad; font-size: 12px; line-height: 1.75; }
+.new-home-problem-path { display: grid; grid-template-columns: 1fr 54px 1fr 54px 1fr; align-items: center; max-width: 930px; margin: 38px auto 0; }
+.new-home-problem-path > div { position: relative; display: grid; min-height: 118px; grid-template-columns: 31px 1fr; align-content: center; column-gap: 11px; padding: 17px; border: 1px solid #303c4b; background: #151d27; }
+.new-home-problem-path > div svg { grid-row: span 2; align-self: center; color: #a7b9ff; }
+.new-home-problem-path > div.new-home-problem-end { border-color: #634f83; background: linear-gradient(145deg,#211b34,#151d27); }
+.new-home-step-number { color: #8e7ac5; font: 10px "Cascadia Mono","Consolas",monospace; }
+.new-home-problem-path strong { color: #e5e2ef; font-size: 12px; }
+.new-home-problem-path small { grid-column: 2; color: #858fa0; font-size: 11px; line-height: 1.5; }
+.new-home-problem-path > i { height: 1px; background: linear-gradient(90deg,#544a78,#699a91); }
+.new-home-foundation-section { background: linear-gradient(180deg,#121a23,#10151d); }
+.new-home-foundation-diagram { display: grid; grid-template-columns: 1fr 130px 1.2fr; grid-template-rows: auto auto; align-items: center; max-width: 930px; margin: 38px auto 0; }
+.new-home-foundation-source,.new-home-foundation-core { display: flex; min-height: 112px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 18px; border: 1px solid #334455; background: #17212b; text-align: center; }
+.new-home-foundation-source svg { color: #9fb6da; }
+.new-home-foundation-core { border-color: #69559a; background: linear-gradient(145deg,#2b2144,#17212b); box-shadow: 0 14px 35px #0b091466; }
+.new-home-foundation-core svg { color: #cabbff; }
+.new-home-foundation-diagram strong { color: #e9e6f2; font-size: 12px; }
+.new-home-foundation-diagram small { color: #8591a2; font-size: 11px; }
+.new-home-foundation-arrow { display: flex; flex-direction: column; align-items: center; gap: 8px; color: #8f81b9; font: 10px "Cascadia Mono","Consolas",monospace; text-align: center; }
+.new-home-foundation-arrow i { width: 72px; height: 1px; background: #7064a1; }
+.new-home-foundation-outputs { display: flex; grid-column: 3; justify-content: space-around; gap: 8px; padding-top: 20px; color: #8bd1bb; font-size: 11px; }
+.new-home-foundation-outputs span { display: inline-flex; align-items: center; gap: 5px; }
+.new-home-context-story { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; max-width: 930px; margin: 54px auto 0; padding-top: 32px; border-top: 1px solid #2e3a46; }
+.new-home-context-story h3 { max-width: 430px; margin: 9px 0 11px; color: #eeeaf8; font-size: 19px; line-height: 1.2; }
+.new-home-context-story p { max-width: 480px; margin: 0; color: #929cad; font-size: 12px; line-height: 1.75; }
+.new-home-context-lines { display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+.new-home-context-lines span { padding: 12px 14px; border-left: 2px solid #6d5ab0; color: #aeb8c7; background: #151d27; font: 11px "Cascadia Mono","Consolas",monospace; }
+.new-home-context-lines span:nth-child(2) { border-left-color: #3d8f82; }
+.new-home-context-lines span:nth-child(3) { border-left-color: #a87855; }
+.new-home-context-lines b { display: inline-block; width: 86px; color: #e8e4f2; font-family: "Manrope",sans-serif; }
+.new-home-vocabulary-section { background: #0f141c; }
+.new-home-vocabulary-demo { display: grid; grid-template-columns: 1.2fr 1fr; max-width: 930px; margin: 34px auto 0; border: 1px solid #303a47; background: #0b1017; }
+.new-home-vocabulary-query { padding: 24px; color: #b7c1d0; font: 13px/1.8 "Cascadia Mono","Consolas",monospace; }
+.new-home-vocabulary-translation { display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 24px; border-left: 1px solid #303a47; background: #151c26; }
+.new-home-vocabulary-translation span { color: #8f81b9; font: 10px "Cascadia Mono","Consolas",monospace; text-transform: uppercase; }
+.new-home-vocabulary-translation i { width: 75px; height: 1px; background: linear-gradient(90deg,#7665a9,#64b59e); }
+.new-home-vocabulary-translation strong { color: #e6e2ef; font-size: 13px; }
+.new-home-vocabulary-translation small { color: #8591a2; font-size: 11px; }
+@media (max-width: 600px) {
+  .new-home-problem-section,.new-home-foundation-section,.new-home-vocabulary-section { padding: 38px 20px; }
+  .new-home-problem-path { grid-template-columns: 1fr; gap: 12px; }
+  .new-home-problem-path > i { width: 1px; height: 18px; justify-self: center; }
+  .new-home-foundation-diagram { grid-template-columns: 1fr; grid-template-rows: auto; gap: 15px; }
+  .new-home-foundation-arrow { transform: rotate(90deg); }
+  .new-home-foundation-outputs { grid-column: auto; flex-direction: column; padding: 0 20px; }
+  .new-home-context-story,.new-home-vocabulary-demo { grid-template-columns: 1fr; gap: 25px; }
+  .new-home-vocabulary-translation { border-top: 1px solid #303a47; border-left: 0; }
 }
