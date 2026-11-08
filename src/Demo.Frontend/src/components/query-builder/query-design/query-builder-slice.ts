@@ -1084,27 +1084,41 @@ export const executeQuery = createAsyncThunk(
   },
 );
 
+/** Executes OQuery text without touching query-builder state. */
+export async function requestQueryResultFromText(text: string): Promise<QueryResult> {
+  const payload = await requestJson(apiUrls.dynamicQuery.executeText, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: text,
+  });
+  if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows) || payload.rows.some((row: unknown) => typeof row !== "string") || typeof payload.totalRecords !== "number" || !Number.isFinite(payload.totalRecords) || payload.totalRecords < -1) {
+    throw new Error("Query API must return a name, an array of row strings, and a valid total record count.");
+  }
+  const responseColumns = typeof payload.columns === "string"
+    ? payload.columns.split(",").filter((column: string) => column.trim())
+    : [];
+  return {
+    name: payload.name,
+    columns: responseColumns,
+    rows: payload.rows.map((row: string) => row.split(",")),
+    totalRecords: payload.totalRecords,
+  };
+}
+
+/** Returns the engine-generated SQL for OQuery text without touching query-builder state. */
+export function requestSqlStatementFromText(text: string): Promise<string> {
+  return requestText(apiUrls.dynamicQuery.toStringText, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: text,
+  });
+}
+
 export const executeQueryFromText = createAsyncThunk(
   "queryBuilder/executeFromText",
   async (text: string, { rejectWithValue }) => {
     try {
-      const payload = await requestJson(apiUrls.dynamicQuery.executeText, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain" },
-        body: text,
-      });
-      if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows) || payload.rows.some((row) => typeof row !== "string") || typeof payload.totalRecords !== "number" || !Number.isFinite(payload.totalRecords) || payload.totalRecords < -1) {
-        return rejectWithValue("Query API must return a name, an array of row strings, and a valid total record count.");
-      }
-      const responseColumns = typeof payload.columns === "string"
-        ? payload.columns.split(",").filter((column: string) => column.trim())
-        : [];
-      return {
-        name: payload.name,
-        columns: responseColumns,
-        rows: payload.rows.map((row: string) => row.split(",")),
-        totalRecords: payload.totalRecords,
-      } as QueryResult;
+      return await requestQueryResultFromText(text);
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : "Unable to execute query.");
     }
@@ -1162,11 +1176,7 @@ export const getSqlStatementFromText = createAsyncThunk(
   "queryBuilder/getSqlStatementFromText",
   async (text: string, { rejectWithValue }) => {
     try {
-      return await requestText(apiUrls.dynamicQuery.toStringText, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain" },
-        body: text,
-      });
+      return await requestSqlStatementFromText(text);
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : "Unable to generate SQL statement.");
     }
