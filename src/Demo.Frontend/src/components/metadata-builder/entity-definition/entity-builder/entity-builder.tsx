@@ -206,8 +206,10 @@ export default function EntityBuilder({
 
         <RelationsBuilder
           relations={draft.relations}
-          currentEntityName={draft.name}
+          currentEntity={draft}
           allEntities={allEntities}
+          databaseTables={databaseTables}
+          selectedTable={selectedTable}
           onChange={(relationsUpdater) =>
             onDraftChange((entity) => ({
               ...entity,

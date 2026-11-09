@@ -78,5 +78,5 @@ section.page-heading.metadata-page-heading { position: relative; display: flex; 
 .metadata-editor-content .field-editor-table { overflow: visible; }
 
 @container (max-width: 520px) {
-.metadata-editor-content .metadata-form-grid { grid-template-columns: 1fr; }.editor-head { align-items: flex-start; flex-direction: column; }.editor-actions { flex: 1 1 100%; width: 100%; margin-left: 0; }.relation-main { grid-template-columns: 1fr 1fr 34px; }.relation-main .relation-key-label { grid-column: span 2; }.key-row { grid-template-columns: 1fr 18px 1fr 30px; } }
+.metadata-editor-content .metadata-form-grid { grid-template-columns: 1fr; }.editor-head { align-items: flex-start; flex-direction: column; }.editor-actions { flex: 1 1 100%; width: 100%; margin-left: 0; }.key-row { grid-template-columns: 1fr 18px 1fr 30px; } }
 @media (max-width: 760px) { .editor-actions { flex: 0 0 auto; align-self: flex-end; width: auto; margin-left: 0; } }
