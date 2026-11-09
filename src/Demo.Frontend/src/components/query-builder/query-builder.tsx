@@ -1132,7 +1132,6 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
                 oqueryStatus={oqueryStatus}
                 oqueryError={oqueryError}
                 onOqueryTextChange={(text) => {
-                  dispatch(clearQueryResult());
                   setOqueryText(text);
                   updateSelectedOQueryText("");
                   setOqueryValidationMessage("");
