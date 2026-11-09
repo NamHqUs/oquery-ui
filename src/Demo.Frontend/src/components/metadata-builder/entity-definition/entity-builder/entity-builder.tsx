@@ -195,6 +195,7 @@ export default function EntityBuilder({
         <FieldsBuilder
           fields={draft.fields}
           selectedTableColumns={selectedTableColumns}
+          allowDataTypeEdit={showRawSql}
           onChange={(fieldsUpdater) =>
             onDraftChange((entity) => ({
               ...entity,

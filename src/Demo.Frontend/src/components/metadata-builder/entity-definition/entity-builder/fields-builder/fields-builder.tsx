@@ -25,10 +25,16 @@ function getDataTypeIcon(dataType: string) {
 type FieldsBuilderProps = {
   fields: EditableEntity["fields"];
   selectedTableColumns: { name: string; dataType?: string }[];
+  allowDataTypeEdit?: boolean;
   onChange: (updater: (fields: EditableEntity["fields"]) => EditableEntity["fields"]) => void;
 };
 
-export default function FieldsBuilder({ fields, selectedTableColumns, onChange }: FieldsBuilderProps) {
+export default function FieldsBuilder({
+  fields,
+  selectedTableColumns,
+  allowDataTypeEdit = false,
+  onChange,
+}: FieldsBuilderProps) {
   const [draggedFieldIndex, setDraggedFieldIndex] = useState<number | null>(null);
   const [dropTargetFieldIndex, setDropTargetFieldIndex] = useState<number | null>(null);
   const [openDataTypeIndex, setOpenDataTypeIndex] = useState<number | null>(null);
@@ -239,7 +245,7 @@ export default function FieldsBuilder({ fields, selectedTableColumns, onChange }
         </div>
         {fields.map((field, index) => (
           <div
-            className={`field-editor-row${draggedFieldIndex === index ? " dragging" : ""}${dropTargetFieldIndex === index ? " drop-target" : ""}`}
+            className={`field-editor-row${draggedFieldIndex === index ? " dragging" : ""}${dropTargetFieldIndex === index ? " drop-target" : ""}${openDataTypeIndex === index ? " data-type-open" : ""}`}
             key={field.id ?? index}
             onDragOver={(event) => {
               if (draggedFieldIndex !== null && draggedFieldIndex !== index) {
@@ -322,7 +328,7 @@ export default function FieldsBuilder({ fields, selectedTableColumns, onChange }
                 placeholder={isRawSql(field) ? "SQL expression" : field.name || "Column name"}
               />
             </div>
-            {isRawSql(field)
+            {allowDataTypeEdit || isRawSql(field)
               ? <div className="field-data-type-picker">
                   <button
                     className="field-data-type-trigger"

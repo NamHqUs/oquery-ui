@@ -6,7 +6,7 @@
     {
       "Name": "Id",
       "DbColumn": "Id",
-      "DataType": 0,
+      "DataType": 1,
       "IsRawSql": false
     },
     {
