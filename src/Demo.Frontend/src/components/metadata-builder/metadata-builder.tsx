@@ -77,11 +77,12 @@ async function request(url: string, options?: RequestInit) {
 
 type MetadataBuilderProps = {
   onNavigationGuardChange?: (guard: ((continueNavigation: () => void, cancelNavigation?: () => void) => void) | null) => void;
+  onSectionNavigationChange?: (handler: ((section: MetadataSection) => void) | null) => void;
   entityOnly?: boolean;
   embedded?: boolean;
 };
 
-export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = false, embedded = false }: MetadataBuilderProps) {
+export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavigationChange, entityOnly = false, embedded = false }: MetadataBuilderProps) {
   const dispatch = useDispatch();
   const databaseState = useSelector((state: RootState) => state.database);
   const entities = useSelector((state: RootState) => state.queryBuilder.metadata);
@@ -123,6 +124,10 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
     nextSearchParams.set("section", section);
     setSearchParams(nextSearchParams);
   };
+  useEffect(() => {
+    onSectionNavigationChange?.((section) => { void selectSection(section); });
+    return () => onSectionNavigationChange?.(null);
+  }, [activeSection, onSectionNavigationChange, searchParams]);
   const selectedIsBuiltin = entities.find((entity) => entity.name === selectedName)?.canDelete === false;
   useDefinitionUnsavedWarning(dirty);
 
@@ -429,14 +434,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
             <span className="metadata-heading-eyebrow">DATA MODEL <i /></span>
           </div>
         </div>
-        {!entityOnly && <nav className="metadata-section-tabs" role="tablist" aria-label="Metadata definition types">
-          <button type="button" role="tab" aria-selected={activeSection === "diagram"} className={activeSection === "diagram" ? "active" : ""} onClick={() => selectSection("diagram")}>
-            <Icon name="schema" size={14} /> Diagram
-          </button>
-          <button type="button" role="tab" aria-selected={activeSection === "entities"} className={activeSection === "entities" ? "active" : ""} onClick={() => selectSection("entities")}>
-            <Icon name="table" size={14} /> Entity definitions
-          </button>
-        </nav>}
       </section>}
       {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "diagram"}>
         <EntityDiagram

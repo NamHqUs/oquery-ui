@@ -30,6 +30,7 @@ const LEGACY_FUNCTIONS_PATH = "/functions";
 
 type Page = keyof typeof PAGE_PATHS;
 type NavigationGuard = (continueNavigation: () => void, cancelNavigation?: () => void) => void;
+type MetadataSection = "diagram" | "entities" | "functions" | "operators";
 
 const HOME_SUBMENU = [
   { label: "Playground", target: "hp-playground" },
@@ -42,7 +43,7 @@ const HOME_SUBMENU = [
 const PAGE_SUBMENUS: Record<Exclude<Page, "home">, readonly string[]> = {
   builder: ["Design query", "Results"],
   sources: ["Connections", "Tables", "Schema"],
-  metadata: ["Entities", "Operators"],
+  metadata: ["Diagram", "Entity definitions"],
   functions: ["Definitions", "Arguments", "SQL templates"],
   documentation: ["Overview", "Query syntax", "Security", "Next steps"],
 };
@@ -55,7 +56,17 @@ function scrollToSection(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function PageSubnav({ page, onNavigateToPage }: { page: Page | null; onNavigateToPage: (nextPage: Page) => void }) {
+function PageSubnav({
+  page,
+  onNavigateToPage,
+  onMetadataSectionSelect,
+}: {
+  page: Page | null;
+  onNavigateToPage: (nextPage: Page) => void;
+  onMetadataSectionSelect: (section: MetadataSection) => void;
+}) {
+  const location = useLocation();
+  const metadataSection = new URLSearchParams(location.search).get("section") ?? "diagram";
   if (!page) return null;
 
   if (page === "home") {
@@ -76,7 +87,18 @@ function PageSubnav({ page, onNavigateToPage }: { page: Page | null; onNavigateT
     <nav className="hp-subnav app-subnav" aria-label={`${page} sections`}>
       <span className="hp-subnav-brand">{page === "builder" ? "QUERY BUILDER" : page.replace("-", " ").toUpperCase()}</span>
       <div className="hp-subnav-links">
-        {PAGE_SUBMENUS[page].map((item) => <button key={item} type="button">{item}</button>)}
+        {PAGE_SUBMENUS[page].map((item) => <button
+          key={item}
+          type="button"
+          className={page === "metadata"
+            && ((item === "Diagram" && metadataSection === "diagram")
+              || (item === "Entity definitions" && metadataSection === "entities"))
+            ? "active"
+            : undefined}
+          onClick={page === "metadata"
+            ? () => onMetadataSectionSelect(item === "Diagram" ? "diagram" : "entities")
+            : undefined}
+        >{item}</button>)}
       </div>
     </nav>
   );
@@ -93,11 +115,15 @@ function App() {
   const [queryBuilderInstance, setQueryBuilderInstance] = useState(0);
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
   const metadataNavigationGuard = useRef<NavigationGuard | null>(null);
+  const metadataSectionNavigation = useRef<((section: MetadataSection) => void) | null>(null);
   const functionNavigationGuard = useRef<NavigationGuard | null>(null);
   const approvedNavigation = useRef<string | null>(null);
   const handledBlockedLocation = useRef<string | null>(null);
   const updateMetadataNavigationGuard = useCallback((guard: NavigationGuard | null) => {
     metadataNavigationGuard.current = guard;
+  }, []);
+  const updateMetadataSectionNavigation = useCallback((handler: ((section: MetadataSection) => void) | null) => {
+    metadataSectionNavigation.current = handler ?? undefined;
   }, []);
   const updateFunctionNavigationGuard = useCallback((guard: NavigationGuard | null) => {
     functionNavigationGuard.current = guard;
@@ -235,7 +261,11 @@ function App() {
         </div>
       </header>
 
-      <PageSubnav page={page} onNavigateToPage={navigateToPage} />
+      <PageSubnav
+        page={page}
+        onNavigateToPage={navigateToPage}
+        onMetadataSectionSelect={(section) => metadataSectionNavigation.current?.(section)}
+      />
       <div className="page-content">
         <Routes>
           <Route path={PAGE_PATHS.home} element={<div className="page-transition page-transition-no-slide"><Home onNavigateToPage={navigateToPage} onRequestConnection={requestDatabaseConnection} /></div>} />
@@ -276,7 +306,7 @@ function App() {
           ? () => navigateToPage("home")
           : undefined}
       /></div>}
-      {metadataVisited && <div hidden={page !== "metadata"} className={page === "metadata" ? "page-transition page-transition-no-slide" : undefined}><MetadataBuilder onNavigationGuardChange={updateMetadataNavigationGuard} /></div>}
+      {metadataVisited && <div hidden={page !== "metadata"} className={page === "metadata" ? "page-transition page-transition-no-slide" : undefined}><MetadataBuilder onNavigationGuardChange={updateMetadataNavigationGuard} onSectionNavigationChange={updateMetadataSectionNavigation} /></div>}
       {functionDefinitionsVisited && <div hidden={page !== "functions"} className={page === "functions" ? "page-transition page-transition-no-slide" : undefined}>
         <section className="page-heading metadata-page-heading function-page-heading">
           <div className="metadata-heading-main">
