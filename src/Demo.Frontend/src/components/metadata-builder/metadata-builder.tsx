@@ -1,7 +1,7 @@
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { apiUrls } from "../../const/api-urls";
 import { useMessageBox } from "../message-box/message-box";
 import Icon from "../icon/icon";
@@ -15,7 +15,7 @@ import EntityDiagram from "./entity-diagram/entity-diagram";
 import { EditableEntity, EditableRelation, emptyEntity, toAbstractDataType, toEditable } from "./types";
 import FunctionDefinitionsWorkspace from "../function-definition/function-definition";
 import OperatorDefinition from "./operator-definition/operator-definition";
-import BusinessScopeWorkspace from "./business-scope/business-scope-workspace";
+import BusinessScopeList from "./business-scope/business-scope-list";
 import { resolveDefinitionChanges, useDefinitionUnsavedWarning } from "./definition-actions/definition-actions";
 import DefinitionActions from "./definition-actions/definition-actions";
 import type { DefinitionActionAdapter } from "./definition-actions/definition-actions";
@@ -85,6 +85,7 @@ type MetadataBuilderProps = {
 };
 
 export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavigationChange, entityOnly = false, embedded = false }: MetadataBuilderProps) {
+  const location = useLocation();
   const dispatch = useDispatch();
   const databaseState = useSelector((state: RootState) => state.database);
   const entities = useSelector((state: RootState) => state.queryBuilder.metadata);
@@ -112,7 +113,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
   useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   useEffect(() => { selectedNameRef.current = selectedName; }, [selectedName]);
-  const requestedSection = searchParams.get("section");
+  const requestedSection = searchParams.get("section")
+    ?? (location.pathname === "/metadata/business-scopes/create" ? "business-scopes" : null);
   const activeSection: MetadataSection = entityOnly ? "entities" : requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "business-scopes" || requestedSection === "functions" || requestedSection === "operators"
     ? requestedSection
     : "diagram";
@@ -499,7 +501,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         <OperatorDefinition onNavigationGuardChange={updateOperatorNavigationGuard} />
       </div>}
       {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "business-scopes"}>
-        <BusinessScopeWorkspace active={activeSection === "business-scopes"} />
+        <BusinessScopeList active={activeSection === "business-scopes"} />
       </div>}
       {toolbarHost && (activeSection === "diagram" || activeSection === "entities")
         && createPortal(<DefinitionActions adapter={entityActionAdapter} />, toolbarHost)}

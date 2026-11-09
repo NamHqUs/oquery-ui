@@ -1,17 +1,20 @@
 import { createPortal } from "react-dom";
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useLocation, useNavigate } from "react-router-dom";
 import Icon, { type IconName } from "../../icon/icon";
 import PanelSplitter from "../../panel-splitter/panel-splitter";
+import BusinessScopeWizard from "./business-scope-wizard";
 import { useResizablePanel } from "../../../utils/use-resizable-panel";
 import DefinitionActions, { type DefinitionActionAdapter } from "../definition-actions/definition-actions";
 import { toAbstractDataType } from "../types";
 import { fetchDbSchema } from "../../data-sources/database-slice";
 import type { RootState } from "../../../store/store";
 import { apiUrls } from "../../../const/api-urls";
+import { formatApiError } from "../../query-builder/query-design/api-error";
 import "./business-scope-workspace.css";
 
-type BusinessScope = {
+export type BusinessScope = {
   name: string;
   entities: MetadataEntity[];
   canDelete: boolean;
@@ -21,11 +24,28 @@ type MetadataEntity = { name: string; fields?: unknown[]; relations?: unknown[] 
 type DatabaseTable = { schema: string; name: string; columns: { name: string; dataType: string }[] };
 type DatabaseRelationship = { name: string; sourceSchema: string; sourceTable: string; sourceColumns: string[]; targetSchema: string; targetTable: string; targetColumns: string[]; isUnique: boolean };
 type Step = 1 | 2 | 3;
+type ViewMode = "list" | "wizard" | "detail";
+const CREATE_BUSINESS_SCOPE_PATH = "/metadata/business-scopes/create";
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, { headers: { "Content-Type": "application/json" }, ...options });
-  if (!response.ok) throw new Error((await response.text()) || `Business scope request failed (${response.status}).`);
-  return response.status === 204 ? undefined as T : await response.json() as T;
+  let response: Response;
+  try {
+    response = await fetch(url, { headers: { "Content-Type": "application/json" }, ...options });
+  } catch (reason) {
+    throw new Error(`Could not reach the business scope API: ${reason instanceof Error ? reason.message : "network error"}`);
+  }
+  if (!response.ok) {
+    throw new Error(formatApiError(
+      await response.text(),
+      `Business scope request failed (${response.status}).`,
+    ));
+  }
+  if (response.status === 204) return undefined as T;
+  try {
+    return await response.json() as T;
+  } catch {
+    throw new Error("Business scope API returned invalid JSON.");
+  }
 }
 
 const tableKey = (table: Pick<DatabaseTable, "schema" | "name">) => `${table.schema}.${table.name}`;
@@ -40,8 +60,10 @@ const getAbstractDataType = (dataType: string, columnName?: string) =>
 const getDataTypeIcon = (dataType: string, columnName?: string): IconName =>
   dataTypeIcons[getAbstractDataType(dataType, columnName)] || "type";
 
-export default function BusinessScopeWorkspace({ active }: { active: boolean }) {
+export default function BusinessScopeList({ active }: { active: boolean }) {
   const [scopes, setScopes] = useState<BusinessScope[]>([]);
+  const location = useLocation();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const { schema, schemaStatus } = useSelector((state: RootState) => state.database);
   const [selectedName, setSelectedName] = useState("");
@@ -54,11 +76,15 @@ export default function BusinessScopeWorkspace({ active }: { active: boolean }) 
   const [relationNames, setRelationNames] = useState<Record<string, { lookup: string; collection: string }>>({});
   const [tableFilter, setTableFilter] = useState("");
   const [step, setStep] = useState<Step>(1);
+  const [viewMode, setViewMode] = useState<ViewMode>(location.pathname === CREATE_BUSINESS_SCOPE_PATH ? "wizard" : "list");
   const [status, setStatus] = useState<"loading" | "ready" | "saving">("loading");
   const [error, setError] = useState("");
   const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
   const panel = useResizablePanel("business-scope");
   useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
+  useEffect(() => {
+    if (active) setViewMode(location.pathname === CREATE_BUSINESS_SCOPE_PATH ? "wizard" : "list");
+  }, [active, location.pathname]);
 
   const selected = scopes.find(scope => scope.name === selectedName);
   const dirty = Boolean(selected ? draftName !== selected.name : draftName.trim() && selectedTables.length);
@@ -68,11 +94,6 @@ export default function BusinessScopeWorkspace({ active }: { active: boolean }) 
     try {
       const scopeResult = await request<BusinessScope[]>(apiUrls.metadata.businessScopes);
       setScopes(scopeResult);
-      const first = scopeResult[0];
-      if (first) {
-        setSelectedName(first.name);
-        setDraftName(first.name);
-      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to load business scopes and database tables.");
     } finally {
@@ -85,6 +106,7 @@ export default function BusinessScopeWorkspace({ active }: { active: boolean }) 
   }, [dispatch, schemaStatus]);
 
   const selectScope = (scope: BusinessScope) => {
+    setViewMode("detail");
     setSelectedName(scope.name);
     setDraftName(scope.name);
     setSelectedTables([]);
@@ -98,6 +120,8 @@ export default function BusinessScopeWorkspace({ active }: { active: boolean }) 
     setError("");
   };
   const createScope = () => {
+    navigate(`${CREATE_BUSINESS_SCOPE_PATH}?section=business-scopes`);
+    setViewMode("wizard");
     setSelectedName("");
     setDraftName("");
     setSelectedTables([]);
@@ -163,6 +187,7 @@ export default function BusinessScopeWorkspace({ active }: { active: boolean }) 
       setSelectedName(saved.name);
       setDraftName(saved.name);
       setStep(3);
+      setViewMode("detail");
       return true;
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to generate business scope metadata.");
@@ -192,6 +217,11 @@ export default function BusinessScopeWorkspace({ active }: { active: boolean }) 
     if (!query) return schema.tables;
     return schema.tables.filter(table => `${table.schema} ${table.name}`.toLocaleLowerCase().includes(query));
   }, [schema.tables, tableFilter]);
+  const tablesBySchema = useMemo(() => {
+    const groups = new Map<string, DatabaseTable[]>();
+    filteredTables.forEach(table => groups.set(table.schema, [...(groups.get(table.schema) || []), table]));
+    return [...groups.entries()];
+  }, [filteredTables]);
   const selectedTableDetails = useMemo(
     () => selectedTables
       .map(key => schema.tables.find(table => tableKey(table) === key))
@@ -245,36 +275,38 @@ export default function BusinessScopeWorkspace({ active }: { active: boolean }) 
   }), [dirty, draftName, selected, selectedName, status, selectedTables]);
 
   return (
-    <section className={`business-scope-workspace split-workspace${panel.collapsed ? " panel-collapsed" : ""}`} style={panel.style}>
-      <aside className="business-scope-list split-panel">
-        <div className="business-scope-list-heading"><span className="section-kicker">BUSINESS SCOPES</span><span>{scopes.length}</span></div>
+    <section className={`business-scope-workspace${viewMode === "list" ? " business-scope-list-view" : viewMode === "wizard" ? " business-scope-create-view" : ""}`} style={viewMode === "list" ? undefined : panel.style}>
+      {viewMode === "list" ? <div className="business-scope-list-page">
+        <div className="business-scope-list-page-heading">
+          <div><span className="section-kicker">METADATA</span><h2>Business scopes</h2><p>Saved business scopes that organize query-ready entities and relations.</p></div>
+          <button type="button" className="business-scope-add" onClick={createScope}><Icon name="plus" size={14} /> Create business scope</button>
+        </div>
+        <div className="business-scope-list-heading"><span className="section-kicker">SAVED BUSINESS SCOPES</span><span>{scopes.length}</span></div>
         {status === "loading" ? <p className="empty-state">Loading scopes…</p> : scopes.map(scope => (
-          <button key={scope.name} type="button" className={scope.name === selectedName ? "active" : ""} onClick={() => selectScope(scope)}>
+          <button key={scope.name} type="button" onClick={() => selectScope(scope)}>
             <Icon name="folder" size={15} /><span>{scope.name}</span><small>{scope.entities.length}</small>
           </button>
         ))}
-      </aside>
-      <PanelSplitter panel={panel} label="business scopes panel" />
+        {status !== "loading" && scopes.length === 0 && <p className="empty-state">No business scopes have been saved yet.</p>}
+      </div> : <>
+      {viewMode === "detail" && <PanelSplitter panel={panel} label="business scopes panel" />}
       <div className="business-scope-editor">
         <div className="business-scope-editor-heading">
           <div><span className="section-kicker">BUSINESS LOGIC</span><h2>{selected ? selected.name : "New business scope"}</h2></div>
           <span className="business-scope-count">{selected?.entities.length ?? 0} entities</span>
         </div>
-        {error && <p className="business-scope-error" role="alert">{error}</p>}
+        {error && selected && <p className="business-scope-error" role="alert">{error}</p>}
         {!selected ? (
-          <div className="business-scope-wizard">
-            <header className="business-scope-wizard-header">
-              <div><span className="section-kicker">CREATE WORKSPACE</span><h3>Build a business scope</h3><p>Define the scope, choose its source tables, and generate query-ready metadata.</p></div>
-              <span className="business-scope-progress">STEP {step} OF 3</span>
-            </header>
-            <div className="business-scope-steps" aria-label="Business scope creation steps">
-              {[["1", "Name", "Scope identity"], ["2", "Tables", "Data sources"], ["3", "Generate", "Metadata preview"]].map(([number, label, description]) => (
-                <button key={number} type="button" className={step === Number(number) ? "active" : step > Number(number) ? "complete" : ""} onClick={() => Number(number) <= step && setStep(Number(number) as Step)} disabled={Number(number) > step}>
-                  <strong>{step > Number(number) ? "✓" : number}</strong><span><b>{label}</b><small>{description}</small></span>
-                </button>
-              ))}
-            </div>
-            <div className="business-scope-step-panel">
+          <BusinessScopeWizard
+            step={step}
+            canContinue={canContinue}
+            saving={status === "saving"}
+            error={error}
+            onStepChange={setStep}
+            onBack={goBack}
+            onNext={goNext}
+            onGenerate={() => void save()}
+          >
             {step === 1 && <label className="business-scope-name"><span>Scope name</span><input autoFocus spellCheck={false} value={draftName} onChange={event => setDraftName(event.target.value)} placeholder="e.g. Sales" /><small>Use a name that describes the business area this workspace serves.</small></label>}
             {step === 2 && <div className="business-scope-table-picker">
               <div className="business-scope-step-title"><strong>Select database tables</strong><span>{selectedTables.length} selected</span></div>
@@ -284,17 +316,25 @@ export default function BusinessScopeWorkspace({ active }: { active: boolean }) 
                 <input spellCheck={false} value={tableFilter} onChange={event => setTableFilter(event.target.value)} placeholder="Filter tables by name or schema" aria-label="Filter database tables" />
                 {tableFilter && <button type="button" onClick={() => setTableFilter("")} aria-label="Clear table filter">Clear</button>}
               </label>
-              {selectedTableDetails.length > 0 && <div className="business-scope-selected-tables" aria-label="Selected database tables">
-                <span>Selected</span>
-                <div>{selectedTableDetails.map(table => <button key={tableKey(table)} type="button" onClick={() => setSelectedTables(current => current.filter(key => key !== tableKey(table)))} title={`Remove ${table.name}`}>
-                  <strong>{table.name}</strong><small>{table.schema}</small><b aria-hidden="true">×</b>
-                </button>)}</div>
-              </div>}
-              {filteredTables.map(table => {
-                const key = tableKey(table);
-                return <label key={key}><input type="checkbox" checked={selectedTables.includes(key)} onChange={() => setSelectedTables(current => current.includes(key) ? current.filter(item => item !== key) : [...current, key])} /><span>{table.name}</span><small>{table.schema}</small></label>;
-              })}
-              {schema.tables.length > 0 && !filteredTables.length && <p className="empty-state">No tables match this filter.</p>}
+              <div className="business-scope-table-picker-layout">
+                <div className="business-scope-available-tables">
+                  <div className="business-scope-table-list-heading"><strong>Available tables</strong></div>
+                  {tablesBySchema.map(([schemaName, tables]) => <section key={schemaName} className="business-scope-schema-group">
+                    <div className="business-scope-schema-heading"><span>{schemaName}</span><small>{tables.length} {tables.length === 1 ? "table" : "tables"}</small></div>
+                    <div className="business-scope-schema-tables">{tables.map(table => {
+                      const key = tableKey(table);
+                      return <label key={key}><input type="checkbox" checked={selectedTables.includes(key)} onChange={() => setSelectedTables(current => current.includes(key) ? current.filter(item => item !== key) : [...current, key])} /><span>{table.name}</span></label>;
+                    })}</div>
+                  </section>)}
+                  {schema.tables.length > 0 && !filteredTables.length && <p className="empty-state">No tables match this filter.</p>}
+                </div>
+                <aside className="business-scope-selected-tables" aria-label="Selected database tables">
+                  <div className="business-scope-table-list-heading"><strong>Selected tables</strong><span><small>{selectedTableDetails.length}</small><button type="button" className="business-scope-clear-selection" onClick={() => setSelectedTables([])} disabled={!selectedTableDetails.length}>Clear all</button></span></div>
+                  {selectedTableDetails.length > 0 ? <div className="business-scope-selected-table-list">{selectedTableDetails.map(table => <button key={tableKey(table)} type="button" onClick={() => setSelectedTables(current => current.filter(key => key !== tableKey(table)))} title={`Remove ${table.name}`}>
+                    <span><strong>{table.name}</strong><small>{table.schema}</small></span><b aria-hidden="true">×</b>
+                  </button>)}</div> : <p className="business-scope-selected-empty">Choose tables from the list to add them to this scope.</p>}
+                </aside>
+              </div>
               {!schema.tables.length && <p className="empty-state">No database tables are available.</p>}
             </div>}
             {step === 3 && <div className="business-scope-generation">
@@ -319,13 +359,7 @@ export default function BusinessScopeWorkspace({ active }: { active: boolean }) 
                 return <div key={key} className="business-scope-relation-row"><span>{relation.sourceTable} → {relation.targetTable}</span><input spellCheck={false} value={names.lookup} aria-label={`Lookup relation for ${relation.name}`} onChange={event => setRelationNames(current => ({ ...current, [key]: { ...names, lookup: event.target.value } }))} /><input spellCheck={false} value={names.collection} aria-label={`Collection relation for ${relation.name}`} onChange={event => setRelationNames(current => ({ ...current, [key]: { ...names, collection: event.target.value } }))} /></div>;
               })}</div></div>}
             </div>}
-            </div>
-            <footer className="business-scope-wizard-footer">
-              <button type="button" className="business-scope-secondary" onClick={goBack} disabled={step === 1 || status === "saving"}><Icon name="arrow-left" size={14} /> Back</button>
-              {step < 3 && <button type="button" className="business-scope-primary" onClick={goNext} disabled={!canContinue}>Continue <Icon name="arrow-right" size={14} /></button>}
-              {step === 3 && <button type="button" className="business-scope-primary" onClick={() => void save()} disabled={status === "saving"}>{status === "saving" ? "Generating…" : "Generate metadata"} <Icon name="arrow-right" size={14} /></button>}
-            </footer>
-          </div>
+          </BusinessScopeWizard>
         ) : <><label className="business-scope-name">Scope name<input spellCheck={false} value={draftName} disabled={selected.isBuiltin} onChange={event => setDraftName(event.target.value)} /></label>
           <div className="business-scope-entities">
             <div className="business-scope-entities-heading"><strong>Entities in this scope</strong><span>Generated entities, fields, and relations.</span></div>
@@ -333,6 +367,7 @@ export default function BusinessScopeWorkspace({ active }: { active: boolean }) 
           </div>
         </>}
       </div>
+      </>}
       {active && toolbarHost && createPortal(<DefinitionActions adapter={adapter} />, toolbarHost)}
     </section>
   );
