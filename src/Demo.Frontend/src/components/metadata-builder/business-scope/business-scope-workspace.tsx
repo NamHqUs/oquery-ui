@@ -48,6 +48,9 @@ export default function BusinessScopeWorkspace({ active }: { active: boolean }) 
   const [draftName, setDraftName] = useState("");
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [selectedColumns, setSelectedColumns] = useState<Record<string, string[]>>({});
+  const [entityNames, setEntityNames] = useState<Record<string, string>>({});
+  const [fieldNames, setFieldNames] = useState<Record<string, Record<string, string>>>({});
+  const [collapsedEntities, setCollapsedEntities] = useState<Record<string, boolean>>({});
   const [relationNames, setRelationNames] = useState<Record<string, { lookup: string; collection: string }>>({});
   const [tableFilter, setTableFilter] = useState("");
   const [step, setStep] = useState<Step>(1);
@@ -86,6 +89,9 @@ export default function BusinessScopeWorkspace({ active }: { active: boolean }) 
     setDraftName(scope.name);
     setSelectedTables([]);
     setSelectedColumns({});
+    setEntityNames({});
+    setFieldNames({});
+    setCollapsedEntities({});
     setRelationNames({});
     setTableFilter("");
     setStep(1);
@@ -96,6 +102,9 @@ export default function BusinessScopeWorkspace({ active }: { active: boolean }) 
     setDraftName("");
     setSelectedTables([]);
     setSelectedColumns({});
+    setEntityNames({});
+    setFieldNames({});
+    setCollapsedEntities({});
     setRelationNames({});
     setTableFilter("");
     setStep(1);
@@ -126,7 +135,14 @@ export default function BusinessScopeWorkspace({ active }: { active: boolean }) 
               name: draftName.trim(),
               tables: selectedTables.map(key => {
                 const table = schema.tables.find(candidate => tableKey(candidate) === key)!;
-                return { schema: table.schema, name: table.name, columns: selectedColumns[key] || table.columns.map(column => column.name) };
+                const columns = selectedColumns[key] || table.columns.map(column => column.name);
+                return {
+                  schema: table.schema,
+                  name: table.name,
+                  entityName: entityNames[key]?.trim() || table.name,
+                  columns,
+                  columnMappings: columns.map(column => ({ dbColumn: column, name: fieldNames[key]?.[column]?.trim() || column })),
+                };
               }),
               relations: selectedRelations.map(relation => {
                 const names = relationNames[relationKey(relation)];
@@ -259,13 +275,13 @@ export default function BusinessScopeWorkspace({ active }: { active: boolean }) 
               ))}
             </div>
             <div className="business-scope-step-panel">
-            {step === 1 && <label className="business-scope-name"><span>Scope name</span><input autoFocus value={draftName} onChange={event => setDraftName(event.target.value)} placeholder="e.g. Sales" /><small>Use a name that describes the business area this workspace serves.</small></label>}
+            {step === 1 && <label className="business-scope-name"><span>Scope name</span><input autoFocus spellCheck={false} value={draftName} onChange={event => setDraftName(event.target.value)} placeholder="e.g. Sales" /><small>Use a name that describes the business area this workspace serves.</small></label>}
             {step === 2 && <div className="business-scope-table-picker">
               <div className="business-scope-step-title"><strong>Select database tables</strong><span>{selectedTables.length} selected</span></div>
               <span>Tables are read from the active database connection.</span>
               <label className="business-scope-table-filter">
                 <Icon name="search" size={14} />
-                <input value={tableFilter} onChange={event => setTableFilter(event.target.value)} placeholder="Filter tables by name or schema" aria-label="Filter database tables" />
+                <input spellCheck={false} value={tableFilter} onChange={event => setTableFilter(event.target.value)} placeholder="Filter tables by name or schema" aria-label="Filter database tables" />
                 {tableFilter && <button type="button" onClick={() => setTableFilter("")} aria-label="Clear table filter">Clear</button>}
               </label>
               {selectedTableDetails.length > 0 && <div className="business-scope-selected-tables" aria-label="Selected database tables">
@@ -284,19 +300,24 @@ export default function BusinessScopeWorkspace({ active }: { active: boolean }) 
             {step === 3 && <div className="business-scope-generation">
               <strong>Review and generate metadata</strong>
               <p>{selectedTables.length} entities selected. Choose the fields and relation names to generate.</p>
-              <div className="business-scope-entity-preview">{selectedTableDetails.map(table => {
+              <div className="business-scope-step-section">
+                <h4>Entities</h4>
+                <div className="business-scope-entity-preview">{selectedTableDetails.map(table => {
                 const key = tableKey(table);
                 const columns = selectedColumns[key] || table.columns.map(column => column.name);
-                return <section key={key} className="business-scope-preview-card">
-                  <div className="business-scope-preview-heading"><strong>{table.name}</strong><small>{table.schema} · {columns.length} fields</small></div>
-                  <div className="business-scope-column-grid">{table.columns.map(column => <label key={column.name}><input type="checkbox" checked={columns.includes(column.name)} onChange={() => setSelectedColumns(current => ({ ...current, [key]: columns.includes(column.name) ? columns.filter(name => name !== column.name) : [...columns, column.name] }))} /><span>{column.name}</span><small className={`business-scope-data-type business-scope-data-type--${getAbstractDataType(column.dataType, column.name)}`} title={column.dataType} aria-label={`Data type: ${column.dataType}`}><Icon name={getDataTypeIcon(column.dataType, column.name)} size={14} /></small></label>)}</div>
-                </section>;
-              })}</div>
-              {selectedRelations.length > 0 && <div className="business-scope-relation-preview"><strong>Relations</strong>{selectedRelations.map(relation => {
+                const collapsed = collapsedEntities[key] ?? false;
+                const orderedColumns = [...table.columns].sort((left, right) => Number(columns.includes(right.name)) - Number(columns.includes(left.name)));
+                return <div key={key} className="business-scope-entity-item"><button type="button" className="business-scope-collapse" onClick={() => setCollapsedEntities(current => ({ ...current, [key]: !collapsed }))} aria-expanded={!collapsed} aria-label={`${collapsed ? "Expand" : "Collapse"} ${table.name} entity`}><Icon name={collapsed ? "chevron-right" : "chevron-down"} size={15} /></button><section className="business-scope-preview-card">
+                  <div className="business-scope-preview-heading"><div className="business-scope-entity-heading-names"><input className="business-scope-entity-name" spellCheck={false} value={entityNames[key] ?? table.name} onChange={event => setEntityNames(current => ({ ...current, [key]: event.target.value }))} aria-label={`Entity name for ${table.name}`} /><small>{table.schema}.{table.name}</small></div><button type="button" className="business-scope-remove" onClick={() => setSelectedTables(current => current.filter(item => item !== key))} aria-label={`Remove ${table.name} table`} title="Remove table"><Icon name="trash" size={15} /></button></div>
+                  {!collapsed && <div className="business-scope-column-grid">{orderedColumns.map(column => <label key={column.name}><input type="checkbox" checked={columns.includes(column.name)} onChange={() => setSelectedColumns(current => ({ ...current, [key]: columns.includes(column.name) ? columns.filter(name => name !== column.name) : [...columns, column.name] }))} /><input className="business-scope-field-name" spellCheck={false} value={fieldNames[key]?.[column.name] ?? column.name} disabled={!columns.includes(column.name)} onChange={event => setFieldNames(current => ({ ...current, [key]: { ...current[key], [column.name]: event.target.value } }))} aria-label={`Field name for ${column.name}`} /><small className="business-scope-data-type" title={column.dataType} aria-label={`Data type: ${column.dataType}`}><Icon name={getDataTypeIcon(column.dataType, column.name)} size={14} /></small></label>)}</div>}
+                </section></div>;
+                })}</div>
+              </div>
+              {selectedRelations.length > 0 && <div className="business-scope-step-section"><h4>Relations</h4><div className="business-scope-relation-preview"><div className="business-scope-relation-header"><strong>Relation</strong><strong>Lookup name</strong><strong>Collection name</strong></div>{selectedRelations.map(relation => {
                 const key = relationKey(relation);
                 const names = relationNames[key] || { lookup: singularize(relation.targetTable), collection: pluralize(relation.sourceTable) };
-                return <div key={key} className="business-scope-relation-row"><span>{relation.sourceTable} → {relation.targetTable}</span><input value={names.lookup} aria-label={`Lookup relation for ${relation.name}`} onChange={event => setRelationNames(current => ({ ...current, [key]: { ...names, lookup: event.target.value } }))} placeholder="Lookup name" /><input value={names.collection} aria-label={`Collection relation for ${relation.name}`} onChange={event => setRelationNames(current => ({ ...current, [key]: { ...names, collection: event.target.value } }))} placeholder="Collection name" /></div>;
-              })}</div>}
+                return <div key={key} className="business-scope-relation-row"><span>{relation.sourceTable} → {relation.targetTable}</span><input spellCheck={false} value={names.lookup} aria-label={`Lookup relation for ${relation.name}`} onChange={event => setRelationNames(current => ({ ...current, [key]: { ...names, lookup: event.target.value } }))} /><input spellCheck={false} value={names.collection} aria-label={`Collection relation for ${relation.name}`} onChange={event => setRelationNames(current => ({ ...current, [key]: { ...names, collection: event.target.value } }))} /></div>;
+              })}</div></div>}
             </div>}
             </div>
             <footer className="business-scope-wizard-footer">
@@ -305,7 +326,7 @@ export default function BusinessScopeWorkspace({ active }: { active: boolean }) 
               {step === 3 && <button type="button" className="business-scope-primary" onClick={() => void save()} disabled={status === "saving"}>{status === "saving" ? "Generating…" : "Generate metadata"} <span>→</span></button>}
             </footer>
           </div>
-        ) : <><label className="business-scope-name">Scope name<input value={draftName} disabled={selected.isBuiltin} onChange={event => setDraftName(event.target.value)} /></label>
+        ) : <><label className="business-scope-name">Scope name<input spellCheck={false} value={draftName} disabled={selected.isBuiltin} onChange={event => setDraftName(event.target.value)} /></label>
           <div className="business-scope-entities">
             <div className="business-scope-entities-heading"><strong>Entities in this scope</strong><span>Generated entities, fields, and relations.</span></div>
             <div className="business-scope-entity-grid">{selected.entities.map(entity => <div key={entity.name} className="business-scope-entity"><Icon name="table" size={14} /><strong>{entity.name}</strong><small>{entity.fields?.length ?? 0} fields · {entity.relations?.length ?? 0} relations</small></div>)}</div>

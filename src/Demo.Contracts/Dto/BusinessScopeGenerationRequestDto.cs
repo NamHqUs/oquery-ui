@@ -8,7 +8,15 @@ public sealed record BusinessScopeGenerationRequestDto(
 public sealed record DatabaseTableSelectionDto(
     string Schema,
     string Name,
-    IReadOnlyList<string> Columns);
+    IReadOnlyList<string> Columns)
+{
+    public string? EntityName { get; init; }
+    public IReadOnlyList<DatabaseColumnSelectionDto>? ColumnMappings { get; init; }
+}
+
+public sealed record DatabaseColumnSelectionDto(
+    string DbColumn,
+    string Name);
 
 public sealed record BusinessScopeRelationSelectionDto(
     string SourceSchema,

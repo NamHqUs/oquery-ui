@@ -65,7 +65,7 @@ public sealed class BusinessScopeService(
             .Select(table => table!)
             .ToDictionary(table => TableKey(table.Schema, table.Name), table => CreateEntity(table, request.Tables.First(selection =>
                 selection.Name.Equals(table.Name, StringComparison.OrdinalIgnoreCase)
-                && selection.Schema.Equals(table.Schema, StringComparison.OrdinalIgnoreCase)).Columns), StringComparer.OrdinalIgnoreCase);
+                && selection.Schema.Equals(table.Schema, StringComparison.OrdinalIgnoreCase))), StringComparer.OrdinalIgnoreCase);
 
         foreach (var table in selected)
         {
@@ -189,11 +189,14 @@ public sealed class BusinessScopeService(
             IsBuiltin = !canDelete,
         };
 
-    private static Entity CreateEntity(DatabaseTableDto table, IReadOnlyList<string> selectedColumns)
+    private static Entity CreateEntity(DatabaseTableDto table, DatabaseTableSelectionDto selection)
         => new(
-            table.Name,
-            table.Columns.Where(column => selectedColumns.Contains(column.Name, StringComparer.OrdinalIgnoreCase)).Select(column => new Field(
-                column.Name,
+            string.IsNullOrWhiteSpace(selection.EntityName) ? table.Name : selection.EntityName.Trim(),
+            table.Columns.Where(column => selection.Columns.Contains(column.Name, StringComparer.OrdinalIgnoreCase)).Select(column => new Field(
+                selection.ColumnMappings?.FirstOrDefault(mapping => mapping.DbColumn.Equals(column.Name, StringComparison.OrdinalIgnoreCase))?.Name
+                    is { Length: > 0 } fieldName
+                    ? fieldName.Trim()
+                    : column.Name,
                 column.Name,
                 ToDataType(column.DataType, column.Name))).ToList(),
             table.Schema,
