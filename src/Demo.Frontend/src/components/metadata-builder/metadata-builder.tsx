@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
@@ -14,6 +15,7 @@ import EntityDiagram from "./entity-diagram/entity-diagram";
 import { EditableEntity, EditableRelation, emptyEntity, toAbstractDataType, toEditable } from "./types";
 import FunctionDefinitionsWorkspace from "../function-definition/function-definition";
 import OperatorDefinition from "./operator-definition/operator-definition";
+import BusinessScopeWorkspace from "./business-scope/business-scope-workspace";
 import { resolveDefinitionChanges, useDefinitionUnsavedWarning } from "./definition-actions/definition-actions";
 import DefinitionActions from "./definition-actions/definition-actions";
 import type { DefinitionActionAdapter } from "./definition-actions/definition-actions";
@@ -23,7 +25,7 @@ import type { RootState } from "../../store/store";
 export * from "./types";
 
 type NavigationGuard = (continueNavigation: () => void, cancelNavigation?: () => void) => void;
-type MetadataSection = "diagram" | "entities" | "functions" | "operators";
+type MetadataSection = "diagram" | "entities" | "business-scopes" | "functions" | "operators";
 type DatabaseRelationship = {
   name: string;
   sourceSchema: string;
@@ -107,13 +109,15 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
   const [dirty, setDirty] = useState(false);
+  const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
+  useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   useEffect(() => { selectedNameRef.current = selectedName; }, [selectedName]);
   const requestedSection = searchParams.get("section");
-  const activeSection: MetadataSection = entityOnly ? "entities" : requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "functions" || requestedSection === "operators"
+  const activeSection: MetadataSection = entityOnly ? "entities" : requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "business-scopes" || requestedSection === "functions" || requestedSection === "operators"
     ? requestedSection
     : "diagram";
   useEffect(() => {
-    if (entityOnly || requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "functions" || requestedSection === "operators") return;
+    if (entityOnly || requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "business-scopes" || requestedSection === "functions" || requestedSection === "operators") return;
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.set("section", "diagram");
     setSearchParams(nextSearchParams, { replace: true });
@@ -427,14 +431,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
 
   return (
     <>
-      {!embedded && <section className="page-heading metadata-page-heading">
-        <div className="metadata-heading-main">
-          <span className="metadata-heading-mark" aria-hidden="true"><Icon name="schema" size={21} /></span>
-          <div className="metadata-heading-copy">
-            <span className="metadata-heading-eyebrow">DATA MODEL <i /></span>
-          </div>
-        </div>
-      </section>}
+
       {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "diagram"}>
         <EntityDiagram
           entities={entities}
@@ -444,7 +441,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
               <div className="table-details-title">
                 <span className="section-kicker">DESIGN ENTITY</span>
               </div>
-              <DefinitionActions adapter={entityActionAdapter} />
             </div>
           }
           entityEditor={
@@ -480,7 +476,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
               <div className="table-details-title">
                 <span className="section-kicker">DESIGN ENTITY</span>
               </div>
-              <DefinitionActions adapter={entityActionAdapter} />
             </div>
             <EntityBuilder
               draft={draft}
@@ -503,6 +498,11 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "operators"}>
         <OperatorDefinition onNavigationGuardChange={updateOperatorNavigationGuard} />
       </div>}
+      {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "business-scopes"}>
+        <BusinessScopeWorkspace active={activeSection === "business-scopes"} />
+      </div>}
+      {toolbarHost && (activeSection === "diagram" || activeSection === "entities")
+        && createPortal(<DefinitionActions adapter={entityActionAdapter} />, toolbarHost)}
     </>
   );
 }

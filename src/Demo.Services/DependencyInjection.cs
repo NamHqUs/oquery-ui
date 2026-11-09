@@ -8,6 +8,7 @@ public static class DependencyInjection
     public static IServiceCollection AddDemoServices(this IServiceCollection services)
     {
         services.AddSingleton<IMetadataService, MetadataService>();
+        services.AddSingleton<IBusinessScopeService, BusinessScopeService>();
         services.AddSingleton<IFunctionDefinitionService, FunctionDefinitionService>();
         services.AddSingleton<IOperatorDefinitionService, OperatorDefinitionService>();
         services.AddSingleton<IDynamicQueryService, DynamicQueryService>();

@@ -1,0 +1,27 @@
+{
+  "Name": "School",
+  "DbSchema": "main",
+  "DbTable": "School",
+  "Fields": [
+    {
+      "Name": "Id",
+      "DbColumn": "Id",
+      "DataType": 1,
+      "IsRawSql": false
+    },
+    {
+      "Name": "Name",
+      "DbColumn": "Name",
+      "DataType": 0,
+      "IsRawSql": false
+    },
+    {
+      "Name": "Address",
+      "DbColumn": "Address",
+      "DataType": 0,
+      "IsRawSql": false
+    }
+  ],
+  "Relations": [],
+  "IsRawSql": false
+}

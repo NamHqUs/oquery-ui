@@ -30,7 +30,7 @@ const LEGACY_FUNCTIONS_PATH = "/functions";
 
 type Page = keyof typeof PAGE_PATHS;
 type NavigationGuard = (continueNavigation: () => void, cancelNavigation?: () => void) => void;
-type MetadataSection = "diagram" | "entities" | "functions" | "operators";
+type MetadataSection = "diagram" | "entities" | "business-scopes" | "functions" | "operators";
 
 const HOME_SUBMENU = [
   { label: "Playground", target: "hp-playground" },
@@ -43,7 +43,7 @@ const HOME_SUBMENU = [
 const PAGE_SUBMENUS: Record<Exclude<Page, "home">, readonly string[]> = {
   builder: ["Design query", "Results"],
   sources: ["Connections", "Tables", "Schema"],
-  metadata: ["Diagram", "Entity definitions"],
+  metadata: ["Diagram", "Entity definitions", "Business scopes"],
   functions: ["Definitions", "Arguments", "SQL templates"],
   documentation: ["Overview", "Query syntax", "Security", "Next steps"],
 };
@@ -92,14 +92,16 @@ function PageSubnav({
           type="button"
           className={page === "metadata"
             && ((item === "Diagram" && metadataSection === "diagram")
-              || (item === "Entity definitions" && metadataSection === "entities"))
+              || (item === "Entity definitions" && metadataSection === "entities")
+              || (item === "Business scopes" && metadataSection === "business-scopes"))
             ? "active"
             : undefined}
           onClick={page === "metadata"
-            ? () => onMetadataSectionSelect(item === "Diagram" ? "diagram" : "entities")
+            ? () => onMetadataSectionSelect(item === "Diagram" ? "diagram" : item === "Entity definitions" ? "entities" : "business-scopes")
             : undefined}
         >{item}</button>)}
       </div>
+      <div className={`app-subnav-actions${page === "metadata" ? "" : " app-subnav-actions-hidden"}`} id="metadata-toolbar-actions" />
     </nav>
   );
 }

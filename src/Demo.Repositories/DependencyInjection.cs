@@ -16,6 +16,7 @@ public static class DependencyInjection
         {
             services.AddSingleton<FilePathResolver>();
             services.AddSingleton<IMetadataRepository, MetadataFileRepository>();
+            services.AddSingleton<IBusinessScopeRepository, BusinessScopeFileRepository>();
             services.AddSingleton<IFunctionDefinitionRepository, FunctionDefinitionFileRepository>();
             services.AddSingleton<IOperatorDefinitionRepository, OperatorDefinitionFileRepository>();
             services.AddSingleton<IQueryRequestRepository, QueryRequestFileRepository>();

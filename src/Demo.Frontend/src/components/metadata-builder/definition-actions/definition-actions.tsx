@@ -117,8 +117,8 @@ export default function DefinitionActions({ adapter }: { adapter: DefinitionActi
         <button
           className="icon-button definition-action-button primary"
           type="button"
-          title="Save function"
-          aria-label="Save function"
+          title={`Save ${adapter.resourceName}`}
+          aria-label={`Save ${adapter.resourceName}`}
           onClick={() => void adapter.onSave?.()}
           disabled={!adapter.onSave || !adapter.dirty || adapter.saving}
         >
@@ -129,8 +129,8 @@ export default function DefinitionActions({ adapter }: { adapter: DefinitionActi
       <button
         className="icon-button definition-action-button create"
         type="button"
-        title="Create function"
-        aria-label="Create function"
+        title={`Create ${adapter.resourceName}`}
+        aria-label={`Create ${adapter.resourceName}`}
         onClick={() => void handleNew()}
         disabled={!adapter.onNew || adapter.saving}
       >

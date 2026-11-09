@@ -9,6 +9,7 @@ namespace OQuery.UI.Application.Controllers;
 [Route("metadata")]
 public sealed class MetadataController(
     IMetadataService metadataService,
+    IBusinessScopeService businessScopeService,
     IFunctionDefinitionService functionDefinitionService,
     IOperatorDefinitionService operatorDefinitionService) : ControllerBase
 {
@@ -31,6 +32,29 @@ public sealed class MetadataController(
     public IActionResult DeleteMetadata(string entityName)
     {
         metadataService.Delete(entityName);
+        return NoContent();
+    }
+
+    [HttpGet("business-scopes")]
+    public ActionResult<IReadOnlyList<BusinessScopeDto>> GetBusinessScopes()
+        => Ok(businessScopeService.GetAll());
+
+    [HttpPost("business-scopes")]
+    public ActionResult<BusinessScopeDto> CreateBusinessScope([FromBody] BusinessScopeDto scope)
+        => Created($"/metadata/business-scopes/{Uri.EscapeDataString(scope.Name)}", businessScopeService.Create(scope));
+
+    [HttpPost("business-scopes/generate")]
+    public ActionResult<BusinessScopeDto> GenerateBusinessScope([FromBody] BusinessScopeGenerationRequestDto request)
+        => Created($"/metadata/business-scopes/{Uri.EscapeDataString(request.Name)}", businessScopeService.Generate(request));
+
+    [HttpPut("business-scopes/{scopeName}")]
+    public ActionResult<BusinessScopeDto> UpdateBusinessScope(string scopeName, [FromBody] BusinessScopeDto scope)
+        => Ok(businessScopeService.Update(scopeName, scope));
+
+    [HttpDelete("business-scopes/{scopeName}")]
+    public IActionResult DeleteBusinessScope(string scopeName)
+    {
+        businessScopeService.Delete(scopeName);
         return NoContent();
     }
 
