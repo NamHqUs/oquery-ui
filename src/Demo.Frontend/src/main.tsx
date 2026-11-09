@@ -233,8 +233,6 @@ function App() {
             <span className="metadata-heading-mark" aria-hidden="true"><Icon name="function" size={21} /></span>
             <div className="metadata-heading-copy">
               <span className="metadata-heading-eyebrow">QUERY METADATA <i /> FUNCTIONS · ARGUMENTS · SQL TEMPLATES</span>
-              <h2>Define query functions</h2>
-              <p>Manage reusable function definitions and provider-specific raw SQL templates.</p>
             </div>
           </div>
         </section>

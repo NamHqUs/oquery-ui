@@ -1,4 +1,4 @@
-.operator-workspace { min-height: 640px; display: grid; grid-template-columns: var(--panel-width, 260px) minmax(0, 1fr); overflow: hidden; background: linear-gradient(135deg, #11141c, #0f1218); border-radius: 9px; }
+.operator-workspace { min-height: 640px; display: grid; grid-template-columns: var(--panel-width, 260px) minmax(0, 1fr); overflow: hidden; background: linear-gradient(135deg, #11141c, #0f1218); border: 0; border-radius: 0; }
 .operator-list { padding: 22px 12px; border-right: 1px solid var(--line); background: #0e1117; }
 .operator-empty { display: grid; justify-items: center; gap: 12px; padding: 35px 14px; color: var(--muted); font-size: 12px; line-height: 1.5; text-align: center; }
 .operator-empty svg { color: #6d5baf; }

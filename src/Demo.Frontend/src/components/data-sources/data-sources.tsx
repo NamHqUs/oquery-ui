@@ -145,10 +145,6 @@ export default function DataSources({ onRequestConnection }: DataSourcesProps) {
           <span className="database-heading-mark" aria-hidden="true"><Icon name="database" size={21} /></span>
           <div className="database-heading-copy">
             <span className="database-heading-eyebrow">DATA EXPLORER <i /> TABLES · COLUMNS · RECORDS</span>
-            <h2>{isConnected ? "Explore your database" : "Database connection"}</h2>
-            <p>{isConnected
-              ? `Connected to ${connectedProfileName || connectedProvider}. Browse tables, inspect relationships, and preview records.`
-              : "Connect to a database to browse its schema and records."}</p>
           </div>
         </div>
         {isConnected && (

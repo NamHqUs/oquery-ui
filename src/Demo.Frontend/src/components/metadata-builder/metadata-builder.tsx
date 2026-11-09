@@ -390,8 +390,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
           <span className="metadata-heading-mark" aria-hidden="true"><Icon name="schema" size={21} /></span>
           <div className="metadata-heading-copy">
             <span className="metadata-heading-eyebrow">DATA MODEL <i /> ENTITIES Ã‚Â· FIELDS Ã‚Â· RELATIONSHIPS</span>
-            <h2>Define your data model</h2>
-            <p>Describe your entities and relationships to make your data ready for querying.</p>
           </div>
         </div>
         {!entityOnly && <nav className="metadata-section-tabs" role="tablist" aria-label="Metadata definition types">

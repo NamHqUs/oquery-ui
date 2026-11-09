@@ -1,8 +1,7 @@
-.function-workspace { min-height: 640px; display: grid; grid-template-columns: var(--panel-width, 260px) minmax(0, 1fr); overflow: hidden; background: linear-gradient(135deg, #11141c, #0f1218); border: 0; border-radius: 9px; box-shadow: 0 14px 40px #00000018; }
+.function-workspace { min-height: 640px; display: grid; grid-template-columns: var(--panel-width, 260px) minmax(0, 1fr); overflow: hidden; background: linear-gradient(135deg, #11141c, #0f1218); border: 0; border-radius: 0; box-shadow: 0 14px 40px #00000018; }
 section.page-heading.function-page-heading {
-  min-height: 110px;
-  margin: 15px 0 20px;
-  padding: 16px 30px;
+  min-height: 78px;
+  padding: 14px 24px;
   align-items: center;
 }
 
@@ -15,8 +14,8 @@ section.page-heading.function-page-heading .metadata-heading-main {
     height: auto;
     align-items: flex-start;
     flex-direction: column;
-    gap: 17px;
-    padding: 16px 27px;
+    gap: 14px;
+    padding: 16px 22px;
   }
 }
 

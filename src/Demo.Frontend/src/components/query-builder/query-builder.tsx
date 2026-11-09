@@ -1065,8 +1065,6 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
           <span className="query-heading-mark"><Icon name="query" size={21} /></span>
           <div className="query-heading-copy">
             <span className="query-heading-eyebrow">QUERY WORKSPACE <i /> DESIGN Â· RUN Â· REFINE</span>
-            <h2>Explore your data</h2>
-            <p>Shape a query visually or edit OQuery text, then inspect its SQL and live results.</p>
           </div>
         </div>
         <div className="heading-actions">

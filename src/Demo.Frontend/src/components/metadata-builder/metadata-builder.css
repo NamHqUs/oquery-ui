@@ -1,4 +1,4 @@
-.metadata-workspace { min-height: 640px; display: grid; grid-template-columns: var(--panel-width, 260px) minmax(0, 1fr); overflow: visible; background: linear-gradient(135deg, #11141c, #0f1218); border: 0; border-radius: 9px; box-shadow: 0 14px 40px #00000018; }
+.metadata-workspace { min-height: 640px; display: grid; grid-template-columns: var(--panel-width, 260px) minmax(0, 1fr); overflow: visible; background: linear-gradient(135deg, #11141c, #0f1218); border: 0; border-radius: 0; box-shadow: 0 14px 40px #00000018; }
 .metadata-list { background: #0e1117; border-right: 1px solid var(--line); padding: 22px 12px; }
 .sidebar-list-heading, .editor-section-head, .editor-head { display: flex; align-items: center; justify-content: space-between; }
 .sidebar-list-heading { height: 37px; padding: 0 10px 15px; }
@@ -64,17 +64,15 @@
 .definition-action-button.danger { color: #e7a1aa; }
 .definition-action-button:disabled { opacity: .5; cursor: not-allowed; }
 .definition-readonly { margin-right: 2px; }
-section.page-heading.metadata-page-heading { position: relative; display: flex; align-items: center; gap: 24px; min-height: 110px; margin: 15px 0 20px; padding: 16px 30px; overflow: hidden; border: 0; border-radius: 11px; background: radial-gradient(ellipse at 88% 5%, #7049b944, transparent 32%), radial-gradient(ellipse at 47% 115%, #126c6740, transparent 39%), linear-gradient(108deg, #171526 0%, #121923 58%, #10191e 100%); box-shadow: 0 16px 38px #00000026; }
-.metadata-heading-main { position: relative; z-index: 1; display: flex; align-items: flex-start; gap: 16px; min-width: 0; }
+section.page-heading.metadata-page-heading { position: relative; display: flex; align-items: center; gap: 24px; min-height: 78px; padding: 14px 24px; overflow: hidden; }
+.metadata-heading-main { position: relative; z-index: 1; display: flex; align-items: center; gap: 14px; min-width: 0; }
 .metadata-heading-main { flex: 1 1 auto; }
-.metadata-heading-mark { display: grid; flex: 0 0 44px; width: 44px; height: 44px; place-items: center; margin-top: 0; border: 1px solid #7663ac80; border-radius: 11px; background: linear-gradient(145deg, #45366e, #28213c); color: #d0c2ff; box-shadow: inset 0 1px #ffffff12, 0 7px 18px #00000020; }
+.metadata-heading-mark { display: grid; flex: 0 0 40px; width: 40px; height: 40px; place-items: center; border: 1px solid #7663ac80; border-radius: 10px; background: linear-gradient(145deg, #45366e, #28213c); color: #d0c2ff; box-shadow: inset 0 1px #ffffff12, 0 7px 18px #00000020; }
 .metadata-heading-copy { min-width: 0; }
 .metadata-heading-eyebrow { display: flex; align-items: center; gap: 9px; color: #b4a4e9; font: 500 11px "Manrope", sans-serif; letter-spacing: 1.15px; }
 .metadata-heading-eyebrow i { width: 3px; height: 3px; border-radius: 50%; background: #7866aa; }
-section.page-heading.metadata-page-heading h2 { max-width: 680px; margin: 10px 0 8px; overflow: hidden; color: #f1eefb; font-size: 22px; line-height: 1.2; letter-spacing: -.8px; text-overflow: ellipsis; white-space: nowrap; }
-section.page-heading.metadata-page-heading p { color: #a4a0b3; font-size: 12px; }
 @media (max-width: 1100px) { .metadata-form-grid { grid-template-columns: 1fr; }.field-editor-head, .field-editor-row { grid-template-columns: 18px 1fr 1fr .8fr 26px; } }
-@media (max-width: 900px) { section.page-heading.metadata-page-heading { align-items: flex-start; flex-direction: column; gap: 17px; padding: 16px 27px; }.metadata-section-tabs { justify-content: flex-start; margin-left: 60px; }.metadata-workspace { grid-template-columns: 1fr; }.metadata-list { border-right: 0; border-bottom: 1px solid var(--line); }.metadata-editor { min-height: 600px; }
+@media (max-width: 900px) { section.page-heading.metadata-page-heading { align-items: flex-start; flex-direction: column; gap: 14px; padding: 16px 22px; }.metadata-section-tabs { justify-content: flex-start; margin-left: 54px; }.metadata-workspace { grid-template-columns: 1fr; }.metadata-list { border-right: 0; border-bottom: 1px solid var(--line); }.metadata-editor { min-height: 600px; }
 }
 
 @container (max-width: 520px) {

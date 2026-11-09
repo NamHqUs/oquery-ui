@@ -6,7 +6,7 @@
   overflow: hidden;
   background: linear-gradient(135deg, #11141c, #0f1218);
   border: 0;
-  border-radius: 9px;
+  border-radius: 0;
   box-shadow: 0 14px 40px #00000018;
 }
 
@@ -126,31 +126,26 @@ section.page-heading.database-page-heading {
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  min-height: 110px;
-  margin: 15px 0 20px;
-  padding: 16px 30px;
+  min-height: 78px;
+  padding: 14px 24px;
   overflow: hidden;
   border: 0;
-  border-radius: 11px;
-  background: radial-gradient(ellipse at 88% 5%, #7049b944, transparent 32%), radial-gradient(ellipse at 47% 115%, #126c6740, transparent 39%), linear-gradient(108deg, #171526 0%, #121923 58%, #10191e 100%);
-  box-shadow: 0 16px 38px #00000026;
 }
 
 .database-heading-main {
   position: relative;
   z-index: 1;
   display: flex;
-  align-self: flex-start;
-  align-items: flex-start;
-  gap: 16px;
+  align-items: center;
+  gap: 14px;
   min-width: 0;
 }
 
 .database-heading-mark {
   display: grid;
   flex: 0 0 44px;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   place-items: center;
   border: 1px solid #7663ac80;
   border-radius: 11px;
@@ -177,23 +172,6 @@ section.page-heading.database-page-heading {
   height: 3px;
   border-radius: 50%;
   background: #7866aa;
-}
-
-section.page-heading.database-page-heading h2 {
-  max-width: 680px;
-  margin: 10px 0 8px;
-  overflow: hidden;
-  color: #f1eefb;
-  font-size: 22px;
-  line-height: 1.2;
-  letter-spacing: -.8px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-section.page-heading.database-page-heading p {
-  color: #a4a0b3;
-  font-size: 12px;
 }
 
 .database-content {
