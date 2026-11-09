@@ -201,7 +201,7 @@ function getCompletionContext(lineBeforeCursor: string, text: string, position: 
   }
   if (/^order(?:\s+|$)/i.test(trimmed)) return "order";
   if (isContextDeclaration && !/:\s*/.test(trimmed)) return "header";
-  if (isProjectionParagraph && !lineBeforeCursor.includes(":")) return "projection";
+  if (isProjectionParagraph && isIndented && !lineBeforeCursor.includes(":")) return "projection";
   if (!isIndented && !hasHeader && !lineBeforeCursor.includes(":")) return "header";
   if (hasHeader) return "projection";
   if (isIndented && !trimmed.includes(" ")) return "clause";

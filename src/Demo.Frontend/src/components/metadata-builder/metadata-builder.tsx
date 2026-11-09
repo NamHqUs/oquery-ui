@@ -50,6 +50,21 @@ function entityUsesTable(entity: MetadataEntity, table: { schema: string; name: 
   });
 }
 
+function entityUsesRawSql(entity: MetadataEntity) {
+  const rawSql = entity.rawSql?.trim() || "";
+  return Boolean(rawSql && rawSql !== entity.name.trim());
+}
+
+function findEntityTable(entity: MetadataEntity, tables: DatabaseTableOption[]) {
+  if (entityUsesRawSql(entity)) return undefined;
+  return tables.find((table) =>
+    normalizeTablePart(table.name) === normalizeTablePart(entity.name)
+    && (!entity.schema
+      || normalizeTablePart(entity.schema) === "dbo"
+      || normalizeTablePart(table.schema) === normalizeTablePart(entity.schema)),
+  );
+}
+
 async function request(url: string, options?: RequestInit) {
   const response = await fetch(url, options);
   if (!response.ok) {
@@ -125,7 +140,10 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
         const next = selectFirst ? payload[0] : preferred;
         setSelectedName(next?.name || "");
         setDraft(next ? toEditable(next) : null);
-        setSelectedTableKey((current) => current || (next ? tableKey(next) : ""));
+        const nextTable = next
+          ? findEntityTable(next, databaseState.schema.tables as DatabaseTableOption[])
+          : undefined;
+        setSelectedTableKey((current) => current || (nextTable ? tableKey(nextTable) : ""));
       } else {
         setSelectedName(preferred.name);
         setDraft(toEditable(preferred));
@@ -184,10 +202,17 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
       setMessage("Raw SQL expressions are required.");
       return false;
     }
+    const rawSql = draft.rawSql.trim();
+    const dbTable = rawSql
+      ? rawSql.startsWith("(") && rawSql.endsWith(")")
+        ? rawSql
+        : `(${rawSql})`
+      : draft.name.trim();
     const payload = {
       name: draft.name.trim(),
-      schema: draft.schema.trim(),
-      rawSql: draft.rawSql.trim() || draft.name.trim(),
+      dbSchema: draft.schema.trim(),
+      dbTable,
+      isRawSql: Boolean(rawSql && rawSql !== draft.name.trim()),
       fields: draft.fields.map((field) => ({
         name: field.name.trim(),
         dbColumn: field.dbColumn?.trim() || field.name.trim(),
@@ -251,7 +276,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
     if (entity.name === selectedName || !(await resolveEntityDirtyChanges())) return;
     setSelectedName(entity.name);
     setDraft(toEditable(entity));
-    setSelectedTableKey(tableKey(entity));
+    const matchingTable = findEntityTable(entity, databaseTables);
+    setSelectedTableKey(matchingTable ? tableKey(matchingTable) : "");
     setDirty(false);
     setMessage("");
   };
@@ -369,7 +395,15 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
   const databaseTables = databaseState.schema.tables as DatabaseTableOption[];
   const tableKey = (table: { schema: string; name: string }) =>
     `${(table.schema || "dbo").trim().toLowerCase()}.${table.name.trim().toLowerCase()}`;
-  const selectedTable = databaseTables.find((table) => tableKey(table) === selectedTableKey);
+  const selectedTable = databaseTables.find((table) => tableKey(table) === selectedTableKey)
+    || (draft ? findEntityTable(draft, databaseTables) : undefined);
+  useEffect(() => {
+    if (!selectedName || !draft || entityUsesRawSql(draft)) return;
+    if (selectedTableKey && databaseTables.some((table) => tableKey(table) === selectedTableKey)) return;
+    const matchingTable = findEntityTable(draft, databaseTables);
+    setSelectedTableKey(matchingTable ? tableKey(matchingTable) : "");
+  }, [databaseTables, draft, selectedName, selectedTableKey]);
+
   const selectDatabaseTable = (table: DatabaseTableOption) => {
     const rawSql = draft?.rawSql || "";
     setSelectedTableKey(tableKey(table));
@@ -381,6 +415,9 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
         isPrimaryKey: Boolean(column.isPrimaryKey),
       })),
     }, false, rawSql);
+  };
+  const selectRawSqlMode = () => {
+    setSelectedTableKey("");
   };
 
   return (
@@ -408,8 +445,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
           entityEditorHeader={
             <div className="table-details-heading metadata-editor-heading">
               <div className="table-details-title">
-                <span className="section-kicker">METADATA DEFINITION</span>
-                <h3>{selectedName || (draft ? "New EntityÃ¢â‚¬Â¦" : "Select an entity")}</h3>
+                <span className="section-kicker">DESIGN ENTITY</span>
               </div>
               <DefinitionActions adapter={entityActionAdapter} />
             </div>
@@ -425,6 +461,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
               databaseTables={databaseTables}
               selectedTable={selectedTable}
               onSelectTable={selectDatabaseTable}
+              onSelectRawSql={selectRawSqlMode}
               compact
             />
           }
@@ -444,8 +481,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
           <div className="metadata-editor">
             <div className="table-details-heading metadata-editor-heading">
               <div className="table-details-title">
-                <span className="section-kicker">METADATA DEFINITION</span>
-                <h3>{selectedName || (draft ? "New EntityÃ¢â‚¬Â¦" : "Select an entity")}</h3>
+                <span className="section-kicker">DESIGN ENTITY</span>
               </div>
               <DefinitionActions adapter={entityActionAdapter} />
             </div>
@@ -457,7 +493,9 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
               onDraftChange={updateDraft}
               databaseOptions={databaseOptions}
               databaseTables={databaseTables}
+              selectedTable={selectedTable}
               onSelectTable={selectDatabaseTable}
+              onSelectRawSql={selectRawSqlMode}
             />
           </div>
         </section>

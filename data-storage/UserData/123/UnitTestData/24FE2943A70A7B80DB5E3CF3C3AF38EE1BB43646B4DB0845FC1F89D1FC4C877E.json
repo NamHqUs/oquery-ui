@@ -1,0 +1,21 @@
+{
+  "Name": "MyProducts",
+  "DbSchema": "dbo",
+  "DbTable": "(Select * From sa.Products)",
+  "Fields": [
+    {
+      "Name": "Id",
+      "DbColumn": "Id",
+      "DataType": 0,
+      "IsRawSql": false
+    },
+    {
+      "Name": "Name",
+      "DbColumn": "Name",
+      "DataType": 0,
+      "IsRawSql": true
+    }
+  ],
+  "Relations": [],
+  "IsRawSql": true
+}

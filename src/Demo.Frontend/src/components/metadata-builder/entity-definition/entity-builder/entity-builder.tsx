@@ -16,6 +16,7 @@ type EntityBuilderProps = {
   databaseTables?: DatabaseTableOption[];
   selectedTable?: DatabaseTableOption;
   onSelectTable?: (table: DatabaseTableOption) => void;
+  onSelectRawSql?: () => void;
   compact?: boolean;
 };
 
@@ -35,12 +36,19 @@ export default function EntityBuilder({
   databaseTables = [],
   selectedTable,
   onSelectTable,
+  onSelectRawSql,
   compact = false,
 }: EntityBuilderProps) {
   const [tablePickerOpen, setTablePickerOpen] = useState(false);
   const [tableSearch, setTableSearch] = useState("");
   const [showRawSql, setShowRawSql] = useState(false);
   const tablePickerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const rawSql = draft?.rawSql.trim() || "";
+    const entityName = draft?.name.trim() || "";
+    setShowRawSql(Boolean(rawSql && rawSql !== entityName));
+  }, [draft?.name, draft?.rawSql]);
+
   const filteredTables = useMemo(() => {
     const query = tableSearch.trim().toLowerCase();
     return databaseTables.filter((table) =>
@@ -75,7 +83,46 @@ export default function EntityBuilder({
           <div className="metadata-form">
             <fieldset className="metadata-form-fieldset" disabled={!canEdit}>
         <div className="metadata-form-grid">
-        {onSelectTable && (
+        <label>
+          Entity name
+          <input
+            value={draft.name}
+            onChange={(event) =>
+              onDraftChange((entity) => ({ ...entity, name: event.target.value }))
+            }
+            placeholder="e.g. Customers"
+          />
+        </label>
+        {showRawSql ? (
+          <label className="metadata-raw-sql-field">
+            <span className="metadata-raw-sql-label">
+              <span>SQL Statement</span>
+              <button
+                type="button"
+                className="metadata-raw-sql-mode-button"
+                onClick={() => {
+                  setShowRawSql(false);
+                  onDraftChange((entity) => ({ ...entity, rawSql: "" }));
+                }}
+                aria-label="Switch to table selection"
+                title="Switch to table selection"
+              >
+                <Icon name="table" size={14} />
+              </button>
+            </span>
+            <textarea
+              autoFocus
+              rows={4}
+              value={draft.rawSql}
+              spellCheck={false}
+              disabled={!canEdit}
+              onChange={(event) =>
+                onDraftChange((entity) => ({ ...entity, rawSql: event.target.value }))
+              }
+              placeholder="SELECT column1, column2 FROM table_name"
+            />
+          </label>
+        ) : onSelectTable && (
           <div
             ref={tablePickerRef}
             className={`metadata-table-picker${tablePickerOpen ? " open" : ""}`}
@@ -106,6 +153,17 @@ export default function EntityBuilder({
                   }
                 }}
               >
+                <button
+                  type="button"
+                  className="metadata-raw-sql-menu-item"
+                  onClick={() => {
+                    setShowRawSql(true);
+                    onSelectRawSql?.();
+                    setTablePickerOpen(false);
+                  }}
+                >
+                  Raw SQL Statement
+                </button>
                 <input
                   autoFocus
                   value={tableSearch}
@@ -132,16 +190,6 @@ export default function EntityBuilder({
             )}
           </div>
         )}
-          <label>
-            Entity name
-            <input
-              value={draft.name}
-              onChange={(event) =>
-                onDraftChange((entity) => ({ ...entity, name: event.target.value }))
-              }
-              placeholder="e.g. Customers"
-            />
-          </label>
         </div>
 
         <FieldsBuilder
@@ -167,35 +215,6 @@ export default function EntityBuilder({
           }
         />
             </fieldset>
-            <div className="metadata-raw-sql-editor">
-              {!showRawSql && (
-                <button
-                  type="button"
-                  className="metadata-raw-sql-toggle"
-                  onClick={() => setShowRawSql(true)}
-                >
-                  SQL Statement
-                </button>
-              )}
-              {showRawSql && (
-                <label>
-                  SQL Statement
-                  <textarea
-                    autoFocus
-                    rows={4}
-                    value={draft.rawSql}
-                    disabled={!canEdit}
-                    onChange={(event) =>
-                      onDraftChange((entity) => ({ ...entity, rawSql: event.target.value }))
-                    }
-                    onBlur={() => {
-                      if (!draft.rawSql.trim()) setShowRawSql(false);
-                    }}
-                    placeholder="SELECT column1, column2 FROM table_name"
-                  />
-                </label>
-              )}
-            </div>
           </div>
         </>}
     </div>

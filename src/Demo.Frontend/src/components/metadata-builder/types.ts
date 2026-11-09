@@ -29,7 +29,7 @@ export function toEditable(entity: MetadataEntity): EditableEntity {
   return {
     ...entity,
     schema: entity.schema || "dbo",
-    rawSql: "",
+    rawSql: entity.rawSql || "",
     fields: entity.fields.map((field) => ({ ...field, id: createFieldId() })),
     relations: (entity.relations || []).map((relation) => ({
       ...relation,

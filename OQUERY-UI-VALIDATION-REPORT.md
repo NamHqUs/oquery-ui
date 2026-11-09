@@ -34,10 +34,11 @@ Validation:
 ## Entity-scoped completion suggestions
 
 Completion fallback now uses the resolved current entity when no relation path
-is present. For example, `Products:` offers only fields and relations from
-`Products`; relation paths continue resolving from the selected relation
-target. The all-metadata field list is used only when the current entity
-cannot be resolved.
+is present. Indented lines under `Products:` offer fields and relations from
+`Products`, while a new unindented line remains a header context and offers
+all metadata entities, including `MyProducts`. Member completion is resolved
+from the path after `.`; the all-metadata field list is used only when the
+current entity cannot be resolved.
 
 ## Remediation
 
