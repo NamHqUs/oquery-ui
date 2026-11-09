@@ -426,7 +426,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, entityOnly = 
         <div className="metadata-heading-main">
           <span className="metadata-heading-mark" aria-hidden="true"><Icon name="schema" size={21} /></span>
           <div className="metadata-heading-copy">
-            <span className="metadata-heading-eyebrow">DATA MODEL <i /> ENTITIES Ã‚Â· FIELDS Ã‚Â· RELATIONSHIPS</span>
+            <span className="metadata-heading-eyebrow">DATA MODEL <i /></span>
           </div>
         </div>
         {!entityOnly && <nav className="metadata-section-tabs" role="tablist" aria-label="Metadata definition types">
