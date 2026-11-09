@@ -60,7 +60,7 @@
 .business-scope-steps button strong { z-index: 1; display: grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; border: 1px solid #3b4352; border-radius: 50%; color: #858fa1; background: #151923; font-size: 12px; font-weight: 700; }
 .business-scope-steps button.active strong { border-color: #a48df0; color: #fff; background: linear-gradient(145deg,#8064e8,#50399a); box-shadow: 0 0 0 4px #8064e822, 0 5px 14px #00000035; }
 .business-scope-steps button.complete strong { border-color: #56a985; color: #c9f5df; background: #214c3d; }
-.business-scope-steps button span { z-index: 1; display: flex; align-items: baseline; gap: 6px; min-width: 0; padding: 0 3px; margin-left: -3px; white-space: nowrap; background: #151923; }
+.business-scope-steps button span { z-index: 1; display: flex; align-items: baseline; gap: 6px; min-width: 0; padding: 0 3px; margin-left: -3px; white-space: nowrap; background: transparent; }
 .business-scope-steps button b { color: #c9ced9; font-size: 12px; font-weight: 700; letter-spacing: .2px; }
 .business-scope-steps button.active b { color: #f0edff; }
 .business-scope-steps button small { color: #687385; font-size: 12px; }
@@ -119,7 +119,7 @@
 .business-scope-entity-item:last-child { margin-bottom: 0; }
 .business-scope-entity-item .business-scope-preview-card { flex: 1; min-width: 0; }
 .business-scope-step-section > .business-scope-entity-preview, .business-scope-step-section > .business-scope-relation-preview { margin-top: 0; }
-.business-scope-preview-card { --editable-name-width: 150px; padding: 0 12px; border-left: 2px solid #8064e8; background: #151923; }
+.business-scope-preview-card { --editable-name-width: 150px; padding: 0 12px; border-left: 2px solid #8064e8; background: transparent; }
 .business-scope-preview-heading { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: #eeeaff; font-size: 12px; }
 .business-scope-collapse, .business-scope-remove { display: inline-flex; align-items: center; justify-content: center; padding: 5px; border: 0; background: transparent; }
 .business-scope-collapse { color: #a78bfa; }
