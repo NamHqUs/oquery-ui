@@ -5,6 +5,7 @@
 .relation-group:last-child { border-bottom: 0; }
 .relation-editor-row { padding: 10px; }
 .relation-editor-row > input, .relation-editor-row > select, .relation-target-cell select { width: 100%; color: #dce1eb; background: #191e28; border: 1px solid #323947; border-radius: 5px; outline: 0; padding: 8px 10px; font-size: 12px; }
+.relation-name-cell input, .relation-entity-picker-trigger, .relation-source-cell select, .relation-target-cell select { height: 34px; box-sizing: border-box; line-height: 16px; }
 .relation-name-cell, .relation-source-cell, .relation-target-cell { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .relation-condition-add { margin-left: auto; align-self: center; }
 .relation-name-cell input { min-width: 0; }
