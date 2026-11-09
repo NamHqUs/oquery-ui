@@ -88,7 +88,7 @@
 .business-scope-data-type { color: #b9a2ff !important; }
 .business-scope-relation-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; align-items: center; }
 .business-scope-relation-preview { margin-left: 17px; }
-.business-scope-relation-header { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; margin-bottom: 5px; padding: 9px 8px; border-bottom: 1px solid #303847; color: #c9c4d8; background: #211d32; font-size: 13px; font-weight: 700; letter-spacing: .2px; }
+.business-scope-relation-header { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; margin-bottom: 5px; padding: 9px 8px; border-bottom: 1px solid #465064; color: var(--muted); background: #10131b; font-size: 13px; font-weight: 400; letter-spacing: .2px; }
 .business-scope-relation-row span { align-self: center; color: var(--muted); font-size: 13px; }
 .business-scope-relation-row label { align-self: center; color: var(--muted); font-size: 13px; }
 .business-scope-relation-row input { min-width: 0; padding: 7px 8px; border: 0; border-radius: 4px; color: #e9edf4; background: #211d32; font-size: 12px; }
