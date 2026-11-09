@@ -469,7 +469,7 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
 
   return (
     <>
-    <div className={`query-oquery-code-editor${showGutter && hasGutterContent ? "" : " no-gutter"}${showLineNumbers ? "" : " no-line-numbers"}${hasVisibleFoldControls ? "" : " no-fold-controls"}${showContextRunAlways ? " show-context-run-always" : ""}`} style={compact ? { height: `${compactHeight}px` } : undefined}>
+    <div className={`query-oquery-code-editor${showGutter && hasGutterContent ? "" : " no-gutter"}${showLineNumbers ? "" : " no-line-numbers"}${showFoldControls ? "" : " no-fold-controls"}${showContextRunAlways ? " show-context-run-always" : ""}`} style={compact ? { height: `${compactHeight}px` } : undefined}>
       {showFoldControls && <div className="query-oquery-fold-actions" role="toolbar" aria-label="OQuery folding">
         <button type="button" disabled={disabled || !folds.length}
           aria-label={`${allFoldsCollapsed ? "Expand" : "Collapse"} all OQuery sections`}
