@@ -321,9 +321,9 @@ export default function BusinessScopeWorkspace({ active }: { active: boolean }) 
             </div>}
             </div>
             <footer className="business-scope-wizard-footer">
-              <button type="button" className="business-scope-secondary" onClick={goBack} disabled={step === 1 || status === "saving"}>Back</button>
-              {step < 3 && <button type="button" className="business-scope-primary" onClick={goNext} disabled={!canContinue}>Continue <span>→</span></button>}
-              {step === 3 && <button type="button" className="business-scope-primary" onClick={() => void save()} disabled={status === "saving"}>{status === "saving" ? "Generating…" : "Generate metadata"} <span>→</span></button>}
+              <button type="button" className="business-scope-secondary" onClick={goBack} disabled={step === 1 || status === "saving"}><Icon name="arrow-left" size={14} /> Back</button>
+              {step < 3 && <button type="button" className="business-scope-primary" onClick={goNext} disabled={!canContinue}>Continue <Icon name="arrow-right" size={14} /></button>}
+              {step === 3 && <button type="button" className="business-scope-primary" onClick={() => void save()} disabled={status === "saving"}>{status === "saving" ? "Generating…" : "Generate metadata"} <Icon name="arrow-right" size={14} /></button>}
             </footer>
           </div>
         ) : <><label className="business-scope-name">Scope name<input spellCheck={false} value={draftName} disabled={selected.isBuiltin} onChange={event => setDraftName(event.target.value)} /></label>
