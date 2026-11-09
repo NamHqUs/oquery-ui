@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Icon from "../icon/icon";
+import Icon, { getDatabaseIconName } from "../icon/icon";
 import OQueryEditor from "../oquery-editor/oquery-editor";
 import { getOQuerySuggestionData } from "../oquery-editor/oquery-suggestion-data";
 import type { FunctionDefinition } from "../function-definition/types";
@@ -13,7 +13,6 @@ import {
 } from "../query-builder/query-design/query-builder-slice";
 import type { RootState } from "../../store/store";
 import {
-  DATABASE_PROVIDERS,
   DEVELOPER_CARDS,
   EXTENSION_CARDS,
   GITHUB_URL,
@@ -35,6 +34,7 @@ const PREVIEW_ROWS = 12;
 const SECTION_LINKS = [
   { id: "hp-playground", label: "Playground" },
   { id: "hp-examples", label: "Examples" },
+  { id: "hp-capabilities", label: "Capabilities" },
   { id: "hp-reveal", label: "How it works" },
   { id: "hp-developers", label: "For developers" },
 ];
@@ -245,11 +245,14 @@ function TextAction({ children, onClick }: { children: ReactNode; onClick: () =>
 
 export default function Home({
   onNavigateToPage,
+  onRequestConnection,
 }: {
   onNavigateToPage: (page: HomeDestination, fromHome?: boolean) => void;
+  onRequestConnection: () => void;
 }) {
   const dispatch = useDispatch();
   const { metadata, metadataStatus, functionDefinitions, functionDefinitionsStatus } = useSelector((state: RootState) => state.queryBuilder);
+  const { providers } = useSelector((state: RootState) => state.database);
   const [activeExampleId, setActiveExampleId] = useState(HOME_EXAMPLES[0]!.id);
   const heroEditorRef = useRef<HTMLDivElement>(null);
   const activeExample = HOME_EXAMPLES.find((example) => example.id === activeExampleId) ?? HOME_EXAMPLES[0]!;
@@ -340,7 +343,7 @@ export default function Home({
         </div>
       </section>
 
-      <section className="hp-section" aria-labelledby="hp-interfaces-title">
+      <section className="hp-section" id="hp-capabilities" aria-labelledby="hp-interfaces-title">
         <SectionIntro
           id="hp-interfaces-title"
           kicker="ONE ENGINE · QUERY CAPABILITIES"
@@ -379,12 +382,12 @@ export default function Home({
                 <div className="hp-engine-diagram-column hp-engine-diagram-group">
                   <span className="hp-engine-diagram-label">Database TYPES</span>
                   <div className="hp-engine-diagram-nodes">
-                    {DATABASE_PROVIDERS.map((provider) => <span className="hp-engine-node" key={provider.name}><Icon name={provider.icon} size={13} /> {provider.name}</span>)}
+                    {providers.map((provider) => <span className="hp-engine-node" key={provider}><Icon name={getDatabaseIconName(provider)} size={13} /> {provider}</span>)}
                   </div>
                 </div>
               </div>
             </figure>
-            <TextAction onClick={() => onNavigateToPage("sources")}>View database connections</TextAction>
+            <TextAction onClick={onRequestConnection}>View database connections</TextAction>
           </div>
         </div>
       </section>

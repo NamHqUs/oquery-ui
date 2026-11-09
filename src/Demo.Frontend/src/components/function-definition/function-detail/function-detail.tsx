@@ -1,3 +1,4 @@
+import { useSelector } from "react-redux";
 import Icon from "../../icon/icon";
 import {
   EditableFunctionArgument,
@@ -6,11 +7,11 @@ import {
   emptyFunctionArgument,
   emptyFunctionTemplate,
   functionArgumentDataTypes,
-  functionDatabaseTypes,
   functionResultDataTypes,
   FunctionDatabaseType,
   FunctionResultDataType,
 } from "../types";
+import type { RootState } from "../../../store/store";
 import DefinitionActions from "../../metadata-builder/definition-actions/definition-actions";
 import type { DefinitionActionAdapter } from "../../metadata-builder/definition-actions/definition-actions";
 import "./function-detail.css";
@@ -32,6 +33,7 @@ export default function FunctionDetail({
   actionAdapter,
   onDraftChange,
 }: FunctionDetailProps) {
+  const providers = useSelector((state: RootState) => state.database.providers);
   const updateDraft = (
     update: (current: EditableFunctionDefinition) => EditableFunctionDefinition,
   ) => onDraftChange(update);
@@ -61,7 +63,7 @@ export default function FunctionDetail({
   };
 
   const usedDatabaseTypes = new Set(draft?.sqlTemplateRows.map((template) => template.databaseType) || []);
-  const availableDatabaseTypes = functionDatabaseTypes.filter((databaseType) =>
+  const availableDatabaseTypes = providers.filter((databaseType) =>
     !usedDatabaseTypes.has(databaseType),
   );
 
@@ -259,7 +261,7 @@ export default function FunctionDetail({
                               databaseType: event.target.value as FunctionDatabaseType,
                             }))}
                           >
-                            {functionDatabaseTypes
+                            {providers
                               .filter((databaseType) =>
                                 databaseType === template.databaseType || !otherDatabaseTypes.has(databaseType),
                               )

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { apiUrls } from "../../../const/api-urls";
 import Icon from "../../icon/icon";
 import PanelSplitter from "../../panel-splitter/panel-splitter";
@@ -11,6 +12,7 @@ import DefinitionActions, {
 import type { DefinitionActionAdapter } from "../definition-actions/definition-actions";
 import MetadataSidebar, { type MetadataSidebarGroup } from "../metadata-sidebar/metadata-sidebar";
 import "./operator-definition.css";
+import type { RootState } from "../../../store/store";
 
 type OperatorDefinitionData = {
   id: string;
@@ -28,14 +30,13 @@ type OperatorDefinitionData = {
 type OperatorDraft = Omit<OperatorDefinitionData, "id"> & { id: string | null };
 
 const operandTypes = ["String", "Number", "Datetime", "Boolean"];
-const providers = ["Sqlite", "SqlServer", "Postgres", "Cockroach", "Firebird", "Maria", "Oracle", "SapHana", "Db2"] as const;
 const operatorTemplate = "{left} = {value}";
 type NavigationGuard = (continueNavigation: () => void, cancelNavigation?: () => void) => void;
 type OperatorDefinitionProps = {
   onNavigationGuardChange?: (guard: NavigationGuard | null) => void;
 };
 
-function emptyOperator(): OperatorDraft {
+function emptyOperator(providers: string[]): OperatorDraft {
   return {
     id: null,
     name: "",
@@ -65,6 +66,7 @@ async function request<T = unknown>(url: string, options?: RequestInit): Promise
 }
 
 export default function OperatorDefinition({ onNavigationGuardChange }: OperatorDefinitionProps) {
+  const providers = useSelector((state: RootState) => state.database.providers);
   const showMessageBox = useMessageBox();
   const panel = useResizablePanel("metadata-operators");
   const [definitions, setDefinitions] = useState<OperatorDefinitionData[]>([]);
@@ -194,7 +196,7 @@ export default function OperatorDefinition({ onNavigationGuardChange }: Operator
 
   const create = () => {
     setSelectedId("");
-    setDraft(emptyOperator());
+    setDraft(emptyOperator(providers));
     setDirty(true);
     setMessage("");
   };

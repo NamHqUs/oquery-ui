@@ -3,8 +3,7 @@ export type FunctionArgumentDataType = typeof functionArgumentDataTypes[number];
 export const functionResultDataTypes = functionArgumentDataTypes;
 export type FunctionResultDataType = typeof functionResultDataTypes[number];
 
-export const functionDatabaseTypes = ["Sqlite", "SqlServer", "Postgres", "Cockroach", "Firebird", "Oracle", "Maria", "SapHana", "Db2"] as const;
-export type FunctionDatabaseType = typeof functionDatabaseTypes[number];
+export type FunctionDatabaseType = string;
 
 export type FunctionArgumentDefinition = {
   name: string;
@@ -57,7 +56,7 @@ export const emptyFunctionTemplate = (databaseType: FunctionDatabaseType): Edita
   rawSqlTemplate: "",
 });
 
-export const emptyFunction = (): EditableFunctionDefinition => ({
+export const emptyFunction = (providers: string[]): EditableFunctionDefinition => ({
   name: "",
   arguments: [emptyFunctionArgument()],
   resultType: "String",
@@ -65,15 +64,7 @@ export const emptyFunction = (): EditableFunctionDefinition => ({
   description: "",
   sqlTemplates: {},
   sqlTemplateRows: [
-    emptyFunctionTemplate("Sqlite"),
-    emptyFunctionTemplate("SqlServer"),
-    emptyFunctionTemplate("Postgres"),
-    emptyFunctionTemplate("Cockroach"),
-    emptyFunctionTemplate("Firebird"),
-    emptyFunctionTemplate("Oracle"),
-    emptyFunctionTemplate("Maria"),
-    emptyFunctionTemplate("SapHana"),
-    emptyFunctionTemplate("Db2"),
+    ...providers.map(emptyFunctionTemplate),
   ],
 });
 
@@ -102,5 +93,5 @@ export function toEditableFunction(definition: FunctionDefinition): EditableFunc
 }
 
 function isFunctionDatabaseType(databaseType: string): databaseType is FunctionDatabaseType {
-  return functionDatabaseTypes.some((supportedType) => supportedType === databaseType);
+  return databaseType.length > 0;
 }

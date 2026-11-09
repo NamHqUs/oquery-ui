@@ -93,6 +93,7 @@ function toPayload(draft: EditableFunctionDefinition): FunctionDefinition {
 export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }: FunctionDefinitionWorkspaceProps) {
   const dispatch = useDispatch();
   const definitions = useSelector((state: RootState) => state.queryBuilder.functionDefinitions);
+  const providers = useSelector((state: RootState) => state.database.providers);
   const showMessageBox = useMessageBox();
   const panel = useResizablePanel("metadata-functions");
   const [selectedName, setSelectedName] = useState("");
@@ -215,7 +216,7 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
 
   const createDefinition = async () => {
     setSelectedName("");
-    setDraft(emptyFunction());
+    setDraft(emptyFunction(providers));
     setDirty(false);
     setMessage("");
   };

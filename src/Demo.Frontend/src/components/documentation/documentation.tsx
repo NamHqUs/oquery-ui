@@ -1,4 +1,6 @@
-import Icon from "../icon/icon";
+import { useSelector } from "react-redux";
+import Icon, { getDatabaseIconName } from "../icon/icon";
+import type { RootState } from "../../store/store";
 import "./documentation.css";
 
 type DocumentationSection = {
@@ -20,23 +22,13 @@ const sections: DocumentationSection[] = [
   { id: "next-steps", label: "Next steps" },
 ];
 
-const providers = [
-  "SQL Server",
-  "SQLite",
-  "PostgreSQL",
-  "CockroachDB",
-  "Firebird",
-  "MySQL / MariaDB",
-  "Oracle",
-  "SAP HANA",
-  "IBM Db2",
-];
-
 function CodeBlock({ children }: { children: string }) {
   return <pre className="documentation-code"><code>{children}</code></pre>;
 }
 
 export default function Documentation() {
+  const providers = useSelector((state: RootState) => state.database.providers);
+
   return (
     <div className="documentation-page">
       <aside className="documentation-sidebar" aria-label="Documentation navigation">
@@ -240,7 +232,7 @@ ref1 is User: Id, Name`}</CodeBlock>
             <h2>Bring your database</h2>
             <p>Use one metadata and query model while the selected dialect handles quoting, paging, booleans, functions, and other provider details.</p>
           </div>
-          <div className="documentation-provider-list">{providers.map((provider) => <span key={provider}><Icon name="check" size={13} />{provider}</span>)}</div>
+          <div className="documentation-provider-list">{providers.map((provider) => <span key={provider}><Icon name={getDatabaseIconName(provider)} size={13} />{provider}</span>)}</div>
         </section>
 
         <section id="security" className="documentation-section">

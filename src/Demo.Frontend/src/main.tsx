@@ -6,7 +6,7 @@ import { createBrowserRouter, Navigate, Route, RouterProvider, Routes, useBlocke
 import Icon, { getDatabaseIconName } from "./components/icon/icon";
 import DataSources from "./components/data-sources/data-sources";
 import DatabaseConnection from "./components/data-sources/database-connection/database-connection";
-import { fetchDbProvider, fetchDbSchema, fetchDbTables } from "./components/data-sources/database-slice";
+import { fetchDatabaseConnections, fetchDbProvider, fetchDbSchema, fetchDbTables } from "./components/data-sources/database-slice";
 import QueryBuilder from "./components/query-builder/query-builder";
 import MetadataBuilder from "./components/metadata-builder/metadata-builder";
 import FunctionDefinitionsWorkspace from "./components/function-definition/function-definition";
@@ -61,6 +61,7 @@ function App() {
   };
 
   useEffect(() => {
+    void store.dispatch(fetchDatabaseConnections());
     void store.dispatch(fetchDbProvider()).then((result) => {
       if (fetchDbProvider.fulfilled.match(result) && result.payload !== null) {
         void store.dispatch(fetchDbTables());
@@ -187,7 +188,7 @@ function App() {
       </header>
 
       <Routes>
-        <Route path={PAGE_PATHS.home} element={<div className="page-transition page-transition-no-slide"><Home onNavigateToPage={navigateToPage} /></div>} />
+        <Route path={PAGE_PATHS.home} element={<div className="page-transition page-transition-no-slide"><Home onNavigateToPage={navigateToPage} onRequestConnection={requestDatabaseConnection} /></div>} />
         <Route path={PAGE_PATHS.documentation} element={<div className="page-transition page-transition-no-slide"><Documentation /></div>} />
         <Route path={PAGE_PATHS.builder} element={null} />
         <Route path={PAGE_PATHS.metadata} element={null} />

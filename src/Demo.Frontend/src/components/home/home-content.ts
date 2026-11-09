@@ -118,15 +118,3 @@ export const SECURITY_POINTS: { text: string; roadmap?: boolean }[] = [
   { text: "Validate query input before execution." },
   { text: "Apply tenant-aware access rules.", roadmap: true },
 ];
-
-export const DATABASE_PROVIDERS: { name: string; icon: IconName }[] = [
-  { name: "SQLite", icon: "sqlite" },
-  { name: "SQL Server", icon: "sqlserver" },
-  { name: "PostgreSQL", icon: "postgres" },
-  { name: "CockroachDB", icon: "postgres" },
-  { name: "MySQL / MariaDB", icon: "mysql" },
-  { name: "Oracle", icon: "oracle" },
-  { name: "Firebird", icon: "firebird" },
-  { name: "IBM Db2", icon: "database" },
-  { name: "SAP HANA", icon: "database" },
-];

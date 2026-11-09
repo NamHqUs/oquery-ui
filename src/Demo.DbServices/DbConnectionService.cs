@@ -12,6 +12,7 @@ public enum DbServerType
     Postgres,
     Cockroach,
     MySql,
+    SapHana,
     Oracle,
     Db2
 }
