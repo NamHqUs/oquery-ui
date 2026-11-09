@@ -436,8 +436,8 @@ export default function Home({
           <SectionIntro
             id="hp-developers-title"
             kicker="FOR DEVELOPERS"
-            title={`You define the data. ${PRODUCT_NAME} makes it queryable.`}
-            text={`Every application has its own business concepts, data relationships, and access rules. ${PRODUCT_NAME} lets developers define the logical data model their applications expose, independently of the physical database structure.`}
+            title={`Define your data. Extend what your application can do.`}
+            text={`Every application has its own business concepts, data relationships, and access rules. ${PRODUCT_NAME} lets developers define the logical data model their applications expose, then add the functions and capabilities that make that model useful to every query surface.`}
           />
           <dl className="hp-stats" aria-label="Live demo metadata">
             <div><dt>Entities</dt><dd>{metadataStatus === "succeeded" ? metadata.length : "—"}</dd></div>
@@ -446,17 +446,10 @@ export default function Home({
             <p>Loaded live from this demo&apos;s metadata.</p>
           </dl>
         </div>
-        <CardGrid cards={DEVELOPER_CARDS} />
-        <p className="hp-note"><Icon name="schema" size={15} /><span>In {PRODUCT_NAME}&apos;s architecture these definitions are called <strong>Metadata</strong>—the context that lets the engine understand entity names, field paths, relationships, and available operations. Define it with YAML, JSON, or .NET.</span></p>
-        <TextAction onClick={() => onNavigateToPage("metadata")}>Explore metadata and entity definitions</TextAction>
-        <div className="hp-developer-extension">
-          <SectionIntro
-            id="hp-extend-title"
-            kicker="EXTENSIBILITY"
-            title="Make it yours."
-            text={`${PRODUCT_NAME} is designed to fit different application architectures and evolve with your data model.`}
-          />
-          <CardGrid cards={EXTENSION_CARDS} className="hp-card-grid-list" />
+        <CardGrid cards={[...DEVELOPER_CARDS, ...EXTENSION_CARDS]} />
+        <p className="hp-note"><Icon name="schema" size={15} /><span>In {PRODUCT_NAME}&apos;s architecture, the data model and its extensions are called <strong>Metadata</strong>—the context that keeps entities, relationships, functions, integrations, and access rules discoverable and consistent. Define it with YAML, JSON, or .NET.</span></p>
+        <div className="hp-developer-actions">
+          <TextAction onClick={() => onNavigateToPage("metadata")}>Explore metadata and entity definitions</TextAction>
           <TextAction onClick={() => onNavigateToPage("functions")}>Explore extensibility</TextAction>
         </div>
       </section>
