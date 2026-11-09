@@ -15,7 +15,6 @@ import type { RootState } from "../../store/store";
 import {
   DEVELOPER_CARDS,
   EXTENSION_CARDS,
-  GITHUB_URL,
   HERO_QUERY,
   HOME_EXAMPLES,
   INTERFACE_CARDS,
@@ -31,13 +30,6 @@ type HomeDestination = "builder" | "metadata" | "sources" | "functions" | "docum
 type SuggestionData = ReturnType<typeof getOQuerySuggestionData>;
 
 const PREVIEW_ROWS = 12;
-const SECTION_LINKS = [
-  { id: "hp-playground", label: "Playground" },
-  { id: "hp-examples", label: "Examples" },
-  { id: "hp-capabilities", label: "Capabilities" },
-  { id: "hp-reveal", label: "How it works" },
-  { id: "hp-developers", label: "For developers" },
-];
 const SQL_KEYWORDS = new Set([
   "WITH", "RECURSIVE", "SELECT", "FROM", "WHERE", "GROUP", "BY", "HAVING", "ORDER", "LIMIT", "OFFSET", "ASC", "DESC",
   "AS", "AND", "OR", "NOT", "IN", "IS", "NULL", "LIKE", "JOIN", "LEFT", "RIGHT", "INNER", "OUTER", "ON", "DISTINCT",
@@ -264,29 +256,14 @@ export default function Home({
     if (functionDefinitionsStatus === "idle") dispatch(fetchFunctionDefinitions());
   }, [dispatch, functionDefinitionsStatus, metadataStatus]);
 
-  const focusPlayground = () => {
-    scrollToSection("hp-playground");
-    window.setTimeout(() => heroEditorRef.current?.querySelector("textarea")?.focus({ preventScroll: true }), 350);
-  };
   const showExample = (id: string) => {
     setActiveExampleId(id);
     scrollToSection("hp-examples");
   };
   const openBuilder = () => onNavigateToPage("builder", true);
   const openDocs = () => onNavigateToPage("documentation");
-
   return (
     <div className="hp">
-      <nav className="hp-subnav" aria-label="Home sections">
-        <span className="hp-subnav-brand">{PRODUCT_NAME}</span>
-        <div className="hp-subnav-links">
-          {SECTION_LINKS.map((link) => <button key={link.id} type="button" onClick={() => scrollToSection(link.id)}>{link.label}</button>)}
-          <button type="button" onClick={openDocs}>Documentation</button>
-          <a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub</a>
-        </div>
-        <button className="button primary hp-subnav-cta" type="button" onClick={focusPlayground}><Icon name="play" size={11} /> Try Playground</button>
-      </nav>
-
       <section className="hp-hero" id="hp-playground" aria-labelledby="hp-hero-title">
         <div className="hp-hero-copy">
           <span className="eyebrow">METADATA-DRIVEN QUERYING</span>

@@ -12,6 +12,7 @@ import MetadataBuilder from "./components/metadata-builder/metadata-builder";
 import FunctionDefinitionsWorkspace from "./components/function-definition/function-definition";
 import Home from "./components/home/home";
 import Documentation from "./components/documentation/documentation";
+import { GITHUB_URL, PRODUCT_NAME } from "./components/home/home-content";
 import { MessageBoxProvider } from "./components/message-box/message-box";
 import { store, type RootState } from "./store/store";
 import "./styles.css";
@@ -30,8 +31,55 @@ const LEGACY_FUNCTIONS_PATH = "/functions";
 type Page = keyof typeof PAGE_PATHS;
 type NavigationGuard = (continueNavigation: () => void, cancelNavigation?: () => void) => void;
 
+const HOME_SUBMENU = [
+  { label: "Playground", target: "hp-playground" },
+  { label: "Examples", target: "hp-examples" },
+  { label: "Capabilities", target: "hp-capabilities" },
+  { label: "How it works", target: "hp-reveal" },
+  { label: "For developers", target: "hp-developers" },
+] as const;
+
+const PAGE_SUBMENUS: Record<Exclude<Page, "home">, readonly string[]> = {
+  builder: ["Design query", "Results"],
+  sources: ["Connections", "Tables", "Schema"],
+  metadata: ["Entities", "Operators"],
+  functions: ["Definitions", "Arguments", "SQL templates"],
+  documentation: ["Overview", "Query syntax", "Security", "Next steps"],
+};
+
 function pageForPath(path: string): Page | null {
   return (Object.keys(PAGE_PATHS) as Page[]).find((page) => PAGE_PATHS[page] === path) ?? null;
+}
+
+function scrollToSection(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function PageSubnav({ page, onNavigateToPage }: { page: Page | null; onNavigateToPage: (nextPage: Page) => void }) {
+  if (!page) return null;
+
+  if (page === "home") {
+    return (
+      <nav className="hp-subnav app-subnav" aria-label="Home sections">
+        <span className="hp-subnav-brand">{PRODUCT_NAME}</span>
+        <div className="hp-subnav-links">
+          {HOME_SUBMENU.map((item) => <button key={item.target} type="button" onClick={() => scrollToSection(item.target)}>{item.label}</button>)}
+          <button type="button" onClick={() => onNavigateToPage("documentation")}>Documentation</button>
+          <a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub</a>
+        </div>
+        <button className="button primary hp-subnav-cta" type="button" onClick={() => scrollToSection("hp-playground")}><Icon name="play" size={11} /> Try Playground</button>
+      </nav>
+    );
+  }
+
+  return (
+    <nav className="hp-subnav app-subnav" aria-label={`${page} sections`}>
+      <span className="hp-subnav-brand">{page === "builder" ? "QUERY BUILDER" : page.replace("-", " ").toUpperCase()}</span>
+      <div className="hp-subnav-links">
+        {PAGE_SUBMENUS[page].map((item) => <button key={item} type="button">{item}</button>)}
+      </div>
+    </nav>
+  );
 }
 
 function App() {
@@ -187,16 +235,18 @@ function App() {
         </div>
       </header>
 
-      <Routes>
-        <Route path={PAGE_PATHS.home} element={<div className="page-transition page-transition-no-slide"><Home onNavigateToPage={navigateToPage} onRequestConnection={requestDatabaseConnection} /></div>} />
-        <Route path={PAGE_PATHS.documentation} element={<div className="page-transition page-transition-no-slide"><Documentation /></div>} />
-        <Route path={PAGE_PATHS.builder} element={null} />
-        <Route path={PAGE_PATHS.metadata} element={null} />
-        <Route path={PAGE_PATHS.functions} element={null} />
-        <Route path={LEGACY_FUNCTIONS_PATH} element={<Navigate to={PAGE_PATHS.functions} replace />} />
-        <Route path={PAGE_PATHS.sources} element={<div className="page-transition page-transition-no-slide"><DataSources onRequestConnection={requestDatabaseConnection} /></div>} />
-        <Route path="*" element={<Navigate to={PAGE_PATHS.home} replace />} />
-      </Routes>
+      <PageSubnav page={page} onNavigateToPage={navigateToPage} />
+      <div className="page-content">
+        <Routes>
+          <Route path={PAGE_PATHS.home} element={<div className="page-transition page-transition-no-slide"><Home onNavigateToPage={navigateToPage} onRequestConnection={requestDatabaseConnection} /></div>} />
+          <Route path={PAGE_PATHS.documentation} element={<div className="page-transition page-transition-no-slide"><Documentation /></div>} />
+          <Route path={PAGE_PATHS.builder} element={null} />
+          <Route path={PAGE_PATHS.metadata} element={null} />
+          <Route path={PAGE_PATHS.functions} element={null} />
+          <Route path={LEGACY_FUNCTIONS_PATH} element={<Navigate to={PAGE_PATHS.functions} replace />} />
+          <Route path={PAGE_PATHS.sources} element={<div className="page-transition page-transition-no-slide"><DataSources onRequestConnection={requestDatabaseConnection} /></div>} />
+          <Route path="*" element={<Navigate to={PAGE_PATHS.home} replace />} />
+        </Routes>
       {connectionDialogOpen && createPortal(
         <div className="database-connection-dialog-backdrop" onClick={() => setConnectionDialogOpen(false)}>
           <section
@@ -238,6 +288,7 @@ function App() {
         </section>
         <FunctionDefinitionsWorkspace onNavigationGuardChange={updateFunctionNavigationGuard} />
       </div>}
+      </div>
       <footer><span><span className="footer-mark">✦</span> oQuery engine</span><span>Metadata-driven queries · Client preview</span></footer>
     </main>
   );
