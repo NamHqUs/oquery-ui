@@ -33,9 +33,7 @@ export default function SavedQueryList({
   return (
     <aside className="saved-query-library split-panel" aria-label="Saved queries">
       <div className="saved-query-library-heading">
-        <span className="section-kicker">QUERY LIBRARY</span>
-        <h3>Saved queries <span className="saved-query-total">{requests.length}</span></h3>
-        <p>Pick a query to continue where you left off.</p>
+        <span className="section-kicker">SAVED QUERIES</span><span className="saved-query-total">{requests.length}</span>
       </div>
       <div className="saved-query-library-content">
         {status !== "loading" && status !== "failed" && requests.length > 0 && (
