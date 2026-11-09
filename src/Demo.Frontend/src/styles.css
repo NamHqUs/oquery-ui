@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap");
 
 :root { font-size: 17px; font-family: "Manrope", sans-serif; color: #e9edf4; background: #080a0f; font-synthesis: none; --panel: #10131a; --panel-2: #151923; --line: #252b38; --muted: #8993a5; --purple: #a78bfa; --green: #53d5a1; }
+html { scrollbar-gutter: stable; }
 * { box-sizing: border-box; scrollbar-color: #514476 #11151d; scrollbar-width: thin; }
 *::-webkit-scrollbar { width: 7px; height: 7px; }
 *::-webkit-scrollbar-track { border-radius: 6px; background: #11151d; }
