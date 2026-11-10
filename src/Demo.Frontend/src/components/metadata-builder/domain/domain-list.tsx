@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -6,7 +6,6 @@ import Icon, { type IconName } from "../../icon/icon";
 import PanelSplitter from "../../panel-splitter/panel-splitter";
 import DomainWizard, { type WizardSource } from "./domain-wizard";
 import { useResizablePanel } from "../../../utils/use-resizable-panel";
-import DefinitionActions, { type DefinitionActionAdapter } from "../definition-actions/definition-actions";
 import MetadataSidebar, { type MetadataSidebarGroup } from "../metadata-sidebar/metadata-sidebar";
 import EntityBuilder, { type DatabaseTableOption } from "../entity-definition/entity-builder/entity-builder";
 import DatabaseConnection from "../../data-sources/database-connection/database-connection";
@@ -28,7 +27,7 @@ export type Domain = {
 };
 type DatabaseTable = { schema: string; name: string; columns: { name: string; dataType: string }[] };
 type DatabaseRelationship = { name: string; sourceSchema: string; sourceTable: string; sourceColumns: string[]; targetSchema: string; targetTable: string; targetColumns: string[]; isUnique: boolean };
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3;
 type ViewMode = "list" | "wizard" | "detail";
 const CREATE_DOMAIN_PATH = "/metadata/domains/create";
 
@@ -99,16 +98,8 @@ function parseUploadedTables(text: string, fileName: string): DatabaseTable[] {
 
 export default function DomainList({
   active,
-  onToolbarActionsChange,
-  externalDirty = false,
-  onExternalSave,
-  onExternalReload,
 }: {
   active: boolean;
-  onToolbarActionsChange: (actions: ReactNode | null) => void;
-  externalDirty?: boolean;
-  onExternalSave?: () => Promise<boolean>;
-  onExternalReload?: () => Promise<void>;
 }) {
   const [scopes, setScopes] = useState<Domain[]>([]);
   const location = useLocation();
@@ -137,8 +128,10 @@ export default function DomainList({
   const [viewMode, setViewMode] = useState<ViewMode>(location.pathname === CREATE_DOMAIN_PATH ? "wizard" : "list");
   const [status, setStatus] = useState<"loading" | "ready" | "saving">("loading");
   const [error, setError] = useState("");
+  const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
   const panel = useResizablePanel("domain");
   const showMessageBox = useMessageBox();
+  useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   useEffect(() => {
     if (!active) return;
     setViewMode(location.pathname === CREATE_DOMAIN_PATH ? "wizard" : "list");
@@ -150,9 +143,6 @@ export default function DomainList({
   }, [active, location.pathname, location.search]);
 
   const selected = scopes.find(scope => scope.name === selectedName);
-  const dirty = Boolean(selected
-    ? draftName !== selected.name || draftDescription !== selected.description || entityDirty
-    : draftName.trim() && selectedTables.length);
   const load = async () => {
     setStatus("loading");
     setError("");
@@ -241,7 +231,6 @@ export default function DomainList({
     setTableFilter("");
     setStep(1);
     setError("");
-    if (source === "database") setConnectionDialogOpen(true);
   };
   const updateSelectedScope = (updater: (scope: Domain) => Domain) => {
     setScopes(current => current.map(scope => scope.name === selectedName ? updater(scope) : scope));
@@ -328,12 +317,12 @@ export default function DomainList({
   const save = async (): Promise<boolean> => {
     if (!draftName.trim()) {
       setError("A domain name is required.");
-      setStep(nameStep);
+      setStep(3);
       return false;
     }
     if (!selected && !selectedTables.length) {
       setError("Select at least one database table before generating metadata.");
-      setStep(2);
+      setStep(1);
       return false;
     }
     setStatus("saving");
@@ -412,28 +401,12 @@ export default function DomainList({
       navigate(`/metadata?section=domains&scope=${encodeURIComponent(saved.name)}`);
       setSelectedName(saved.name);
       setDraftName(saved.name);
-      setStep(4);
+      setStep(3);
       setViewMode("detail");
       return true;
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to generate domain metadata.");
       return false;
-    } finally {
-      setStatus("ready");
-    }
-  };
-  const remove = async () => {
-    if (!selected) return;
-    setStatus("saving");
-    try {
-      await request<void>(apiUrls.metadata.domainByName(selected.name), { method: "DELETE" });
-      const remaining = scopes.filter(scope => scope.name !== selected.name);
-      setScopes(remaining);
-      const next = remaining[0];
-      if (next) selectScope(next);
-      else createScope();
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Unable to delete domain.");
     } finally {
       setStatus("ready");
     }
@@ -509,101 +482,123 @@ export default function DomainList({
       setError(reason instanceof Error ? reason.message : "Unable to read the uploaded domain file.");
     }
   };
-  const tableStep = wizardSource === "database" ? 2 : 1;
-  const entityStep = wizardSource === "database" ? 3 : 2;
-  const nameStep = wizardSource === "database" ? 4 : 3;
+  const changeWizardSource = async (source: WizardSource) => {
+    if (source === wizardSource) return;
+    const hasWizardData = step > 1 || Boolean(draftName.trim()) || selectedTables.length > 0;
+    if (hasWizardData) {
+      const action = await showMessageBox({
+        eyebrow: "CHANGE DOMAIN SOURCE",
+        title: "Discard current domain design?",
+        message: "Changing the source will discard the selected tables, entity design, and domain details. The wizard will restart at step 1.",
+        actions: [
+          { value: "cancel", label: "Cancel", variant: "secondary" },
+          { value: "continue", label: "Discard and change source", variant: "danger" },
+        ],
+      });
+      if (action !== "continue") return;
+    }
+    setWizardSource(source);
+    setSelectedTables([]);
+    setUploadedTables([]);
+    setSelectedColumns({});
+    setEntityNames({});
+    setFieldNames({});
+    setCollapsedEntities({});
+    setRelationNames({});
+    setDraftName("");
+    setDraftDescription("");
+    setTableFilter("");
+    setStep(1);
+    setError("");
+  };
+  const cancelWizard = async () => {
+    const hasWizardData = step > 1 || Boolean(draftName.trim()) || selectedTables.length > 0;
+    if (hasWizardData) {
+      const action = await showMessageBox({
+        eyebrow: "CANCEL DOMAIN CREATION",
+        title: "Discard this domain?",
+        message: "Your current source selection and entity design will be lost.",
+        actions: [
+          { value: "cancel", label: "Keep editing", variant: "secondary" },
+          { value: "discard", label: "Discard and go back", variant: "danger" },
+        ],
+      });
+      if (action !== "discard") return;
+    }
+    if (location.key !== "default") {
+      navigate(-1);
+    } else {
+      navigate("/metadata?section=domains");
+    }
+  };
   const canContinue = step === 1
-    ? wizardSource === "database" ? connectionStatus === "succeeded" : selectedTables.length > 0
-    : step === tableStep
-      ? selectedTables.length > 0
-      : step === entityStep
-        ? selectedTableDetails.every(table => (selectedColumns[tableKey(table)] || table.columns.map(column => column.name)).length > 0)
-        : Boolean(draftName.trim());
+    ? (wizardSource === "database"
+      ? connectionStatus === "succeeded" && selectedTables.length > 0
+      : selectedTables.length > 0)
+    : step === 2
+      ? selectedTableDetails.every(table =>
+        (selectedColumns[tableKey(table)] || table.columns.map(column => column.name)).length > 0)
+      : Boolean(draftName.trim());
   const goNext = () => {
-    if (wizardSource === "database" && step === 1 && connectionStatus !== "succeeded") {
+    if (step === 1 && wizardSource === "database" && connectionStatus !== "succeeded") {
       setError("Connect to a database to continue.");
       return;
     }
-    if (step === tableStep && !selectedTables.length) {
-      setError("Select at least one database table to continue.");
+    if (step === 1 && !selectedTables.length) {
+      setError(wizardSource === "database"
+        ? "Select at least one database table to continue."
+        : "Upload a file containing at least one entity to continue.");
       return;
     }
-    if (step === entityStep && !canContinue) {
+    if (step === 2 && !canContinue) {
       setError("Select at least one database column for every entity.");
       return;
     }
-    if (step === nameStep && !draftName.trim()) {
+    if (step === 3 && !draftName.trim()) {
       setError("Enter a domain name to continue.");
       return;
     }
     setError("");
-    setStep(Math.min(nameStep, step + 1) as Step);
+    setStep(Math.min(3, step + 1) as Step);
   };
   const goBack = () => {
     setError("");
     setStep(Math.max(1, step - 1) as Step);
   };
-  const adapter: DefinitionActionAdapter = useMemo(() => ({
-    resourceName: "domain",
-    selectedName,
-    hasSelection: Boolean(selected),
-    isBuiltIn: selected?.isBuiltin ?? false,
-    hasDraft: Boolean(draftName),
-    showSaveWhenClean: true,
-    dirty: dirty || externalDirty,
-    saving: status === "saving",
-    onSave: externalDirty && onExternalSave ? onExternalSave : save,
-    onReload: onExternalReload || load,
-    onDelete: remove,
-    onNew: createScope,
-  }), [
-    dirty,
-    draftName,
-    selected,
-    selectedName,
-    status,
-    selectedTables,
-    entityDirty,
-    externalDirty,
-    onExternalSave,
-    onExternalReload,
-  ]);
-  useEffect(() => {
-    if (!active) return;
-
-    onToolbarActionsChange(
-      <>
-        {viewMode !== "wizard" && <div className="editor-actions" role="toolbar" aria-label="Domain creation actions">
-          <button
-            className="icon-button definition-action-button create"
-            type="button"
-            title="Upload domain from JSON or YAML"
-            aria-label="Upload domain from JSON or YAML"
-            onClick={() => createScope("file")}
-          >
-            <Icon name="upload" size={17} />
-          </button>
-        </div>}
-        <DefinitionActions adapter={viewMode === "wizard"
-          ? { ...adapter, isBuiltIn: false, onNew: undefined }
-          : adapter} />
-      </>,
-    );
-  }, [
-    active,
-    dirty,
-    draftName,
-    entityDirty,
-    externalDirty,
-    onToolbarActionsChange,
-    selectedName,
-    selectedTables.length,
-    status,
-    viewMode,
-  ]);
-
+  const renderButtons = () => (
+    <div className="editor-actions" role="toolbar" aria-label="Domain actions">
+      <button
+        className="icon-button definition-action-button create"
+        type="button"
+        title="Create domain"
+        aria-label="Create domain"
+        onClick={() => createScope()}
+        disabled={status === "saving"}
+      >
+        <Icon name="file-plus" size={17} />
+      </button>
+    </div>
+  );
+  const renderWizardButtons = () => (
+    <div className="editor-actions" role="toolbar" aria-label="Domain wizard actions">
+      <button
+        className="icon-button definition-action-button"
+        type="button"
+        title="Cancel domain creation"
+        aria-label="Cancel domain creation"
+        onClick={() => void cancelWizard()}
+        disabled={status === "saving"}
+      >
+        <Icon name="close" size={17} />
+      </button>
+    </div>
+  );
   return (
     <section className={`domain-workspace${viewMode === "list" ? " domain-list-view" : viewMode === "wizard" ? " domain-create-view" : ""}`} style={viewMode === "list" ? undefined : panel.style}>
+      {active && toolbarHost && createPortal(
+        viewMode === "wizard" ? renderWizardButtons() : renderButtons(),
+        toolbarHost,
+      )}
       {viewMode === "list" ? <div className="domain-catalog">
         <div className="domain-catalog-header">
           <div>
@@ -690,6 +685,7 @@ export default function DomainList({
             saving={status === "saving"}
             error={error}
             onStepChange={setStep}
+            onSourceChange={changeWizardSource}
             onBack={goBack}
             onNext={goNext}
             onGenerate={() => void save()}
@@ -707,12 +703,13 @@ export default function DomainList({
                 }} />
               </label>
             </div>}
-            {wizardSource === "database" && step === 1 && <div className="domain-connection-prompt">
-              <strong>Connect to a database</strong>
-              <p>Use the connection dialog to choose the database that provides your domain tables.</p>
-              <button type="button" className="domain-primary" onClick={() => setConnectionDialogOpen(true)}>Open connection</button>
-            </div>}
-            {wizardSource === "database" && step === tableStep && <div className="domain-table-picker">
+            {wizardSource === "database" && step === 1 && <div className="domain-source-step">
+              {connectionStatus !== "succeeded" && <div className="domain-connection-prompt">
+                <strong>Connect to a database</strong>
+                <p>Choose the database that provides the tables for this domain.</p>
+                <button type="button" className="domain-primary" onClick={() => setConnectionDialogOpen(true)}>Open connection</button>
+              </div>}
+              {connectionStatus === "succeeded" && <div className="domain-table-picker">
               <div className="domain-step-title"><strong>Select database tables</strong><span>{selectedTables.length} selected</span></div>
               <span>Tables are read from the active database connection.</span>
               <label className="domain-table-filter">
@@ -741,11 +738,8 @@ export default function DomainList({
               </div>
               {!schema.tables.length && <p className="empty-state">No database tables are available.</p>}
             </div>}
-            {step === nameStep && <div className="domain-final-details">
-              <label className="domain-name"><span>Domain name</span><input autoFocus spellCheck={false} value={draftName} onChange={event => setDraftName(event.target.value)} placeholder="e.g. Sales" /><small>Use a name that describes the business area this workspace serves.</small></label>
-              <label className="domain-description"><span>Description <small>(optional)</small></span><textarea spellCheck={false} value={draftDescription} onChange={event => setDraftDescription(event.target.value)} placeholder="Describe the business area this domain represents." rows={4} /></label>
             </div>}
-            {step === entityStep && <div className="domain-generation">
+            {step === 2 && <div className="domain-generation">
               <strong>Review and generate metadata</strong>
               <p>{selectedTables.length} entities selected. Choose the fields and relation names to generate.</p>
               <div className="domain-step-section">
@@ -766,6 +760,14 @@ export default function DomainList({
                 const names = relationNames[key] || { lookup: singularize(relation.targetTable), collection: pluralize(relation.sourceTable) };
                 return <div key={key} className="domain-relation-row"><span>{relation.sourceTable} → {relation.targetTable}</span><input spellCheck={false} value={names.lookup} aria-label={`Lookup relation for ${relation.name}`} onChange={event => setRelationNames(current => ({ ...current, [key]: { ...names, lookup: event.target.value } }))} /><input spellCheck={false} value={names.collection} aria-label={`Collection relation for ${relation.name}`} onChange={event => setRelationNames(current => ({ ...current, [key]: { ...names, collection: event.target.value } }))} /></div>;
               })}</div></div>}
+            </div>}
+            {step === 3 && <div className="domain-final-details">
+              <label className="domain-name"><span>Domain name</span><input autoFocus spellCheck={false} value={draftName} onChange={event => setDraftName(event.target.value)} placeholder="e.g. Sales" /><small>Use a name that describes the business area this workspace serves.</small></label>
+              <label className="domain-description"><span>Description <small>(optional)</small></span><textarea spellCheck={false} value={draftDescription} onChange={event => setDraftDescription(event.target.value)} placeholder="Describe the business area this domain represents." rows={4} /></label>
+              <p className="domain-generation-summary">{selectedTables.length} entities are ready to generate.</p>
+              <button type="button" className="domain-primary domain-generate-content-button" onClick={() => void save()} disabled={status === "saving" || !canContinue}>
+                {status === "saving" ? "Generating…" : "Generate metadata"} <Icon name="arrow-right" size={14} />
+              </button>
             </div>}
           </DomainWizard>
         ) : <div className="domain-detail-layout">
@@ -820,7 +822,7 @@ export default function DomainList({
             <button className="database-connection-dialog-close" type="button" aria-label="Close database connection" onClick={() => setConnectionDialogOpen(false)}>
               <Icon name="close" size={16} />
             </button>
-            <DatabaseConnection onConnected={() => { setConnectionDialogOpen(false); setError(""); setStep(2); }} />
+            <DatabaseConnection onConnected={() => { setConnectionDialogOpen(false); setError(""); }} />
           </section>
         </div>,
         document.body,

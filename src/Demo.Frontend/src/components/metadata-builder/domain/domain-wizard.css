@@ -28,8 +28,16 @@
 .domain-wizard-header { display: flex; justify-content: space-between; gap: 20px; padding: 25px 28px 21px; border-bottom: 1px solid #293141; }
 .domain-wizard-header h3 { margin: 8px 0 5px; font-size: 19px; color: #f0edff; }
 .domain-wizard-header p { margin: 0; color: var(--muted); font-size: 12px; }
-.domain-progress { flex: 0 0 auto; align-self: flex-start; padding: 6px 9px; border: 1px solid #8f7fca55; border-radius: 999px; color: #cfc3ff; font-size: 12px; font-weight: 700; letter-spacing: .7px; }
-.domain-steps { display: grid; grid-template-columns: repeat(4,1fr); gap: 4px; width: 100%; max-width: none; margin: 0; padding: 12px 24px; border-top: 0; border-bottom: 1px solid #293141; background: #151923; }
+.domain-wizard-header-actions { display: flex; align-items: center; gap: 10px; }
+.domain-cancel-button { display: inline-flex; align-items: center; justify-content: center; min-width: 82px; min-height: 38px; box-sizing: border-box; padding: 9px 15px; border: 1px solid #303847; border-radius: 6px; color: #aeb6c5; background: transparent; font-size: 12px; font-weight: 650; }
+.domain-cancel-button:hover:not(:disabled) { border-color: #a78bfa; color: #eeeaff; }
+.domain-progress { flex: 0 0 auto; padding: 6px 9px; border: 1px solid #8f7fca55; border-radius: 999px; color: #cfc3ff; font-size: 12px; font-weight: 700; letter-spacing: .7px; }
+.domain-source-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 14px 28px 0; }
+.domain-source-picker button { display: grid; gap: 4px; padding: 11px 12px; border: 1px solid #2d3545; border-radius: 6px; color: #aeb7c8; background: #151923; text-align: left; }
+.domain-source-picker button:hover,.domain-source-picker button.active { border-color: #8064e8; color: #eeeaff; background: #211a35; }
+.domain-source-picker small { color: #788396; font-size: 11px; }
+.domain-source-step { display: grid; gap: 18px; }
+.domain-steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; width: 100%; max-width: none; margin: 0; padding: 12px 24px; border-top: 0; border-bottom: 1px solid #293141; background: #151923; }
 .domain-steps button { position: relative; display: flex; align-items: center; flex-direction: row; gap: 9px; min-width: 0; padding: 0 6px; border: 0; color: #687385; background: transparent; text-align: left; }
 .domain-steps button:not(:last-child)::after { content: ""; position: absolute; top: 15px; right: -2px; left: 42px; border-top: 1px solid #3a4252; }
 .domain-steps button.active,.domain-steps button.complete { color: #eeeaff; }

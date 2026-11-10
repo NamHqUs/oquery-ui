@@ -10,6 +10,29 @@ This is the React/Vite front end for the oQuery demo. It demonstrates a metadata
 - URL-backed pages with browser back/forward support; Query Builder inputs remain in place while visiting other pages and its design is restored after a refresh
 - A Data Sources explorer with Data View and a draggable schema Diagram, including table columns, primary keys, foreign-key cardinalities, and a top-10 row preview
 
+## Page lifecycle and toolbar ownership
+
+Every frontend page is an isolated page unit. A page must define its own two
+render functions:
+
+```ts
+renderButtons(): React.ReactNode
+renderContent(): React.ReactNode
+```
+
+The main template invokes these functions only for the current page. The
+toolbar is a layout host; it does not merge action groups, choose buttons, or
+contain page state. Button visibility, disabled state, dirty state, and action
+handlers belong to the page that renders the buttons.
+
+Pages must not reuse another page's toolbar action component or action state.
+The Domains page renders only its **Create domain** toolbar action. The Diagram
+page owns its separate **Save domain**, **Delete domain**, **Reload domain**, and
+**Create domain** actions, with **Create domain** always rendered last. The
+domain creation wizard is a separate page unit and owns its own Cancel, Back,
+Next, and Generate metadata controls. Its actions must not be registered by or
+shared with the Domains or Diagram pages.
+
 The Data Sources page first loads configured connection profile names from
 `GET /db/connections`. It supports server-side configured profiles and direct
 connections to SqlServer, Sqlite, Firebird, Postgres, CockroachDB,

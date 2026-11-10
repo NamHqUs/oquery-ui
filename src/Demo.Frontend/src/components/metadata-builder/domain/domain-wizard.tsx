@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import Icon from "../../icon/icon";
 import "./domain-wizard.css";
 
-export type WizardStep = 1 | 2 | 3 | 4;
+export type WizardStep = 1 | 2 | 3;
 export type WizardSource = "database" | "file";
 
 type DomainWizardProps = {
@@ -12,6 +12,7 @@ type DomainWizardProps = {
   saving: boolean;
   error?: string;
   onStepChange: (step: WizardStep) => void;
+  onSourceChange: (source: WizardSource) => void | Promise<void>;
   onBack: () => void;
   onNext: () => void;
   onGenerate: () => void;
@@ -25,15 +26,14 @@ export default function DomainWizard({
   saving,
   error,
   onStepChange,
+  onSourceChange,
   onBack,
   onNext,
   onGenerate,
   children,
 }: DomainWizardProps) {
-  const steps = source === "database"
-    ? [["1", "Connect", "Database connection"], ["2", "Tables", "Data sources"], ["3", "Entities", "Entity design"], ["4", "Generate", "Domain identity"]]
-    : [["1", "Upload", "JSON or YAML"], ["2", "Entities", "Entity design"], ["3", "Generate", "Domain identity"]];
-  const finalStep = source === "database" ? 4 : 3;
+  const steps = [["1", "Source", "Database or file"], ["2", "Design entities", "Entity fields and relations"], ["3", "Generate", "Domain identity"]];
+  const finalStep = 3;
   const [railFloating, setRailFloating] = useState(false);
   const [railLeft, setRailLeft] = useState<number | null>(null);
   useEffect(() => {
@@ -55,9 +55,19 @@ export default function DomainWizard({
   return (
     <div className="domain-wizard">
       <header className="domain-wizard-header">
-        <div><span className="section-kicker">BUSINESS LOGIC</span><h3>New domain</h3><p>Connect a database, choose its source tables, design entities, and generate query-ready metadata.</p></div>
-        <span className="domain-progress">STEP {step} OF {finalStep}</span>
+        <div><span className="section-kicker">BUSINESS LOGIC</span><h3>New domain</h3><p>Choose a source, prepare its entities, and generate query-ready metadata.</p></div>
+        <div className="domain-wizard-header-actions">
+          <span className="domain-progress">STEP {step} OF {finalStep}</span>
+        </div>
       </header>
+      <div className="domain-source-picker" role="group" aria-label="Domain metadata source">
+        <button type="button" className={source === "database" ? "active" : ""} onClick={() => void onSourceChange("database")}>
+          <strong>Database</strong><small>Choose tables from a connected database</small>
+        </button>
+        <button type="button" className={source === "file" ? "active" : ""} onClick={() => void onSourceChange("file")}>
+          <strong>JSON or YAML</strong><small>Upload existing domain metadata</small>
+        </button>
+      </div>
       {error && <p className="domain-error" role="alert">{error}</p>}
       <div className="domain-wizard-body">
         <aside
@@ -73,8 +83,7 @@ export default function DomainWizard({
           </div>
           <footer className="domain-wizard-footer">
             <button type="button" className="domain-secondary" onClick={onBack} disabled={step === 1 || saving}><Icon name="arrow-left" size={14} /> Back</button>
-            {step < finalStep && <button type="button" className="domain-primary" onClick={onNext} disabled={!canContinue}>Continue <Icon name="arrow-right" size={14} /></button>}
-            {step === finalStep && <button type="button" className="domain-primary" onClick={onGenerate} disabled={saving || !canContinue}>{saving ? "Generating…" : "Generate metadata"} <Icon name="arrow-right" size={14} /></button>}
+            <button type="button" className="domain-primary" onClick={onNext} disabled={step === finalStep || !canContinue || saving}>Next <Icon name="arrow-right" size={14} /></button>
           </footer>
         </aside>
         <div className="domain-step-panel">{children}</div>

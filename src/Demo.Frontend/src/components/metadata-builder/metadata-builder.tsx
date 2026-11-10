@@ -129,7 +129,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const [domains, setDomains] = useState<DomainSummary[]>([]);
   const [domainsExpanded, setDomainsExpanded] = useState(true);
   const [scopedEntities, setScopedEntities] = useState<MetadataEntity[] | null>(null);
-  const [domainToolbarActions, setDomainToolbarActions] = useState<React.ReactNode>(null);
   const sectionNavigationRef = useRef<(section: MetadataSection) => void>(() => undefined);
   const [pendingToolbarSection, setPendingToolbarSection] = useState<MetadataSection | null>(null);
   useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
@@ -253,6 +252,82 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const reload = async () => {
     setMessage("");
     await loadEntities(false, selectedName);
+  };
+
+  const createDiagramDomain = () => {
+    navigate("/metadata/domains/create?section=domains&source=database");
+  };
+
+  const saveDiagramDomain = async () => {
+    if (!scopeName || activeDomainIsBuiltin) return;
+    const scope = domains.find((domain) => domain.name === scopeName);
+    if (!scope) {
+      setMessage(`Domain "${scopeName}" was not found.`);
+      return;
+    }
+    setStatus("saving");
+    setMessage("");
+    try {
+      const nextEntities = draft && dirty
+        ? displayedEntities.map((entity) => entity.name === selectedName ? {
+          ...entity,
+          name: draft.name.trim(),
+          schema: draft.schema.trim(),
+          rawSql: draft.rawSql.trim() || draft.name.trim(),
+          fields: draft.fields,
+          relations: draft.relations,
+        } : entity)
+        : displayedEntities;
+      await request(apiUrls.metadata.domainByName(scope.name), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: scope.name,
+          description: scope.description,
+          entities: nextEntities,
+        }),
+      });
+      setScopedEntities(nextEntities);
+      setDirty(false);
+      dispatch(invalidateQueryMetadata());
+      await loadEntities(false, selectedName);
+    } catch (error) {
+      setStatus("failed");
+      setMessage(error instanceof Error ? error.message : "Unable to save the diagram domain.");
+    }
+  };
+
+  const reloadDiagramDomain = async () => {
+    setMessage("");
+    await loadEntities(false, selectedName);
+    const result = await request<DomainSummary[]>(apiUrls.metadata.domains);
+    setDomains(result);
+  };
+
+  const deleteDiagramDomain = async () => {
+    if (!scopeName || activeDomainIsBuiltin) return;
+    const action = await showMessageBox({
+      eyebrow: "DELETE DOMAIN",
+      title: `Delete ${scopeName}?`,
+      message: `This will permanently delete the ${scopeName} domain and all of its entity definitions.`,
+      confirmationText: scopeName,
+      confirmationLabel: `Enter ${scopeName} to confirm`,
+      actions: [
+        { value: "cancel", label: "Cancel", variant: "secondary" },
+        { value: "delete", label: "Delete domain", variant: "danger" },
+      ],
+    });
+    if (action !== "delete") return;
+    setStatus("saving");
+    setMessage("");
+    try {
+      await request(apiUrls.metadata.domainByName(scopeName), { method: "DELETE" });
+      setDomains((current) => current.filter((domain) => domain.name !== scopeName));
+      navigate("/metadata?section=diagram");
+    } catch (error) {
+      setStatus("failed");
+      setMessage(error instanceof Error ? error.message : "Unable to delete the diagram domain.");
+    }
   };
 
   const save = async (): Promise<boolean> => {
@@ -514,9 +589,21 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       }}
     />
   );
-  const toolbarSection = pendingToolbarSection ?? activeSection;
-  const toolbarActions = toolbarSection === "domains" || toolbarSection === "diagram"
-    ? domainToolbarActions
+  const toolbarActions = activeSection === "diagram"
+    ? <div className="editor-actions" role="toolbar" aria-label="Diagram domain actions">
+      {scopeName && !activeDomainIsBuiltin && <button className="icon-button definition-action-button primary" type="button" title="Save domain" aria-label="Save domain" onClick={() => void saveDiagramDomain()} disabled={!dirty || status === "saving"}>
+        <Icon name="save" size={17} />
+      </button>}
+      {scopeName && !activeDomainIsBuiltin && <button className="icon-button definition-action-button danger" type="button" title="Delete domain" aria-label="Delete domain" onClick={() => void deleteDiagramDomain()} disabled={status === "saving"}>
+        <Icon name="trash" size={17} />
+      </button>}
+      {scopeName && <button className="icon-button definition-action-button" type="button" title="Reload domain" aria-label="Reload domain" onClick={() => void reloadDiagramDomain()} disabled={status === "saving"}>
+        <Icon name="reset" size={17} />
+      </button>}
+      <button className="icon-button definition-action-button create" type="button" title="Create domain" aria-label="Create domain" onClick={createDiagramDomain} disabled={status === "saving"}>
+        <Icon name="file-plus" size={17} />
+      </button>
+    </div>
     : null;
   const databaseOptions = Array.from(new Set(displayedEntities.map((entity) => entity.schema).filter(Boolean)));
   const databaseTables = databaseState.schema.tables as DatabaseTableOption[];
@@ -696,11 +783,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       </div>}
       {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "domains"}>
         <DomainList
-          active={activeSection === "domains" || activeSection === "diagram"}
-          onToolbarActionsChange={setDomainToolbarActions}
-          externalDirty={activeSection === "diagram" && dirty}
-          onExternalSave={save}
-          onExternalReload={reload}
+          active={activeSection === "domains"}
         />
       </div>}
       {toolbarHost && createPortal(
