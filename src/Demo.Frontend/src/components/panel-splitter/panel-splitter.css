@@ -1,6 +1,7 @@
 .panel-splitter { position: absolute; top: 0; bottom: 0; left: var(--panel-width); z-index: 5; width: 0; }
 .panel-splitter-handle { position: absolute; top: 0; bottom: 0; left: -4px; width: 8px; cursor: col-resize; touch-action: none; }
-.panel-splitter-handle::after { position: absolute; top: 0; bottom: 0; left: 3px; width: 2px; background: transparent; content: ""; transition: background .15s ease; }
+.panel-splitter-handle::before { display: none; }
+.panel-splitter-handle::after { position: absolute; top: 0; bottom: 0; left: 3px; width: 1px; background: #29243f; content: ""; transition: background .15s ease; }
 .panel-splitter-handle:hover::after, .panel-splitter-handle:focus-visible::after { background: var(--purple); }
 .panel-splitter-handle:focus-visible { outline: 0; }
 .panel-splitter-toggle { position: absolute; top: 16px; left: -11px; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; color: #8993a5; border: 1px solid var(--line); border-radius: 50%; background: #171b24; cursor: pointer; }
@@ -34,7 +35,10 @@
   bottom: auto;
   left: 0;
   width: auto;
-  height: 2px;
+  height: 1px;
+}
+.panel-splitter.horizontal .panel-splitter-handle::before {
+  display: none;
 }
 .panel-splitter.horizontal.top .panel-splitter-handle::after {
   background: #394152;

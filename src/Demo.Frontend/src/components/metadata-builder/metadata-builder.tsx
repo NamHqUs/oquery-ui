@@ -117,6 +117,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const [dirty, setDirty] = useState(false);
   const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
   const [domains, setDomains] = useState<DomainSummary[]>([]);
+  const [domainsExpanded, setDomainsExpanded] = useState(true);
+  const [scopedEntities, setScopedEntities] = useState<MetadataEntity[] | null>(null);
   useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   useEffect(() => { selectedNameRef.current = selectedName; }, [selectedName]);
   const requestedSection = searchParams.get("section")
@@ -149,7 +151,9 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     onSectionNavigationChange?.((section) => { void selectSection(section); });
     return () => onSectionNavigationChange?.(null);
   }, [activeSection, onSectionNavigationChange, searchParams]);
-  const selectedIsBuiltin = entities.find((entity) => entity.name === selectedName)?.canDelete === false;
+  const displayedEntities = scopedEntities ?? entities;
+  const selectedIsBuiltin = !scopeName
+    || displayedEntities.find((entity) => entity.name === selectedName)?.canDelete === false;
   useDefinitionUnsavedWarning(dirty);
 
   const loadEntities = async (selectFirst = false, preferredName = selectedName) => {
@@ -161,6 +165,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         throw new Error(String(result.payload || "Unable to load metadata."));
       }
       const payload = result.payload;
+      setScopedEntities(scopeName ? payload : null);
       const preferred = payload.find((entity) => entity.name === preferredName);
       if (selectFirst || !preferredName || !preferred) {
         const next = selectFirst ? payload[0] : preferred;
@@ -201,13 +206,22 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     return () => { cancelled = true; };
   }, [activeSection, entityOnly]);
   useEffect(() => {
+    if (!scopeName || !scopedEntities) return;
+    setDomains((current) => current.map((domain) =>
+      domain.name === scopeName ? { ...domain, entities: scopedEntities } : domain));
+  }, [scopeName, scopedEntities]);
+  useEffect(() => {
     if (databaseState.connectionStatus === "succeeded" && databaseState.schemaStatus === "idle") {
       dispatch(fetchDbSchema());
     }
   }, [databaseState.connectionStatus, databaseState.schemaStatus, dispatch]);
 
   const discardChanges = () => {
-    const original = entities.find((entity) => entity.name === selectedName);
+    if (scopeName) {
+      void loadEntities(false, selectedName);
+      return;
+    }
+    const original = displayedEntities.find((entity) => entity.name === selectedName);
     setDraft(original ? toEditable(original) : null);
     setDirty(false);
     setMessage("");
@@ -269,12 +283,40 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     setStatus("saving");
     setMessage("");
     try {
-      const url = selectedName ? apiUrls.metadata.byName(selectedName) : apiUrls.metadata.list;
-      await request(url, {
-        method: selectedName ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      if (scopeName && !draft) {
+        const scopeResult = await request<DomainSummary[]>(apiUrls.metadata.domains);
+        const scope = scopeResult.find((item) => item.name === scopeName);
+        if (!scope) throw new Error(`Domain "${scopeName}" was not found.`);
+        await request(apiUrls.metadata.domainByName(scope.name), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: scope.name,
+            description: scope.description,
+            entities: displayedEntities,
+          }),
+        });
+        dispatch(invalidateQueryMetadata());
+        return await loadEntities(true);
+      }
+      if (scopeName) {
+        const scopeResult = await request<DomainSummary[]>(apiUrls.metadata.domains);
+        const scope = scopeResult.find((item) => item.name === scopeName);
+        if (!scope) throw new Error(`Domain "${scopeName}" was not found.`);
+        const nextEntities = selectedName
+          ? displayedEntities.map((entity) => entity.name === selectedName ? payload : entity)
+          : [...displayedEntities, payload];
+        await request(apiUrls.metadata.domainByName(scope.name), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: scope.name,
+            description: scope.description,
+            entities: nextEntities,
+          }),
+        });
+        setScopedEntities(nextEntities);
+      }
       dispatch(invalidateQueryMetadata());
       return await loadEntities(false, payload.name);
     } catch (error) {
@@ -336,16 +378,13 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const remove = async () => {
     const name = selectedNameRef.current;
     if (!name || selectedIsBuiltin) return;
-    setStatus("saving");
-    try {
-      await request(apiUrls.metadata.byName(name), { method: "DELETE" });
-      setSelectedName("");
-      dispatch(invalidateQueryMetadata());
-      await loadEntities(true);
-    } catch (error) {
-      setStatus("failed");
-      setMessage(error instanceof Error ? error.message : "Unable to delete metadata.");
-    }
+    const remaining = displayedEntities.filter((entity) => entity.name !== name);
+    setScopedEntities(remaining);
+    const next = remaining[0];
+    setSelectedName(next?.name || "");
+    setDraft(next ? toEditable(next) : null);
+    setDirty(true);
+    setMessage(`"${name}" was removed from the ${scopeName} domain. Save the domain to apply the change.`);
   };
 
   const addEntity = async () => {
@@ -437,7 +476,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     onDelete: remove,
     onNew: () => void addEntity(),
   };
-  const databaseOptions = Array.from(new Set(entities.map((entity) => entity.schema).filter(Boolean)));
+  const databaseOptions = Array.from(new Set(displayedEntities.map((entity) => entity.schema).filter(Boolean)));
   const databaseTables = databaseState.schema.tables as DatabaseTableOption[];
   const tableKey = (table: { schema: string; name: string }) =>
     `${(table.schema || "dbo").trim().toLowerCase()}.${table.name.trim().toLowerCase()}`;
@@ -482,7 +521,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     <>
       {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "diagram"}>
         <EntityDiagram
-          entities={entities}
+          entities={displayedEntities}
           domains={domains}
           activeScopeName={scopeName}
           editingEntity={draft}
@@ -495,7 +534,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
               <div className="table-details-title">
                 <div className="metadata-editor-heading-eyebrow">
                   <span className="section-kicker">ENTITY DEFINITION</span>
-                  <span>{scopeName || "All domains"}</span>
                 </div>
                 <div className="metadata-editor-heading-title">
                   <span className="metadata-editor-heading-icon"><Icon name="table" size={18} /></span>
@@ -510,9 +548,9 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           entityEditor={
             <EntityBuilder
               draft={draft}
-              canEdit={!selectedName || Boolean(draft?.canDelete)}
+              canEdit={Boolean(scopeName) && (!selectedName || Boolean(draft?.canDelete))}
               message={message}
-              allEntities={entities}
+              allEntities={displayedEntities}
               onDraftChange={updateDraft}
               databaseOptions={databaseOptions}
               databaseTables={databaseTables}
@@ -529,13 +567,20 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           <div className="metadata-entity-navigation">
             {domains.length > 0 && (
               <div className="metadata-scope-navigation">
-                <div className="metadata-scope-navigation-heading">
-                  <span className="section-kicker">WORKSPACE</span>
-                  <strong>Domain</strong>
-                </div>
-                <nav aria-label="Entity definition domains">
+                <button
+                  type="button"
+                  className={`metadata-scope-navigation-heading${domainsExpanded ? "" : " collapsed"}`}
+                  aria-expanded={domainsExpanded}
+                  aria-controls="metadata-domain-navigation"
+                  onClick={() => setDomainsExpanded((expanded) => !expanded)}
+                >
+                  <span className="section-kicker">DOMAINS</span>
+                  <Icon name="chevron-down" size={14} />
+                </button>
+                <nav id="metadata-domain-navigation" aria-label="Entity definition domains">
                   {domains.map((scope) => {
                     const isActive = (scopeName || "All") === scope.name;
+                    if (!domainsExpanded && !isActive) return null;
                     return (
                       <button
                         type="button"
@@ -554,22 +599,20 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
               </div>
             )}
             <EntityList
-              entities={entities}
+              entities={displayedEntities}
               selectedName={selectedName}
               filter={filter}
               status={status}
-              scopeName={scopeName}
               onFilterChange={setFilter}
               onSelectEntity={selectEntity}
             />
           </div>
           <PanelSplitter panel={panel} label="entities panel" />
           <div className="metadata-editor">
-            <div className="table-details-heading metadata-editor-heading">
+            <div className="table-details-heading metadata-editor-heading entity-details-heading">
               <div className="table-details-title">
                 <div className="metadata-editor-heading-eyebrow">
-                  <span className="section-kicker">ENTITY DEFINITION</span>
-                  <span>{scopeName || "All domains"}</span>
+                  <span className="section-kicker">DETAILS</span>
                 </div>
                 <div className="metadata-editor-heading-title">
                   <span className="metadata-editor-heading-icon"><Icon name="table" size={18} /></span>
@@ -582,9 +625,9 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
             </div>
             <EntityBuilder
               draft={draft}
-              canEdit={!selectedName || Boolean(draft?.canDelete)}
+              canEdit={Boolean(scopeName) && (!selectedName || Boolean(draft?.canDelete))}
               message={message}
-              allEntities={entities}
+              allEntities={displayedEntities}
               onDraftChange={updateDraft}
               databaseOptions={databaseOptions}
               databaseTables={databaseTables}

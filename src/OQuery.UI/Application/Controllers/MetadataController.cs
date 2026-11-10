@@ -17,24 +17,9 @@ public sealed class MetadataController(
     public ActionResult<IReadOnlyList<MetadataEntityDto>> GetMetadata([FromQuery] string? scope)
         => Ok(domainService.GetEntities(scope));
 
-    [HttpPost]
-    public ActionResult<Entity> CreateMetadata([FromBody] Entity entity)
-        => Ok(metadataService.Create(entity));
-
     [HttpPost("reset")]
     public ActionResult<IReadOnlyList<Entity>> Reset()
         => Ok(metadataService.Reset());
-
-    [HttpPut("{entityName}")]
-    public ActionResult<Entity> UpdateMetadata(string entityName, [FromBody] Entity entity)
-        => Ok(metadataService.Update(entityName, entity));
-
-    [HttpDelete("{entityName}")]
-    public IActionResult DeleteMetadata(string entityName)
-    {
-        metadataService.Delete(entityName);
-        return NoContent();
-    }
 
     [HttpGet("domains")]
     public ActionResult<IReadOnlyList<DomainDto>> GetDomains()

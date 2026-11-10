@@ -91,7 +91,9 @@ export default function DefinitionActions({ adapter }: { adapter: DefinitionActi
   const resourceContext = adapter.resourceName === "entity" ? " from current domain" : "";
   const createLabel = `Create ${adapter.resourceName}${adapter.resourceName === "entity" ? " in current domain" : ""}`;
   const deleteLabel = `Delete ${adapter.resourceName}${resourceContext}`;
-  const saveLabel = `Save ${adapter.resourceName} changes`;
+  const saveLabel = adapter.resourceName === "entity"
+    ? "Save current domain changes"
+    : `Save ${adapter.resourceName} changes`;
 
   const handleNew = async () => {
     if (!adapter.onNew || !(await resolveDefinitionChanges(adapter, showMessageBox))) return;
@@ -106,6 +108,7 @@ export default function DefinitionActions({ adapter }: { adapter: DefinitionActi
 
   return (
     <div className="editor-actions">
+      {adapter.isBuiltIn && <span className="section-kicker definition-readonly">BUILT-IN · READ-ONLY</span>}
       {!adapter.isBuiltIn && showDelete && (
         <button
           className="icon-button definition-action-button danger"
@@ -142,7 +145,6 @@ export default function DefinitionActions({ adapter }: { adapter: DefinitionActi
           <Icon name="reset" size={17} />
         </button>
       )}
-      {adapter.isBuiltIn && <span className="section-kicker definition-readonly">BUILT-IN · READ-ONLY</span>}
       {adapter.onNew && <button
         className="icon-button definition-action-button create"
         type="button"

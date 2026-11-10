@@ -313,7 +313,7 @@ export default function DomainList({ active }: { active: boolean }) {
     }));
     setSelectedEntityName(normalized.name);
     setEntityDraft(normalized);
-    setEntityDirty(false);
+    setEntityDirty(true);
     setError("");
   };
   const save = async (): Promise<boolean> => {
@@ -399,6 +399,7 @@ export default function DomainList({ active }: { active: boolean }) {
       setScopes(current => selected
         ? current.map(scope => scope.name === selected.name ? saved : scope)
         : [...current, saved]);
+      setEntityDirty(false);
       navigate(`/metadata?section=domains&scope=${encodeURIComponent(saved.name)}`);
       setSelectedName(saved.name);
       setDraftName(saved.name);
@@ -570,7 +571,7 @@ export default function DomainList({ active }: { active: boolean }) {
               <span className="domain-summary-content">
                 <strong>{scope.name}</strong>
                 {scope.description && <small className="domain-summary-description">{scope.description}</small>}
-                <small>{scope.isBuiltin ? "Built-in scope" : "Custom scope"}</small>
+                <small>                {scope.isBuiltin ? "Built-in domain" : "Custom domain"}</small>
               </span>
               <span className="domain-summary-stats">
                 <b>{scope.entities.length}</b>
@@ -589,10 +590,10 @@ export default function DomainList({ active }: { active: boolean }) {
         <PanelSplitter panel={panel} label="domains panel" />
         <MetadataSidebar
           className="metadata-list domain-route-list"
-          title="BUSINESS SCOPES"
+          title="DOMAINS"
           totalCount={scopes.length}
           filter={scopeFilter}
-          searchPlaceholder="Find a saved scope"
+          searchPlaceholder="Find a saved domain"
           onFilterChange={setScopeFilter}
           groups={[{
             id: "route-domains",

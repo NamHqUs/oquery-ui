@@ -42,7 +42,8 @@
 .domain-entity-filter input { width: 100%; padding: 8px 0; border: 0; outline: 0; color: #e9edf4; background: transparent; font-size: 12px; }
 .domain-entity-list { display: grid; gap: 4px; margin-top: 12px; }
 .domain-entity-list button { display: flex; align-items: center; gap: 8px; padding: 10px 8px; border: 1px solid transparent; border-radius: 5px; color: #aeb6c5; background: transparent; text-align: left; }
-.domain-entity-list button:hover, .domain-entity-list button.active { border-color: #3b315c; color: #eeeaff; background: #211a35; }
+.domain-entity-list button:hover, .domain-entity-list button.active { border-color: #3b315c; color: #eeeaff; background: transparent; }
+.domain-entity-list button.active { box-shadow: inset 3px 0 #8f7fca; }
 .domain-entity-list button span { min-width: 0; }
 .domain-entity-list b, .domain-entity-list small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .domain-entity-list b { font-size: 12px; }
@@ -235,12 +236,12 @@
 }
 .domain-entity-list button:hover {
   border-color: #38425b;
-  background: #171e2b;
+  background: transparent;
 }
 .domain-entity-list button.active {
   border-color: #6654a6;
-  background: linear-gradient(135deg, #302655, #1d2035);
-  box-shadow: inset 0 1px #ffffff0b;
+  background: transparent;
+  box-shadow: inset 3px 0 #8f7fca;
 }
 .domain-entity-editor {
   padding: 28px 32px;

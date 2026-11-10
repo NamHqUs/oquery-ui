@@ -73,7 +73,6 @@ export default function EntityBuilder({
       {!draft
         ? <div className="metadata-empty">
             <Icon name="table" size={32} />
-            <p>Select an entity to view or edit its metadata.</p>
           </div>
         : <>
           {message && (
