@@ -4,9 +4,11 @@
 /* Section navigation */
 .hp-subnav { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 22px; margin: 0 -4px 22px; padding: 10px 14px; border: 1px solid #29243f; border-radius: 9px; background: #0d0e17e6; backdrop-filter: blur(10px); }
 .hp-subnav-brand { color: #f0eef9; font: 700 13px "Space Grotesk", "Manrope", sans-serif; letter-spacing: .4px; }
-.hp-subnav-links { display: flex; min-width: 0; flex: 1; gap: 4px; overflow-x: auto; }
-.hp-subnav-links button, .hp-subnav-links a { padding: 7px 10px; border: 1px solid transparent; border-radius: 6px; color: #7f879a; background: transparent; font: 600 12px "Space Grotesk", "Manrope", sans-serif; text-decoration: none; white-space: nowrap; transition: color .16s ease, background .16s ease, border-color .16s ease; }
+.hp-subnav-links { display: flex; min-width: 0; height: 50px; flex: 1; gap: 4px; margin: 0; overflow-x: auto; }
+.hp-subnav-links button, .hp-subnav-links a { display: inline-flex; align-items: center; padding: 7px 10px; border: 1px solid transparent; border-radius: 6px; color: #7f879a; background: transparent; font: 600 12px "Space Grotesk", "Manrope", sans-serif; text-decoration: none; white-space: nowrap; transition: color .16s ease, background .16s ease, border-color .16s ease; }
 .hp-subnav-links button:hover, .hp-subnav-links a:hover { color: #e7e2ff; border-color: #322b4e; background: #171525; }
+.hp-subnav-links button.active { position: relative; border-color: transparent; color: #f3efff; background: transparent; }
+.hp-subnav-links button.active::after { position: absolute; right: 10px; bottom: 0; left: 10px; z-index: 1; height: 2px; border-radius: 2px; background: linear-gradient(90deg, #7d62e4, #67d4b0); content: ""; }
 .hp-subnav-cta { padding: 8px 13px; font-size: 12px; white-space: nowrap; }
 
 /* Hero */

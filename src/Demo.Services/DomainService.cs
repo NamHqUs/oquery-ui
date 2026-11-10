@@ -6,13 +6,13 @@ using OQuery;
 
 namespace Demo.Services;
 
-public sealed class BusinessScopeService(
-    IBusinessScopeRepository repository,
+public sealed class DomainService(
+    IDomainRepository repository,
     IMetadataRepository metadataRepository,
     IUserSectionManager userSectionManager,
-    IDatabaseService databaseService) : IBusinessScopeService
+    IDatabaseService databaseService) : IDomainService
 {
-    public IReadOnlyList<BusinessScopeDto> GetAll()
+    public IReadOnlyList<DomainDto> GetAll()
     {
         var sectionId = userSectionManager.GetSectionId();
         var builtinEntities = GetBuiltinEntities();
@@ -35,14 +35,14 @@ public sealed class BusinessScopeService(
                 scope.Name.Equals(string.IsNullOrWhiteSpace(scopeName) ? "All" : scopeName.Trim(),
                     StringComparison.OrdinalIgnoreCase))
             ?.Entities
-            ?? throw new KeyNotFoundException($"Business scope '{scopeName}' was not found.");
+            ?? throw new KeyNotFoundException($"Domain '{scopeName}' was not found.");
 
-    public BusinessScopeDto Create(BusinessScopeDto scope)
+    public DomainDto Create(DomainDto scope)
     {
         var normalized = Validate(scope);
         var sectionId = userSectionManager.GetSectionId();
         if (GetAll().Any(existing => existing.Name.Equals(normalized.Name, StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidOperationException($"A business scope named '{normalized.Name}' already exists.");
+            throw new InvalidOperationException($"A domain named '{normalized.Name}' already exists.");
         ValidateEntities(normalized.Entities);
         normalized.CanDelete = true;
         normalized.IsBuiltin = false;
@@ -50,7 +50,7 @@ public sealed class BusinessScopeService(
         return normalized;
     }
 
-    public BusinessScopeDto Generate(BusinessScopeGenerationRequestDto request)
+    public DomainDto Generate(DomainGenerationRequestDto request)
     {
         ArgumentNullException.ThrowIfNull(request);
         var schema = databaseService.GetDatabaseSchema();
@@ -105,26 +105,27 @@ public sealed class BusinessScopeService(
                 relationship.TargetColumns.Zip(relationship.SourceColumns, (target, source) => new RelationItem(target, source)).ToList()));
         }
 
-        return Create(new BusinessScopeDto
+        return Create(new DomainDto
         {
             Name = request.Name,
+            Description = request.Description,
             Entities = generated.Values.Select(entity => MetadataEntityDto.FromEntity(entity, true)).ToList(),
         });
     }
 
-    public BusinessScopeDto Update(string scopeName, BusinessScopeDto scope)
+    public DomainDto Update(string scopeName, DomainDto scope)
     {
         var sectionId = userSectionManager.GetSectionId();
         if (repository.GetBuiltin().Any(existing => existing.Name.Equals(scopeName, StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidOperationException($"Built-in business scope '{scopeName}' is read-only.");
+            throw new InvalidOperationException($"Built-in domain '{scopeName}' is read-only.");
         var existing = repository.GetUserDefined(sectionId).FirstOrDefault(item =>
             item.Name.Equals(scopeName, StringComparison.OrdinalIgnoreCase))
-            ?? throw new KeyNotFoundException($"Business scope '{scopeName}' was not found.");
+            ?? throw new KeyNotFoundException($"Domain '{scopeName}' was not found.");
         var normalized = Validate(scope);
         ValidateEntities(normalized.Entities);
         if (GetAll().Any(item => !item.Name.Equals(scopeName, StringComparison.OrdinalIgnoreCase)
             && item.Name.Equals(normalized.Name, StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidOperationException($"A business scope named '{normalized.Name}' already exists.");
+            throw new InvalidOperationException($"A domain named '{normalized.Name}' already exists.");
         normalized.CanDelete = true;
         normalized.IsBuiltin = false;
         repository.Save(sectionId, normalized);
@@ -137,7 +138,7 @@ public sealed class BusinessScopeService(
     {
         var sectionId = userSectionManager.GetSectionId();
         if (repository.GetBuiltin().Any(scope => scope.Name.Equals(scopeName, StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidOperationException($"Built-in business scope '{scopeName}' cannot be deleted.");
+            throw new InvalidOperationException($"Built-in domain '{scopeName}' cannot be deleted.");
         if (repository.GetUserDefined(sectionId).Any(scope => scope.Name.Equals(scopeName, StringComparison.OrdinalIgnoreCase)))
             repository.Delete(sectionId, scopeName);
     }
@@ -147,7 +148,7 @@ public sealed class BusinessScopeService(
         var requestedName = string.IsNullOrWhiteSpace(scopeName) ? "All" : scopeName.Trim();
         var scope = GetAll().FirstOrDefault(item =>
             item.Name.Equals(requestedName, StringComparison.OrdinalIgnoreCase))
-            ?? throw new KeyNotFoundException($"Business scope '{requestedName}' was not found.");
+            ?? throw new KeyNotFoundException($"Domain '{requestedName}' was not found.");
         return new MetadataProvider(scope.Entities.Select(entity => entity.ToEntity()).ToArray());
     }
 
@@ -160,28 +161,29 @@ public sealed class BusinessScopeService(
     private static void ValidateEntities(IReadOnlyCollection<MetadataEntityDto> entities)
     {
         if (entities is null)
-            throw new ArgumentException("Business scope entities are required.", nameof(entities));
+            throw new ArgumentException("Domain entities are required.", nameof(entities));
         if (entities.Any(entity => entity is null || string.IsNullOrWhiteSpace(entity.Name)))
-            throw new ArgumentException("Every business scope entity must have a name.", nameof(entities));
+            throw new ArgumentException("Every domain entity must have a name.", nameof(entities));
         if (entities.Select(entity => entity.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() != entities.Count)
-            throw new ArgumentException("Entity names must be unique within a business scope.", nameof(entities));
+            throw new ArgumentException("Entity names must be unique within a domain.", nameof(entities));
     }
 
-    private static BusinessScopeDto Validate(BusinessScopeDto scope)
+    private static DomainDto Validate(DomainDto scope)
     {
         ArgumentNullException.ThrowIfNull(scope);
         if (string.IsNullOrWhiteSpace(scope.Name))
-            throw new ArgumentException("Business scope name is required.");
+            throw new ArgumentException("Domain name is required.");
         if (scope.Entities is null)
             scope.Entities = [];
         scope.Name = scope.Name.Trim();
         return scope;
     }
 
-    private static BusinessScopeDto Copy(BusinessScopeDto source, IReadOnlyList<MetadataEntityDto> entities, bool canDelete)
+    private static DomainDto Copy(DomainDto source, IReadOnlyList<MetadataEntityDto> entities, bool canDelete)
         => new()
         {
             Name = source.Name,
+            Description = source.Description,
             Entities = entities.ToList(),
             CanDelete = canDelete,
             IsBuiltin = !canDelete,

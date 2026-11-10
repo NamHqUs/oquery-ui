@@ -68,6 +68,8 @@
 .metadata-workspace-panel[hidden] { display: none !important; }
 .metadata-workspace-panel > .function-workspace, .metadata-workspace-panel > .operator-workspace { margin-bottom: 0; }
 .editor-actions { flex: 0 0 auto; justify-content: flex-end; width: auto; max-width: none; gap: 8px; }
+#metadata-toolbar-actions { gap: 12px; }
+#metadata-toolbar-actions .editor-actions { gap: 12px; }
 .definition-action-button { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; color: #aeb6c5; border: 1px solid var(--line); border-radius: 5px; background: #131720; }
 .definition-action-button:hover:not(:disabled) { color: #fff; border-color: #8064e8; background: #1b202b; }
 .definition-action-button.create { color: #d3c8ff; border-color: #7866aa80; background: #7054d4; }

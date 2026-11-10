@@ -9,13 +9,13 @@ namespace OQuery.UI.Application.Controllers;
 [Route("metadata")]
 public sealed class MetadataController(
     IMetadataService metadataService,
-    IBusinessScopeService businessScopeService,
+    IDomainService domainService,
     IFunctionDefinitionService functionDefinitionService,
     IOperatorDefinitionService operatorDefinitionService) : ControllerBase
 {
     [HttpGet]
     public ActionResult<IReadOnlyList<MetadataEntityDto>> GetMetadata([FromQuery] string? scope)
-        => Ok(businessScopeService.GetEntities(scope));
+        => Ok(domainService.GetEntities(scope));
 
     [HttpPost]
     public ActionResult<Entity> CreateMetadata([FromBody] Entity entity)
@@ -36,26 +36,26 @@ public sealed class MetadataController(
         return NoContent();
     }
 
-    [HttpGet("business-scopes")]
-    public ActionResult<IReadOnlyList<BusinessScopeDto>> GetBusinessScopes()
-        => Ok(businessScopeService.GetAll());
+    [HttpGet("domains")]
+    public ActionResult<IReadOnlyList<DomainDto>> GetDomains()
+        => Ok(domainService.GetAll());
 
-    [HttpPost("business-scopes")]
-    public ActionResult<BusinessScopeDto> CreateBusinessScope([FromBody] BusinessScopeDto scope)
-        => Created($"/metadata/business-scopes/{Uri.EscapeDataString(scope.Name)}", businessScopeService.Create(scope));
+    [HttpPost("domains")]
+    public ActionResult<DomainDto> CreateDomain([FromBody] DomainDto scope)
+        => Created($"/metadata/domains/{Uri.EscapeDataString(scope.Name)}", domainService.Create(scope));
 
-    [HttpPost("business-scopes/generate")]
-    public ActionResult<BusinessScopeDto> GenerateBusinessScope([FromBody] BusinessScopeGenerationRequestDto request)
-        => Created($"/metadata/business-scopes/{Uri.EscapeDataString(request.Name)}", businessScopeService.Generate(request));
+    [HttpPost("domains/generate")]
+    public ActionResult<DomainDto> GenerateDomain([FromBody] DomainGenerationRequestDto request)
+        => Created($"/metadata/domains/{Uri.EscapeDataString(request.Name)}", domainService.Generate(request));
 
-    [HttpPut("business-scopes/{scopeName}")]
-    public ActionResult<BusinessScopeDto> UpdateBusinessScope(string scopeName, [FromBody] BusinessScopeDto scope)
-        => Ok(businessScopeService.Update(scopeName, scope));
+    [HttpPut("domains/{scopeName}")]
+    public ActionResult<DomainDto> UpdateDomain(string scopeName, [FromBody] DomainDto scope)
+        => Ok(domainService.Update(scopeName, scope));
 
-    [HttpDelete("business-scopes/{scopeName}")]
-    public IActionResult DeleteBusinessScope(string scopeName)
+    [HttpDelete("domains/{scopeName}")]
+    public IActionResult DeleteDomain(string scopeName)
     {
-        businessScopeService.Delete(scopeName);
+        domainService.Delete(scopeName);
         return NoContent();
     }
 

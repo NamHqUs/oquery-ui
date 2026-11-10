@@ -27,11 +27,11 @@ const PAGE_PATHS = {
 } as const;
 
 const LEGACY_FUNCTIONS_PATH = "/functions";
-const CREATE_BUSINESS_SCOPE_PATH = "/metadata/business-scopes/create";
+const CREATE_DOMAIN_PATH = "/metadata/domains/create";
 
 type Page = keyof typeof PAGE_PATHS;
 type NavigationGuard = (continueNavigation: () => void, cancelNavigation?: () => void) => void;
-type MetadataSection = "diagram" | "entities" | "business-scopes" | "functions" | "operators";
+type MetadataSection = "diagram" | "entities" | "domains" | "functions" | "operators";
 
 const HOME_SUBMENU = [
   { label: "Playground", target: "hp-playground" },
@@ -44,13 +44,13 @@ const HOME_SUBMENU = [
 const PAGE_SUBMENUS: Record<Exclude<Page, "home">, readonly string[]> = {
   builder: ["Design query", "Results"],
   sources: ["Connections", "Tables", "Schema"],
-  metadata: ["Diagram", "Entity definitions", "Business scopes"],
+  metadata: ["Diagram", "Entity definitions", "Domains"],
   functions: ["Definitions", "Arguments", "SQL templates"],
   documentation: ["Overview", "Query syntax", "Security", "Next steps"],
 };
 
 function pageForPath(path: string): Page | null {
-  if (path === CREATE_BUSINESS_SCOPE_PATH) return "metadata";
+  if (path === CREATE_DOMAIN_PATH) return "metadata";
   return (Object.keys(PAGE_PATHS) as Page[]).find((page) => PAGE_PATHS[page] === path) ?? null;
 }
 
@@ -89,19 +89,19 @@ function PageSubnav({
     <nav className="hp-subnav app-subnav" aria-label={`${page} sections`}>
       <span className="hp-subnav-brand">{page === "builder" ? "QUERY BUILDER" : page.replace("-", " ").toUpperCase()}</span>
       <div className="hp-subnav-links">
-        {PAGE_SUBMENUS[page].map((item) => <button
-          key={item}
-          type="button"
-          className={page === "metadata"
-            && ((item === "Diagram" && metadataSection === "diagram")
-              || (item === "Entity definitions" && metadataSection === "entities")
-              || (item === "Business scopes" && metadataSection === "business-scopes"))
-            ? "active"
-            : undefined}
-          onClick={page === "metadata"
-            ? () => onMetadataSectionSelect(item === "Diagram" ? "diagram" : item === "Entity definitions" ? "entities" : "business-scopes")
-            : undefined}
-        >{item}</button>)}
+        {PAGE_SUBMENUS[page].map((item) => {
+          const itemSection = item === "Diagram" ? "diagram" : item === "Entity definitions" ? "entities" : item === "Domains" ? "domains" : undefined;
+          const isActive = page === "metadata" && itemSection === metadataSection;
+          return <button
+            key={item}
+            type="button"
+            className={isActive ? "active" : undefined}
+            aria-current={isActive ? "page" : undefined}
+            onClick={page === "metadata" && itemSection
+              ? () => onMetadataSectionSelect(itemSection)
+              : undefined}
+          >{item}</button>;
+        })}
       </div>
       <div className={`app-subnav-actions${page === "metadata" ? "" : " app-subnav-actions-hidden"}`} id="metadata-toolbar-actions" />
     </nav>
@@ -113,7 +113,7 @@ function App() {
   const routerNavigate = useNavigate();
   const database = useSelector((state: RootState) => state.database);
   const page = pageForPath(location.pathname);
-  const [metadataVisited, setMetadataVisited] = useState(() => location.pathname === PAGE_PATHS.metadata || location.pathname === CREATE_BUSINESS_SCOPE_PATH);
+  const [metadataVisited, setMetadataVisited] = useState(() => location.pathname === PAGE_PATHS.metadata || location.pathname === CREATE_DOMAIN_PATH);
   const [functionDefinitionsVisited, setFunctionDefinitionsVisited] = useState(() => location.pathname === PAGE_PATHS.functions);
   const [queryBuilderVisited, setQueryBuilderVisited] = useState(() => location.pathname === PAGE_PATHS.builder);
   const [queryBuilderInstance, setQueryBuilderInstance] = useState(0);
@@ -163,7 +163,7 @@ function App() {
   });
 
   useEffect(() => {
-    if (location.pathname === PAGE_PATHS.metadata || location.pathname === CREATE_BUSINESS_SCOPE_PATH) setMetadataVisited(true);
+    if (location.pathname === PAGE_PATHS.metadata || location.pathname === CREATE_DOMAIN_PATH) setMetadataVisited(true);
     if (location.pathname === PAGE_PATHS.functions) setFunctionDefinitionsVisited(true);
     if (location.pathname === PAGE_PATHS.builder) setQueryBuilderVisited(true);
   }, [location.pathname]);
@@ -276,7 +276,7 @@ function App() {
           <Route path={PAGE_PATHS.documentation} element={<div className="page-transition page-transition-no-slide"><Documentation /></div>} />
           <Route path={PAGE_PATHS.builder} element={null} />
           <Route path={PAGE_PATHS.metadata} element={null} />
-          <Route path={CREATE_BUSINESS_SCOPE_PATH} element={null} />
+          <Route path={CREATE_DOMAIN_PATH} element={null} />
           <Route path={PAGE_PATHS.functions} element={null} />
           <Route path={LEGACY_FUNCTIONS_PATH} element={<Navigate to={PAGE_PATHS.functions} replace />} />
           <Route path={PAGE_PATHS.sources} element={<div className="page-transition page-transition-no-slide"><DataSources onRequestConnection={requestDatabaseConnection} /></div>} />

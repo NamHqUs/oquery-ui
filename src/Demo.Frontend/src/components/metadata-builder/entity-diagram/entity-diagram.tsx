@@ -7,14 +7,14 @@ import "./entity-diagram.css";
 
 type EntityDiagramProps = {
   entities: MetadataEntity[];
-  businessScopes?: { name: string; entities: MetadataEntity[] }[];
+  domains?: { name: string; entities: MetadataEntity[] }[];
   activeScopeName?: string;
   onOpenEntity: (table: { schema: string; name: string; columns: { name: string; dataType: string; isPrimaryKey: boolean }[] }) => void;
   entityEditorHeader: ReactNode;
   entityEditor: ReactNode;
 };
 
-export default function EntityDiagram({ entities, businessScopes, activeScopeName, onOpenEntity, entityEditorHeader, entityEditor }: EntityDiagramProps) {
+export default function EntityDiagram({ entities, domains, activeScopeName, onOpenEntity, entityEditorHeader, entityEditor }: EntityDiagramProps) {
   const panel = useResizablePanel("metadata-entity-diagram");
   const tables = entities.map((entity) => ({
     schema: entity.schema || "dbo",
@@ -25,7 +25,7 @@ export default function EntityDiagram({ entities, businessScopes, activeScopeNam
       isPrimaryKey: false,
     })),
   }));
-  const scopeGroups = businessScopes?.map((scope, index) => ({
+  const scopeGroups = domains?.map((scope, index) => ({
     name: scope.name,
     tone: diagramGroupTone(index),
     tables: scope.entities.map((entity) => ({

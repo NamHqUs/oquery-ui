@@ -1,9 +1,10 @@
 namespace Demo.Contracts.Dto;
 
-public sealed record BusinessScopeGenerationRequestDto(
+public sealed record DomainGenerationRequestDto(
     string Name,
     IReadOnlyList<DatabaseTableSelectionDto> Tables,
-    IReadOnlyList<BusinessScopeRelationSelectionDto> Relations);
+    IReadOnlyList<DomainRelationSelectionDto> Relations,
+    string Description = "");
 
 public sealed record DatabaseTableSelectionDto(
     string Schema,
@@ -18,7 +19,7 @@ public sealed record DatabaseColumnSelectionDto(
     string DbColumn,
     string Name);
 
-public sealed record BusinessScopeRelationSelectionDto(
+public sealed record DomainRelationSelectionDto(
     string SourceSchema,
     string SourceTable,
     string TargetSchema,

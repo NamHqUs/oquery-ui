@@ -26,9 +26,9 @@ export const apiUrls = {
     functionByName: (functionName: string) => `${backendApiUrl}/metadata/functions/${encodeURIComponent(functionName)}`,
     operators: `${backendApiUrl}/metadata/operators`,
     operatorById: (operatorId: string) => `${backendApiUrl}/metadata/operators/${encodeURIComponent(operatorId)}`,
-    businessScopes: `${backendApiUrl}/metadata/business-scopes`,
-    generateBusinessScope: `${backendApiUrl}/metadata/business-scopes/generate`,
-    businessScopeByName: (scopeName: string) => `${backendApiUrl}/metadata/business-scopes/${encodeURIComponent(scopeName)}`,
+    domains: `${backendApiUrl}/metadata/domains`,
+    generateDomain: `${backendApiUrl}/metadata/domains/generate`,
+    domainByName: (scopeName: string) => `${backendApiUrl}/metadata/domains/${encodeURIComponent(scopeName)}`,
   },
   dynamicQuery: {
     execute: `${backendApiUrl}/dynamic-query/query`,

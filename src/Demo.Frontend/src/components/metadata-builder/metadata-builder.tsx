@@ -15,7 +15,7 @@ import EntityDiagram from "./entity-diagram/entity-diagram";
 import { EditableEntity, EditableRelation, emptyEntity, toAbstractDataType, toEditable } from "./types";
 import FunctionDefinitionsWorkspace from "../function-definition/function-definition";
 import OperatorDefinition from "./operator-definition/operator-definition";
-import BusinessScopeList from "./business-scope/business-scope-list";
+import DomainList from "./domain/domain-list";
 import { resolveDefinitionChanges, useDefinitionUnsavedWarning } from "./definition-actions/definition-actions";
 import DefinitionActions from "./definition-actions/definition-actions";
 import type { DefinitionActionAdapter } from "./definition-actions/definition-actions";
@@ -25,7 +25,7 @@ import type { RootState } from "../../store/store";
 export * from "./types";
 
 type NavigationGuard = (continueNavigation: () => void, cancelNavigation?: () => void) => void;
-type MetadataSection = "diagram" | "entities" | "business-scopes" | "functions" | "operators";
+type MetadataSection = "diagram" | "entities" | "domains" | "functions" | "operators";
 type DatabaseRelationship = {
   name: string;
   sourceSchema: string;
@@ -36,7 +36,7 @@ type DatabaseRelationship = {
   targetColumns: string[];
   isUnique: boolean;
 };
-type BusinessScopeSummary = {
+type DomainSummary = {
   name: string;
   entities: MetadataEntity[];
 };
@@ -116,26 +116,34 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const [message, setMessage] = useState("");
   const [dirty, setDirty] = useState(false);
   const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
-  const [businessScopes, setBusinessScopes] = useState<BusinessScopeSummary[]>([]);
+  const [domains, setDomains] = useState<DomainSummary[]>([]);
   useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   useEffect(() => { selectedNameRef.current = selectedName; }, [selectedName]);
   const requestedSection = searchParams.get("section")
-    ?? (location.pathname === "/metadata/business-scopes/create" ? "business-scopes" : null);
+    ?? (location.pathname === "/metadata/domains/create" ? "domains" : null);
   const scopeName = searchParams.get("scope") || undefined;
-  const activeSection: MetadataSection = entityOnly ? "entities" : requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "business-scopes" || requestedSection === "functions" || requestedSection === "operators"
+  const activeSection: MetadataSection = entityOnly ? "entities" : requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "domains" || requestedSection === "functions" || requestedSection === "operators"
     ? requestedSection
     : "diagram";
   useEffect(() => {
-    if (entityOnly || requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "business-scopes" || requestedSection === "functions" || requestedSection === "operators") return;
+    if (entityOnly || requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "domains" || requestedSection === "functions" || requestedSection === "operators") return;
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.set("section", "diagram");
     setSearchParams(nextSearchParams, { replace: true });
   }, [entityOnly, requestedSection, searchParams, setSearchParams]);
   const selectSection = async (section: MetadataSection) => {
-    if (section === activeSection || !(await resolveAllDirtyChanges(activeSection))) return;
+    if ((section === activeSection
+      && !(section === "domains"
+        && (location.pathname === "/metadata/domains/create" || searchParams.has("scope"))))
+      || !(await resolveAllDirtyChanges(activeSection))) return;
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.set("section", section);
-    setSearchParams(nextSearchParams);
+    if (section === "domains") nextSearchParams.delete("scope");
+    if (section === "domains" && location.pathname === "/metadata/domains/create") {
+      navigate(`/metadata?${nextSearchParams.toString()}`);
+    } else {
+      setSearchParams(nextSearchParams);
+    }
   };
   useEffect(() => {
     onSectionNavigationChange?.((section) => { void selectSection(section); });
@@ -180,14 +188,14 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   useEffect(() => {
     if (entityOnly || (activeSection !== "diagram" && activeSection !== "entities")) return;
     let cancelled = false;
-    void request<BusinessScopeSummary[]>(apiUrls.metadata.businessScopes)
+    void request<DomainSummary[]>(apiUrls.metadata.domains)
       .then((result) => {
-        if (!cancelled) setBusinessScopes(result);
+        if (!cancelled) setDomains(result);
       })
       .catch((reason) => {
         if (!cancelled) {
-          setBusinessScopes([]);
-          setMessage(reason instanceof Error ? reason.message : "Unable to load business scopes for the diagram.");
+          setDomains([]);
+          setMessage(reason instanceof Error ? reason.message : "Unable to load domains for the diagram.");
         }
       });
     return () => { cancelled = true; };
@@ -452,7 +460,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const selectRawSqlMode = () => {
     setSelectedTableKey("");
   };
-  const selectBusinessScope = (name: string) => {
+  const selectDomain = (name: string) => {
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.set("section", "entities");
     nextSearchParams.set("scope", name);
@@ -464,7 +472,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "diagram"}>
         <EntityDiagram
           entities={entities}
-          businessScopes={businessScopes}
+          domains={domains}
           activeScopeName={scopeName}
           onOpenEntity={(table) => openTableAsEntity(table, false)}
           entityEditorHeader={
@@ -472,7 +480,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
               <div className="table-details-title">
                 <div className="metadata-editor-heading-eyebrow">
                   <span className="section-kicker">ENTITY DEFINITION</span>
-                  <span>{scopeName || "All scopes"}</span>
+                  <span>{scopeName || "All domains"}</span>
                 </div>
                 <div className="metadata-editor-heading-title">
                   <span className="metadata-editor-heading-icon"><Icon name="table" size={18} /></span>
@@ -505,14 +513,14 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       <div className="metadata-workspace-panel" hidden={activeSection !== "entities"}>
         <section className={`metadata-workspace split-workspace${panel.collapsed ? " panel-collapsed" : ""}`} style={panel.style}>
           <div className="metadata-entity-navigation">
-            {businessScopes.length > 0 && (
+            {domains.length > 0 && (
               <div className="metadata-scope-navigation">
                 <div className="metadata-scope-navigation-heading">
                   <span className="section-kicker">WORKSPACE</span>
-                  <strong>Business scope</strong>
+                  <strong>Domain</strong>
                 </div>
-                <nav aria-label="Entity definition business scopes">
-                  {businessScopes.map((scope) => {
+                <nav aria-label="Entity definition domains">
+                  {domains.map((scope) => {
                     const isActive = (scopeName || "All") === scope.name;
                     return (
                       <button
@@ -520,7 +528,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
                         className={`metadata-scope-navigation-item${isActive ? " active" : ""}`}
                         aria-pressed={isActive}
                         key={scope.name}
-                        onClick={() => selectBusinessScope(scope.name)}
+                        onClick={() => selectDomain(scope.name)}
                       >
                         <span className="metadata-scope-navigation-icon"><Icon name="folder" size={14} /></span>
                         <span className="metadata-scope-navigation-name">{scope.name}</span>
@@ -547,7 +555,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
               <div className="table-details-title">
                 <div className="metadata-editor-heading-eyebrow">
                   <span className="section-kicker">ENTITY DEFINITION</span>
-                  <span>{scopeName || "All scopes"}</span>
+                  <span>{scopeName || "All domains"}</span>
                 </div>
                 <div className="metadata-editor-heading-title">
                   <span className="metadata-editor-heading-icon"><Icon name="table" size={18} /></span>
@@ -580,8 +588,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "operators"}>
         <OperatorDefinition onNavigationGuardChange={updateOperatorNavigationGuard} />
       </div>}
-      {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "business-scopes"}>
-        <BusinessScopeList active={activeSection === "business-scopes"} />
+      {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "domains"}>
+        <DomainList active={activeSection === "domains"} />
       </div>}
       {toolbarHost && (activeSection === "diagram" || activeSection === "entities")
         && createPortal(<DefinitionActions adapter={entityActionAdapter} />, toolbarHost)}

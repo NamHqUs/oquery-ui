@@ -7,7 +7,7 @@ namespace Demo.Services;
 
 public sealed class DynamicQueryService(
     IDbConnectionService dbConnectionService,
-    IBusinessScopeService businessScopeService,
+    IDomainService domainService,
     IMetadataService metadataService,
     IOperatorDefinitionService operatorDefinitionService,
     ILogger<DynamicQueryService> logger) : IDynamicQueryService
@@ -25,7 +25,7 @@ public sealed class DynamicQueryService(
     {
         using var connection = dbConnectionService.CreateConnection();
         var dialect = SqlDialect.ForProvider(dbConnectionService.GetCurrentProvider(), connection);
-        var metadataProvider = businessScopeService.GetMetadataProvider(scopeName);
+        var metadataProvider = domainService.GetMetadataProvider(scopeName);
         using var context = new OQueryEngine(
             connection,
             metadataProvider,
@@ -45,7 +45,7 @@ public sealed class DynamicQueryService(
 
         using var connection = dbConnectionService.CreateConnection();
         var dialect = SqlDialect.ForProvider(dbConnectionService.GetCurrentProvider(), connection);
-        var metadataProvider = businessScopeService.GetMetadataProvider(scopeName);
+        var metadataProvider = domainService.GetMetadataProvider(scopeName);
         using var context = new OQueryEngine(
             connection,
             metadataProvider,

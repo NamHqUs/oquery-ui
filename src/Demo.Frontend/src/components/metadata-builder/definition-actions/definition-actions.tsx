@@ -86,7 +86,11 @@ async function confirmDefinitionDelete(
 export default function DefinitionActions({ adapter }: { adapter: DefinitionActionAdapter }) {
   const showMessageBox = useMessageBox();
   const showDelete = !adapter.isBuiltIn && adapter.hasSelection;
-  const showSave = !adapter.isBuiltIn && adapter.hasDraft;
+  const showSave = !adapter.isBuiltIn && adapter.hasDraft && adapter.dirty;
+  const resourceContext = adapter.resourceName === "entity" ? " from current domain" : "";
+  const createLabel = `Create ${adapter.resourceName}${adapter.resourceName === "entity" ? " in current domain" : ""}`;
+  const deleteLabel = `Delete ${adapter.resourceName}${resourceContext}`;
+  const saveLabel = `Save ${adapter.resourceName} changes`;
 
   const handleNew = async () => {
     if (!adapter.onNew || !(await resolveDefinitionChanges(adapter, showMessageBox))) return;
@@ -105,8 +109,8 @@ export default function DefinitionActions({ adapter }: { adapter: DefinitionActi
         <button
           className="icon-button definition-action-button danger"
           type="button"
-          title="Delete"
-          aria-label="Delete"
+          title={deleteLabel}
+          aria-label={deleteLabel}
           onClick={() => void handleDelete()}
           disabled={!adapter.onDelete || adapter.saving}
         >
@@ -117,8 +121,8 @@ export default function DefinitionActions({ adapter }: { adapter: DefinitionActi
         <button
           className="icon-button definition-action-button primary"
           type="button"
-          title={`Save ${adapter.resourceName}`}
-          aria-label={`Save ${adapter.resourceName}`}
+          title={saveLabel}
+          aria-label={saveLabel}
           onClick={() => void adapter.onSave?.()}
           disabled={!adapter.onSave || !adapter.dirty || adapter.saving}
         >
@@ -126,16 +130,16 @@ export default function DefinitionActions({ adapter }: { adapter: DefinitionActi
         </button>
       )}
       {adapter.isBuiltIn && <span className="section-kicker definition-readonly">BUILT-IN · READ-ONLY</span>}
-      <button
+      {adapter.onNew && <button
         className="icon-button definition-action-button create"
         type="button"
-        title={`Create ${adapter.resourceName}`}
-        aria-label={`Create ${adapter.resourceName}`}
+        title={createLabel}
+        aria-label={createLabel}
         onClick={() => void handleNew()}
         disabled={!adapter.onNew || adapter.saving}
       >
         <Icon name="file-plus" size={17} />
-      </button>
+      </button>}
     </div>
   );
 }
