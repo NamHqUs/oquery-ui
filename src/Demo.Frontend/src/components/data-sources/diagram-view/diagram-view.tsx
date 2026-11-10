@@ -37,6 +37,7 @@ type DiagramViewProps = {
 
 const CARD_WIDTH = 210;
 const CARD_HEIGHT = 112;
+const COLLAPSED_CARD_HEIGHT = 42;
 const BOARD_MARGIN = 20;
 const ARROW_CLEARANCE = 8;
 const TABLE_DOMAINS = {
@@ -149,7 +150,8 @@ function createLayout(tables, relationships, boardWidth, boardHeight) {
     degree.get(tableKey(right.schema, right.name)) - degree.get(tableKey(left.schema, left.name))
     || byName(left, right));
   const cardWidth = Math.min(CARD_WIDTH, Math.max(140, boardWidth - 2 * BOARD_MARGIN));
-  const cardHeight = Math.min(CARD_HEIGHT, Math.max(80, boardHeight - 2 * BOARD_MARGIN));
+  const expandedCardHeight = Math.min(CARD_HEIGHT, Math.max(80, boardHeight - 2 * BOARD_MARGIN));
+  const cardHeight = COLLAPSED_CARD_HEIGHT;
   const center = { x: boardWidth / 2, y: boardHeight / 2 };
   const maxRadiusX = Math.max(0, (boardWidth - cardWidth) / 2 - BOARD_MARGIN);
   const maxRadiusY = Math.max(0, (boardHeight - cardHeight) / 2 - BOARD_MARGIN);
@@ -157,7 +159,7 @@ function createLayout(tables, relationships, boardWidth, boardHeight) {
   const laidOutEdges = [];
 
   if (orderedTables.length === 0) {
-    return { cardWidth, cardHeight, positions };
+    return { cardWidth, cardHeight: expandedCardHeight, positions };
   }
 
   function candidateScore(key, candidate) {
@@ -179,7 +181,7 @@ function createLayout(tables, relationships, boardWidth, boardHeight) {
         candidatePositions.get(relation.from),
         candidatePositions.get(relation.to),
         cardWidth,
-        cardHeight,
+        expandedCardHeight,
       );
       if (!geometry) continue;
       const shortfall = Math.max(0, geometry.requiredDistance - geometry.distance);
@@ -272,7 +274,7 @@ function createLayout(tables, relationships, boardWidth, boardHeight) {
 
   return {
     cardWidth,
-    cardHeight,
+    cardHeight: expandedCardHeight,
     positions,
   };
 }
