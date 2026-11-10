@@ -108,7 +108,6 @@ export default function DefinitionActions({ adapter }: { adapter: DefinitionActi
 
   return (
     <div className="editor-actions">
-      {adapter.isBuiltIn && <span className="section-kicker definition-readonly">BUILT-IN · READ-ONLY</span>}
       {!adapter.isBuiltIn && showDelete && (
         <button
           className="icon-button definition-action-button danger"
