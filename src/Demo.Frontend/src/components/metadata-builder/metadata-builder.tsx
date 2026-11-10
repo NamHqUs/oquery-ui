@@ -57,18 +57,17 @@ function entityUsesTable(entity: MetadataEntity, table: { schema: string; name: 
   });
 }
 
-function entityUsesRawSql(entity: MetadataEntity) {
+function entityUsesRawSql(entity: MetadataEntity, tables: DatabaseTableOption[] = []) {
   const rawSql = entity.rawSql?.trim() || "";
-  return Boolean(rawSql && (
-    rawSql !== entity.name.trim()
-    || entity.fields.some((field) => field.isRawSql)
-  ));
+  if (entity.fields.some((field) => field.isRawSql)) return true;
+  if (!rawSql || rawSql === entity.name.trim()) return false;
+  return !tables.some((table) => entityUsesTable(entity, table));
 }
 
 function findEntityTable(entity: MetadataEntity, tables: DatabaseTableOption[]) {
-  if (entityUsesRawSql(entity)) return undefined;
+  if (entityUsesRawSql(entity, tables)) return undefined;
   return tables.find((table) =>
-    normalizeTablePart(table.name) === normalizeTablePart(entity.name)
+    entityUsesTable(entity, table)
     && (!entity.schema
       || normalizeTablePart(entity.schema) === "dbo"
       || normalizeTablePart(table.schema) === normalizeTablePart(entity.schema)),
@@ -643,12 +642,12 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const databaseTables = databaseState.schema.tables as DatabaseTableOption[];
   const tableKey = (table: { schema: string; name: string }) =>
     `${(table.schema || "dbo").trim().toLowerCase()}.${table.name.trim().toLowerCase()}`;
-  const selectedTable = draft && !entityUsesRawSql(draft)
+  const selectedTable = draft && !entityUsesRawSql(draft, databaseTables)
     ? databaseTables.find((table) => tableKey(table) === selectedTableKey)
       || findEntityTable(draft, databaseTables)
     : undefined;
   useEffect(() => {
-    if (!selectedName || !draft || entityUsesRawSql(draft)) return;
+    if (!selectedName || !draft || entityUsesRawSql(draft, databaseTables)) return;
     if (selectedTableKey && databaseTables.some((table) => tableKey(table) === selectedTableKey)) return;
     const matchingTable = findEntityTable(draft, databaseTables);
     setSelectedTableKey(matchingTable ? tableKey(matchingTable) : "");

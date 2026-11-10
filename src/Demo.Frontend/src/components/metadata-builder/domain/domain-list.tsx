@@ -16,6 +16,7 @@ import type { RootState } from "../../../store/store";
 import { apiUrls } from "../../../const/api-urls";
 import { formatApiError } from "../../query-builder/query-design/api-error";
 import { useMessageBox } from "../../message-box/message-box";
+import MarkdownDescription from "./markdown-description";
 import "./domain-list.css";
 
 export type Domain = {
@@ -31,6 +32,14 @@ type Step = 1 | 2 | 3;
 type ViewMode = "list" | "wizard" | "detail";
 const CREATE_DOMAIN_PATH = "/metadata/domains/create";
 const EDIT_DOMAIN_PATH = "/metadata/domains/edit";
+
+function getDescriptionPreview(description: string) {
+  const plainText = description
+    .replace(/[`*_#>\[\]]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return plainText.length > 100 ? `${plainText.slice(0, 100).trimEnd()}...` : plainText;
+}
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   let response: Response;
@@ -120,6 +129,7 @@ export default function DomainList({
   const [relationNames, setRelationNames] = useState<Record<string, { lookup: string; collection: string }>>({});
   const [tableFilter, setTableFilter] = useState("");
   const [scopeFilter, setScopeFilter] = useState("");
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
   const [entityFilter, setEntityFilter] = useState("");
   const [selectedEntityName, setSelectedEntityName] = useState("");
   const [entityDraft, setEntityDraft] = useState<EditableEntity | null>(null);
@@ -133,6 +143,9 @@ export default function DomainList({
   const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
   const panel = useResizablePanel("domain");
   const showMessageBox = useMessageBox();
+  const toggleDescription = (name: string) => {
+    setExpandedDescriptions(current => ({ ...current, [name]: !current[name] }));
+  };
   useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   useEffect(() => {
     if (!active) return;
@@ -693,6 +706,11 @@ export default function DomainList({
       </button>
     </div>
   );
+  const visibleCatalogScopes = scopes.filter(scope => scope.name.toLowerCase().includes(scopeFilter.toLowerCase()));
+  const catalogColumns = [
+    visibleCatalogScopes.filter((_, index) => index % 2 === 0),
+    visibleCatalogScopes.filter((_, index) => index % 2 === 1),
+  ];
   const renderWizardButtons = () => (
     <div className="editor-actions" role="toolbar" aria-label="Domain wizard actions">
       <button
@@ -726,26 +744,56 @@ export default function DomainList({
           <input spellCheck={false} value={scopeFilter} onChange={event => setScopeFilter(event.target.value)} placeholder="Filter domains" />
         </label>
         {status === "loading" && <p className="empty-state">Loading domains…</p>}
-        {status !== "loading" && !scopes.filter(scope => scope.name.toLowerCase().includes(scopeFilter.toLowerCase())).length && <p className="empty-state">No domains match this filter.</p>}
+        {status !== "loading" && !visibleCatalogScopes.length && <p className="empty-state">No domains match this filter.</p>}
         <div className="domain-catalog-grid">
-          {scopes.filter(scope => scope.name.toLowerCase().includes(scopeFilter.toLowerCase())).map(scope => (
+          {catalogColumns.map((column, columnIndex) => (
+            <div className="domain-catalog-column" key={columnIndex}>
+              {column.map(scope => (
             <div key={scope.name} className="domain-summary-card">
               <button type="button" className="domain-summary-open" onClick={() => selectScope(scope)}>
-              <span className="domain-summary-icon"><Icon name="folder" size={17} /></span>
-              <span className="domain-summary-content">
-                <strong>{scope.name}</strong>
-                {scope.description && <small className="domain-summary-description">{scope.description}</small>}
-                <small>{scope.isBuiltin ? "Built-in - Read Only" : "Custom domain"}</small>
-              </span>
-              <span className="domain-summary-stats">
-                <b>{scope.entities.length}</b>
-                <small>entities</small>
-              </span>
-              <Icon name="chevron" size={14} />
+                <span className="domain-summary-icon"><Icon name="folder" size={17} /></span>
+                <span className="domain-summary-content">
+                  <strong>{scope.name}</strong>
+                </span>
               </button>
+              {scope.description && (
+                <>
+                  {!expandedDescriptions[scope.name] && (
+                    <p className="domain-summary-description-preview">
+                      {getDescriptionPreview(scope.description)}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    className="domain-summary-description-toggle"
+                    aria-expanded={Boolean(expandedDescriptions[scope.name])}
+                    onClick={() => toggleDescription(scope.name)}
+                  >
+                      {expandedDescriptions[scope.name] ? "Hide details" : "more..."}
+                  </button>
+                  {expandedDescriptions[scope.name] && (
+                    <div className="domain-summary-description-panel">
+                      <MarkdownDescription value={scope.description} />
+                    </div>
+                  )}
+                </>
+              )}
+              {scope.entities.length > 0 && (
+                <div className="domain-summary-entity-preview" aria-label="Included entities">
+                  <span className="domain-summary-entity-label">Included entities</span>
+                  <div className="domain-summary-entity-chips">
+                    {scope.entities.slice(0, 5).map(entity => (
+                      <span key={entity.name} className="domain-summary-entity-chip">{entity.name}</span>
+                    ))}
+                    {scope.entities.length > 5 && <span className="domain-summary-entity-chip domain-summary-entity-more">more...</span>}
+                  </div>
+                </div>
+              )}
               {!scope.isBuiltin && <button type="button" className="domain-summary-delete" title={`Delete ${scope.name} domain`} aria-label={`Delete ${scope.name} domain`} onClick={() => void deleteDomain(scope)}>
                 <Icon name="trash" size={15} />
               </button>}
+            </div>
+              ))}
             </div>
           ))}
         </div>

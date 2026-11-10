@@ -233,7 +233,7 @@
       "DbSchema": "he"
     },
     {
-      "Name": "Employees",
+      "Name": "Doctors",
       "Fields": [
         {
           "Name": "Id",

@@ -23,6 +23,17 @@
 .domain-list-page > button { display: flex; width: min(100%, 720px); align-items: center; gap: 8px; margin-top: 6px; padding: 14px 12px; border: 1px solid #2c3341; border-radius: 6px; color: #aeb6c5; background: #151923; text-align: left; }
 .domain-list-page > button:hover { border-color: #5b4b8c; color: #eeeaff; background: #211a35; }
 .domain-list-page > button small { margin-left: auto; color: var(--muted); }
+.markdown-description { min-width: 0; color: #aeb6c5; font-size: 13px; line-height: 1.55; }
+.markdown-description h1, .markdown-description h2, .markdown-description h3 { margin: 0 0 5px; line-height: 1.25; }
+.markdown-description h1 { color: #f0c877; font-size: 15px; }
+.markdown-description h2 { color: #bdaef0; font-size: 13px; }
+.markdown-description h3 { color: #8fd7c2; font-size: 12px; }
+.markdown-description p { margin: 0 0 6px; }
+.markdown-description ul { margin: 0 0 6px; padding-left: 17px; }
+.markdown-description li { margin: 2px 0; }
+.markdown-description strong { color: #eeeaff; }
+.markdown-description em { color: #c9c1df; }
+.markdown-description code { padding: 1px 4px; border-radius: 3px; color: #f0c877; background: #211d32; font-size: 10px; }
 .domain-list-heading { display: flex; justify-content: space-between; margin: 0 8px 12px; color: var(--muted); font-size: 12px; }
 .domain-list-heading span:last-child { color: var(--purple); }
 .domain-list button { display: flex; width: 100%; align-items: center; gap: 8px; padding: 10px 9px; border: 1px solid transparent; border-radius: 6px; color: #aeb6c5; background: transparent; text-align: left; }
@@ -457,47 +468,131 @@
 }
 .domain-catalog-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 12px;
   max-width: 980px;
   margin: 0 auto;
 }
+.domain-catalog-column {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+}
 .domain-summary-card {
   position: relative;
-  display: flex;
-  min-height: 82px;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 112px;
+  align-items: flex-start;
   gap: 13px;
-  padding: 16px;
-  border: 1px solid #293448;
+  padding: 18px;
+  border: 1px solid #2d3950;
   border-radius: 12px;
   color: #dce1eb;
-  background: linear-gradient(135deg, #151d2b, #121923);
+  background:
+    linear-gradient(135deg, #182235, #121923 72%),
+    #121923;
   text-align: left;
-  box-shadow: inset 0 1px #ffffff05, 0 8px 22px #00000014;
-  transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease;
+  box-shadow: inset 0 1px #ffffff08, 0 8px 22px #00000018;
+  transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease, background .16s ease;
 }
 .domain-summary-card:hover {
-  border-color: #705bc0;
-  background: linear-gradient(135deg, #211c3a, #171d2c);
+  border-color: #7562aa;
+  background:
+    linear-gradient(135deg, #211c3a, #171d2c 72%),
+    #171d2c;
   box-shadow: inset 0 1px #ffffff0a, 0 12px 26px #00000024;
   transform: translateY(-2px);
 }
 .domain-summary-open {
   display: flex;
+  grid-column: 1 / -1;
+  min-height: 42px;
+  grid-column: 1;
   min-width: 0;
   flex: 1;
-  align-items: center;
+  align-items: flex-start;
   gap: 13px;
   padding: 0;
+  padding-right: 34px;
   border: 0;
   color: inherit;
   background: transparent;
   text-align: left;
 }
-.domain-summary-open > svg { flex: 0 0 auto; color: #748098; }
+.domain-summary-description-toggle {
+  grid-column: 1 / -1;
+  align-self: start;
+  justify-self: start;
+  margin: 0 0 0 51px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid #8064e866;
+  border-radius: 0;
+  color: #bdaef0;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.domain-summary-description-toggle:hover { border-color: #bdaef0; color: #fff; background: transparent; }
+.domain-summary-description-preview {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #9da9bb;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.domain-summary-description-panel {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  padding: 12px 0 0;
+  border-top: 1px solid #293448;
+}
+.domain-summary-entity-preview {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 7px;
+  margin-top: 2px;
+  padding-top: 12px;
+  border-top: 1px solid #293448;
+}
+.domain-summary-entity-label {
+  color: #78869d;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.domain-summary-entity-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.domain-summary-entity-chip {
+  max-width: 150px;
+  overflow: hidden;
+  padding: 4px 7px;
+  border: 1px solid #394765;
+  border-radius: 999px;
+  color: #c9c1df;
+  background: #1a2231;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.domain-summary-entity-more {
+  border-style: dashed;
+  color: #8f9aae;
+  background: transparent;
+}
 .domain-summary-delete {
   display: grid;
+  position: absolute;
+  top: 16px;
+  right: 16px;
   width: 32px;
   height: 32px;
   flex: 0 0 32px;
@@ -522,6 +617,7 @@
   border-radius: 10px;
   color: #b6a7ff;
   background: #282044;
+  margin-top: 1px;
 }
 .domain-summary-content {
   display: grid;
@@ -529,6 +625,8 @@
   gap: 4px;
 }
 .domain-summary-content strong {
+  display: block;
+  min-height: 20px;
   overflow: hidden;
   color: #f0f2f8;
   font-size: 14px;
@@ -551,21 +649,6 @@
 .domain-description > span small { color: var(--muted); font-size: 11px; font-weight: 400; }
 .domain-description textarea { width: 100%; resize: vertical; padding: 10px 11px; border: 1px solid #303847; border-radius: 5px; outline: 0; color: #e9edf4; background: #0e1117; font-size: 12px; line-height: 1.5; }
 .domain-description textarea:focus { border-color: var(--purple); }
-.domain-summary-stats {
-  display: grid;
-  min-width: 54px;
-  gap: 2px;
-  margin-left: auto;
-  text-align: right;
-}
-.domain-summary-stats b {
-  color: #8de0bc;
-  font-size: 16px;
-}
-.domain-summary-stats small {
-  color: #7d899d;
-  font-size: 10px;
-}
 @media (max-width: 760px) {
   .domain-catalog {
     padding: 28px 18px 36px;
@@ -573,6 +656,12 @@
   .domain-catalog-header {
     display: grid;
     gap: 18px;
+  }
+  .domain-catalog-grid {
+    grid-template-columns: 1fr;
+  }
+  .domain-catalog-column {
+    gap: 12px;
   }
 }
 

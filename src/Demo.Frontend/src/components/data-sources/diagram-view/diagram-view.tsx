@@ -170,6 +170,12 @@ function createLayout(tables, relationships, boardWidth, boardHeight) {
       const otherRect = rectangleFor(otherPosition, cardWidth, cardHeight, 12);
       if (rectanglesOverlap(candidateRect, otherRect)) score += 1e9;
     }
+    for (const existing of laidOutEdges) {
+      if (existing.relation.from === key || existing.relation.to === key) continue;
+      if (segmentIntersectsRectangle(existing.geometry.start, existing.geometry.end, candidateRect)) {
+        score += 1e8;
+      }
+    }
 
     const relationEdges = relationships.filter((relation) =>
       (relation.from === key && positions.has(relation.to))
@@ -182,7 +188,7 @@ function createLayout(tables, relationships, boardWidth, boardHeight) {
         candidatePositions.get(relation.from),
         candidatePositions.get(relation.to),
         cardWidth,
-        expandedCardHeight,
+        cardHeight,
       );
       if (!geometry) continue;
       const shortfall = Math.max(0, geometry.requiredDistance - geometry.distance);
@@ -212,8 +218,31 @@ function createLayout(tables, relationships, boardWidth, boardHeight) {
   const goldenAngle = Math.PI * (3 - Math.sqrt(5));
   orderedTables.forEach((table, index) => {
     const key = tableKey(table.schema, table.name);
-    if (index === 0) {
+    if (index === 0 && (degree.get(key) || 0) > 0) {
       positions.set(key, { x: center.x - cardWidth / 2, y: center.y - cardHeight / 2 });
+      return;
+    }
+
+    if ((degree.get(key) || 0) === 0) {
+      let isolatedPosition = null;
+      const columnCount = Math.max(1, Math.floor((boardWidth - BOARD_MARGIN * 2) / (cardWidth + 24)));
+      const rowCount = Math.max(1, Math.ceil(orderedTables.length / columnCount));
+      for (let row = 0; row < rowCount && !isolatedPosition; row += 1) {
+        for (let column = 0; column < columnCount; column += 1) {
+          const candidate = {
+            x: BOARD_MARGIN + column * (cardWidth + 24),
+            y: BOARD_MARGIN + row * (cardHeight + 24),
+          };
+          const candidateRect = rectangleFor(candidate, cardWidth, cardHeight, 12);
+          if (![...positions.values()].every((position) =>
+            !rectanglesOverlap(candidateRect, rectangleFor(position, cardWidth, cardHeight, 12)))) {
+            continue;
+          }
+          isolatedPosition = candidate;
+          break;
+        }
+      }
+      positions.set(key, isolatedPosition || { x: BOARD_MARGIN, y: BOARD_MARGIN });
       return;
     }
 
@@ -248,7 +277,18 @@ function createLayout(tables, relationships, boardWidth, boardHeight) {
     });
   });
 
-  const bounds = [...positions.values()].reduce((current, position) => ({
+  const isolatedKeys = new Set(
+    orderedTables
+      .filter((table) => (degree.get(tableKey(table.schema, table.name)) || 0) === 0)
+      .map((table) => tableKey(table.schema, table.name)),
+  );
+  const graphPositions = [...positions.entries()].filter(([key]) => !isolatedKeys.has(key));
+  if (graphPositions.length === 0) return {
+    cardWidth,
+    cardHeight: expandedCardHeight,
+    positions,
+  };
+  const bounds = graphPositions.reduce((current, [, position]) => ({
     left: Math.min(current.left, position.x),
     right: Math.max(current.right, position.x + cardWidth),
     top: Math.min(current.top, position.y),
@@ -261,8 +301,9 @@ function createLayout(tables, relationships, boardWidth, boardHeight) {
   });
   const graphCenterX = (bounds.left + bounds.right) / 2;
   const graphCenterY = (bounds.top + bounds.bottom) / 2;
+  const graphLeft = BOARD_MARGIN + (isolatedKeys.size > 0 ? cardWidth + 24 : 0);
   const offsetX = Math.max(
-    BOARD_MARGIN - bounds.left,
+    graphLeft - bounds.left,
     Math.min(boardWidth - BOARD_MARGIN - bounds.right, center.x - graphCenterX),
   );
   const offsetY = Math.max(
@@ -270,6 +311,7 @@ function createLayout(tables, relationships, boardWidth, boardHeight) {
     Math.min(boardHeight - BOARD_MARGIN - bounds.bottom, center.y - graphCenterY),
   );
   positions.forEach((position, key) => {
+    if (isolatedKeys.has(key)) return;
     positions.set(key, { x: position.x + offsetX, y: position.y + offsetY });
   });
 
