@@ -1,7 +1,7 @@
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useLocation, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { apiUrls } from "../../const/api-urls";
 import { useMessageBox } from "../message-box/message-box";
 import Icon from "../icon/icon";
@@ -36,6 +36,10 @@ type DatabaseRelationship = {
   targetColumns: string[];
   isUnique: boolean;
 };
+type BusinessScopeSummary = {
+  name: string;
+  entities: MetadataEntity[];
+};
 
 function normalizeTablePart(value: string) {
   return value.trim().replace(/[\[\]"`]/g, "").toLowerCase();
@@ -67,14 +71,14 @@ function findEntityTable(entity: MetadataEntity, tables: DatabaseTableOption[]) 
   );
 }
 
-async function request(url: string, options?: RequestInit) {
+async function request<T = unknown>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, options);
   if (!response.ok) {
     const detail = await response.text();
     throw new Error(detail || `Metadata request failed (${response.status}).`);
   }
 
-  return response.status === 204 ? null : response.json();
+  return response.status === 204 ? null as T : response.json() as Promise<T>;
 }
 
 type MetadataBuilderProps = {
@@ -86,6 +90,7 @@ type MetadataBuilderProps = {
 
 export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavigationChange, entityOnly = false, embedded = false }: MetadataBuilderProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const databaseState = useSelector((state: RootState) => state.database);
   const entities = useSelector((state: RootState) => state.queryBuilder.metadata);
@@ -111,10 +116,12 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const [message, setMessage] = useState("");
   const [dirty, setDirty] = useState(false);
   const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
+  const [businessScopes, setBusinessScopes] = useState<BusinessScopeSummary[]>([]);
   useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   useEffect(() => { selectedNameRef.current = selectedName; }, [selectedName]);
   const requestedSection = searchParams.get("section")
     ?? (location.pathname === "/metadata/business-scopes/create" ? "business-scopes" : null);
+  const scopeName = searchParams.get("scope") || undefined;
   const activeSection: MetadataSection = entityOnly ? "entities" : requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "business-scopes" || requestedSection === "functions" || requestedSection === "operators"
     ? requestedSection
     : "diagram";
@@ -141,7 +148,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     setStatus("loading");
     setMessage("");
     try {
-      const result = await dispatch(fetchQueryMetadata());
+      const result = await dispatch(fetchQueryMetadata(scopeName));
       if (!fetchQueryMetadata.fulfilled.match(result)) {
         throw new Error(String(result.payload || "Unable to load metadata."));
       }
@@ -169,7 +176,22 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     }
   };
 
-  useEffect(() => { loadEntities(true); }, []);
+  useEffect(() => { void loadEntities(true); }, [scopeName]);
+  useEffect(() => {
+    if (entityOnly || (activeSection !== "diagram" && activeSection !== "entities")) return;
+    let cancelled = false;
+    void request<BusinessScopeSummary[]>(apiUrls.metadata.businessScopes)
+      .then((result) => {
+        if (!cancelled) setBusinessScopes(result);
+      })
+      .catch((reason) => {
+        if (!cancelled) {
+          setBusinessScopes([]);
+          setMessage(reason instanceof Error ? reason.message : "Unable to load business scopes for the diagram.");
+        }
+      });
+    return () => { cancelled = true; };
+  }, [activeSection, entityOnly]);
   useEffect(() => {
     if (databaseState.connectionStatus === "succeeded" && databaseState.schemaStatus === "idle") {
       dispatch(fetchDbSchema());
@@ -430,19 +452,37 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const selectRawSqlMode = () => {
     setSelectedTableKey("");
   };
+  const selectBusinessScope = (name: string) => {
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.set("section", "entities");
+    nextSearchParams.set("scope", name);
+    navigate(`/metadata?${nextSearchParams.toString()}`);
+  };
 
   return (
     <>
-
       {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "diagram"}>
         <EntityDiagram
           entities={entities}
+          businessScopes={businessScopes}
+          activeScopeName={scopeName}
           onOpenEntity={(table) => openTableAsEntity(table, false)}
           entityEditorHeader={
             <div className="table-details-heading metadata-editor-heading">
               <div className="table-details-title">
-                <span className="section-kicker">DESIGN ENTITY</span>
+                <div className="metadata-editor-heading-eyebrow">
+                  <span className="section-kicker">ENTITY DEFINITION</span>
+                  <span>{scopeName || "All scopes"}</span>
+                </div>
+                <div className="metadata-editor-heading-title">
+                  <span className="metadata-editor-heading-icon"><Icon name="table" size={18} /></span>
+                  <h3>{draft?.name || "Select an entity"}</h3>
+                </div>
+                <p>{draft ? "Configure the entity mapping, fields, and relations." : "Choose an entity from the navigation to begin."}</p>
               </div>
+              <span className={`metadata-editor-heading-status${selectedIsBuiltin ? " readonly" : ""}`}>
+                {selectedIsBuiltin ? "Read-only" : draft ? "Ready to edit" : "No selection"}
+              </span>
             </div>
           }
           entityEditor={
@@ -464,20 +504,60 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       </div>}
       <div className="metadata-workspace-panel" hidden={activeSection !== "entities"}>
         <section className={`metadata-workspace split-workspace${panel.collapsed ? " panel-collapsed" : ""}`} style={panel.style}>
-          <EntityList
-            entities={entities}
-            selectedName={selectedName}
-            filter={filter}
-            status={status}
-            onFilterChange={setFilter}
-            onSelectEntity={selectEntity}
-          />
+          <div className="metadata-entity-navigation">
+            {businessScopes.length > 0 && (
+              <div className="metadata-scope-navigation">
+                <div className="metadata-scope-navigation-heading">
+                  <span className="section-kicker">WORKSPACE</span>
+                  <strong>Business scope</strong>
+                </div>
+                <nav aria-label="Entity definition business scopes">
+                  {businessScopes.map((scope) => {
+                    const isActive = (scopeName || "All") === scope.name;
+                    return (
+                      <button
+                        type="button"
+                        className={`metadata-scope-navigation-item${isActive ? " active" : ""}`}
+                        aria-pressed={isActive}
+                        key={scope.name}
+                        onClick={() => selectBusinessScope(scope.name)}
+                      >
+                        <span className="metadata-scope-navigation-icon"><Icon name="folder" size={14} /></span>
+                        <span className="metadata-scope-navigation-name">{scope.name}</span>
+                        <span className="metadata-scope-navigation-count">{scope.entities.length}</span>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+            )}
+            <EntityList
+              entities={entities}
+              selectedName={selectedName}
+              filter={filter}
+              status={status}
+              scopeName={scopeName}
+              onFilterChange={setFilter}
+              onSelectEntity={selectEntity}
+            />
+          </div>
           <PanelSplitter panel={panel} label="entities panel" />
           <div className="metadata-editor">
             <div className="table-details-heading metadata-editor-heading">
               <div className="table-details-title">
-                <span className="section-kicker">DESIGN ENTITY</span>
+                <div className="metadata-editor-heading-eyebrow">
+                  <span className="section-kicker">ENTITY DEFINITION</span>
+                  <span>{scopeName || "All scopes"}</span>
+                </div>
+                <div className="metadata-editor-heading-title">
+                  <span className="metadata-editor-heading-icon"><Icon name="table" size={18} /></span>
+                  <h3>{draft?.name || "Select an entity"}</h3>
+                </div>
+                <p>{draft ? "Configure the entity mapping, fields, and relations." : "Choose an entity from the navigation to begin."}</p>
               </div>
+              <span className={`metadata-editor-heading-status${selectedIsBuiltin ? " readonly" : ""}`}>
+                {selectedIsBuiltin ? "Read-only" : draft ? "Ready to edit" : "No selection"}
+              </span>
             </div>
             <EntityBuilder
               draft={draft}

@@ -46,8 +46,9 @@ export default function EntityBuilder({
   useEffect(() => {
     const rawSql = draft?.rawSql.trim() || "";
     const entityName = draft?.name.trim() || "";
-    setShowRawSql(Boolean(rawSql && rawSql !== entityName));
-  }, [draft?.name, draft?.rawSql]);
+    const selectedTableName = selectedTable?.name.trim() || "";
+    setShowRawSql(Boolean(rawSql && !selectedTableName && rawSql !== entityName));
+  }, [draft?.name, draft?.rawSql, selectedTable?.name]);
 
   const filteredTables = useMemo(() => {
     const query = tableSearch.trim().toLowerCase();

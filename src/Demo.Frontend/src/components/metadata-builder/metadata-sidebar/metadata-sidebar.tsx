@@ -9,6 +9,7 @@ export type MetadataSidebarGroup = {
   count: number;
   content: ReactNode;
   emptyMessage?: string;
+  showHeader?: boolean;
 };
 
 type MetadataSidebarProps = {
@@ -45,21 +46,23 @@ export default function MetadataSidebar({
       {groups.map((group) => {
         const expanded = expandedGroups[group.id] ?? true;
         return (
-          <section className="metadata-list-group" key={group.id}>
-            <button
-              className="metadata-list-group-head"
-              type="button"
-              aria-expanded={expanded}
-              aria-controls={group.id}
-              onClick={() => setExpandedGroups((current) => ({
-                ...current,
-                [group.id]: !expanded,
-              }))}
-            >
-              <span className="metadata-list-group-title">{group.title}</span>
-              <span className="tab-number">{group.count}</span>
-              <span className="metadata-list-group-chevron"><Icon name="chevron-down" size={14} /></span>
-            </button>
+          <section className={`metadata-list-group${group.showHeader === false ? " no-header" : ""}`} key={group.id}>
+            {group.showHeader !== false && (
+              <button
+                className="metadata-list-group-head"
+                type="button"
+                aria-expanded={expanded}
+                aria-controls={group.id}
+                onClick={() => setExpandedGroups((current) => ({
+                  ...current,
+                  [group.id]: !expanded,
+                }))}
+              >
+                <span className="metadata-list-group-title">{group.title}</span>
+                <span className="tab-number">{group.count}</span>
+                <span className="metadata-list-group-chevron"><Icon name="chevron-down" size={14} /></span>
+              </button>
+            )}
             <div id={group.id} hidden={!expanded}>
               {group.content}
               {group.emptyMessage && <p className="metadata-list-group-empty">{group.emptyMessage}</p>}

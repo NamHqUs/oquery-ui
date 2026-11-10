@@ -984,9 +984,11 @@ function toApiSavedRequest(request: { name: string; definition: QueryDefinition;
 
 export const fetchQueryMetadata = createAsyncThunk(
   "queryBuilder/fetchMetadata",
-  async (_, { rejectWithValue }) => {
+  async (scope: string | undefined = undefined, { rejectWithValue }) => {
     try {
-      const payload = await requestJson(apiUrls.metadata.list);
+      const url = new URL(apiUrls.metadata.list, window.location.origin);
+      if (scope?.trim()) url.searchParams.set("scope", scope.trim());
+      const payload = await requestJson(url.toString());
       if (!Array.isArray(payload) || payload.some((entity) => !entity
         || typeof entity.name !== "string"
         || !Array.isArray(entity.fields)

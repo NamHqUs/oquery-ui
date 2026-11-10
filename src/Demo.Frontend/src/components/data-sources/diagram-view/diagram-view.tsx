@@ -9,9 +9,13 @@ export type DiagramTable = {
   name: string;
   columns: { name: string; dataType: string; isPrimaryKey: boolean; isNullable?: boolean }[];
 };
+export type DiagramGroupTone = "revenue" | "customer" | "product" | "finance" | "custom";
+export const DIAGRAM_GROUP_TONES: DiagramGroupTone[] = ["revenue", "customer", "product", "finance", "custom"];
 
 type DiagramViewProps = {
   tables?: DiagramTable[];
+  groups?: { name: string; tables: DiagramTable[]; tone?: DiagramGroupTone }[];
+  initialGroup?: string;
   onOpenTable?: (table: DiagramTable) => void;
 };
 
@@ -50,7 +54,11 @@ function tableKey(schema, name) {
   return `${schema}.${name}`;
 }
 
-function domainTone(domain) {
+export function diagramGroupTone(index: number): DiagramGroupTone {
+  return DIAGRAM_GROUP_TONES[index % DIAGRAM_GROUP_TONES.length];
+}
+
+function domainTone(domain): DiagramGroupTone {
   return DOMAIN_TONES[domain] || "custom";
 }
 
@@ -301,7 +309,7 @@ function getDiagramRelationships(activeGroup, schemaRelationships) {
   return edges;
 }
 
-export default function DiagramView({ tables: suppliedTables, onOpenTable }: DiagramViewProps) {
+export default function DiagramView({ tables: suppliedTables, groups: suppliedGroups, initialGroup, onOpenTable }: DiagramViewProps) {
   const dispatch = useDispatch();
   const { schema, schemaStatus, schemaError, debugUiEnabled } = useSelector((state) => state.database);
   const diagramTables = suppliedTables || schema.tables;
@@ -343,6 +351,15 @@ export default function DiagramView({ tables: suppliedTables, onOpenTable }: Dia
   }, [autoRange, scrollElement]);
 
   const groups = useMemo(() => {
+    if (suppliedGroups?.length) {
+      return suppliedGroups
+        .filter((group) => group.tables.length > 0)
+        .map((group) => ({
+          name: group.name,
+          tables: [...group.tables].sort((left, right) => left.name.localeCompare(right.name)),
+          tone: group.tone,
+        }));
+    }
     const grouped = new Map(DOMAIN_ORDER.map((name) => [name, []]));
     if (suppliedTables) {
       grouped.set("All", diagramTables);
@@ -359,10 +376,13 @@ export default function DiagramView({ tables: suppliedTables, onOpenTable }: Dia
         name,
         tables: tables.sort((left, right) => left.name.localeCompare(right.name)),
       }));
-  }, [diagramTables, suppliedTables]);
+  }, [diagramTables, suppliedGroups, suppliedTables]);
 
   const activeGroup = suppliedTables
-    ? groups.find((group) => group.name === "All")
+    ? groups.find((group) => group.name === selectedGroup)
+      || groups.find((group) => group.name === initialGroup)
+      || groups.find((group) => group.name === "All")
+      || groups[0]
     : groups.find((group) => group.name === selectedGroup) || groups[0];
 
   const relationships = useMemo(
@@ -434,12 +454,12 @@ export default function DiagramView({ tables: suppliedTables, onOpenTable }: Dia
           <p>Choose a domain to explore its relationships. Drag tables to adjust the layout; expand a table to inspect its columns. Double-click a table header to preview its first 10 rows.</p>
         </div>
       </div>}
-      {!suppliedTables && <div className="diagram-group-toolbar">
+      {(!suppliedTables || suppliedGroups?.length) && <div className="diagram-group-toolbar">
         <nav className="diagram-group-switch" aria-label="Diagram table groups">
           {groups.map((group) => (
             <button
               type="button"
-              className={`diagram-group-button tone-${domainTone(group.name)}${activeGroup?.name === group.name ? " active" : ""}`}
+              className={`diagram-group-button tone-${group.tone || domainTone(group.name)}${activeGroup?.name === group.name ? " active" : ""}`}
               aria-pressed={activeGroup?.name === group.name}
               key={group.name}
               onClick={() => {

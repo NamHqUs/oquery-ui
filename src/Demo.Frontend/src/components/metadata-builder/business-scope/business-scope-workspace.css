@@ -17,7 +17,12 @@
 .business-scope-create-view .business-scope-step-panel { grid-column: 2; min-width: 0; }
 .business-scope-create-view .business-scope-wizard-footer { display: grid; grid-template-columns: minmax(0,1fr); gap: 8px; padding: 24px 0 0; border: 0; background: transparent; }
 .business-scope-create-view .business-scope-wizard-footer > button { width: 100%; min-height: 38px; justify-content: center; margin: 0; }
-.business-scope-list-page { min-height: 520px; padding: 28px 32px; }
+.business-scope-list-page { display: grid; min-height: 520px; grid-template-columns: 280px minmax(0,1fr); padding: 0; }
+.business-scope-scope-list { min-height: 520px; }
+.business-scope-route-list { min-width: 0; min-height: 520px; overflow: hidden; }
+.business-scope-list-welcome { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 48px; }
+.business-scope-list-welcome h2 { margin: 8px 0; font-size: 22px; color: #f0edff; }
+.business-scope-list-welcome p { max-width: 430px; margin: 0 0 22px; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .business-scope-list-page-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 32px; }
 .business-scope-list-page-heading h2 { margin: 7px 0 5px; font-size: 21px; }
 .business-scope-list-page-heading p { margin: 0; color: var(--muted); font-size: 12px; }
@@ -33,7 +38,33 @@
 .business-scope-list button { display: flex; width: 100%; align-items: center; gap: 8px; padding: 10px 9px; border: 1px solid transparent; border-radius: 6px; color: #aeb6c5; background: transparent; text-align: left; }
 .business-scope-list button:hover,.business-scope-list button.active { border-color: #3b315c; color: #eeeaff; background: #211a35; }
 .business-scope-list button small { margin-left: auto; color: var(--muted); }
-.business-scope-editor { min-width: 0; padding: 25px 30px; }
+.business-scope-editor { grid-column: 2; min-width: 0; padding: 25px 30px; }
+.business-scope-create-view .business-scope-editor { grid-column: 1; }
+.business-scope-detail-layout { display: grid; min-height: 470px; grid-template-columns: 250px minmax(0,1fr); margin: 0 -30px -25px; border-top: 1px solid #293141; }
+.business-scope-entity-panel { min-width: 0; padding: 20px 14px; border-right: 1px solid #293141; background: #0e1117; }
+.business-scope-entity-panel .business-scope-name { max-width: none; margin-bottom: 22px; }
+.business-scope-entity-toolbar { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; color: #dce1ea; font-size: 12px; }
+.business-scope-entity-toolbar strong { margin-right: auto; }
+.business-scope-entity-toolbar strong span { color: var(--purple); }
+.business-scope-entity-toolbar button { display: grid; width: 28px; height: 28px; place-items: center; border: 1px solid #303847; border-radius: 5px; color: #bfb4f7; background: #171b24; }
+.business-scope-entity-toolbar button:hover:not(:disabled) { border-color: var(--purple); background: #211d32; }
+.business-scope-entity-toolbar button:disabled { cursor: not-allowed; opacity: .45; }
+.business-scope-entity-filter { display: flex; align-items: center; gap: 7px; padding: 0 8px; border: 1px solid #2b3340; border-radius: 5px; color: #687385; background: #171b24; }
+.business-scope-entity-filter input { width: 100%; padding: 8px 0; border: 0; outline: 0; color: #e9edf4; background: transparent; font-size: 12px; }
+.business-scope-entity-list { display: grid; gap: 4px; margin-top: 12px; }
+.business-scope-entity-list button { display: flex; align-items: center; gap: 8px; padding: 10px 8px; border: 1px solid transparent; border-radius: 5px; color: #aeb6c5; background: transparent; text-align: left; }
+.business-scope-entity-list button:hover, .business-scope-entity-list button.active { border-color: #3b315c; color: #eeeaff; background: #211a35; }
+.business-scope-entity-list button span { min-width: 0; }
+.business-scope-entity-list b, .business-scope-entity-list small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.business-scope-entity-list b { font-size: 12px; }
+.business-scope-entity-list small { margin-top: 3px; color: var(--muted); font-size: 10px; }
+.business-scope-entity-list button > svg:last-child { margin-left: auto; }
+.business-scope-entity-editor { min-width: 0; padding: 22px 26px; overflow: auto; }
+.business-scope-entity-editor .business-scope-editor-heading { margin-bottom: 16px; }
+.business-scope-entity-editor .business-scope-editor-heading h3 { margin: 7px 0 0; font-size: 18px; color: #f0edff; }
+.business-scope-remove { display: inline-flex; align-items: center; gap: 6px; border: 0; color: #e7969f; background: transparent; font-size: 12px; }
+.business-scope-remove:hover { color: #ffc0c6; }
+.business-scope-entity-save { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; padding-top: 14px; border-top: 1px solid #293141; color: var(--muted); font-size: 11px; }
 .business-scope-editor-heading { display: flex; align-items: start; justify-content: space-between; gap: 15px; margin-bottom: 26px; }
 .business-scope-editor-heading h2 { margin: 7px 0 0; font-size: 21px; }
 .business-scope-count { color: var(--green); font-size: 12px; }
@@ -158,7 +189,15 @@
 .business-scope-primary span { margin-left: 8px; font-size: 15px; }
 #business-scope-actions { display: none; }
 @media (max-width: 760px) {
+  .business-scope-workspace,
+  .business-scope-workspace .metadata-list {
+    min-height: 520px;
+  }
   .business-scope-workspace { grid-template-columns: 1fr; }
+  .business-scope-editor { grid-column: 1; }
+  .business-scope-list-page, .business-scope-detail-layout { grid-template-columns: 1fr; }
+  .business-scope-scope-list, .business-scope-route-list, .business-scope-entity-panel { min-height: 0; border-right: 0; border-bottom: 1px solid #293141; }
+  .business-scope-list-welcome { padding: 32px 22px; }
   .business-scope-table-picker-layout { grid-template-columns: 1fr; }
   .business-scope-selected-tables { padding: 16px 0 0; border-top: 0; border-left: 0; }
   .business-scope-list { border-bottom: 1px solid var(--line); }
@@ -176,4 +215,550 @@
   .business-scope-steps button small { display: none; }
   .business-scope-step-panel { padding: 22px 18px; }
   .business-scope-wizard-footer { padding: 14px 18px; }
+}
+
+/* Refined scope workspace surface */
+.business-scope-workspace {
+  min-height: 680px;
+  border-color: #252c3b;
+  border-radius: 14px;
+  background: #0b0f17;
+  box-shadow: 0 20px 55px #00000026, inset 0 1px #ffffff08;
+}
+.business-scope-workspace .metadata-list {
+  min-height: 680px;
+  padding: 24px 14px;
+  border-right-color: #252c3b;
+  background: #0c111a;
+}
+.business-scope-workspace .sidebar-list-heading {
+  height: auto;
+  padding: 0 10px 16px;
+  color: #eef0f7;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+.business-scope-workspace .metadata-search,
+.business-scope-entity-filter {
+  min-height: 38px;
+  border-color: #293244;
+  border-radius: 8px;
+  background: #141a25;
+  box-shadow: inset 0 1px #ffffff05;
+}
+.business-scope-workspace .metadata-list-group-head {
+  padding: 9px 10px;
+  color: #7f8ba0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+.business-scope-workspace .metadata-entity {
+  margin: 2px 0;
+  padding: 12px 10px;
+  border-color: transparent;
+  border-radius: 9px;
+  transition: background .16s ease, border-color .16s ease, transform .16s ease;
+}
+.business-scope-workspace .metadata-entity:hover {
+  border-color: #38425b;
+  background: #171e2c;
+  transform: translateX(2px);
+}
+.business-scope-workspace .metadata-entity.active {
+  border-color: #6654a6;
+  background: linear-gradient(135deg, #302655, #1d2035);
+  box-shadow: inset 0 1px #ffffff10, 0 8px 18px #0000001f;
+}
+.business-scope-workspace .entity-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  border: 1px solid #55458d;
+  border-radius: 8px;
+  color: #b6a7ff;
+  background: #272044;
+}
+.business-scope-workspace .metadata-entity b {
+  color: #e7eaf3;
+  font-size: 12px;
+}
+.business-scope-workspace .metadata-entity small {
+  color: #8d98aa;
+}
+.business-scope-editor {
+  padding: 0;
+  background: #101520;
+}
+.business-scope-editor > .business-scope-editor-heading {
+  min-height: 116px;
+  align-items: center;
+  margin: 0;
+  padding: 25px 32px;
+  border-bottom: 1px solid #252c3b;
+  background: linear-gradient(135deg, #141b2a, #101520 62%);
+}
+.business-scope-editor-heading h2 {
+  margin-top: 9px;
+  color: #f5f6fb;
+  font-size: 24px;
+  letter-spacing: -.02em;
+}
+.business-scope-count {
+  padding: 6px 10px;
+  border: 1px solid #315e51;
+  border-radius: 999px;
+  color: #8de0bc;
+  background: #18362e;
+  font-size: 11px;
+  font-weight: 700;
+}
+.business-scope-detail-layout {
+  margin: 0;
+  border-top: 0;
+  grid-template-columns: 248px minmax(0, 1fr);
+}
+.business-scope-entity-panel {
+  padding: 22px 16px;
+  border-right-color: #252c3b;
+  background: #0d131d;
+}
+.business-scope-entity-panel .business-scope-name {
+  margin-bottom: 24px;
+}
+.business-scope-name {
+  color: #9da8ba;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.business-scope-name input {
+  min-height: 40px;
+  border-color: #303b50;
+  border-radius: 8px;
+  background: #151c28;
+  font-size: 13px;
+  font-weight: 500;
+}
+.business-scope-entity-toolbar {
+  margin-bottom: 12px;
+  color: #d7dce7;
+  font-size: 12px;
+}
+.business-scope-entity-toolbar button {
+  width: 30px;
+  height: 30px;
+  border-color: #303b50;
+  border-radius: 8px;
+  background: #151c28;
+}
+.business-scope-entity-list {
+  gap: 5px;
+  margin-top: 14px;
+}
+.business-scope-entity-list button {
+  min-height: 52px;
+  padding: 9px 10px;
+  border-radius: 9px;
+}
+.business-scope-entity-list button:hover {
+  border-color: #38425b;
+  background: #171e2b;
+}
+.business-scope-entity-list button.active {
+  border-color: #6654a6;
+  background: linear-gradient(135deg, #302655, #1d2035);
+  box-shadow: inset 0 1px #ffffff0b;
+}
+.business-scope-entity-editor {
+  padding: 28px 32px;
+  background: #101520;
+}
+.business-scope-entity-editor .business-scope-editor-heading {
+  min-height: 0;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.business-scope-entity-editor .business-scope-editor-heading h3 {
+  margin-top: 8px;
+  color: #f5f6fb;
+  font-size: 22px;
+  letter-spacing: -.02em;
+}
+.business-scope-entity-editor .metadata-form {
+  padding: 0;
+}
+.business-scope-entity-editor .metadata-form-grid {
+  gap: 14px;
+}
+.business-scope-entity-editor .metadata-form label {
+  color: #9da8ba;
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.business-scope-entity-editor .metadata-form input,
+.business-scope-entity-editor .metadata-form select,
+.business-scope-entity-editor .metadata-form textarea {
+  min-height: 40px;
+  border-color: #303b50;
+  border-radius: 8px;
+  background: #151c28;
+  font-size: 13px;
+}
+.business-scope-entity-editor .editor-section {
+  margin-top: 30px;
+  padding-top: 22px;
+  border-top: 1px solid #252c3b;
+}
+.business-scope-entity-editor .editor-section-head h3 {
+  color: #e7eaf3;
+  font-size: 14px;
+}
+.business-scope-entity-editor .field-editor-table,
+.business-scope-entity-editor .relation-card {
+  border-color: #2b3547;
+  border-radius: 10px;
+  background: #141b27;
+  box-shadow: 0 8px 20px #00000012;
+}
+.business-scope-entity-editor .field-editor-head {
+  background: #101620;
+  border-bottom-color: #2b3547;
+}
+.business-scope-entity-editor .field-editor-row {
+  background: #141b27;
+  border-bottom-color: #252e3e;
+}
+.business-scope-entity-editor .field-editor-row:hover {
+  background: #192231;
+}
+.business-scope-entity-save {
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top-color: #252c3b;
+}
+.business-scope-entity-save .business-scope-add {
+  min-height: 38px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #735de0, #5642ad);
+  box-shadow: 0 8px 18px #4e3b9c33;
+}
+.business-scope-entity-save .business-scope-add:hover {
+  background: linear-gradient(135deg, #846ff0, #6652c4);
+}
+
+/* Selected scopes use a two-level layout instead of a cramped nested split. */
+.business-scope-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.business-scope-entity-panel {
+  display: grid;
+  grid-template-columns: minmax(190px, 230px) minmax(0, 1fr);
+  grid-template-areas:
+    "scope toolbar"
+    "scope filter"
+    "entities entities";
+  gap: 12px 22px;
+  align-items: center;
+  padding: 18px 26px 16px;
+  border-right: 0;
+  border-bottom: 1px solid #252c3b;
+}
+.business-scope-entity-panel .business-scope-name {
+  grid-area: scope;
+  margin: 0;
+}
+.business-scope-entity-toolbar {
+  grid-area: toolbar;
+  margin: 0;
+}
+.business-scope-entity-filter {
+  grid-area: filter;
+  width: min(100%, 360px);
+}
+.business-scope-entity-list {
+  grid-area: entities;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0;
+  gap: 8px;
+  margin: 0;
+  padding: 2px 0 4px;
+  max-height: 156px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.business-scope-entity-list::-webkit-scrollbar {
+  height: 5px;
+  width: 5px;
+}
+.business-scope-entity-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #51447e;
+}
+.business-scope-entity-list button {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+}
+.business-scope-entity-list button span {
+  overflow: hidden;
+}
+.business-scope-entity-list button > svg:last-child {
+  flex: 0 0 auto;
+}
+.business-scope-entity-editor {
+  min-height: 0;
+  overflow: auto;
+}
+@media (max-width: 760px) {
+  .business-scope-entity-panel {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "scope toolbar"
+      "filter filter"
+      "entities entities";
+    gap: 12px;
+    padding: 16px;
+  }
+  .business-scope-entity-filter {
+    width: 100%;
+  }
+  .business-scope-entity-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-height: 180px;
+  }
+}
+
+.business-scope-catalog {
+  min-height: 560px;
+  padding: 38px 44px 48px;
+  background:
+    radial-gradient(circle at 90% 0%, #33265c2b, transparent 34%),
+    #0d121b;
+}
+.business-scope-catalog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: 980px;
+  margin: 0 auto 30px;
+}
+.business-scope-catalog-header h2 {
+  margin: 10px 0 7px;
+  color: #f5f6fb;
+  font-size: 26px;
+  letter-spacing: -.03em;
+}
+.business-scope-catalog-header p {
+  margin: 0;
+  color: #8d98aa;
+  font-size: 13px;
+}
+.business-scope-catalog-filter {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 980px;
+  min-height: 42px;
+  margin: 0 auto 18px;
+  padding: 0 12px;
+  border: 1px solid #293448;
+  border-radius: 9px;
+  color: #778398;
+  background: #141b27;
+}
+.business-scope-catalog-filter input {
+  width: 100%;
+  padding: 10px 0;
+  border: 0;
+  outline: 0;
+  color: #e8ebf3;
+  background: transparent;
+  font-size: 13px;
+}
+.business-scope-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 12px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+.business-scope-summary-card {
+  display: flex;
+  min-height: 82px;
+  align-items: center;
+  gap: 13px;
+  padding: 16px;
+  border: 1px solid #293448;
+  border-radius: 12px;
+  color: #dce1eb;
+  background: linear-gradient(135deg, #151d2b, #121923);
+  text-align: left;
+  box-shadow: inset 0 1px #ffffff05, 0 8px 22px #00000014;
+  transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease;
+}
+.business-scope-summary-card:hover {
+  border-color: #705bc0;
+  background: linear-gradient(135deg, #211c3a, #171d2c);
+  box-shadow: inset 0 1px #ffffff0a, 0 12px 26px #00000024;
+  transform: translateY(-2px);
+}
+.business-scope-summary-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border: 1px solid #55458d;
+  border-radius: 10px;
+  color: #b6a7ff;
+  background: #282044;
+}
+.business-scope-summary-content {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+.business-scope-summary-content strong {
+  overflow: hidden;
+  color: #f0f2f8;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.business-scope-summary-content small {
+  color: #8b96a8;
+  font-size: 11px;
+}
+.business-scope-summary-stats {
+  display: grid;
+  min-width: 54px;
+  gap: 2px;
+  margin-left: auto;
+  text-align: right;
+}
+.business-scope-summary-stats b {
+  color: #8de0bc;
+  font-size: 16px;
+}
+.business-scope-summary-stats small {
+  color: #7d899d;
+  font-size: 10px;
+}
+.business-scope-summary-card > svg {
+  color: #748098;
+}
+@media (max-width: 760px) {
+  .business-scope-catalog {
+    padding: 28px 18px 36px;
+  }
+  .business-scope-catalog-header {
+    display: grid;
+    gap: 18px;
+  }
+}
+
+/* Scopes are few; keep them compact and give the high-cardinality entity list the rail. */
+.business-scope-workspace:not(.business-scope-list-view):not(.business-scope-create-view) {
+  grid-template-columns: minmax(0, 1fr);
+}
+.business-scope-workspace:not(.business-scope-list-view):not(.business-scope-create-view) .business-scope-editor {
+  grid-column: 1;
+}
+.business-scope-workspace:not(.business-scope-list-view):not(.business-scope-create-view) .business-scope-route-list {
+  display: none;
+}
+.business-scope-scope-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  color: #8f9aae;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.business-scope-scope-picker select {
+  min-width: 150px;
+  min-height: 36px;
+  padding: 0 30px 0 11px;
+  border: 1px solid #354159;
+  border-radius: 8px;
+  outline: 0;
+  color: #e8ebf3;
+  background: #171f2d;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.business-scope-scope-picker select:focus {
+  border-color: #8064e8;
+}
+.business-scope-workspace:not(.business-scope-list-view):not(.business-scope-create-view) .business-scope-detail-layout {
+  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 560px;
+}
+.business-scope-workspace:not(.business-scope-list-view):not(.business-scope-create-view) .business-scope-entity-panel {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px 16px;
+  border-right: 1px solid #252c3b;
+  border-bottom: 0;
+}
+.business-scope-workspace:not(.business-scope-list-view):not(.business-scope-create-view) .business-scope-entity-panel .business-scope-name {
+  display: none;
+}
+.business-scope-workspace:not(.business-scope-list-view):not(.business-scope-create-view) .business-scope-entity-toolbar {
+  flex: 0 0 auto;
+}
+.business-scope-workspace:not(.business-scope-list-view):not(.business-scope-create-view) .business-scope-entity-filter {
+  width: auto;
+  flex: 0 0 auto;
+}
+.business-scope-workspace:not(.business-scope-list-view):not(.business-scope-create-view) .business-scope-entity-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 0;
+  max-height: none;
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+.business-scope-workspace:not(.business-scope-list-view):not(.business-scope-create-view) .business-scope-entity-list button {
+  width: 100%;
+}
+.business-scope-workspace:not(.business-scope-list-view):not(.business-scope-create-view) .business-scope-entity-editor {
+  min-width: 0;
+  min-height: 0;
+}
+@media (max-width: 760px) {
+  .business-scope-scope-picker {
+    margin-left: 0;
+  }
+  .business-scope-workspace:not(.business-scope-list-view):not(.business-scope-create-view) .business-scope-detail-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .business-scope-workspace:not(.business-scope-list-view):not(.business-scope-create-view) .business-scope-entity-panel {
+    border-right: 0;
+    border-bottom: 1px solid #252c3b;
+  }
+  .business-scope-workspace:not(.business-scope-list-view):not(.business-scope-create-view) .business-scope-entity-list {
+    max-height: 260px;
+  }
 }

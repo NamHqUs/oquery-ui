@@ -14,7 +14,8 @@ public sealed class MetadataController(
     IOperatorDefinitionService operatorDefinitionService) : ControllerBase
 {
     [HttpGet]
-    public ActionResult<IReadOnlyList<MetadataEntityDto>> GetMetadata() => Ok(metadataService.GetAll());
+    public ActionResult<IReadOnlyList<MetadataEntityDto>> GetMetadata([FromQuery] string? scope)
+        => Ok(businessScopeService.GetEntities(scope));
 
     [HttpPost]
     public ActionResult<Entity> CreateMetadata([FromBody] Entity entity)

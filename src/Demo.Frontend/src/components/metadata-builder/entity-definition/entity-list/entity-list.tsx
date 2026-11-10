@@ -9,6 +9,7 @@ type EntityListProps = {
   selectedName: string;
   filter: string;
   status: string;
+  scopeName?: string;
   onFilterChange: (filter: string) => void;
   onSelectEntity: (entity: MetadataEntity) => void;
 };
@@ -18,6 +19,7 @@ export default function EntityList({
   selectedName,
   filter,
   status,
+  scopeName,
   onFilterChange,
   onSelectEntity,
 }: EntityListProps) {
@@ -26,8 +28,6 @@ export default function EntityList({
   const visibleEntities = entities.filter((entity) =>
     entity.name.toLowerCase().includes(filter.toLowerCase()),
   );
-  const customEntities = visibleEntities.filter((entity) => entity.canDelete !== false);
-  const builtInEntities = visibleEntities.filter((entity) => entity.canDelete === false);
   const renderEntity = (entity: MetadataEntity) => (
     <button
       className={`metadata-entity${entity.name === selectedName ? " active" : ""}`}
@@ -44,18 +44,12 @@ export default function EntityList({
   );
   const groups: MetadataSidebarGroup[] = [
     {
-      id: "entity-custom-list",
-      title: "Custom",
-      count: customEntities.length,
-      content: customEntities.map(renderEntity),
-      emptyMessage: status !== "loading" && !customEntities.length ? "No custom entities." : undefined,
-    },
-    {
-      id: "entity-builtin-list",
-      title: "Builtin",
-      count: builtInEntities.length,
-      content: builtInEntities.map(renderEntity),
-      emptyMessage: status !== "loading" && !builtInEntities.length ? "No built-in entities." : undefined,
+      id: "entity-list",
+      title: "Entities",
+      count: visibleEntities.length,
+      content: visibleEntities.map(renderEntity),
+      emptyMessage: status !== "loading" && !visibleEntities.length ? "No entities." : undefined,
+      showHeader: false,
     },
   ];
 
@@ -147,7 +141,7 @@ export default function EntityList({
   return (
     <MetadataSidebar
       className="metadata-list entity-list split-panel"
-      title="ENTITIES"
+      title={scopeName ? `${scopeName} ENTITIES` : "ENTITIES"}
       totalCount={entities.length}
       filter={filter}
       searchPlaceholder="Find an entity"

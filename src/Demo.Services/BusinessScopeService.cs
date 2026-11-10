@@ -15,17 +15,27 @@ public sealed class BusinessScopeService(
     public IReadOnlyList<BusinessScopeDto> GetAll()
     {
         var sectionId = userSectionManager.GetSectionId();
-        var entities = GetEntities(sectionId);
+        var builtinEntities = GetBuiltinEntities();
         var userNames = repository.GetUserDefined(sectionId)
             .Select(scope => scope.Name)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         return repository.GetBuiltin()
             .Concat(repository.GetUserDefined(sectionId))
-            .Select(scope => Copy(scope, scope.Entities.Count == 0 ? entities : scope.Entities, userNames.Contains(scope.Name)))
+            .Select(scope => Copy(
+                scope,
+                scope.Entities.Count == 0 && !scope.CanDelete ? builtinEntities : scope.Entities,
+                userNames.Contains(scope.Name)))
             .OrderBy(scope => scope.Name, StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }
+
+    public IReadOnlyList<MetadataEntityDto> GetEntities(string? scopeName)
+        => GetAll().FirstOrDefault(scope =>
+                scope.Name.Equals(string.IsNullOrWhiteSpace(scopeName) ? "All" : scopeName.Trim(),
+                    StringComparison.OrdinalIgnoreCase))
+            ?.Entities
+            ?? throw new KeyNotFoundException($"Business scope '{scopeName}' was not found.");
 
     public BusinessScopeDto Create(BusinessScopeDto scope)
     {
@@ -33,7 +43,7 @@ public sealed class BusinessScopeService(
         var sectionId = userSectionManager.GetSectionId();
         if (GetAll().Any(existing => existing.Name.Equals(normalized.Name, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException($"A business scope named '{normalized.Name}' already exists.");
-        normalized.Entities = NormalizeEntities(normalized.Entities, sectionId);
+        ValidateEntities(normalized.Entities);
         normalized.CanDelete = true;
         normalized.IsBuiltin = false;
         repository.Save(sectionId, normalized);
@@ -55,24 +65,21 @@ public sealed class BusinessScopeService(
         if (selected.Length == 0)
             throw new ArgumentException("At least one database table must be selected.", nameof(request));
 
-        var sectionId = userSectionManager.GetSectionId();
-        var existing = GetMetadataEntities(sectionId)
-            .ToDictionary(entity => TableKey(entity.DbSchema, entity.DbTable), StringComparer.OrdinalIgnoreCase);
         var selectedKeys = selected
             .Select(table => TableKey(table!.Schema, table.Name))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var generated = selected
             .Select(table => table!)
-            .ToDictionary(table => TableKey(table.Schema, table.Name), table => CreateEntity(table, request.Tables.First(selection =>
-                selection.Name.Equals(table.Name, StringComparison.OrdinalIgnoreCase)
-                && selection.Schema.Equals(table.Schema, StringComparison.OrdinalIgnoreCase))), StringComparer.OrdinalIgnoreCase);
-
-        foreach (var table in selected)
-        {
-            var key = TableKey(table!.Schema, table.Name);
-            if (existing.ContainsKey(key))
-                generated[key] = existing[key];
-        }
+            .ToDictionary(
+                table => TableKey(table.Schema, table.Name),
+                table =>
+                {
+                    var selection = request.Tables.First(selection =>
+                        selection.Name.Equals(table.Name, StringComparison.OrdinalIgnoreCase)
+                        && selection.Schema.Equals(table.Schema, StringComparison.OrdinalIgnoreCase));
+                    return CreateEntity(table, selection);
+                },
+                StringComparer.OrdinalIgnoreCase);
 
         foreach (var relationship in schema.Relationships)
         {
@@ -98,12 +105,6 @@ public sealed class BusinessScopeService(
                 relationship.TargetColumns.Zip(relationship.SourceColumns, (target, source) => new RelationItem(target, source)).ToList()));
         }
 
-        foreach (var entity in generated.Values)
-        {
-            if (!existing.ContainsKey(TableKey(entity.DbSchema, entity.DbTable)))
-                metadataRepository.Save(sectionId, entity);
-        }
-
         return Create(new BusinessScopeDto
         {
             Name = request.Name,
@@ -120,7 +121,7 @@ public sealed class BusinessScopeService(
             item.Name.Equals(scopeName, StringComparison.OrdinalIgnoreCase))
             ?? throw new KeyNotFoundException($"Business scope '{scopeName}' was not found.");
         var normalized = Validate(scope);
-        normalized.Entities = NormalizeEntities(normalized.Entities, sectionId);
+        ValidateEntities(normalized.Entities);
         if (GetAll().Any(item => !item.Name.Equals(scopeName, StringComparison.OrdinalIgnoreCase)
             && item.Name.Equals(normalized.Name, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException($"A business scope named '{normalized.Name}' already exists.");
@@ -141,32 +142,29 @@ public sealed class BusinessScopeService(
             repository.Delete(sectionId, scopeName);
     }
 
-    private IReadOnlyList<MetadataEntityDto> GetEntities(string sectionId)
+    public IMetadataProvider GetMetadataProvider(string? scopeName)
+    {
+        var requestedName = string.IsNullOrWhiteSpace(scopeName) ? "All" : scopeName.Trim();
+        var scope = GetAll().FirstOrDefault(item =>
+            item.Name.Equals(requestedName, StringComparison.OrdinalIgnoreCase))
+            ?? throw new KeyNotFoundException($"Business scope '{requestedName}' was not found.");
+        return new MetadataProvider(scope.Entities.Select(entity => entity.ToEntity()).ToArray());
+    }
+
+    private IReadOnlyList<MetadataEntityDto> GetBuiltinEntities()
         => metadataRepository.GetBuiltin()
-            .Concat(metadataRepository.GetUserDefined(sectionId))
             .Select(entity => MetadataEntityDto.FromEntity(entity, true))
             .OrderBy(entity => entity.Name, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
-    private IReadOnlyList<Entity> GetMetadataEntities(string sectionId)
-        => metadataRepository.GetBuiltin().Concat(metadataRepository.GetUserDefined(sectionId)).ToArray();
-
-    private List<MetadataEntityDto> NormalizeEntities(IReadOnlyCollection<MetadataEntityDto> requested, string sectionId)
+    private static void ValidateEntities(IReadOnlyCollection<MetadataEntityDto> entities)
     {
-        var available = GetEntities(sectionId);
-        if (requested.Count == 0)
-            return available.ToList();
-
-        var availableByName = available.ToDictionary(entity => entity.Name, StringComparer.OrdinalIgnoreCase);
-        var unknown = requested.Select(entity => entity.Name)
-            .Where(name => !availableByName.ContainsKey(name))
-            .ToArray();
-        if (unknown.Length > 0)
-            throw new ArgumentException($"Unknown entity names: {string.Join(", ", unknown)}.");
-        return requested
-            .Select(entity => availableByName[entity.Name])
-            .DistinctBy(entity => entity.Name, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        if (entities is null)
+            throw new ArgumentException("Business scope entities are required.", nameof(entities));
+        if (entities.Any(entity => entity is null || string.IsNullOrWhiteSpace(entity.Name)))
+            throw new ArgumentException("Every business scope entity must have a name.", nameof(entities));
+        if (entities.Select(entity => entity.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() != entities.Count)
+            throw new ArgumentException("Entity names must be unique within a business scope.", nameof(entities));
     }
 
     private static BusinessScopeDto Validate(BusinessScopeDto scope)

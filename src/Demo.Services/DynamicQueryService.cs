@@ -7,6 +7,7 @@ namespace Demo.Services;
 
 public sealed class DynamicQueryService(
     IDbConnectionService dbConnectionService,
+    IBusinessScopeService businessScopeService,
     IMetadataService metadataService,
     IOperatorDefinitionService operatorDefinitionService,
     ILogger<DynamicQueryService> logger) : IDynamicQueryService
@@ -20,11 +21,11 @@ public sealed class DynamicQueryService(
         return QueryDefinitionOQueryParser.Parse(text);
     }
 
-    public string GetSqlQueryString(QueryDefinition query)
+    public string GetSqlQueryString(QueryDefinition query, string? scopeName)
     {
         using var connection = dbConnectionService.CreateConnection();
         var dialect = SqlDialect.ForProvider(dbConnectionService.GetCurrentProvider(), connection);
-        var metadataProvider = metadataService.GetMetaProvider();
+        var metadataProvider = businessScopeService.GetMetadataProvider(scopeName);
         using var context = new OQueryEngine(
             connection,
             metadataProvider,
@@ -36,6 +37,7 @@ public sealed class DynamicQueryService(
 
     public async Task<TableDataDto> ExecuteQueryAsync(
         QueryDefinition query,
+        string? scopeName,
         CancellationToken cancellationToken = default)
     {
 
@@ -43,7 +45,7 @@ public sealed class DynamicQueryService(
 
         using var connection = dbConnectionService.CreateConnection();
         var dialect = SqlDialect.ForProvider(dbConnectionService.GetCurrentProvider(), connection);
-        var metadataProvider = metadataService.GetMetaProvider();
+        var metadataProvider = businessScopeService.GetMetadataProvider(scopeName);
         using var context = new OQueryEngine(
             connection,
             metadataProvider,
@@ -72,10 +74,11 @@ public sealed class DynamicQueryService(
     public Task<TableDataDto> ExecuteContextQueryAsync(
         string text,
         string contextName,
+        string? scopeName,
         CancellationToken cancellationToken = default)
     {
         var definition = QueryDefinitionOQueryParser.Parse(text, contextName);
-        return ExecuteQueryAsync(definition, cancellationToken);
+        return ExecuteQueryAsync(definition, scopeName, cancellationToken);
     }
 
     private static QueryDefinition EnsureDefaultProjection(

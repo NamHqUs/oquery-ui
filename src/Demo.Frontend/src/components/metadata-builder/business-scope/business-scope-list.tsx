@@ -7,7 +7,10 @@ import PanelSplitter from "../../panel-splitter/panel-splitter";
 import BusinessScopeWizard from "./business-scope-wizard";
 import { useResizablePanel } from "../../../utils/use-resizable-panel";
 import DefinitionActions, { type DefinitionActionAdapter } from "../definition-actions/definition-actions";
-import { toAbstractDataType } from "../types";
+import MetadataSidebar, { type MetadataSidebarGroup } from "../metadata-sidebar/metadata-sidebar";
+import EntityBuilder, { type DatabaseTableOption } from "../entity-definition/entity-builder/entity-builder";
+import { emptyEntity, toAbstractDataType, toEditable, type EditableEntity } from "../types";
+import type { MetadataEntity } from "../../query-builder/query-design/query-builder-slice";
 import { fetchDbSchema } from "../../data-sources/database-slice";
 import type { RootState } from "../../../store/store";
 import { apiUrls } from "../../../const/api-urls";
@@ -20,7 +23,6 @@ export type BusinessScope = {
   canDelete: boolean;
   isBuiltin: boolean;
 };
-type MetadataEntity = { name: string; fields?: unknown[]; relations?: unknown[] };
 type DatabaseTable = { schema: string; name: string; columns: { name: string; dataType: string }[] };
 type DatabaseRelationship = { name: string; sourceSchema: string; sourceTable: string; sourceColumns: string[]; targetSchema: string; targetTable: string; targetColumns: string[]; isUnique: boolean };
 type Step = 1 | 2 | 3;
@@ -75,6 +77,11 @@ export default function BusinessScopeList({ active }: { active: boolean }) {
   const [collapsedEntities, setCollapsedEntities] = useState<Record<string, boolean>>({});
   const [relationNames, setRelationNames] = useState<Record<string, { lookup: string; collection: string }>>({});
   const [tableFilter, setTableFilter] = useState("");
+  const [scopeFilter, setScopeFilter] = useState("");
+  const [entityFilter, setEntityFilter] = useState("");
+  const [selectedEntityName, setSelectedEntityName] = useState("");
+  const [entityDraft, setEntityDraft] = useState<EditableEntity | null>(null);
+  const [entityDirty, setEntityDirty] = useState(false);
   const [step, setStep] = useState<Step>(1);
   const [viewMode, setViewMode] = useState<ViewMode>(location.pathname === CREATE_BUSINESS_SCOPE_PATH ? "wizard" : "list");
   const [status, setStatus] = useState<"loading" | "ready" | "saving">("loading");
@@ -83,17 +90,31 @@ export default function BusinessScopeList({ active }: { active: boolean }) {
   const panel = useResizablePanel("business-scope");
   useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   useEffect(() => {
-    if (active) setViewMode(location.pathname === CREATE_BUSINESS_SCOPE_PATH ? "wizard" : "list");
-  }, [active, location.pathname]);
+    if (!active) return;
+    setViewMode(location.pathname === CREATE_BUSINESS_SCOPE_PATH ? "wizard" : "list");
+  }, [active, location.pathname, location.search]);
 
   const selected = scopes.find(scope => scope.name === selectedName);
-  const dirty = Boolean(selected ? draftName !== selected.name : draftName.trim() && selectedTables.length);
+  const dirty = Boolean(selected ? draftName !== selected.name || entityDirty : draftName.trim() && selectedTables.length);
   const load = async () => {
     setStatus("loading");
     setError("");
     try {
       const scopeResult = await request<BusinessScope[]>(apiUrls.metadata.businessScopes);
       setScopes(scopeResult);
+      const routeScopeName = new URLSearchParams(location.search).get("scope");
+      const requestedScope = routeScopeName || selectedName;
+      if (requestedScope) {
+        const refreshed = scopeResult.find(scope => scope.name === requestedScope);
+        if (refreshed) {
+          setSelectedName(refreshed.name);
+          setDraftName(refreshed.name);
+          const entity = refreshed.entities.find(item => item.name === selectedEntityName) || refreshed.entities[0];
+          setSelectedEntityName(entity?.name || "");
+          setEntityDraft(entity ? toEditable(entity) : null);
+          setEntityDirty(false);
+        }
+      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to load business scopes and database tables.");
     } finally {
@@ -106,9 +127,14 @@ export default function BusinessScopeList({ active }: { active: boolean }) {
   }, [dispatch, schemaStatus]);
 
   const selectScope = (scope: BusinessScope) => {
+    navigate(`/metadata?section=entities&scope=${encodeURIComponent(scope.name)}`);
     setViewMode("detail");
     setSelectedName(scope.name);
     setDraftName(scope.name);
+    const firstEntity = scope.entities[0];
+    setSelectedEntityName(firstEntity?.name || "");
+    setEntityDraft(firstEntity ? toEditable(firstEntity) : null);
+    setEntityDirty(false);
     setSelectedTables([]);
     setSelectedColumns({});
     setEntityNames({});
@@ -119,11 +145,31 @@ export default function BusinessScopeList({ active }: { active: boolean }) {
     setStep(1);
     setError("");
   };
+  useEffect(() => {
+    if (!active || status === "loading" || location.pathname === CREATE_BUSINESS_SCOPE_PATH) return;
+    const routeScopeName = new URLSearchParams(location.search).get("scope");
+    if (!routeScopeName) {
+      setSelectedName("");
+      setEntityDraft(null);
+      return;
+    }
+    const routeScope = scopes.find(scope => scope.name === routeScopeName);
+    if (!routeScope || routeScope.name === selectedName) return;
+    setSelectedName(routeScope.name);
+    setDraftName(routeScope.name);
+    const firstEntity = routeScope.entities[0];
+    setSelectedEntityName(firstEntity?.name || "");
+    setEntityDraft(firstEntity ? toEditable(firstEntity) : null);
+    setEntityDirty(false);
+  }, [active, location.pathname, location.search, scopes, selectedName, status]);
   const createScope = () => {
     navigate(`${CREATE_BUSINESS_SCOPE_PATH}?section=business-scopes`);
     setViewMode("wizard");
     setSelectedName("");
     setDraftName("");
+    setSelectedEntityName("");
+    setEntityDraft(null);
+    setEntityDirty(false);
     setSelectedTables([]);
     setSelectedColumns({});
     setEntityNames({});
@@ -132,6 +178,88 @@ export default function BusinessScopeList({ active }: { active: boolean }) {
     setRelationNames({});
     setTableFilter("");
     setStep(1);
+    setError("");
+  };
+  const updateSelectedScope = (updater: (scope: BusinessScope) => BusinessScope) => {
+    setScopes(current => current.map(scope => scope.name === selectedName ? updater(scope) : scope));
+  };
+  const selectEntity = (entity: MetadataEntity) => {
+    setSelectedEntityName(entity.name);
+    setEntityDraft(toEditable(entity));
+    setEntityDirty(false);
+    setError("");
+  };
+  const addManualEntity = () => {
+    const draft = emptyEntity();
+    draft.name = "NewEntity";
+    setSelectedEntityName(draft.name);
+    setEntityDraft(draft);
+    setEntityDirty(true);
+    setError("");
+  };
+  const importTables = () => {
+    if (!selected) return;
+    const existing = new Set(selected.entities.map(entity => entity.name.toLowerCase()));
+    const imported = schema.tables
+      .filter(table => !existing.has(table.name.toLowerCase()))
+      .map(table => toEditable({
+        name: table.name,
+        schema: table.schema,
+        rawSql: table.name,
+        fields: table.columns.map(column => ({
+          name: column.name,
+          dbColumn: column.name,
+          dataType: toAbstractDataType(column.dataType, column.name),
+          isRawSql: false,
+        })),
+        relations: [],
+        canDelete: true,
+      }));
+    if (!imported.length) {
+      setError("All database tables are already represented in this scope.");
+      return;
+    }
+    const next = imported[0];
+    updateSelectedScope(scope => ({ ...scope, entities: [...scope.entities, ...imported] }));
+    setSelectedEntityName(next.name);
+    setEntityDraft(next);
+    setEntityDirty(true);
+  };
+  const removeEntity = (entityName: string) => {
+    if (!selected || selected.isBuiltin) return;
+    const remaining = selected.entities.filter(entity => entity.name !== entityName);
+    updateSelectedScope(scope => ({ ...scope, entities: remaining }));
+    const next = remaining[0];
+    setSelectedEntityName(next?.name || "");
+    setEntityDraft(next ? toEditable(next) : null);
+    setEntityDirty(true);
+  };
+  const commitEntityDraft = () => {
+    if (!selected || !entityDraft) return;
+    const normalized = {
+      ...entityDraft,
+      name: entityDraft.name.trim(),
+      fields: entityDraft.fields.map(field => ({ ...field, name: field.name.trim() })),
+    };
+    if (!normalized.name) {
+      setError("An entity name is required.");
+      return;
+    }
+    const duplicate = selected.entities.some(entity =>
+      entity.name !== selectedEntityName && entity.name.trim().toLowerCase() === normalized.name.toLowerCase());
+    if (duplicate) {
+      setError(`An entity named "${normalized.name}" already exists in this scope.`);
+      return;
+    }
+    updateSelectedScope(scope => ({
+      ...scope,
+      entities: scope.entities.some(entity => entity.name === selectedEntityName)
+        ? scope.entities.map(entity => entity.name === selectedEntityName ? normalized : entity)
+        : [...scope.entities, normalized],
+    }));
+    setSelectedEntityName(normalized.name);
+    setEntityDraft(normalized);
+    setEntityDirty(false);
     setError("");
   };
   const save = async (): Promise<boolean> => {
@@ -148,11 +276,17 @@ export default function BusinessScopeList({ active }: { active: boolean }) {
     setStatus("saving");
     setError("");
     try {
+      if (selected && entityDraft && entityDirty) commitEntityDraft();
       const saved = selected
         ? await request<BusinessScope>(apiUrls.metadata.businessScopeByName(selected.name), {
             method: "PUT",
-            body: JSON.stringify({ name: draftName.trim(), entities: selected.entities }),
-          })
+              body: JSON.stringify({
+                name: draftName.trim(),
+                entities: (entityDraft && entityDirty
+                  ? selected.entities.map(entity => entity.name === selectedEntityName ? entityDraft : entity)
+                  : selected.entities),
+              }),
+            })
         : await request<BusinessScope>(apiUrls.metadata.generateBusinessScope, {
             method: "POST",
             body: JSON.stringify({
@@ -184,6 +318,7 @@ export default function BusinessScopeList({ active }: { active: boolean }) {
       setScopes(current => selected
         ? current.map(scope => scope.name === selected.name ? saved : scope)
         : [...current, saved]);
+      navigate(`/metadata?section=business-scopes&scope=${encodeURIComponent(saved.name)}`);
       setSelectedName(saved.name);
       setDraftName(saved.name);
       setStep(3);
@@ -272,27 +407,80 @@ export default function BusinessScopeList({ active }: { active: boolean }) {
     onSave: save,
     onDelete: remove,
     onNew: createScope,
-  }), [dirty, draftName, selected, selectedName, status, selectedTables]);
+  }), [dirty, draftName, selected, selectedName, status, selectedTables, entityDirty]);
 
   return (
     <section className={`business-scope-workspace${viewMode === "list" ? " business-scope-list-view" : viewMode === "wizard" ? " business-scope-create-view" : ""}`} style={viewMode === "list" ? undefined : panel.style}>
-      {viewMode === "list" ? <div className="business-scope-list-page">
-        <div className="business-scope-list-page-heading">
-          <div><span className="section-kicker">METADATA</span><h2>Business scopes</h2><p>Saved business scopes that organize query-ready entities and relations.</p></div>
-          <button type="button" className="business-scope-add" onClick={createScope}><Icon name="plus" size={14} /> Create business scope</button>
+      {viewMode === "list" ? <div className="business-scope-catalog">
+        <div className="business-scope-catalog-header">
+          <div>
+            <span className="section-kicker">METADATA CATALOG</span>
+            <h2>Business scopes</h2>
+            <p>Choose a business scope to open its entity definitions.</p>
+          </div>
+          <button type="button" className="business-scope-add" onClick={createScope}><Icon name="plus" size={14} /> Create scope</button>
         </div>
-        <div className="business-scope-list-heading"><span className="section-kicker">SAVED BUSINESS SCOPES</span><span>{scopes.length}</span></div>
-        {status === "loading" ? <p className="empty-state">Loading scopes…</p> : scopes.map(scope => (
-          <button key={scope.name} type="button" onClick={() => selectScope(scope)}>
-            <Icon name="folder" size={15} /><span>{scope.name}</span><small>{scope.entities.length}</small>
-          </button>
-        ))}
-        {status !== "loading" && scopes.length === 0 && <p className="empty-state">No business scopes have been saved yet.</p>}
+        <label className="business-scope-catalog-filter">
+          <Icon name="search" size={14} />
+          <input value={scopeFilter} onChange={event => setScopeFilter(event.target.value)} placeholder="Filter business scopes" />
+        </label>
+        {status === "loading" && <p className="empty-state">Loading business scopes…</p>}
+        {status !== "loading" && !scopes.filter(scope => scope.name.toLowerCase().includes(scopeFilter.toLowerCase())).length && <p className="empty-state">No business scopes match this filter.</p>}
+        <div className="business-scope-catalog-grid">
+          {scopes.filter(scope => scope.name.toLowerCase().includes(scopeFilter.toLowerCase())).map(scope => (
+            <button key={scope.name} type="button" className="business-scope-summary-card" onClick={() => selectScope(scope)}>
+              <span className="business-scope-summary-icon"><Icon name="folder" size={17} /></span>
+              <span className="business-scope-summary-content">
+                <strong>{scope.name}</strong>
+                <small>{scope.isBuiltin ? "Built-in scope" : "Custom scope"}</small>
+              </span>
+              <span className="business-scope-summary-stats">
+                <b>{scope.entities.length}</b>
+                <small>entities</small>
+              </span>
+              <Icon name="chevron" size={14} />
+            </button>
+          ))}
+        </div>
       </div> : <>
-      {viewMode === "detail" && <PanelSplitter panel={panel} label="business scopes panel" />}
+      {viewMode === "detail" && <>
+        <PanelSplitter panel={panel} label="business scopes panel" />
+        <MetadataSidebar
+          className="metadata-list business-scope-route-list"
+          title="BUSINESS SCOPES"
+          totalCount={scopes.length}
+          filter={scopeFilter}
+          searchPlaceholder="Find a saved scope"
+          onFilterChange={setScopeFilter}
+          groups={[{
+            id: "route-business-scopes",
+            title: "Saved",
+            count: scopes.filter(scope => scope.name.toLowerCase().includes(scopeFilter.toLowerCase())).length,
+            content: scopes
+              .filter(scope => scope.name.toLowerCase().includes(scopeFilter.toLowerCase()))
+              .map(scope => (
+                <button key={scope.name} type="button" className={`metadata-entity${scope.name === selectedName ? " active" : ""}`} onClick={() => selectScope(scope)}>
+                  <span className="entity-icon"><Icon name="folder" size={14} /></span>
+                  <span><b>{scope.name}</b><small>{scope.entities.length} entities{scope.isBuiltin ? " · Built-in" : ""}</small></span>
+                  <Icon name="chevron" size={14} />
+                </button>
+              )),
+            emptyMessage: status !== "loading" && !scopes.length ? "No saved business scopes." : undefined,
+          } satisfies MetadataSidebarGroup]}
+        />
+      </>}
       <div className="business-scope-editor">
         <div className="business-scope-editor-heading">
           <div><span className="section-kicker">BUSINESS LOGIC</span><h2>{selected ? selected.name : "New business scope"}</h2></div>
+          {selected && <label className="business-scope-scope-picker">
+            <span>Scope</span>
+            <select value={selected.name} onChange={event => {
+              const next = scopes.find(scope => scope.name === event.target.value);
+              if (next) selectScope(next);
+            }}>
+              {scopes.map(scope => <option key={scope.name} value={scope.name}>{scope.name}</option>)}
+            </select>
+          </label>}
           <span className="business-scope-count">{selected?.entities.length ?? 0} entities</span>
         </div>
         {error && selected && <p className="business-scope-error" role="alert">{error}</p>}
@@ -360,12 +548,50 @@ export default function BusinessScopeList({ active }: { active: boolean }) {
               })}</div></div>}
             </div>}
           </BusinessScopeWizard>
-        ) : <><label className="business-scope-name">Scope name<input spellCheck={false} value={draftName} disabled={selected.isBuiltin} onChange={event => setDraftName(event.target.value)} /></label>
-          <div className="business-scope-entities">
-            <div className="business-scope-entities-heading"><strong>Entities in this scope</strong><span>Generated entities, fields, and relations.</span></div>
-            <div className="business-scope-entity-grid">{selected.entities.map(entity => <div key={entity.name} className="business-scope-entity"><Icon name="table" size={14} /><strong>{entity.name}</strong><small>{entity.fields?.length ?? 0} fields · {entity.relations?.length ?? 0} relations</small></div>)}</div>
+        ) : <div className="business-scope-detail-layout">
+          <aside className="business-scope-entity-panel">
+            <label className="business-scope-name">Scope name<input spellCheck={false} value={draftName} disabled={selected.isBuiltin} onChange={event => setDraftName(event.target.value)} /></label>
+            <div className="business-scope-entity-toolbar">
+              <strong>Entities <span>{selected.entities.length}</span></strong>
+              <button type="button" onClick={importTables} disabled={selected.isBuiltin || !schema.tables.length} title="Import database tables"><Icon name="database" size={14} /></button>
+              <button type="button" onClick={addManualEntity} disabled={selected.isBuiltin} title="Create entity manually"><Icon name="plus" size={14} /></button>
+            </div>
+            <label className="business-scope-entity-filter"><Icon name="search" size={13} /><input value={entityFilter} onChange={event => setEntityFilter(event.target.value)} placeholder="Filter entities" /></label>
+            <div className="business-scope-entity-list">
+              {selected.entities.filter(entity => entity.name.toLowerCase().includes(entityFilter.toLowerCase())).map(entity => (
+                <button key={entity.name} type="button" className={entity.name === selectedEntityName ? "active" : ""} onClick={() => selectEntity(entity)}>
+                  <Icon name="table" size={14} /><span><b>{entity.name}</b><small>{entity.fields.length} fields · {(entity.relations || []).length} relations</small></span><Icon name="chevron" size={13} />
+                </button>
+              ))}
+              {!selected.entities.length && <p className="empty-state">No entities yet. Import tables or create one manually.</p>}
+            </div>
+          </aside>
+          <div className="business-scope-entity-editor">
+            <div className="business-scope-editor-heading">
+              <div><span className="section-kicker">ENTITY DEFINITION</span><h3>{entityDraft?.name || "No entity selected"}</h3></div>
+              {entityDraft && !selected.isBuiltin && <button type="button" className="business-scope-remove" onClick={() => removeEntity(selectedEntityName)}><Icon name="trash" size={14} /> Remove entity</button>}
+            </div>
+            <EntityBuilder
+              draft={entityDraft}
+              canEdit={!selected.isBuiltin}
+              message=""
+              allEntities={selected.entities}
+              onDraftChange={updater => {
+                setEntityDraft(current => current ? updater(current) : current);
+                setEntityDirty(true);
+              }}
+              databaseTables={schema.tables as DatabaseTableOption[]}
+              selectedTable={entityDraft ? (schema.tables.find(table => table.name === entityDraft.rawSql && table.schema === entityDraft.schema) as DatabaseTableOption | undefined) : undefined}
+              onSelectTable={table => {
+                setEntityDraft(current => current ? { ...current, schema: table.schema, rawSql: table.name } : current);
+                setEntityDirty(true);
+              }}
+              onSelectRawSql={() => setEntityDirty(true)}
+              compact
+            />
+            {entityDraft && !selected.isBuiltin && <div className="business-scope-entity-save"><span>{entityDirty ? "Unsaved entity changes" : "Entity changes saved locally"}</span><button type="button" className="business-scope-add" onClick={commitEntityDraft} disabled={!entityDirty}>Apply entity changes</button></div>}
           </div>
-        </>}
+        </div>}
       </div>
       </>}
       {active && toolbarHost && createPortal(<DefinitionActions adapter={adapter} />, toolbarHost)}

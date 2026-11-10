@@ -1,0 +1,329 @@
+{
+  "Name": "HR",
+  "Entities": [
+    {
+      "Name": "Departments",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Name",
+          "DbColumn": "Name",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Departments",
+      "Relations": [
+        {
+          "Name": "Employees",
+          "RefEntity": "Employees",
+          "Type": 1,
+          "RefKeys": [
+            {
+              "DbColumn": "Id",
+              "RefDbColumn": "DepartmentId"
+            }
+          ]
+        }
+      ],
+      "CanDelete": true,
+      "DbSchema": "hr"
+    },
+    {
+      "Name": "LeaveRequests",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "EmployeeId",
+          "DbColumn": "EmployeeId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "LeaveType",
+          "DbColumn": "LeaveType",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "StartDate",
+          "DbColumn": "StartDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Days",
+          "DbColumn": "Days",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Status",
+          "DbColumn": "Status",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "LeaveRequests",
+      "Relations": [
+        {
+          "Name": "Employee",
+          "RefEntity": "Employees",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "EmployeeId",
+              "RefDbColumn": "Id"
+            }
+          ]
+        }
+      ],
+      "CanDelete": true,
+      "DbSchema": "hr"
+    },
+    {
+      "Name": "PerformanceReviews",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "EmployeeId",
+          "DbColumn": "EmployeeId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ReviewYear",
+          "DbColumn": "ReviewYear",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Rating",
+          "DbColumn": "Rating",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "BonusAmount",
+          "DbColumn": "BonusAmount",
+          "DataType": 1,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "PerformanceReviews",
+      "Relations": [
+        {
+          "Name": "Employee",
+          "RefEntity": "Employees",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "EmployeeId",
+              "RefDbColumn": "Id"
+            }
+          ]
+        }
+      ],
+      "CanDelete": true,
+      "DbSchema": "hr"
+    },
+    {
+      "Name": "Employees",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "FirstName",
+          "DbColumn": "FirstName",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "LastName",
+          "DbColumn": "LastName",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "DepartmentId",
+          "DbColumn": "DepartmentId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "LocationId",
+          "DbColumn": "LocationId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ManagerId",
+          "DbColumn": "ManagerId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "JobTitle",
+          "DbColumn": "JobTitle",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "HireDate",
+          "DbColumn": "HireDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Salary",
+          "DbColumn": "Salary",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "EmploymentType",
+          "DbColumn": "EmploymentType",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Employees",
+      "Relations": [
+        {
+          "Name": "Manager",
+          "RefEntity": "Employees",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "ManagerId",
+              "RefDbColumn": "Id"
+            }
+          ]
+        },
+        {
+          "Name": "Members",
+          "RefEntity": "Employees",
+          "Type": 1,
+          "RefKeys": [
+            {
+              "DbColumn": "Id",
+              "RefDbColumn": "ManagerId"
+            }
+          ]
+        },
+        {
+          "Name": "Location",
+          "RefEntity": "Locations",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "LocationId",
+              "RefDbColumn": "Id"
+            }
+          ]
+        },
+        {
+          "Name": "LeaveRequests",
+          "RefEntity": "LeaveRequests",
+          "Type": 1,
+          "RefKeys": [
+            {
+              "DbColumn": "Id",
+              "RefDbColumn": "EmployeeId"
+            }
+          ]
+        },
+        {
+          "Name": "PerformanceReviews",
+          "RefEntity": "PerformanceReviews",
+          "Type": 1,
+          "RefKeys": [
+            {
+              "DbColumn": "Id",
+              "RefDbColumn": "EmployeeId"
+            }
+          ]
+        },
+        {
+          "Name": "Department",
+          "RefEntity": "Departments",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "DepartmentId",
+              "RefDbColumn": "Id"
+            }
+          ]
+        }
+      ],
+      "CanDelete": true,
+      "DbSchema": "main"
+    },
+    {
+      "Name": "Locations",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Name",
+          "DbColumn": "Name",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "City",
+          "DbColumn": "City",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "State",
+          "DbColumn": "State",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Locations",
+      "Relations": [
+        {
+          "Name": "Employees",
+          "RefEntity": "Employees",
+          "Type": 1,
+          "RefKeys": [
+            {
+              "DbColumn": "Id",
+              "RefDbColumn": "LocationId"
+            }
+          ]
+        }
+      ],
+      "CanDelete": true,
+      "DbSchema": "main"
+    }
+  ],
+  "CanDelete": true,
+  "IsBuiltin": false
+}

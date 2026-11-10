@@ -1,0 +1,85 @@
+{
+  "Name": "Unit Test",
+  "Entities": [
+    {
+      "Name": "User",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ManagerId",
+          "DbColumn": "ManagerId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "SchoolId",
+          "DbColumn": "SchoolId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Name",
+          "DbColumn": "Name",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Age",
+          "DbColumn": "Age",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Birthday",
+          "DbColumn": "Birthday",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "IsMale",
+          "DbColumn": "IsMale",
+          "DataType": 3,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "User",
+      "Relations": [],
+      "CanDelete": true,
+      "DbSchema": "main"
+    },
+    {
+      "Name": "School",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Name",
+          "DbColumn": "Name",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Address",
+          "DbColumn": "Address",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "School",
+      "Relations": [],
+      "CanDelete": true,
+      "DbSchema": "main"
+    }
+  ],
+  "CanDelete": true,
+  "IsBuiltin": false
+}

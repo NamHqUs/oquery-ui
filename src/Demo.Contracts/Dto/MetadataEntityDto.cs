@@ -9,13 +9,21 @@ public sealed record MetadataEntityDto(
     List<Relation>? Relations,
     bool CanDelete)
 {
+    public string? DbSchema { get; init; }
+
     public static MetadataEntityDto FromEntity(Entity entity, bool canDelete)
         => new(
             entity.Name,
             entity.Fields,
             entity.DbTable ?? entity.Name,
             entity.Relations,
-            canDelete);
+            canDelete)
+        {
+            DbSchema = entity.DbSchema,
+        };
+
+    public Entity ToEntity()
+        => new(Name, Fields, DbSchema, RawSql, Relations);
 }
 // public sealed record EntityDto(
 //    string Id,
