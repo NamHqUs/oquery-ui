@@ -33,7 +33,7 @@ export default function EntityDiagram({
   entityEditorHeader,
   entityEditor,
 }: EntityDiagramProps) {
-  const panel = useResizablePanel("metadata-entity-diagram-height", 600, 420, 900);
+  const panel = useResizablePanel("metadata-entity-diagram-height", 480, 280, 900);
   const [selectedRelation, setSelectedRelation] = useState<(DiagramRelationship & { from: string; to: string }) | null>(null);
   const applyDraft = (entity: MetadataEntity) =>
     editingEntity && entity.name === editingEntityName ? editingEntity : entity;

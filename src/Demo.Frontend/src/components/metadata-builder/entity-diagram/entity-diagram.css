@@ -25,7 +25,7 @@
 .entity-diagram-state.error { color: #f0a6ae; }
 .entity-diagram-relation-summary { margin: 0; padding: 11px 20px; color: #929cad; border-top: 1px solid #252b38; font-size: 11px; }
 .entity-diagram-relation-summary svg { color: #b49aff; margin-right: 5px; vertical-align: -2px; }
-.metadata-diagram-mode-content { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--panel-height, 600px) 8px auto; min-height: max(720px, calc(100vh - 160px)); overflow: visible; border: 0; border-radius: 0; background: linear-gradient(135deg, #11141c, #0f1218); box-shadow: 0 14px 40px #00000018; }
+.metadata-diagram-mode-content { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--panel-height, 480px) 8px auto; min-height: max(720px, calc(100vh - 160px)); overflow: visible; border: 0; border-radius: 0; background: linear-gradient(135deg, #11141c, #0f1218); box-shadow: 0 14px 40px #00000018; }
 .metadata-diagram-mode-content > .database-diagram { position: relative; z-index: 2; grid-column: 1; grid-row: 1; min-height: 0; }
 .metadata-diagram-mode-content > .panel-splitter.horizontal { position: relative; top: auto; right: auto; bottom: auto; left: auto; z-index: 5; grid-column: 1; grid-row: 2; width: auto; height: 8px; }
 .metadata-diagram-mode-content > .panel-splitter.horizontal .panel-splitter-handle { top: 0; }
@@ -72,7 +72,7 @@
 @keyframes entity-diagram-card-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 760px) { .entity-diagram-toolbar, .entity-diagram-domain-bar { align-items: stretch; flex-direction: column; } .entity-domain-create, .entity-diagram-add-table { width: 100%; } .entity-domain-create input, .entity-diagram-add-table select { flex: 1; } }
 @media (max-width: 760px) {
-  .metadata-diagram-mode-content { grid-template-rows: 600px auto; height: auto; overflow: auto; }
+  .metadata-diagram-mode-content { grid-template-rows: 480px 8px auto; height: auto; overflow: auto; }
   .metadata-diagram-mode-content > .metadata-diagram-editor { grid-row: 2; }
   .metadata-diagram-mode-content > .database-diagram { grid-row: 1; }
   .metadata-diagram-editor .metadata-form-fieldset { display: block; }
