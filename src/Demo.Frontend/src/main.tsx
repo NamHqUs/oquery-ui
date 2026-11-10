@@ -28,6 +28,7 @@ const PAGE_PATHS = {
 
 const LEGACY_FUNCTIONS_PATH = "/functions";
 const CREATE_DOMAIN_PATH = "/metadata/domains/create";
+const EDIT_DOMAIN_PATH = "/metadata/domains/edit";
 
 type Page = keyof typeof PAGE_PATHS;
 type NavigationGuard = (continueNavigation: () => void, cancelNavigation?: () => void) => void;
@@ -50,7 +51,7 @@ const PAGE_SUBMENUS: Record<Exclude<Page, "home">, readonly string[]> = {
 };
 
 function pageForPath(path: string): Page | null {
-  if (path === CREATE_DOMAIN_PATH) return "metadata";
+  if (path === CREATE_DOMAIN_PATH || path === EDIT_DOMAIN_PATH) return "metadata";
   return (Object.keys(PAGE_PATHS) as Page[]).find((page) => PAGE_PATHS[page] === path) ?? null;
 }
 
@@ -114,7 +115,7 @@ function App() {
   const routerNavigate = useNavigate();
   const database = useSelector((state: RootState) => state.database);
   const page = pageForPath(location.pathname);
-  const [metadataVisited, setMetadataVisited] = useState(() => location.pathname === PAGE_PATHS.metadata || location.pathname === CREATE_DOMAIN_PATH);
+  const [metadataVisited, setMetadataVisited] = useState(() => location.pathname === PAGE_PATHS.metadata || location.pathname === CREATE_DOMAIN_PATH || location.pathname === EDIT_DOMAIN_PATH);
   const [functionDefinitionsVisited, setFunctionDefinitionsVisited] = useState(() => location.pathname === PAGE_PATHS.functions);
   const [queryBuilderVisited, setQueryBuilderVisited] = useState(() => location.pathname === PAGE_PATHS.builder);
   const [queryBuilderInstance, setQueryBuilderInstance] = useState(0);
@@ -164,7 +165,7 @@ function App() {
   });
 
   useEffect(() => {
-    if (location.pathname === PAGE_PATHS.metadata || location.pathname === CREATE_DOMAIN_PATH) setMetadataVisited(true);
+    if (location.pathname === PAGE_PATHS.metadata || location.pathname === CREATE_DOMAIN_PATH || location.pathname === EDIT_DOMAIN_PATH) setMetadataVisited(true);
     if (location.pathname === PAGE_PATHS.functions) setFunctionDefinitionsVisited(true);
     if (location.pathname === PAGE_PATHS.builder) setQueryBuilderVisited(true);
   }, [location.pathname]);
@@ -278,6 +279,7 @@ function App() {
           <Route path={PAGE_PATHS.builder} element={null} />
           <Route path={PAGE_PATHS.metadata} element={null} />
           <Route path={CREATE_DOMAIN_PATH} element={null} />
+          <Route path={EDIT_DOMAIN_PATH} element={null} />
           <Route path={PAGE_PATHS.functions} element={null} />
           <Route path={LEGACY_FUNCTIONS_PATH} element={<Navigate to={PAGE_PATHS.functions} replace />} />
           <Route path={PAGE_PATHS.sources} element={<div className="page-transition page-transition-no-slide"><DataSources onRequestConnection={requestDatabaseConnection} /></div>} />

@@ -6,6 +6,7 @@ export type WizardStep = 1 | 2 | 3;
 export type WizardSource = "database" | "file";
 
 type DomainWizardProps = {
+  mode?: "create" | "edit";
   source: WizardSource;
   step: WizardStep;
   canContinue: boolean;
@@ -20,6 +21,7 @@ type DomainWizardProps = {
 };
 
 export default function DomainWizard({
+  mode = "create",
   source,
   step,
   canContinue,
@@ -32,7 +34,9 @@ export default function DomainWizard({
   onGenerate,
   children,
 }: DomainWizardProps) {
-  const steps = [["1", "Source", "Database or file"], ["2", "Design entities", "Entity fields and relations"], ["3", "Generate", "Domain identity"]];
+  const steps = mode === "edit"
+    ? [["1", "Append Sources", "Existing and new tables or entities"], ["2", "Design entities", "Existing and new entity fields"], ["3", "Save changes", "Review domain updates"]]
+    : [["1", "Source", "Database or file"], ["2", "Design entities", "Entity fields and relations"], ["3", "Generate", "Domain identity"]];
   const finalStep = 3;
   const [railFloating, setRailFloating] = useState(false);
   const [railLeft, setRailLeft] = useState<number | null>(null);
@@ -55,17 +59,17 @@ export default function DomainWizard({
   return (
     <div className="domain-wizard">
       <header className="domain-wizard-header">
-        <div><span className="section-kicker">BUSINESS LOGIC</span><h3>New domain</h3><p>Choose a source, prepare its entities, and generate query-ready metadata.</p></div>
+        <div><span className="section-kicker">BUSINESS LOGIC</span><h3>{mode === "edit" ? "Edit domain" : "New domain"}</h3><p>{mode === "edit" ? "Update this existing domain by adding or removing entities, then save the complete definition." : "Choose a source, prepare its entities, and generate query-ready metadata."}</p></div>
         <div className="domain-wizard-header-actions">
           <span className="domain-progress">STEP {step} OF {finalStep}</span>
         </div>
       </header>
       <div className="domain-source-picker" role="group" aria-label="Domain metadata source">
         <button type="button" className={source === "database" ? "active" : ""} onClick={() => void onSourceChange("database")}>
-          <strong>Database</strong><small>Choose tables from a connected database</small>
+          <strong>Database</strong><small>{mode === "edit" ? "Append tables from the connected database" : "Choose tables from a connected database"}</small>
         </button>
         <button type="button" className={source === "file" ? "active" : ""} onClick={() => void onSourceChange("file")}>
-          <strong>JSON or YAML</strong><small>Upload existing domain metadata</small>
+          <strong>JSON or YAML</strong><small>{mode === "edit" ? "Append entities from an existing file" : "Upload existing domain metadata"}</small>
         </button>
       </div>
       {error && <p className="domain-error" role="alert">{error}</p>}
@@ -74,7 +78,7 @@ export default function DomainWizard({
           className={`domain-wizard-sidebar${railFloating ? " is-floating" : ""}`}
           style={railFloating && railLeft !== null ? { left: `${railLeft}px` } : undefined}
         >
-          <div className="domain-steps" aria-label="Domain creation steps">
+          <div className="domain-steps" aria-label={`Domain ${mode} steps`}>
             {steps.map(([number, label, description]) => (
               <button key={number} type="button" className={step === Number(number) ? "active" : step > Number(number) ? "complete" : ""} onClick={() => Number(number) <= step && onStepChange(Number(number) as WizardStep)} disabled={Number(number) > step}>
                 <strong>{step > Number(number) ? "✓" : number}</strong><span><b>{label}</b><small>{description}</small></span>

@@ -30,6 +30,7 @@ type DatabaseRelationship = { name: string; sourceSchema: string; sourceTable: s
 type Step = 1 | 2 | 3;
 type ViewMode = "list" | "wizard" | "detail";
 const CREATE_DOMAIN_PATH = "/metadata/domains/create";
+const EDIT_DOMAIN_PATH = "/metadata/domains/edit";
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   let response: Response;
@@ -110,6 +111,7 @@ export default function DomainList({
   const [draftName, setDraftName] = useState("");
   const [draftDescription, setDraftDescription] = useState("");
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
+  const [removedEntityNames, setRemovedEntityNames] = useState<string[]>([]);
   const [uploadedTables, setUploadedTables] = useState<DatabaseTable[]>([]);
   const [selectedColumns, setSelectedColumns] = useState<Record<string, string[]>>({});
   const [entityNames, setEntityNames] = useState<Record<string, string>>({});
@@ -125,7 +127,7 @@ export default function DomainList({
   const [step, setStep] = useState<Step>(1);
   const [wizardSource, setWizardSource] = useState<WizardSource>("database");
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>(location.pathname === CREATE_DOMAIN_PATH ? "wizard" : "list");
+  const [viewMode, setViewMode] = useState<ViewMode>(location.pathname === CREATE_DOMAIN_PATH || location.pathname === EDIT_DOMAIN_PATH ? "wizard" : "list");
   const [status, setStatus] = useState<"loading" | "ready" | "saving">("loading");
   const [error, setError] = useState("");
   const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
@@ -134,7 +136,7 @@ export default function DomainList({
   useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   useEffect(() => {
     if (!active) return;
-    setViewMode(location.pathname === CREATE_DOMAIN_PATH ? "wizard" : "list");
+    setViewMode(location.pathname === CREATE_DOMAIN_PATH || location.pathname === EDIT_DOMAIN_PATH ? "wizard" : "list");
     if (location.pathname === CREATE_DOMAIN_PATH) {
       const source = new URLSearchParams(location.search).get("source");
       setWizardSource(source === "file" ? "file" : "database");
@@ -145,6 +147,7 @@ export default function DomainList({
       setEntityDraft(null);
       setEntityDirty(false);
       setSelectedTables([]);
+      setRemovedEntityNames([]);
       setUploadedTables([]);
       setSelectedColumns({});
       setEntityNames({});
@@ -152,6 +155,20 @@ export default function DomainList({
       setCollapsedEntities({});
       setRelationNames({});
       setStep(1);
+    }
+    if (location.pathname === EDIT_DOMAIN_PATH) {
+      setWizardSource("database");
+      setSelectedTables([]);
+      setRemovedEntityNames([]);
+      setUploadedTables([]);
+      setSelectedColumns({});
+      setEntityNames({});
+      setFieldNames({});
+      setCollapsedEntities({});
+      setRelationNames({});
+      setTableFilter("");
+      setStep(1);
+      setError("");
     }
   }, [active, location.pathname, location.search]);
 
@@ -186,6 +203,22 @@ export default function DomainList({
   useEffect(() => {
     if (schemaStatus === "idle") void dispatch(fetchDbSchema());
   }, [dispatch, schemaStatus]);
+  useEffect(() => {
+    if (location.pathname !== EDIT_DOMAIN_PATH || wizardSource !== "database" || !selected || !schema.tables.length || selectedTables.length) return;
+    const existingKeys = selected.entities
+      .map(entity => schema.tables.find(table =>
+        table.name.toLowerCase() === entity.name.toLowerCase()
+        && (!entity.schema || entity.schema.toLowerCase() === table.schema.toLowerCase() || entity.schema.toLowerCase() === "dbo"),
+      ))
+      .filter((table): table is DatabaseTable => Boolean(table))
+      .map(tableKey);
+    if (!existingKeys.length) return;
+    setSelectedTables(existingKeys);
+    setSelectedColumns(Object.fromEntries(existingKeys.map(key => {
+      const table = schema.tables.find(candidate => tableKey(candidate) === key);
+      return [key, table?.columns.map(column => column.name) || []];
+    })));
+  }, [location.pathname, schema.tables, selected, selectedTables.length, wizardSource]);
 
   const selectScope = (scope: Domain) => {
     navigate(`/metadata?section=diagram&scope=${encodeURIComponent(scope.name)}`);
@@ -230,18 +263,35 @@ export default function DomainList({
     setViewMode("wizard");
     setWizardSource(source);
     setSelectedName("");
-    setDraftName("");
-    setDraftDescription("");
+    if (!selected) {
+      setDraftName("");
+      setDraftDescription("");
+    }
     setSelectedEntityName("");
     setEntityDraft(null);
     setEntityDirty(false);
     setSelectedTables([]);
+    setRemovedEntityNames([]);
     setSelectedColumns({});
     setEntityNames({});
     setFieldNames({});
     setCollapsedEntities({});
     setRelationNames({});
     setTableFilter("");
+    setStep(1);
+    setError("");
+  };
+  const editScope = (scope: Domain) => {
+    if (scope.isBuiltin) return;
+    navigate(`${EDIT_DOMAIN_PATH}?section=domains&scope=${encodeURIComponent(scope.name)}&returnSection=domains`);
+    setViewMode("wizard");
+    setSelectedName(scope.name);
+    setDraftName(scope.name);
+    setDraftDescription(scope.description || "");
+    setSelectedEntityName(scope.entities[0]?.name || "");
+    setEntityDraft(scope.entities[0] ? toEditable(scope.entities[0]) : null);
+    setRemovedEntityNames([]);
+    setSelectedTables([]);
     setStep(1);
     setError("");
   };
@@ -342,15 +392,35 @@ export default function DomainList({
     setError("");
     try {
       if (selected && entityDraft && entityDirty) commitEntityDraft();
+      const editEntities = selected
+        ? [
+          ...selected.entities
+            .filter(entity => !removedEntityNames.some(name => name.toLowerCase() === entity.name.toLowerCase()))
+            .map(entity => entity.name === selectedEntityName && entityDraft && entityDirty ? entityDraft : entity),
+          ...selectedTableDetails
+            .filter(table => !selected.entities.some(entity => !removedEntityNames.includes(entity.name) && entity.name.toLowerCase() === table.name.toLowerCase()))
+            .map(table => ({
+              name: table.name,
+              schema: table.schema,
+              rawSql: table.name,
+              fields: table.columns.map(column => ({
+                name: column.name,
+                dbColumn: column.name,
+                dataType: toAbstractDataType(column.dataType, column.name),
+                isRawSql: false,
+              })),
+              relations: [],
+              canDelete: true,
+            })),
+        ]
+        : [];
       const saved = selected
         ? await request<Domain>(apiUrls.metadata.domainByName(selected.name), {
             method: "PUT",
               body: JSON.stringify({
                 name: draftName.trim(),
                 description: draftDescription.trim(),
-                entities: (entityDraft && entityDirty
-                  ? selected.entities.map(entity => entity.name === selectedEntityName ? entityDraft : entity)
-                  : selected.entities),
+                entities: editEntities,
               }),
             })
         : wizardSource === "file"
@@ -411,7 +481,9 @@ export default function DomainList({
         ? current.map(scope => scope.name === selected.name ? saved : scope)
         : [...current, saved]);
       setEntityDirty(false);
-      navigate(`/metadata?section=domains&scope=${encodeURIComponent(saved.name)}`);
+      setRemovedEntityNames([]);
+      const returnSection = new URLSearchParams(location.search).get("returnSection") || "domains";
+      navigate(`/metadata?section=${encodeURIComponent(returnSection)}&scope=${encodeURIComponent(saved.name)}`);
       setSelectedName(saved.name);
       setDraftName(saved.name);
       setStep(3);
@@ -495,14 +567,35 @@ export default function DomainList({
       setError(reason instanceof Error ? reason.message : "Unable to read the uploaded domain file.");
     }
   };
+  const hasWizardChanges = () => {
+    if (!selected) return step > 1 || Boolean(draftName.trim()) || selectedTables.length > 0;
+    const initialTableKeys = selected.entities
+      .map(entity => schema.tables.find(table =>
+        table.name.toLowerCase() === entity.name.toLowerCase()
+        && (!entity.schema || entity.schema.toLowerCase() === table.schema.toLowerCase() || entity.schema.toLowerCase() === "dbo"),
+      ))
+      .filter((table): table is DatabaseTable => Boolean(table))
+      .map(tableKey);
+    const currentKeys = new Set(selectedTables);
+    const tablesChanged = initialTableKeys.length !== currentKeys.size
+      || initialTableKeys.some(key => !currentKeys.has(key));
+    return Boolean(entityDirty
+      || removedEntityNames.length
+      || uploadedTables.length
+      || tablesChanged
+      || draftName.trim() !== selected.name
+      || draftDescription.trim() !== (selected.description || ""));
+  };
   const changeWizardSource = async (source: WizardSource) => {
     if (source === wizardSource) return;
-    const hasWizardData = step > 1 || Boolean(draftName.trim()) || selectedTables.length > 0;
+    const hasWizardData = hasWizardChanges();
     if (hasWizardData) {
       const action = await showMessageBox({
         eyebrow: "CHANGE DOMAIN SOURCE",
         title: "Discard current domain design?",
-        message: "Changing the source will discard the selected tables, entity design, and domain details. The wizard will restart at step 1.",
+        message: selected
+          ? "Changing the source will discard the current append selection. Existing domain entities will remain unchanged until you save."
+          : "Changing the source will discard the selected tables, entity design, and domain details. The wizard will restart at step 1.",
         actions: [
           { value: "cancel", label: "Cancel", variant: "secondary" },
           { value: "continue", label: "Discard and change source", variant: "danger" },
@@ -525,12 +618,14 @@ export default function DomainList({
     setError("");
   };
   const cancelWizard = async () => {
-    const hasWizardData = step > 1 || Boolean(draftName.trim()) || selectedTables.length > 0;
+    const hasWizardData = hasWizardChanges();
     if (hasWizardData) {
       const action = await showMessageBox({
-        eyebrow: "CANCEL DOMAIN CREATION",
-        title: "Discard this domain?",
-        message: "Your current source selection and entity design will be lost.",
+        eyebrow: selected ? "CANCEL DOMAIN EDITING" : "CANCEL DOMAIN CREATION",
+        title: selected ? "Discard domain changes?" : "Discard this domain?",
+        message: selected
+          ? "Your unsaved domain changes will be lost."
+          : "Your current source selection and entity design will be lost.",
         actions: [
           { value: "cancel", label: "Keep editing", variant: "secondary" },
           { value: "discard", label: "Discard and go back", variant: "danger" },
@@ -545,7 +640,9 @@ export default function DomainList({
     }
   };
   const canContinue = step === 1
-    ? (wizardSource === "database"
+    ? (selected
+      ? selected.entities.some(entity => !removedEntityNames.includes(entity.name)) || selectedTables.length > 0
+      : wizardSource === "database"
       ? connectionStatus === "succeeded" && selectedTables.length > 0
       : selectedTables.length > 0)
     : step === 2
@@ -553,11 +650,15 @@ export default function DomainList({
         (selectedColumns[tableKey(table)] || table.columns.map(column => column.name)).length > 0)
       : Boolean(draftName.trim());
   const goNext = () => {
-    if (step === 1 && wizardSource === "database" && connectionStatus !== "succeeded") {
+    if (!selected && step === 1 && wizardSource === "database" && connectionStatus !== "succeeded") {
       setError("Connect to a database to continue.");
       return;
     }
-    if (step === 1 && !selectedTables.length) {
+    if (step === 1 && selected && !canContinue) {
+      setError("Keep at least one entity or select a database table to add.");
+      return;
+    }
+    if (step === 1 && !selected && !selectedTables.length) {
       setError(wizardSource === "database"
         ? "Select at least one database table to continue."
         : "Upload a file containing at least one entity to continue.");
@@ -597,8 +698,8 @@ export default function DomainList({
       <button
         className="icon-button definition-action-button"
         type="button"
-        title="Cancel domain creation"
-        aria-label="Cancel domain creation"
+        title={selected ? "Cancel domain editing" : "Cancel domain creation"}
+        aria-label={selected ? "Cancel domain editing" : "Cancel domain creation"}
         onClick={() => void cancelWizard()}
         disabled={status === "saving"}
       >
@@ -688,10 +789,12 @@ export default function DomainList({
             </select>
           </label>}
           <span className="domain-count">{selected?.entities.length ?? 0} entities</span>
+          {selected && !selected.isBuiltin && viewMode === "detail" && <button type="button" className="domain-primary" onClick={() => editScope(selected)}>Edit domain</button>}
         </div>
         {error && selected && <p className="domain-error" role="alert">{error}</p>}
-        {!selected ? (
+        {viewMode === "wizard" ? (
           <DomainWizard
+            mode={selected ? "edit" : "create"}
             source={wizardSource}
             step={step}
             canContinue={canContinue}
@@ -704,8 +807,8 @@ export default function DomainList({
             onGenerate={() => void save()}
           >
             {wizardSource === "file" && step === 1 && <div className="domain-upload-step">
-              <strong>Upload domain metadata</strong>
-              <p>Choose a JSON or YAML file containing entities and their fields.</p>
+              <strong>{selected ? "Append domain metadata" : "Upload domain metadata"}</strong>
+              <p>{selected ? "Choose a JSON or YAML file. Existing entity names will be validated and skipped." : "Choose a JSON or YAML file containing entities and their fields."}</p>
               <label className="domain-upload-dropzone">
                 <Icon name="upload" size={20} />
                 <span>Choose JSON or YAML file</span>
@@ -723,8 +826,9 @@ export default function DomainList({
                 <button type="button" className="domain-primary" onClick={() => setConnectionDialogOpen(true)}>Open connection</button>
               </div>}
               {connectionStatus === "succeeded" && <div className="domain-table-picker">
-              <div className="domain-step-title"><strong>Select database tables</strong><span>{selectedTables.length} selected</span></div>
-              <span>Tables are read from the active database connection.</span>
+              <div className="domain-step-title"><strong>{selected ? "Select tables to append" : "Select database tables"}</strong><span>{selectedTables.length} selected</span></div>
+              <span>{selected ? "Existing domain tables are selected automatically. Choose additional tables to append." : "Tables are read from the active database connection."}</span>
+              {selected && <div className="domain-source-legend" aria-label="Source legend"><span className="existing-source"><i /> Existing table</span><span className="append-source"><i /> New table to append</span></div>}
               <label className="domain-table-filter">
                 <Icon name="search" size={14} />
                 <input spellCheck={false} value={tableFilter} onChange={event => setTableFilter(event.target.value)} placeholder="Filter tables by name or schema" aria-label="Filter database tables" />
@@ -737,24 +841,44 @@ export default function DomainList({
                     <div className="domain-schema-heading"><span>{schemaName}</span><small>{tables.length} {tables.length === 1 ? "table" : "tables"}</small></div>
                     <div className="domain-schema-tables">{tables.map(table => {
                       const key = tableKey(table);
-                      return <label key={key}><input type="checkbox" checked={selectedTables.includes(key)} onChange={() => setSelectedTables(current => current.includes(key) ? current.filter(item => item !== key) : [...current, key])} /><span>{table.name}</span></label>;
+                      const alreadyIncluded = selected?.entities.some(entity => entity.name.toLowerCase() === table.name.toLowerCase()) ?? false;
+                      const sourceClass = selected ? (alreadyIncluded ? " existing-source" : " append-source") : "";
+                      return <label key={key} className={sourceClass.trim()}><input type="checkbox" checked={selectedTables.includes(key)} onChange={() => {
+                        const isSelected = selectedTables.includes(key);
+                        setSelectedTables(current => isSelected ? current.filter(item => item !== key) : [...current, key]);
+                        if (alreadyIncluded) {
+                          setRemovedEntityNames(current => isSelected
+                            ? [...current, table.name]
+                            : current.filter(name => name.toLowerCase() !== table.name.toLowerCase()));
+                        }
+                      }} /><span>{table.name}</span></label>;
                     })}</div>
                   </section>)}
                   {schema.tables.length > 0 && !filteredTables.length && <p className="empty-state">No tables match this filter.</p>}
                 </div>
                 <aside className="domain-selected-tables" aria-label="Selected database tables">
                   <div className="domain-table-list-heading"><strong>Selected tables</strong><span><small>{selectedTableDetails.length}</small><button type="button" className="domain-clear-selection" onClick={() => setSelectedTables([])} disabled={!selectedTableDetails.length}>Clear all</button></span></div>
-                  {selectedTableDetails.length > 0 ? <div className="domain-selected-table-list">{selectedTableDetails.map(table => <button key={tableKey(table)} type="button" onClick={() => setSelectedTables(current => current.filter(key => key !== tableKey(table)))} title={`Remove ${table.name}`}>
+                  {selectedTableDetails.length > 0 ? <div className="domain-selected-table-list">{selectedTableDetails.map(table => {
+                    const existing = selected?.entities.some(entity => entity.name.toLowerCase() === table.name.toLowerCase()) ?? false;
+                    return <button key={tableKey(table)} className={existing ? "existing-source" : "append-source"} type="button" onClick={() => {
+                    setSelectedTables(current => current.filter(key => key !== tableKey(table)));
+                    if (selected) {
+                      const existing = selected.entities.find(entity => entity.name.toLowerCase() === table.name.toLowerCase());
+                      if (existing) setRemovedEntityNames(current => current.includes(existing.name) ? current : [...current, existing.name]);
+                    }
+                  }} title={`Remove ${table.name}`}>
                     <span><strong>{table.name}</strong><small>{table.schema}</small></span><b aria-hidden="true">×</b>
-                  </button>)}</div> : <p className="domain-selected-empty">Choose tables from the list to add them to this domain.</p>}
+                  </button>;
+                  })}</div> : <p className="domain-selected-empty">Choose tables from the list to add them to this domain.</p>}
                 </aside>
               </div>
               {!schema.tables.length && <p className="empty-state">No database tables are available.</p>}
             </div>}
             </div>}
             {step === 2 && <div className="domain-generation">
-              <strong>Review and generate metadata</strong>
-              <p>{selectedTables.length} entities selected. Choose the fields and relation names to generate.</p>
+              <strong>{selected ? "Review domain changes" : "Review and generate metadata"}</strong>
+              <p>{selected ? "Existing entities remain selected unless removed. Review the entity definitions and appended tables before saving." : `${selectedTables.length} entities selected. Choose the fields and relation names to generate.`}</p>
+              {selected && <div className="domain-source-legend" aria-label="Entity source legend"><span className="existing-source"><i /> Existing entity</span><span className="append-source"><i /> New entity to append</span></div>}
               <div className="domain-step-section">
                 <h4>Entities</h4>
                 <div className="domain-entity-preview">{selectedTableDetails.map(table => {
@@ -762,7 +886,8 @@ export default function DomainList({
                 const columns = selectedColumns[key] || table.columns.map(column => column.name);
                 const collapsed = collapsedEntities[key] ?? false;
                 const orderedColumns = [...table.columns].sort((left, right) => Number(columns.includes(right.name)) - Number(columns.includes(left.name)));
-                return <div key={key} className="domain-entity-item"><button type="button" className="domain-collapse" onClick={() => setCollapsedEntities(current => ({ ...current, [key]: !collapsed }))} aria-expanded={!collapsed} aria-label={`${collapsed ? "Expand" : "Collapse"} ${table.name} entity`}><Icon name={collapsed ? "chevron-right" : "chevron-down"} size={15} /></button><section className="domain-preview-card">
+                const existing = selected?.entities.some(entity => entity.name.toLowerCase() === table.name.toLowerCase()) ?? false;
+                return <div key={key} className={`domain-entity-item ${existing ? "existing-source" : "append-source"}`}><button type="button" className="domain-collapse" onClick={() => setCollapsedEntities(current => ({ ...current, [key]: !collapsed }))} aria-expanded={!collapsed} aria-label={`${collapsed ? "Expand" : "Collapse"} ${table.name} entity`}><Icon name={collapsed ? "chevron-right" : "chevron-down"} size={15} /></button><section className="domain-preview-card">
                   <div className="domain-preview-heading"><div className="domain-entity-heading-names"><input className="domain-entity-name" spellCheck={false} value={entityNames[key] ?? table.name} onChange={event => setEntityNames(current => ({ ...current, [key]: event.target.value }))} aria-label={`Entity name for ${table.name}`} /><small>{table.schema}.{table.name}</small></div><button type="button" className="domain-remove" onClick={() => setSelectedTables(current => current.filter(item => item !== key))} aria-label={`Remove ${table.name} table`} title="Remove table"><Icon name="trash" size={15} /></button></div>
                   {!collapsed && <div className="domain-column-grid">{orderedColumns.map(column => <label key={column.name}><input type="checkbox" checked={columns.includes(column.name)} onChange={() => setSelectedColumns(current => ({ ...current, [key]: columns.includes(column.name) ? columns.filter(name => name !== column.name) : [...columns, column.name] }))} /><input className="domain-field-name" spellCheck={false} value={fieldNames[key]?.[column.name] ?? column.name} disabled={!columns.includes(column.name)} onChange={event => setFieldNames(current => ({ ...current, [key]: { ...current[key], [column.name]: event.target.value } }))} aria-label={`Field name for ${column.name}`} /><small className="domain-data-type" title={column.dataType} aria-label={`Data type: ${column.dataType}`}><Icon name={getDataTypeIcon(column.dataType, column.name)} size={14} /></small></label>)}</div>}
                 </section></div>;
@@ -777,9 +902,9 @@ export default function DomainList({
             {step === 3 && <div className="domain-final-details">
               <label className="domain-name"><span>Domain name</span><input autoFocus spellCheck={false} value={draftName} onChange={event => setDraftName(event.target.value)} placeholder="e.g. Sales" /><small>Use a name that describes the business area this workspace serves.</small></label>
               <label className="domain-description"><span>Description <small>(optional)</small></span><textarea spellCheck={false} value={draftDescription} onChange={event => setDraftDescription(event.target.value)} placeholder="Describe the business area this domain represents." rows={4} /></label>
-              <p className="domain-generation-summary">{selectedTables.length} entities are ready to generate.</p>
+              <p className="domain-generation-summary">{selected ? `${selected.entities.length - removedEntityNames.length + selectedTableDetails.filter(table => !selected.entities.some(entity => entity.name.toLowerCase() === table.name.toLowerCase())).length} entities will be saved.` : `${selectedTables.length} entities are ready to generate.`}</p>
               <button type="button" className="domain-primary domain-generate-content-button" onClick={() => void save()} disabled={status === "saving" || !canContinue}>
-                {status === "saving" ? "Generating…" : "Generate metadata"} <Icon name="arrow-right" size={14} />
+                {status === "saving" ? (selected ? "Saving…" : "Generating…") : (selected ? "Save domain changes" : "Generate metadata")} <Icon name={selected ? "save" : "arrow-right"} size={14} />
               </button>
             </div>}
           </DomainWizard>

@@ -25,11 +25,8 @@ public sealed class MetadataService : IMetadataService
     public IReadOnlyList<MetadataEntityDto> GetAll()
     {
         var sectionId = _userSectionManager.GetSectionId();
-        var userDefinedNames = _metadataRepository.GetUserDefined(sectionId)
-            .Select(entity => entity.Name)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         return GetAllEntities(sectionId)
-            .Select(entity => MetadataEntityDto.FromEntity(entity, userDefinedNames.Contains(entity.Name)))
+            .Select(MetadataEntityDto.FromEntity)
             .ToArray();
     }
 

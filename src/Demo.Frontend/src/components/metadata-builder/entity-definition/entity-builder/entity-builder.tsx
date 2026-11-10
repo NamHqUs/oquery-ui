@@ -43,14 +43,14 @@ export default function EntityBuilder({
 }: EntityBuilderProps) {
   const [tablePickerOpen, setTablePickerOpen] = useState(false);
   const [tableSearch, setTableSearch] = useState("");
-  const [showRawSql, setShowRawSql] = useState(false);
+  const [rawSqlMode, setRawSqlMode] = useState(false);
   const tablePickerRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const rawSql = draft?.rawSql.trim() || "";
-    const entityName = draft?.name.trim() || "";
-    const selectedTableName = selectedTable?.name.trim() || "";
-    setShowRawSql(Boolean(rawSql && !selectedTableName && rawSql !== entityName));
-  }, [draft?.name, draft?.rawSql, selectedTable?.name]);
+  const rawSql = draft?.rawSql.trim() || "";
+  const entityName = draft?.name.trim() || "";
+  const selectedTableName = selectedTable?.name.trim() || "";
+  const hasRawSqlField = draft?.fields.some((field) => field.isRawSql) ?? false;
+  const isRawSqlEntity = Boolean(rawSql && !selectedTableName && (rawSql !== entityName || hasRawSqlField));
+  const showRawSql = isRawSqlEntity || (rawSqlMode && !selectedTableName);
 
   const filteredTables = useMemo(() => {
     const query = tableSearch.trim().toLowerCase();
@@ -104,7 +104,7 @@ export default function EntityBuilder({
                 type="button"
                 className="metadata-raw-sql-mode-button"
                 onClick={() => {
-                  setShowRawSql(false);
+                  setRawSqlMode(false);
                   onDraftChange((entity) => ({ ...entity, rawSql: "" }));
                 }}
                 aria-label="Switch to table selection"
@@ -160,7 +160,7 @@ export default function EntityBuilder({
                   type="button"
                   className="metadata-raw-sql-menu-item"
                   onClick={() => {
-                    setShowRawSql(true);
+                    setRawSqlMode(true);
                     onSelectRawSql?.();
                     setTablePickerOpen(false);
                   }}

@@ -15,7 +15,9 @@ public sealed class DomainService(
     public IReadOnlyList<DomainDto> GetAll()
     {
         var sectionId = userSectionManager.GetSectionId();
-        var builtinEntities = GetBuiltinEntities();
+        var builtinEntities = metadataRepository.GetBuiltin()
+            .Select(MetadataEntityDto.FromEntity)
+            .ToArray();
         var userNames = repository.GetUserDefined(sectionId)
             .Select(scope => scope.Name)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -109,7 +111,7 @@ public sealed class DomainService(
         {
             Name = request.Name,
             Description = request.Description,
-            Entities = generated.Values.Select(entity => MetadataEntityDto.FromEntity(entity, true)).ToList(),
+            Entities = generated.Values.Select(MetadataEntityDto.FromEntity).ToList(),
         });
     }
 
@@ -151,12 +153,6 @@ public sealed class DomainService(
             ?? throw new KeyNotFoundException($"Domain '{requestedName}' was not found.");
         return new MetadataProvider(scope.Entities.Select(entity => entity.ToEntity()).ToArray());
     }
-
-    private IReadOnlyList<MetadataEntityDto> GetBuiltinEntities()
-        => metadataRepository.GetBuiltin()
-            .Select(entity => MetadataEntityDto.FromEntity(entity, true))
-            .OrderBy(entity => entity.Name, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
 
     private static void ValidateEntities(IReadOnlyCollection<MetadataEntityDto> entities)
     {

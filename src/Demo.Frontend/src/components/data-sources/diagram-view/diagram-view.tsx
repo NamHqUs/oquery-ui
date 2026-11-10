@@ -433,7 +433,7 @@ export default function DiagramView({
       cardHeight: next.cardHeight,
       positions: Object.fromEntries(next.positions),
     };
-  }, [layoutSize, relationships, renderedGroup]);
+  }, [autoRange, layoutSize, relationships, renderedGroup]);
   const tablePositions = { ...layout.positions, ...positions };
 
   function startDrag(event, key) {

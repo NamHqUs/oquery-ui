@@ -62,7 +62,6 @@
           ]
         }
       ],
-      "CanDelete": true,
       "DbSchema": null
     },
     {
@@ -89,8 +88,21 @@
       ],
       "RawSql": "School",
       "Relations": [],
-      "CanDelete": true,
       "DbSchema": "main"
+    },
+    {
+      "Name": "abc",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "",
+          "DataType": 0,
+          "IsRawSql": true
+        }
+      ],
+      "RawSql": "abc",
+      "Relations": [],
+      "DbSchema": null
     }
   ],
   "CanDelete": true,

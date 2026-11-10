@@ -26,7 +26,7 @@
 .entity-diagram-relation-summary { margin: 0; padding: 11px 20px; color: #929cad; border-top: 1px solid #252b38; font-size: 11px; }
 .entity-diagram-relation-summary svg { color: #b49aff; margin-right: 5px; vertical-align: -2px; }
 .metadata-diagram-mode-content { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--panel-height, 600px) auto; min-height: max(720px, calc(100vh - 160px)); overflow: visible; border: 0; border-radius: 0; background: linear-gradient(135deg, #11141c, #0f1218); box-shadow: 0 14px 40px #00000018; }
-.metadata-diagram-mode-content > .database-diagram { grid-column: 1; grid-row: 1; min-height: 0; }
+.metadata-diagram-mode-content > .database-diagram { position: sticky; top: 12px; z-index: 2; grid-column: 1; grid-row: 1; min-height: 0; }
 .metadata-diagram-mode-content > .metadata-diagram-editor { display: flex; grid-column: 1; grid-row: 2; min-height: 0; flex-direction: column; overflow: visible; background: linear-gradient(160deg, #171923, #11141c); }
 .metadata-diagram-editor .metadata-editor-heading { flex: 0 0 auto; margin: 0; padding: 8px 16px; border: 0; border-bottom: 1px solid #35364a; border-radius: 0; background: linear-gradient(105deg, #262238a6, #1a1c29a6); }
 .metadata-diagram-editor .metadata-editor-heading .table-details-title h3 { margin: 7px 0 3px; color: #f0edfb; font-size: 15px; letter-spacing: -.2px; }

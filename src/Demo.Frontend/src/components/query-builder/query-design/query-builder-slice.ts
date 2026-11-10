@@ -56,7 +56,6 @@ export type MetadataEntity = {
   schema?: string | null;
   fields: MetadataField[];
   relations?: MetadataRelation[];
-  canDelete?: boolean;
   rawSql?: string;
 };
 

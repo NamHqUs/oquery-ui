@@ -41,5 +41,5 @@ export function toEditable(entity: MetadataEntity): EditableEntity {
 }
 
 export function emptyEntity(): EditableEntity {
-  return { name: "", schema: "dbo", rawSql: "", fields: [emptyField()], relations: [] };
+  return { name: "", schema: "dbo", rawSql: "", fields: [], relations: [] };
 }

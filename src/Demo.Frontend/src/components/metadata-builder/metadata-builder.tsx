@@ -59,7 +59,10 @@ function entityUsesTable(entity: MetadataEntity, table: { schema: string; name: 
 
 function entityUsesRawSql(entity: MetadataEntity) {
   const rawSql = entity.rawSql?.trim() || "";
-  return Boolean(rawSql && rawSql !== entity.name.trim());
+  return Boolean(rawSql && (
+    rawSql !== entity.name.trim()
+    || entity.fields.some((field) => field.isRawSql)
+  ));
 }
 
 function findEntityTable(entity: MetadataEntity, tables: DatabaseTableOption[]) {
@@ -176,8 +179,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const displayedEntities = scopedEntities ?? entities;
   const activeDomainIsBuiltin = !scopeName
     || domains.find((domain) => domain.name === scopeName)?.isBuiltin === true;
-  const selectedIsBuiltin = activeDomainIsBuiltin
-    || displayedEntities.find((entity) => entity.name === selectedName)?.canDelete === false;
   const metadataBusy = status === "loading"
     || status === "saving"
     || loadedScopeName !== scopeName;
@@ -220,7 +221,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     }
   };
 
-  useEffect(() => { void loadEntities(true); }, [scopeName]);
+  useEffect(() => { void loadEntities(true); }, [location.key, scopeName]);
   useEffect(() => {
     if (entityOnly || (activeSection !== "diagram" && activeSection !== "entities")) return;
     let cancelled = false;
@@ -276,15 +277,33 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     setStatus("saving");
     setMessage("");
     try {
-      const nextEntities = draft && dirty
-        ? displayedEntities.map((entity) => entity.name === selectedName ? {
-          ...entity,
-          name: draft.name.trim(),
-          schema: draft.schema.trim(),
-          rawSql: draft.rawSql.trim() || draft.name.trim(),
-          fields: draft.fields,
-          relations: draft.relations,
-        } : entity)
+      if (draft && dirty && !draft.name.trim()) {
+        setStatus("succeeded");
+        setMessage("Entity name is required.");
+        return;
+      }
+      if (draft && dirty && (!draft.fields.length || draft.fields.some((field) => !field.name.trim()))) {
+        setStatus("succeeded");
+        setMessage("Entity must have at least one field with a name.");
+        return;
+      }
+      const nextDraft = draft && dirty ? {
+        ...draft,
+        name: draft.name.trim(),
+        schema: draft.schema.trim(),
+        rawSql: draft.rawSql.trim() || draft.name.trim(),
+        fields: draft.fields.map((field) => ({
+          ...field,
+          name: field.name.trim(),
+          dbColumn: field.dbColumn?.trim() || field.name.trim(),
+          dataType: toAbstractDataType(field.dataType, field.name),
+        })),
+        relations: draft.relations,
+      } : null;
+      const nextEntities = nextDraft
+        ? selectedName
+          ? displayedEntities.map((entity) => entity.name === selectedName ? nextDraft : entity)
+          : [...displayedEntities, nextDraft]
         : displayedEntities;
       await request(apiUrls.metadata.domainByName(scope.name), {
         method: "PUT",
@@ -298,7 +317,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       setScopedEntities(nextEntities);
       setDirty(false);
       dispatch(invalidateQueryMetadata());
-      await loadEntities(false, selectedName);
+      await loadEntities(false, nextDraft?.name || selectedName);
+      setSuccessMessage(`Domain "${scope.name}" saved successfully.`);
     } catch (error) {
       setStatus("failed");
       setMessage(error instanceof Error ? error.message : "Unable to save the diagram domain.");
@@ -339,7 +359,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   };
 
   const save = async (): Promise<boolean> => {
-    if (selectedIsBuiltin) {
+    if (activeDomainIsBuiltin) {
       setMessage("Built-in metadata is read-only.");
       return false;
     }
@@ -358,7 +378,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       const column = selectedTable?.columns.find((item) =>
         item.name.trim().toLowerCase() === fieldColumn,
       );
-      return field.dataType || (column ? toAbstractDataType(column.dataType, field.name) : "String");
+      return toAbstractDataType(column?.dataType || field.dataType, field.name);
     };
     if (!draft?.name.trim() || draft.fields.some((field) => !field.name.trim())) {
       setMessage("Entity and field names are required.");
@@ -380,7 +400,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         isRawSql: fieldIsRawSql(field),
       })),
       relations: draft.relations.map(({ name, refEntity, type, refKeys }) => ({ name: name.trim(), refEntity: refEntity.trim(), type, refKeys })),
-      canDelete: draft.canDelete ?? true,
     };
     setStatus("saving");
     setMessage("");
@@ -483,14 +502,14 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
 
   const remove = async () => {
     const name = selectedNameRef.current;
-    if (!name || selectedIsBuiltin) return;
+    if (!name || activeDomainIsBuiltin) return;
     const remaining = displayedEntities.filter((entity) => entity.name !== name);
     setScopedEntities(remaining);
     const next = remaining[0];
     setSelectedName(next?.name || "");
     setDraft(next ? toEditable(next) : null);
     setDirty(true);
-    setMessage(`"${name}" was removed from the ${scopeName} domain. Save the domain to apply the change.`);
+    setMessage("");
   };
 
   const addEntity = async () => {
@@ -505,6 +524,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     table: { name: string; schema: string; columns: { name: string; dataType: string; isPrimaryKey: boolean }[] },
     navigateToEditor = true,
     rawSqlOverride?: string,
+    preserveEntityName = false,
   ) => {
     const entitiesWithCurrentDraft = scopeName && draft && selectedName
       ? displayedEntities.map((entity) => entity.name === selectedName ? draft : entity)
@@ -551,19 +571,19 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     } else {
       setSelectedName("");
       setDraft({
-        name: table.name,
+        name: preserveEntityName && draft?.name.trim() ? draft.name : table.name,
         schema: table.schema,
         rawSql: rawSqlOverride ?? "",
         fields: table.columns.map((column) => ({
           id: `diagram_${column.name}`,
           name: column.name,
           dbColumn: column.name,
-          dataType: column.dataType,
+        dataType: toAbstractDataType(column.dataType, column.name),
           isRawSql: false,
         })),
         relations: discoveredRelations,
       });
-      setDirty(false);
+      setDirty(true);
     }
     setMessage("");
     if (navigateToEditor) {
@@ -578,9 +598,10 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     selectedName,
     hasSelection: Boolean(selectedName),
     getSelectedName: () => selectedNameRef.current,
-    isBuiltIn: selectedIsBuiltin,
+    isBuiltIn: activeDomainIsBuiltin,
     hasDraft: Boolean(draft),
     dirty,
+    deleteWithoutConfirmation: activeSection === "diagram",
     saving: status === "saving",
     onSave: save,
     onDiscard: discardChanges,
@@ -603,11 +624,15 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       {canManageCurrentDomain && <button className="icon-button definition-action-button primary" type="button" title="Save domain" aria-label="Save domain" onClick={() => void saveDiagramDomain()} disabled={metadataBusy || !canSaveCurrentDomain || !dirty}>
         <Icon name="save" size={17} />
       </button>}
+
       {canManageCurrentDomain && <button className="icon-button definition-action-button danger" type="button" title="Delete domain" aria-label="Delete domain" onClick={() => void deleteDiagramDomain()} disabled={metadataBusy}>
         <Icon name="trash" size={17} />
       </button>}
       {scopeName && <button className="icon-button definition-action-button" type="button" title="Reload domain" aria-label="Reload domain" onClick={() => void reloadDiagramDomain()} disabled={metadataBusy}>
         <Icon name="reset" size={17} />
+      </button>}
+      {canManageCurrentDomain && <button className="icon-button definition-action-button" type="button" title="Edit domain entities in wizard" aria-label="Edit domain entities in wizard" onClick={() => navigate(`/metadata/domains/edit?section=domains&scope=${encodeURIComponent(scopeName)}&returnSection=diagram`)} disabled={metadataBusy}>
+        <Icon name="edit" size={17} />
       </button>}
       <button className="icon-button definition-action-button create" type="button" title="Create domain" aria-label="Create domain" onClick={createDiagramDomain} disabled={metadataBusy}>
         <Icon name="file-plus" size={17} />
@@ -618,8 +643,10 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const databaseTables = databaseState.schema.tables as DatabaseTableOption[];
   const tableKey = (table: { schema: string; name: string }) =>
     `${(table.schema || "dbo").trim().toLowerCase()}.${table.name.trim().toLowerCase()}`;
-  const selectedTable = databaseTables.find((table) => tableKey(table) === selectedTableKey)
-    || (draft ? findEntityTable(draft, databaseTables) : undefined);
+  const selectedTable = draft && !entityUsesRawSql(draft)
+    ? databaseTables.find((table) => tableKey(table) === selectedTableKey)
+      || findEntityTable(draft, databaseTables)
+    : undefined;
   useEffect(() => {
     if (!selectedName || !draft || entityUsesRawSql(draft)) return;
     if (selectedTableKey && databaseTables.some((table) => tableKey(table) === selectedTableKey)) return;
@@ -637,7 +664,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         dataType: column.dataType || "String",
         isPrimaryKey: Boolean(column.isPrimaryKey),
       })),
-    }, false, rawSql);
+    }, false, rawSql, true);
   };
   const selectRawSqlMode = () => {
     setSelectedTableKey("");
@@ -687,7 +714,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           entityEditor={
             <EntityBuilder
               draft={draft}
-              canEdit={Boolean(scopeName) && !activeDomainIsBuiltin && (!selectedName || Boolean(draft?.canDelete))}
+              canEdit={Boolean(scopeName) && !activeDomainIsBuiltin}
               message={message}
               messageKind={messageKind}
               allEntities={displayedEntities}
@@ -761,14 +788,14 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
               </div>
               <div className="metadata-editor-heading-actions">
                 {entityHeaderActions}
-                <span className={`metadata-editor-heading-status${selectedIsBuiltin ? " readonly" : ""}`}>
-                  {selectedIsBuiltin ? "Read-only" : draft ? "Ready to edit" : "No selection"}
+                <span className={`metadata-editor-heading-status${activeDomainIsBuiltin ? " readonly" : ""}`}>
+                  {activeDomainIsBuiltin ? "Read-only" : draft ? "Ready to edit" : "No selection"}
                 </span>
               </div>
             </div>
             <EntityBuilder
               draft={draft}
-              canEdit={Boolean(scopeName) && !activeDomainIsBuiltin && (!selectedName || Boolean(draft?.canDelete))}
+              canEdit={Boolean(scopeName) && !activeDomainIsBuiltin}
               message={message}
               messageKind={messageKind}
               allEntities={displayedEntities}

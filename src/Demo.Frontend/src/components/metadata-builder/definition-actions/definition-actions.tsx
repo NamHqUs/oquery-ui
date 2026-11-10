@@ -11,6 +11,7 @@ export interface DefinitionActionAdapter {
   hasDraft: boolean;
   dirty: boolean;
   showSaveWhenClean?: boolean;
+  deleteWithoutConfirmation?: boolean;
   saving: boolean;
   onSave?: () => Promise<boolean>;
   onDiscard?: () => void;
@@ -102,6 +103,10 @@ export default function DefinitionActions({ adapter }: { adapter: DefinitionActi
 
   const handleDelete = async () => {
     if (!adapter.onDelete || !adapter.hasSelection || adapter.isBuiltIn) return;
+    if (adapter.deleteWithoutConfirmation) {
+      await adapter.onDelete();
+      return;
+    }
     if (!(await resolveDefinitionChanges(adapter, showMessageBox))) return;
     if (await confirmDefinitionDelete(adapter, showMessageBox)) await adapter.onDelete();
   };
