@@ -569,10 +569,7 @@ export default function DomainList({
     onExternalReload,
   ]);
   useEffect(() => {
-    if (!active) {
-      onToolbarActionsChange(null);
-      return;
-    }
+    if (!active) return;
 
     onToolbarActionsChange(
       <>
