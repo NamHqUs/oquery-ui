@@ -3,6 +3,7 @@
 :root { font-size: 17px; font-family: "Manrope", sans-serif; color: #e9edf4; background: #080a0f; font-synthesis: none; --panel: #10131a; --panel-2: #151923; --line: #252b38; --muted: #8993a5; --purple: #a78bfa; --green: #53d5a1; }
 html { scrollbar-gutter: stable; }
 * { box-sizing: border-box; scrollbar-color: #514476 #11151d; scrollbar-width: thin; }
+*, *::before, *::after { animation: none !important; transition: none !important; }
 *::-webkit-scrollbar { width: 7px; height: 7px; }
 *::-webkit-scrollbar-track { border-radius: 6px; background: #11151d; }
 *::-webkit-scrollbar-thumb { border: 1px solid #11151d; border-radius: 6px; background: linear-gradient(180deg, #806bb1, #514476); }

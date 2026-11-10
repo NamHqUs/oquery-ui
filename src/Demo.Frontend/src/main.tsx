@@ -44,7 +44,7 @@ const HOME_SUBMENU = [
 const PAGE_SUBMENUS: Record<Exclude<Page, "home">, readonly string[]> = {
   builder: ["Design query", "Results"],
   sources: ["Connections", "Tables", "Schema"],
-  metadata: ["Diagram", "Entity definitions", "Domains"],
+  metadata: ["Domains", "Diagram", "Entity definitions"],
   functions: ["Definitions", "Arguments", "SQL templates"],
   documentation: ["Overview", "Query syntax", "Security", "Next steps"],
 };
@@ -103,7 +103,8 @@ function PageSubnav({
           >{item}</button>;
         })}
       </div>
-      <div className={`app-subnav-actions${page === "metadata" ? "" : " app-subnav-actions-hidden"}`} id="metadata-toolbar-actions" />
+      <div className={`app-subnav-actions${page === "metadata" ? "" : " app-subnav-actions-hidden"}`} id="metadata-toolbar-actions">
+      </div>
     </nav>
   );
 }

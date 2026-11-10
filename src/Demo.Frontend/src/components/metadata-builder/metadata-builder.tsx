@@ -1,4 +1,4 @@
-import { createPortal } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -39,6 +39,7 @@ type DatabaseRelationship = {
 type DomainSummary = {
   name: string;
   entities: MetadataEntity[];
+  isBuiltin: boolean;
 };
 
 function normalizeTablePart(value: string) {
@@ -119,6 +120,9 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const [domains, setDomains] = useState<DomainSummary[]>([]);
   const [domainsExpanded, setDomainsExpanded] = useState(true);
   const [scopedEntities, setScopedEntities] = useState<MetadataEntity[] | null>(null);
+  const [domainToolbarActions, setDomainToolbarActions] = useState<React.ReactNode>(null);
+  const sectionNavigationRef = useRef<(section: MetadataSection) => void>(() => undefined);
+  const [pendingToolbarSection, setPendingToolbarSection] = useState<MetadataSection | null>(null);
   useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   useEffect(() => { selectedNameRef.current = selectedName; }, [selectedName]);
   const requestedSection = searchParams.get("section")
@@ -137,7 +141,12 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     if ((section === activeSection
       && !(section === "domains"
         && (location.pathname === "/metadata/domains/create" || searchParams.has("scope"))))
-      || !(await resolveAllDirtyChanges(activeSection))) return;
+      ) return;
+    flushSync(() => setPendingToolbarSection(section));
+    if (!(await resolveAllDirtyChanges(activeSection))) {
+      setPendingToolbarSection(null);
+      return;
+    }
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.set("section", section);
     if (section === "domains") nextSearchParams.delete("scope");
@@ -148,11 +157,17 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     }
   };
   useEffect(() => {
-    onSectionNavigationChange?.((section) => { void selectSection(section); });
+    if (pendingToolbarSection === activeSection) setPendingToolbarSection(null);
+  }, [activeSection, pendingToolbarSection]);
+  sectionNavigationRef.current = (section) => { void selectSection(section); };
+  useEffect(() => {
+    onSectionNavigationChange?.((section) => sectionNavigationRef.current(section));
     return () => onSectionNavigationChange?.(null);
-  }, [activeSection, onSectionNavigationChange, searchParams]);
+  }, [onSectionNavigationChange]);
   const displayedEntities = scopedEntities ?? entities;
-  const selectedIsBuiltin = !scopeName
+  const activeDomainIsBuiltin = !scopeName
+    || domains.find((domain) => domain.name === scopeName)?.isBuiltin === true;
+  const selectedIsBuiltin = activeDomainIsBuiltin
     || displayedEntities.find((entity) => entity.name === selectedName)?.canDelete === false;
   useDefinitionUnsavedWarning(dirty);
 
@@ -476,6 +491,13 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     onDelete: remove,
     onNew: () => void addEntity(),
   };
+  const toolbarSection = pendingToolbarSection ?? activeSection;
+  const entityToolbarActions = <DefinitionActions adapter={entityActionAdapter} />;
+  const toolbarActions = toolbarSection === "domains"
+    ? domainToolbarActions || entityToolbarActions
+    : toolbarSection === "diagram" || toolbarSection === "entities"
+      ? entityToolbarActions
+      : null;
   const databaseOptions = Array.from(new Set(displayedEntities.map((entity) => entity.schema).filter(Boolean)));
   const databaseTables = databaseState.schema.tables as DatabaseTableOption[];
   const tableKey = (table: { schema: string; name: string }) =>
@@ -548,7 +570,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           entityEditor={
             <EntityBuilder
               draft={draft}
-              canEdit={Boolean(scopeName) && (!selectedName || Boolean(draft?.canDelete))}
+              canEdit={Boolean(scopeName) && !activeDomainIsBuiltin && (!selectedName || Boolean(draft?.canDelete))}
               message={message}
               allEntities={displayedEntities}
               onDraftChange={updateDraft}
@@ -625,7 +647,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
             </div>
             <EntityBuilder
               draft={draft}
-              canEdit={Boolean(scopeName) && (!selectedName || Boolean(draft?.canDelete))}
+              canEdit={Boolean(scopeName) && !activeDomainIsBuiltin && (!selectedName || Boolean(draft?.canDelete))}
               message={message}
               allEntities={displayedEntities}
               onDraftChange={updateDraft}
@@ -645,10 +667,12 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         <OperatorDefinition onNavigationGuardChange={updateOperatorNavigationGuard} />
       </div>}
       {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "domains"}>
-        <DomainList active={activeSection === "domains"} />
+        <DomainList active={activeSection === "domains"} onToolbarActionsChange={setDomainToolbarActions} />
       </div>}
-      {toolbarHost && (activeSection === "diagram" || activeSection === "entities")
-        && createPortal(<DefinitionActions adapter={entityActionAdapter} />, toolbarHost)}
+      {toolbarHost && createPortal(
+        toolbarActions,
+        toolbarHost,
+      )}
     </>
   );
 }

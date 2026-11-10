@@ -156,3 +156,27 @@ The editor now reconfigures the OQuery language when metadata or function
 definitions change, reassigns the mounted model to `oquery`, and enables
 case-insensitive Monarch matching. Function-call tokens use the visible
 keyword token category so they remain distinguishable in the active theme.
+
+## Metadata toolbar transition
+
+The metadata toolbar now switches its action set immediately when navigation
+starts. This prevents the entity toolbar's `BUILT-IN · READ-ONLY` status from
+painting briefly while navigating from a selected domain diagram back to the
+Domains catalog. If an unsaved-changes guard cancels navigation, the previous
+toolbar remains active.
+
+Validation:
+
+| Check | Result |
+|---|---|
+| `npm run build` from `src\Demo.Frontend` | Passed |
+| Active browser: Domains → All → Domains | Passed; only domain actions were visible at 0–240 ms, and the read-only label had a 0 × 0 layout box |
+
+The toolbar ownership was subsequently simplified so `MetadataBuilder` mounts
+only the complete action group for the pending or active section. Inactive
+entity and domain action groups are no longer rendered into hidden toolbar
+slots.
+
+The pending section update is committed synchronously before the asynchronous
+dirty-state guard runs, preventing the previous group from painting for an
+intermediate frame.

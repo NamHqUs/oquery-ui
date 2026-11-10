@@ -1,5 +1,4 @@
-import { createPortal } from "react-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import Icon, { type IconName } from "../../icon/icon";
@@ -97,7 +96,13 @@ function parseUploadedTables(text: string, fileName: string): DatabaseTable[] {
   return tables.filter(table => table.columns.length > 0);
 }
 
-export default function DomainList({ active }: { active: boolean }) {
+export default function DomainList({
+  active,
+  onToolbarActionsChange,
+}: {
+  active: boolean;
+  onToolbarActionsChange: (actions: ReactNode | null) => void;
+}) {
   const [scopes, setScopes] = useState<Domain[]>([]);
   const location = useLocation();
   const navigate = useNavigate();
@@ -125,10 +130,8 @@ export default function DomainList({ active }: { active: boolean }) {
   const [viewMode, setViewMode] = useState<ViewMode>(location.pathname === CREATE_DOMAIN_PATH ? "wizard" : "list");
   const [status, setStatus] = useState<"loading" | "ready" | "saving">("loading");
   const [error, setError] = useState("");
-  const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
   const panel = useResizablePanel("domain");
   const showMessageBox = useMessageBox();
-  useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   useEffect(() => {
     if (!active) return;
     setViewMode(location.pathname === CREATE_DOMAIN_PATH ? "wizard" : "list");
@@ -175,8 +178,7 @@ export default function DomainList({ active }: { active: boolean }) {
   }, [dispatch, schemaStatus]);
 
   const selectScope = (scope: Domain) => {
-    navigate(`/metadata?section=entities&scope=${encodeURIComponent(scope.name)}`);
-    setViewMode("detail");
+    navigate(`/metadata?section=diagram&scope=${encodeURIComponent(scope.name)}`);
     setSelectedName(scope.name);
     setDraftName(scope.name);
     setDraftDescription(scope.description || "");
@@ -546,6 +548,31 @@ export default function DomainList({ active }: { active: boolean }) {
     onDelete: remove,
     onNew: createScope,
   }), [dirty, draftName, selected, selectedName, status, selectedTables, entityDirty]);
+  useEffect(() => {
+    if (!active) {
+      onToolbarActionsChange(null);
+      return;
+    }
+
+    onToolbarActionsChange(
+      <>
+        {viewMode !== "wizard" && <div className="editor-actions" role="toolbar" aria-label="Domain creation actions">
+          <button
+            className="icon-button definition-action-button create"
+            type="button"
+            title="Upload domain from JSON or YAML"
+            aria-label="Upload domain from JSON or YAML"
+            onClick={() => createScope("file")}
+          >
+            <Icon name="upload" size={17} />
+          </button>
+        </div>}
+        <DefinitionActions adapter={viewMode === "wizard"
+          ? { ...adapter, isBuiltIn: false, onNew: undefined }
+          : adapter} />
+      </>,
+    );
+  }, [active, adapter, onToolbarActionsChange, viewMode]);
 
   return (
     <section className={`domain-workspace${viewMode === "list" ? " domain-list-view" : viewMode === "wizard" ? " domain-create-view" : ""}`} style={viewMode === "list" ? undefined : panel.style}>
@@ -554,7 +581,7 @@ export default function DomainList({ active }: { active: boolean }) {
           <div>
             <span className="section-kicker">METADATA CATALOG</span>
             <h2>Domains</h2>
-            <p>Choose a domain to open its entity definitions.</p>
+            <p>Choose a domain to open its diagram.</p>
           </div>
         </div>
         <label className="domain-catalog-filter">
@@ -769,25 +796,6 @@ export default function DomainList({ active }: { active: boolean }) {
           </section>
         </div>,
         document.body,
-      )}
-      {active && toolbarHost && createPortal(
-        <>
-          {viewMode !== "wizard" && <div className="editor-actions" role="toolbar" aria-label="Domain creation actions">
-              <button
-                className="icon-button definition-action-button create"
-                type="button"
-                title="Upload domain from JSON or YAML"
-                aria-label="Upload domain from JSON or YAML"
-                onClick={() => createScope("file")}
-              >
-                <Icon name="upload" size={17} />
-              </button>
-            </div>}
-          <DefinitionActions adapter={viewMode === "wizard"
-            ? { ...adapter, isBuiltIn: false, onNew: undefined }
-            : adapter} />
-        </>,
-        toolbarHost,
       )}
     </section>
   );
