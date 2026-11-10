@@ -158,8 +158,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     }
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.set("section", section);
-    if (section === "domains") nextSearchParams.delete("scope");
     if (section === "domains" && location.pathname === "/metadata/domains/create") {
+      nextSearchParams.delete("scope");
       navigate(`/metadata?${nextSearchParams.toString()}`);
     } else {
       setSearchParams(nextSearchParams);
@@ -178,6 +178,11 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     || domains.find((domain) => domain.name === scopeName)?.isBuiltin === true;
   const selectedIsBuiltin = activeDomainIsBuiltin
     || displayedEntities.find((entity) => entity.name === selectedName)?.canDelete === false;
+  const metadataBusy = status === "loading"
+    || status === "saving"
+    || loadedScopeName !== scopeName;
+  const canManageCurrentDomain = Boolean(scopeName) && !activeDomainIsBuiltin;
+  const canSaveCurrentDomain = canManageCurrentDomain && Boolean(draft);
   useDefinitionUnsavedWarning(dirty);
 
   const loadEntities = async (selectFirst = false, preferredName = selectedName) => {
@@ -432,7 +437,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       resourceName: "entity",
       selectedName,
       dirty,
-      saving: status === "saving",
+      saving: metadataBusy,
       onSave: save,
       onDiscard: discardChanges,
     }, showMessageBox);
@@ -595,16 +600,16 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const toolbarActions = activeSection === "diagram"
     ? <div className="editor-actions" role="toolbar" aria-label="Diagram domain actions">
       {scopeName && activeDomainIsBuiltin && <span className="metadata-editor-heading-status readonly">Built-in - Read Only</span>}
-      {scopeName && !activeDomainIsBuiltin && <button className="icon-button definition-action-button primary" type="button" title="Save domain" aria-label="Save domain" onClick={() => void saveDiagramDomain()} disabled={!dirty || status === "saving"}>
+      {canManageCurrentDomain && <button className="icon-button definition-action-button primary" type="button" title="Save domain" aria-label="Save domain" onClick={() => void saveDiagramDomain()} disabled={metadataBusy || !canSaveCurrentDomain || !dirty}>
         <Icon name="save" size={17} />
       </button>}
-      {scopeName && !activeDomainIsBuiltin && <button className="icon-button definition-action-button danger" type="button" title="Delete domain" aria-label="Delete domain" onClick={() => void deleteDiagramDomain()} disabled={status === "saving"}>
+      {canManageCurrentDomain && <button className="icon-button definition-action-button danger" type="button" title="Delete domain" aria-label="Delete domain" onClick={() => void deleteDiagramDomain()} disabled={metadataBusy}>
         <Icon name="trash" size={17} />
       </button>}
-      {scopeName && <button className="icon-button definition-action-button" type="button" title="Reload domain" aria-label="Reload domain" onClick={() => void reloadDiagramDomain()} disabled={status === "saving"}>
+      {scopeName && <button className="icon-button definition-action-button" type="button" title="Reload domain" aria-label="Reload domain" onClick={() => void reloadDiagramDomain()} disabled={metadataBusy}>
         <Icon name="reset" size={17} />
       </button>}
-      <button className="icon-button definition-action-button create" type="button" title="Create domain" aria-label="Create domain" onClick={createDiagramDomain} disabled={status === "saving"}>
+      <button className="icon-button definition-action-button create" type="button" title="Create domain" aria-label="Create domain" onClick={createDiagramDomain} disabled={metadataBusy}>
         <Icon name="file-plus" size={17} />
       </button>
     </div>
@@ -657,7 +662,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           entities={displayedEntities}
           domains={domains}
           activeScopeName={scopeName}
-          loading={status === "loading" || loadedScopeName !== scopeName}
+          loading={metadataBusy}
           editingEntity={draft}
           editingEntityName={selectedName}
           onDraftChange={updateDraft}
@@ -676,9 +681,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
               </div>
               <div className="metadata-editor-heading-actions">
                 {entityHeaderActions}
-                <span className={`metadata-editor-heading-status${selectedIsBuiltin ? " readonly" : ""}`}>
-                  {selectedIsBuiltin ? "Read-only" : draft ? "Ready to edit" : "No selection"}
-                </span>
               </div>
             </div>
           }

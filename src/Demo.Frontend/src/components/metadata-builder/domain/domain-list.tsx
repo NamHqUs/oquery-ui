@@ -138,6 +138,19 @@ export default function DomainList({
     if (location.pathname === CREATE_DOMAIN_PATH) {
       const source = new URLSearchParams(location.search).get("source");
       setWizardSource(source === "file" ? "file" : "database");
+      setSelectedName("");
+      setDraftName("");
+      setDraftDescription("");
+      setSelectedEntityName("");
+      setEntityDraft(null);
+      setEntityDirty(false);
+      setSelectedTables([]);
+      setUploadedTables([]);
+      setSelectedColumns({});
+      setEntityNames({});
+      setFieldNames({});
+      setCollapsedEntities({});
+      setRelationNames({});
       setStep(1);
     }
   }, [active, location.pathname, location.search]);
@@ -151,7 +164,7 @@ export default function DomainList({
       setScopes(scopeResult);
       const routeScopeName = new URLSearchParams(location.search).get("scope");
       const requestedScope = routeScopeName || selectedName;
-      if (requestedScope) {
+      if (requestedScope && location.pathname !== CREATE_DOMAIN_PATH) {
         const refreshed = scopeResult.find(scope => scope.name === requestedScope);
         if (refreshed) {
           setSelectedName(refreshed.name);

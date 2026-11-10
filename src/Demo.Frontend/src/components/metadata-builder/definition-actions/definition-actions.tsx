@@ -94,9 +94,6 @@ export default function DefinitionActions({ adapter }: { adapter: DefinitionActi
   const resourceContext = adapter.resourceName === "entity" ? " from current domain" : "";
   const createLabel = `Create ${adapter.resourceName}${adapter.resourceName === "entity" ? " in current domain" : ""}`;
   const deleteLabel = `Delete ${adapter.resourceName}${resourceContext}`;
-  const saveLabel = adapter.resourceName === "entity"
-    ? "Save current domain changes"
-    : `Save ${adapter.resourceName} changes`;
 
   const handleNew = async () => {
     if (!adapter.onNew || !(await resolveDefinitionChanges(adapter, showMessageBox))) return;
@@ -123,18 +120,7 @@ export default function DefinitionActions({ adapter }: { adapter: DefinitionActi
           <Icon name="trash" size={17} />
         </button>
       )}
-      {!adapter.isBuiltIn && showSave && (
-        <button
-          className="icon-button definition-action-button primary"
-          type="button"
-          title={saveLabel}
-          aria-label={saveLabel}
-          onClick={() => void adapter.onSave?.()}
-          disabled={!adapter.onSave || !adapter.dirty || adapter.saving}
-        >
-          <Icon name="save" size={17} />
-        </button>
-      )}
+
       {adapter.onReload && (
         <button
           className="icon-button definition-action-button"
