@@ -10,12 +10,24 @@ export type DiagramTable = {
   columns: { name: string; dataType: string; isPrimaryKey: boolean; isNullable?: boolean }[];
 };
 export type DiagramGroupTone = "revenue" | "customer" | "product" | "finance" | "custom";
+export type DiagramRelationship = {
+  name: string;
+  sourceSchema: string;
+  sourceTable: string;
+  sourceColumns: string[];
+  targetSchema: string;
+  targetTable: string;
+  targetColumns: string[];
+  isUnique: boolean;
+};
 export const DIAGRAM_GROUP_TONES: DiagramGroupTone[] = ["revenue", "customer", "product", "finance", "custom"];
 
 type DiagramViewProps = {
   tables?: DiagramTable[];
   groups?: { name: string; tables: DiagramTable[]; tone?: DiagramGroupTone }[];
   initialGroup?: string;
+  relationships?: DiagramRelationship[];
+  onSelectGroup?: (groupName: string) => void;
   onOpenTable?: (table: DiagramTable) => void;
 };
 
@@ -309,7 +321,14 @@ function getDiagramRelationships(activeGroup, schemaRelationships) {
   return edges;
 }
 
-export default function DiagramView({ tables: suppliedTables, groups: suppliedGroups, initialGroup, onOpenTable }: DiagramViewProps) {
+export default function DiagramView({
+  tables: suppliedTables,
+  groups: suppliedGroups,
+  initialGroup,
+  relationships: suppliedRelationships,
+  onSelectGroup,
+  onOpenTable,
+}: DiagramViewProps) {
   const dispatch = useDispatch();
   const { schema, schemaStatus, schemaError, debugUiEnabled } = useSelector((state) => state.database);
   const diagramTables = suppliedTables || schema.tables;
@@ -386,8 +405,8 @@ export default function DiagramView({ tables: suppliedTables, groups: suppliedGr
     : groups.find((group) => group.name === selectedGroup) || groups[0];
 
   const relationships = useMemo(
-    () => getDiagramRelationships(activeGroup, schema.relationships),
-    [activeGroup, schema.relationships],
+    () => getDiagramRelationships(activeGroup, suppliedRelationships || schema.relationships),
+    [activeGroup, schema.relationships, suppliedRelationships],
   );
 
   const layout = useMemo(() => {
@@ -485,6 +504,7 @@ export default function DiagramView({ tables: suppliedTables, groups: suppliedGr
                   });
                 }
                 setSelectedGroup(group.name);
+                onSelectGroup?.(group.name);
                 setLayoutSize(boardSize);
                 setPositions({});
               }}

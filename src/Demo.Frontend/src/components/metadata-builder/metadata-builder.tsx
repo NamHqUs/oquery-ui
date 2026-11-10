@@ -474,6 +474,9 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           entities={entities}
           domains={domains}
           activeScopeName={scopeName}
+          editingEntity={draft}
+          editingEntityName={selectedName}
+          onSelectDomain={selectDomain}
           onOpenEntity={(table) => openTableAsEntity(table, false)}
           entityEditorHeader={
             <div className="table-details-heading metadata-editor-heading">
