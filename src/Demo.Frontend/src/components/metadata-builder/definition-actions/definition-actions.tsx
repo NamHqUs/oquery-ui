@@ -10,6 +10,7 @@ export interface DefinitionActionAdapter {
   isBuiltIn: boolean;
   hasDraft: boolean;
   dirty: boolean;
+  showSaveWhenClean?: boolean;
   saving: boolean;
   onSave?: () => Promise<boolean>;
   onDiscard?: () => void;
@@ -87,7 +88,9 @@ async function confirmDefinitionDelete(
 export default function DefinitionActions({ adapter }: { adapter: DefinitionActionAdapter }) {
   const showMessageBox = useMessageBox();
   const showDelete = !adapter.isBuiltIn && adapter.hasSelection;
-  const showSave = !adapter.isBuiltIn && adapter.hasDraft && adapter.dirty;
+  const showSave = !adapter.isBuiltIn
+    && adapter.hasDraft
+    && (adapter.dirty || adapter.showSaveWhenClean);
   const resourceContext = adapter.resourceName === "entity" ? " from current domain" : "";
   const createLabel = `Create ${adapter.resourceName}${adapter.resourceName === "entity" ? " in current domain" : ""}`;
   const deleteLabel = `Delete ${adapter.resourceName}${resourceContext}`;

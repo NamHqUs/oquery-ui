@@ -415,6 +415,12 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     navigateToEditor = true,
     rawSqlOverride?: string,
   ) => {
+    const entitiesWithCurrentDraft = scopeName && draft && selectedName
+      ? displayedEntities.map((entity) => entity.name === selectedName ? draft : entity)
+      : displayedEntities;
+    if (entitiesWithCurrentDraft !== displayedEntities && scopeName) {
+      setScopedEntities(entitiesWithCurrentDraft);
+    }
     setSelectedTableKey(tableKey(table));
     const discoveredRelations = (databaseState.schema.relationships as DatabaseRelationship[])
       .filter((relation) =>
@@ -422,7 +428,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         && normalizeTablePart(relation.sourceTable) === normalizeTablePart(table.name),
       )
       .flatMap((relation) => {
-        const relatedEntities = entities.filter((entity) =>
+        const relatedEntities = entitiesWithCurrentDraft.filter((entity) =>
           entityUsesTable(entity, { schema: relation.targetSchema, name: relation.targetTable })
           && !entityUsesTable(entity, table),
         );
@@ -437,7 +443,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           })),
         }));
       });
-    const existing = entities.find((entity) =>
+    const existing = entitiesWithCurrentDraft.find((entity) =>
       entity.name === table.name && (entity.schema || "dbo") === (table.schema || "dbo"),
     );
     if (existing) {
@@ -491,13 +497,19 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     onDelete: remove,
     onNew: () => void addEntity(),
   };
+  const entityHeaderActions = (
+    <DefinitionActions
+      adapter={{
+        ...entityActionAdapter,
+        onSave: undefined,
+        onReload: undefined,
+      }}
+    />
+  );
   const toolbarSection = pendingToolbarSection ?? activeSection;
-  const entityToolbarActions = <DefinitionActions adapter={entityActionAdapter} />;
-  const toolbarActions = toolbarSection === "domains"
-    ? domainToolbarActions || entityToolbarActions
-    : toolbarSection === "diagram" || toolbarSection === "entities"
-      ? entityToolbarActions
-      : null;
+  const toolbarActions = toolbarSection === "domains" || toolbarSection === "diagram"
+    ? domainToolbarActions
+    : null;
   const databaseOptions = Array.from(new Set(displayedEntities.map((entity) => entity.schema).filter(Boolean)));
   const databaseTables = databaseState.schema.tables as DatabaseTableOption[];
   const tableKey = (table: { schema: string; name: string }) =>
@@ -562,9 +574,12 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
                   <h3>{draft?.name || "Select an entity"}</h3>
                 </div>
               </div>
-              <span className={`metadata-editor-heading-status${selectedIsBuiltin ? " readonly" : ""}`}>
-                {selectedIsBuiltin ? "Read-only" : draft ? "Ready to edit" : "No selection"}
-              </span>
+              <div className="metadata-editor-heading-actions">
+                {entityHeaderActions}
+                <span className={`metadata-editor-heading-status${selectedIsBuiltin ? " readonly" : ""}`}>
+                  {selectedIsBuiltin ? "Read-only" : draft ? "Ready to edit" : "No selection"}
+                </span>
+              </div>
             </div>
           }
           entityEditor={
@@ -641,9 +656,12 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
                   <h3>{draft?.name || "Select an entity"}</h3>
                 </div>
               </div>
-              <span className={`metadata-editor-heading-status${selectedIsBuiltin ? " readonly" : ""}`}>
-                {selectedIsBuiltin ? "Read-only" : draft ? "Ready to edit" : "No selection"}
-              </span>
+              <div className="metadata-editor-heading-actions">
+                {entityHeaderActions}
+                <span className={`metadata-editor-heading-status${selectedIsBuiltin ? " readonly" : ""}`}>
+                  {selectedIsBuiltin ? "Read-only" : draft ? "Ready to edit" : "No selection"}
+                </span>
+              </div>
             </div>
             <EntityBuilder
               draft={draft}
@@ -667,7 +685,13 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         <OperatorDefinition onNavigationGuardChange={updateOperatorNavigationGuard} />
       </div>}
       {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "domains"}>
-        <DomainList active={activeSection === "domains"} onToolbarActionsChange={setDomainToolbarActions} />
+        <DomainList
+          active={activeSection === "domains" || activeSection === "diagram"}
+          onToolbarActionsChange={setDomainToolbarActions}
+          externalDirty={activeSection === "diagram" && dirty}
+          onExternalSave={save}
+          onExternalReload={reload}
+        />
       </div>}
       {toolbarHost && createPortal(
         toolbarActions,

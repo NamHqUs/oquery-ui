@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import Icon, { type IconName } from "../../icon/icon";
@@ -99,9 +100,15 @@ function parseUploadedTables(text: string, fileName: string): DatabaseTable[] {
 export default function DomainList({
   active,
   onToolbarActionsChange,
+  externalDirty = false,
+  onExternalSave,
+  onExternalReload,
 }: {
   active: boolean;
   onToolbarActionsChange: (actions: ReactNode | null) => void;
+  externalDirty?: boolean;
+  onExternalSave?: () => Promise<boolean>;
+  onExternalReload?: () => Promise<void>;
 }) {
   const [scopes, setScopes] = useState<Domain[]>([]);
   const location = useLocation();
@@ -542,12 +549,25 @@ export default function DomainList({
     hasSelection: Boolean(selected),
     isBuiltIn: selected?.isBuiltin ?? false,
     hasDraft: Boolean(draftName),
-    dirty,
+    showSaveWhenClean: true,
+    dirty: dirty || externalDirty,
     saving: status === "saving",
-    onSave: save,
+    onSave: externalDirty && onExternalSave ? onExternalSave : save,
+    onReload: onExternalReload || load,
     onDelete: remove,
     onNew: createScope,
-  }), [dirty, draftName, selected, selectedName, status, selectedTables, entityDirty]);
+  }), [
+    dirty,
+    draftName,
+    selected,
+    selectedName,
+    status,
+    selectedTables,
+    entityDirty,
+    externalDirty,
+    onExternalSave,
+    onExternalReload,
+  ]);
   useEffect(() => {
     if (!active) {
       onToolbarActionsChange(null);
@@ -572,7 +592,18 @@ export default function DomainList({
           : adapter} />
       </>,
     );
-  }, [active, adapter, onToolbarActionsChange, viewMode]);
+  }, [
+    active,
+    dirty,
+    draftName,
+    entityDirty,
+    externalDirty,
+    onToolbarActionsChange,
+    selectedName,
+    selectedTables.length,
+    status,
+    viewMode,
+  ]);
 
   return (
     <section className={`domain-workspace${viewMode === "list" ? " domain-list-view" : viewMode === "wizard" ? " domain-create-view" : ""}`} style={viewMode === "list" ? undefined : panel.style}>
