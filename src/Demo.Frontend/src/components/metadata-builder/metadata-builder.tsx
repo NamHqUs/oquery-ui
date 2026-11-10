@@ -114,7 +114,16 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const [filter, setFilter] = useState("");
   const panel = useResizablePanel("metadata-builder");
   const [status, setStatus] = useState("loading");
-  const [message, setMessage] = useState("");
+  const [message, setRawMessage] = useState("");
+  const [messageKind, setMessageKind] = useState<"error" | "success">("error");
+  const setMessage = (value: string) => {
+    setRawMessage(value);
+    setMessageKind("error");
+  };
+  const setSuccessMessage = (value: string) => {
+    setRawMessage(value);
+    setMessageKind("success");
+  };
   const [dirty, setDirty] = useState(false);
   const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
   const [domains, setDomains] = useState<DomainSummary[]>([]);
@@ -277,16 +286,10 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       return false;
     }
     const rawSql = draft.rawSql.trim();
-    const dbTable = rawSql
-      ? rawSql.startsWith("(") && rawSql.endsWith(")")
-        ? rawSql
-        : `(${rawSql})`
-      : draft.name.trim();
     const payload = {
       name: draft.name.trim(),
-      dbSchema: draft.schema.trim(),
-      dbTable,
-      isRawSql: Boolean(rawSql && rawSql !== draft.name.trim()),
+      schema: draft.schema.trim(),
+      rawSql: rawSql || draft.name.trim(),
       fields: draft.fields.map((field) => ({
         name: field.name.trim(),
         dbColumn: field.dbColumn?.trim() || field.name.trim(),
@@ -294,6 +297,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         isRawSql: fieldIsRawSql(field),
       })),
       relations: draft.relations.map(({ name, refEntity, type, refKeys }) => ({ name: name.trim(), refEntity: refEntity.trim(), type, refKeys })),
+      canDelete: draft.canDelete ?? true,
     };
     setStatus("saving");
     setMessage("");
@@ -333,7 +337,11 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         setScopedEntities(nextEntities);
       }
       dispatch(invalidateQueryMetadata());
-      return await loadEntities(false, payload.name);
+      const saved = await loadEntities(false, payload.name);
+      if (saved && scopeName) {
+        setSuccessMessage(`Domain "${scopeName}" saved successfully.`);
+      }
+      return saved;
     } catch (error) {
       setStatus("failed");
       setMessage(error instanceof Error ? error.message : "Unable to save metadata.");
@@ -587,6 +595,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
               draft={draft}
               canEdit={Boolean(scopeName) && !activeDomainIsBuiltin && (!selectedName || Boolean(draft?.canDelete))}
               message={message}
+              messageKind={messageKind}
               allEntities={displayedEntities}
               onDraftChange={updateDraft}
               databaseOptions={databaseOptions}
@@ -667,6 +676,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
               draft={draft}
               canEdit={Boolean(scopeName) && !activeDomainIsBuiltin && (!selectedName || Boolean(draft?.canDelete))}
               message={message}
+              messageKind={messageKind}
               allEntities={displayedEntities}
               onDraftChange={updateDraft}
               databaseOptions={databaseOptions}

@@ -10,6 +10,7 @@ type EntityBuilderProps = {
   draft: EditableEntity | null;
   canEdit: boolean;
   message: string;
+  messageKind?: "error" | "success";
   allEntities: MetadataEntity[];
   onDraftChange: (updater: (draft: EditableEntity) => EditableEntity) => void;
   databaseOptions?: string[];
@@ -30,6 +31,7 @@ export default function EntityBuilder({
   draft,
   canEdit,
   message,
+  messageKind = "error",
   allEntities,
   onDraftChange,
   databaseOptions = [],
@@ -76,7 +78,7 @@ export default function EntityBuilder({
           </div>
         : <>
           {message && (
-            <p className="metadata-alert" role="alert">
+            <p className={`metadata-alert${messageKind === "success" ? " success" : ""}`} role="alert">
               {message}
             </p>
           )}

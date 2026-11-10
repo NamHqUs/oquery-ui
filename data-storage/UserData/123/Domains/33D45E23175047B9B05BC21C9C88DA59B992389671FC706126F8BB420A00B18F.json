@@ -1,5 +1,6 @@
 {
   "Name": "Unit Test",
+  "Description": "",
   "Entities": [
     {
       "Name": "User",
@@ -48,9 +49,21 @@
         }
       ],
       "RawSql": "User",
-      "Relations": [],
+      "Relations": [
+        {
+          "Name": "School",
+          "RefEntity": "School",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "SchoolId",
+              "RefDbColumn": ""
+            }
+          ]
+        }
+      ],
       "CanDelete": true,
-      "DbSchema": "main"
+      "DbSchema": null
     },
     {
       "Name": "School",

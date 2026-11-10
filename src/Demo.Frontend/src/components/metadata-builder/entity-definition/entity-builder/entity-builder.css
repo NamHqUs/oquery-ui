@@ -22,6 +22,7 @@
 .editor-section h3 { margin: 0; font-size: 15px; }
 .editor-section p { color: var(--muted); margin: 5px 0 0; font-size: 12px; }
 .metadata-alert { margin: 18px 28px 0; padding: 10px 12px; border: 1px solid #704047; border-radius: 5px; color: #f0a6ae; background: #24171c; font-size: 12px; }
+.metadata-alert.success { border: 0; color: #7ee2a8; background: transparent; }
 .metadata-table-picker { position: relative; margin-bottom: 0; }
 .metadata-table-picker label { display: grid; gap: 4px; color: #8f7fca; font-size: 12px; }
 .metadata-table-picker-trigger { display: flex; box-sizing: border-box; min-height: 36px; align-items: center; justify-content: space-between; gap: 8px; width: 100%; padding: 9px 10px; color: #f0edfb; border: 1px solid #323947; border-radius: 5px; background: #191e28; font-size: 12px; text-align: left; }
