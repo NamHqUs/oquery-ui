@@ -1,5 +1,6 @@
 {
   "Name": "HR",
+  "Description": "## HR\n\nThe HR domain manages the organization\u2019s workforce and employee lifecycle. It covers employee identity, departments, locations, reporting relationships, job roles, compensation, employment type, performance reviews, and leave requests.\n\nKey areas include:\n\n- Departments and organizational structure\n- Employee positions and job titles\n- Managers and team members\n- Hire dates and employment types\n- Salary information\n- Performance ratings and bonuses\n- Employee leave requests",
   "Entities": [
     {
       "Name": "Departments",
@@ -31,7 +32,6 @@
           ]
         }
       ],
-      "CanDelete": true,
       "DbSchema": "hr"
     },
     {
@@ -88,7 +88,6 @@
           ]
         }
       ],
-      "CanDelete": true,
       "DbSchema": "hr"
     },
     {
@@ -139,7 +138,6 @@
           ]
         }
       ],
-      "CanDelete": true,
       "DbSchema": "hr"
     },
     {
@@ -275,7 +273,6 @@
           ]
         }
       ],
-      "CanDelete": true,
       "DbSchema": "main"
     },
     {
@@ -320,8 +317,213 @@
           ]
         }
       ],
-      "CanDelete": true,
       "DbSchema": "main"
+    },
+    {
+      "Name": "Claims",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "PolicyId",
+          "DbColumn": "PolicyId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "VisitId",
+          "DbColumn": "VisitId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ClaimDate",
+          "DbColumn": "ClaimDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "BilledAmount",
+          "DbColumn": "BilledAmount",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "AllowedAmount",
+          "DbColumn": "AllowedAmount",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "PaidAmount",
+          "DbColumn": "PaidAmount",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Status",
+          "DbColumn": "Status",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "DenialReason",
+          "DbColumn": "DenialReason",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ProcessedDate",
+          "DbColumn": "ProcessedDate",
+          "DataType": 2,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Claims",
+      "Relations": [],
+      "DbSchema": null
+    },
+    {
+      "Name": "InsurancePlans",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Name",
+          "DbColumn": "Name",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Tier",
+          "DbColumn": "Tier",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "MonthlyPremium",
+          "DbColumn": "MonthlyPremium",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Deductible",
+          "DbColumn": "Deductible",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "OutOfPocketMax",
+          "DbColumn": "OutOfPocketMax",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "CoinsuranceRate",
+          "DbColumn": "CoinsuranceRate",
+          "DataType": 1,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "InsurancePlans",
+      "Relations": [],
+      "DbSchema": null
+    },
+    {
+      "Name": "Policies",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "UserId",
+          "DbColumn": "UserId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "PlanId",
+          "DbColumn": "PlanId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "AgentId",
+          "DbColumn": "AgentId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "StartDate",
+          "DbColumn": "StartDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "EndDate",
+          "DbColumn": "EndDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Status",
+          "DbColumn": "Status",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Policies",
+      "Relations": [],
+      "DbSchema": null
+    },
+    {
+      "Name": "PremiumPayments",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "PolicyId",
+          "DbColumn": "PolicyId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "PaymentDate",
+          "DbColumn": "PaymentDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Amount",
+          "DbColumn": "Amount",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Status",
+          "DbColumn": "Status",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "PremiumPayments",
+      "Relations": [],
+      "DbSchema": null
     }
   ],
   "CanDelete": true,

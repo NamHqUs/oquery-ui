@@ -795,6 +795,7 @@ export default function DomainList({
         {viewMode === "wizard" ? (
           <DomainWizard
             mode={selected ? "edit" : "create"}
+            domainName={selected?.name}
             source={wizardSource}
             step={step}
             canContinue={canContinue}

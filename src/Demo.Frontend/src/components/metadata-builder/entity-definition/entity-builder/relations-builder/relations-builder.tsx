@@ -47,8 +47,15 @@ export default function RelationsBuilder({
   }
 
   function columnsForEntity(entityName: string) {
-    if (entityName === currentEntity.name && !isRawSql(currentEntity) && selectedTable) {
-      return selectedTable.columns.map((column) => column.name);
+    if (entityName === currentEntity.name) {
+      if (isRawSql(currentEntity)) {
+        return currentEntity.fields
+          .map((field) => field.dbColumn?.trim() || field.name.trim())
+          .filter(Boolean);
+      }
+      if (selectedTable) {
+        return selectedTable.columns.map((column) => column.name);
+      }
     }
 
     const entity = allEntities.find((candidate) => candidate.name === entityName);

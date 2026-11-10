@@ -1,0 +1,344 @@
+{
+  "Name": "Sales",
+  "Description": "# Sales\n\nThe Sales domain manages customer purchases and product transactions. It includes products, product categories, pricing, costs, customer orders, sales representatives, sales channels, order status, and order-level discounts.\n\nKey areas include:\n\n- Products and product categories\n- Unit prices and cost prices\n- Customer orders\n- Sales representatives\n- Order dates and sales channels\n- Order status\n- Order items, quantities, and discounts\n- Product-level sales analysis",
+  "Entities": [
+    {
+      "Name": "OrderItems",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "OrderId",
+          "DbColumn": "OrderId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ProductId",
+          "DbColumn": "ProductId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Quantity",
+          "DbColumn": "Quantity",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "UnitPrice",
+          "DbColumn": "UnitPrice",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "DiscountAmount",
+          "DbColumn": "DiscountAmount",
+          "DataType": 1,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "OrderItems",
+      "Relations": [
+        {
+          "Name": "Product",
+          "RefEntity": "Products",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "ProductId",
+              "RefDbColumn": "Id"
+            }
+          ]
+        },
+        {
+          "Name": "Order",
+          "RefEntity": "Orders",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "OrderId",
+              "RefDbColumn": "Id"
+            }
+          ]
+        }
+      ],
+      "DbSchema": "sa"
+    },
+    {
+      "Name": "Orders",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "UserId",
+          "DbColumn": "UserId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "SalesRepId",
+          "DbColumn": "SalesRepId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "OrderDate",
+          "DbColumn": "OrderDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Channel",
+          "DbColumn": "Channel",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Status",
+          "DbColumn": "Status",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Orders",
+      "Relations": [
+        {
+          "Name": "OrderItems",
+          "RefEntity": "OrderItems",
+          "Type": 1,
+          "RefKeys": [
+            {
+              "DbColumn": "Id",
+              "RefDbColumn": "OrderId"
+            }
+          ]
+        },
+        {
+          "Name": "Employee",
+          "RefEntity": "Employees",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "SalesRepId",
+              "RefDbColumn": "Id"
+            }
+          ]
+        }
+      ],
+      "DbSchema": "sa"
+    },
+    {
+      "Name": "Products",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Name",
+          "DbColumn": "Name",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Category",
+          "DbColumn": "Category",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "UnitPrice",
+          "DbColumn": "UnitPrice",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "CostPrice",
+          "DbColumn": "CostPrice",
+          "DataType": 1,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Products",
+      "Relations": [
+        {
+          "Name": "OrderItems",
+          "RefEntity": "OrderItems",
+          "Type": 1,
+          "RefKeys": [
+            {
+              "DbColumn": "Id",
+              "RefDbColumn": "ProductId"
+            }
+          ]
+        }
+      ],
+      "DbSchema": "sa"
+    },
+    {
+      "Name": "Employees",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "FirstName",
+          "DbColumn": "FirstName",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "LastName",
+          "DbColumn": "LastName",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "DepartmentId",
+          "DbColumn": "DepartmentId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "LocationId",
+          "DbColumn": "LocationId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ManagerId",
+          "DbColumn": "ManagerId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "JobTitle",
+          "DbColumn": "JobTitle",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "HireDate",
+          "DbColumn": "HireDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Salary",
+          "DbColumn": "Salary",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "EmploymentType",
+          "DbColumn": "EmploymentType",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Employees",
+      "Relations": [
+        {
+          "Name": "Employee",
+          "RefEntity": "Employees",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "ManagerId",
+              "RefDbColumn": "Id"
+            }
+          ]
+        },
+        {
+          "Name": "Employees",
+          "RefEntity": "Employees",
+          "Type": 1,
+          "RefKeys": [
+            {
+              "DbColumn": "Id",
+              "RefDbColumn": "ManagerId"
+            }
+          ]
+        },
+        {
+          "Name": "Orders",
+          "RefEntity": "Orders",
+          "Type": 1,
+          "RefKeys": [
+            {
+              "DbColumn": "Id",
+              "RefDbColumn": "SalesRepId"
+            }
+          ]
+        }
+      ],
+      "DbSchema": "main"
+    },
+    {
+      "Name": "User",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ManagerId",
+          "DbColumn": "ManagerId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "SchoolId",
+          "DbColumn": "SchoolId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Name",
+          "DbColumn": "Name",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Age",
+          "DbColumn": "Age",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Birthday",
+          "DbColumn": "Birthday",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "IsMale",
+          "DbColumn": "IsMale",
+          "DataType": 3,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "User",
+      "Relations": [],
+      "DbSchema": "main"
+    }
+  ],
+  "CanDelete": true,
+  "IsBuiltin": false
+}

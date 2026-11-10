@@ -91,17 +91,41 @@
       "DbSchema": "main"
     },
     {
-      "Name": "abc",
+      "Name": "RawUser",
       "Fields": [
         {
           "Name": "Id",
-          "DbColumn": "",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": true
+        },
+        {
+          "Name": "ManagerId",
+          "DbColumn": "ManagerId",
+          "DataType": 1,
+          "IsRawSql": true
+        },
+        {
+          "Name": "Name",
+          "DbColumn": "Name",
           "DataType": 0,
           "IsRawSql": true
         }
       ],
-      "RawSql": "abc",
-      "Relations": [],
+      "RawSql": "Select * From [User]",
+      "Relations": [
+        {
+          "Name": "Manager",
+          "RefEntity": "User",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "ManagerId",
+              "RefDbColumn": ""
+            }
+          ]
+        }
+      ],
       "DbSchema": null
     }
   ],

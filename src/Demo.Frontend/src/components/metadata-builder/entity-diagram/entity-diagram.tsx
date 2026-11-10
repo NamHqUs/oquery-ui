@@ -37,7 +37,11 @@ export default function EntityDiagram({
   const [selectedRelation, setSelectedRelation] = useState<(DiagramRelationship & { from: string; to: string }) | null>(null);
   const applyDraft = (entity: MetadataEntity) =>
     editingEntity && entity.name === editingEntityName ? editingEntity : entity;
-  const displayedEntities = entities.map(applyDraft);
+  const isNewDraft = Boolean(editingEntity && !editingEntityName && editingEntity.name.trim());
+  const displayedEntities = [
+    ...entities.filter((entity) => !isNewDraft || entity.name !== editingEntity?.name),
+    ...(isNewDraft ? [editingEntity] : []),
+  ].map(applyDraft);
   const tables = displayedEntities.map((entity) => ({
     schema: entity.schema || "dbo",
     name: entity.name,
