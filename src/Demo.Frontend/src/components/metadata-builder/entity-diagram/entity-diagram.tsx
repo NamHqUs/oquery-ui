@@ -10,6 +10,7 @@ type EntityDiagramProps = {
   entities: MetadataEntity[];
   domains?: { name: string; entities: MetadataEntity[] }[];
   activeScopeName?: string;
+  loading?: boolean;
   editingEntity?: EditableEntity | null;
   editingEntityName?: string;
   onDraftChange?: (updater: (draft: EditableEntity) => EditableEntity) => void;
@@ -23,6 +24,7 @@ export default function EntityDiagram({
   entities,
   domains,
   activeScopeName,
+  loading = false,
   editingEntity,
   editingEntityName,
   onDraftChange,
@@ -130,6 +132,7 @@ export default function EntityDiagram({
         tables={tables}
         groups={scopeGroups}
         initialGroup={activeScopeName}
+        loading={loading}
         relationships={relationships}
         onSelectGroup={onSelectDomain}
         onSelectRelation={openRelationSource}

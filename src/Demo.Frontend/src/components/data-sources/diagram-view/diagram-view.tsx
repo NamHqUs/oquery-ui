@@ -28,6 +28,7 @@ type DiagramViewProps = {
   tables?: DiagramTable[];
   groups?: { name: string; tables: DiagramTable[]; tone?: DiagramGroupTone }[];
   initialGroup?: string;
+  loading?: boolean;
   relationships?: DiagramRelationship[];
   onSelectGroup?: (groupName: string) => void;
   onSelectRelation?: (relation: DiagramRelationship & { from: string; to: string }) => void;
@@ -331,6 +332,7 @@ export default function DiagramView({
   tables: suppliedTables,
   groups: suppliedGroups,
   initialGroup,
+  loading = false,
   relationships: suppliedRelationships,
   onSelectGroup,
   onSelectRelation,
@@ -415,20 +417,23 @@ export default function DiagramView({
       || groups.find((group) => group.name === "All")
       || groups[0]
     : groups.find((group) => group.name === selectedGroup) || groups[0];
+  const committedGroupRef = useRef<typeof activeGroup>(undefined);
+  if (!loading && activeGroup) committedGroupRef.current = activeGroup;
+  const renderedGroup = loading ? committedGroupRef.current || activeGroup : activeGroup;
 
   const relationships = useMemo(
-    () => getDiagramRelationships(activeGroup, suppliedRelationships || schema.relationships),
-    [activeGroup, schema.relationships, suppliedRelationships],
+    () => getDiagramRelationships(renderedGroup, suppliedRelationships || schema.relationships),
+    [renderedGroup, schema.relationships, suppliedRelationships],
   );
 
   const layout = useMemo(() => {
-    const next = createLayout(activeGroup?.tables || [], relationships, layoutSize.width, layoutSize.height);
+    const next = createLayout(renderedGroup?.tables || [], relationships, layoutSize.width, layoutSize.height);
     return {
       cardWidth: next.cardWidth,
       cardHeight: next.cardHeight,
       positions: Object.fromEntries(next.positions),
     };
-  }, [activeGroup, layoutSize, relationships]);
+  }, [layoutSize, relationships, renderedGroup]);
   const tablePositions = { ...layout.positions, ...positions };
 
   function startDrag(event, key) {
@@ -515,6 +520,7 @@ export default function DiagramView({
                     layoutSize: boardSize,
                   });
                 }
+                if (activeGroup) committedGroupRef.current = activeGroup;
                 setSelectedGroup(group.name);
                 onSelectGroup?.(group.name);
                 setLayoutSize(boardSize);
@@ -555,8 +561,9 @@ export default function DiagramView({
           </button>
         </div>
       </div>}
-      {relationInspector}
-      <div className="diagram-scroll" ref={setScrollElement}>
+      <div className="diagram-content">
+        {relationInspector}
+        <div className="diagram-scroll" ref={setScrollElement}>
         <div className="diagram-board" style={boardSize}>
           <svg className="diagram-relations" width={boardSize.width} height={boardSize.height} aria-label="Table relationships">
             <defs>
@@ -595,7 +602,7 @@ export default function DiagramView({
               );
             })}
           </svg>
-          {(activeGroup?.tables || []).map((table) => {
+          {(renderedGroup?.tables || []).map((table) => {
             const key = tableKey(table.schema, table.name);
             const position = tablePositions[key];
             const expanded = Boolean(expandedTables[key]);
@@ -651,7 +658,17 @@ export default function DiagramView({
               </article>
             );
           })}
-        </div>
+            </div>
+          </div>
+        {loading && (
+          <div className="diagram-loading-overlay" role="status" aria-label="Loading diagram entities">
+            <span className="diagram-loading-icon" aria-hidden="true">
+              <i className="diagram-loading-dot" />
+              <i className="diagram-loading-dot" />
+              <i className="diagram-loading-dot" />
+            </span>
+          </div>
+        )}
       </div>
     </section>
   );

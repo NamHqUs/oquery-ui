@@ -129,6 +129,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const [domains, setDomains] = useState<DomainSummary[]>([]);
   const [domainsExpanded, setDomainsExpanded] = useState(true);
   const [scopedEntities, setScopedEntities] = useState<MetadataEntity[] | null>(null);
+  const [loadedScopeName, setLoadedScopeName] = useState<string | undefined>();
   const sectionNavigationRef = useRef<(section: MetadataSection) => void>(() => undefined);
   const [pendingToolbarSection, setPendingToolbarSection] = useState<MetadataSection | null>(null);
   useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
@@ -182,7 +183,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const loadEntities = async (selectFirst = false, preferredName = selectedName) => {
     setStatus("loading");
     setMessage("");
-    setScopedEntities(scopeName ? [] : null);
     try {
       const result = await dispatch(fetchQueryMetadata(scopeName));
       if (!fetchQueryMetadata.fulfilled.match(result)) {
@@ -190,6 +190,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       }
       const payload = result.payload;
       setScopedEntities(scopeName ? payload : null);
+      setLoadedScopeName(scopeName);
       const preferred = payload.find((entity) => entity.name === preferredName);
       if (selectFirst || !preferredName || !preferred) {
         const next = selectFirst ? payload[0] : preferred;
@@ -207,6 +208,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       setStatus("succeeded");
       return true;
     } catch (error) {
+      setLoadedScopeName(scopeName);
       setStatus("failed");
       setMessage(error instanceof Error ? error.message : "Unable to load metadata.");
       return false;
@@ -655,6 +657,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           entities={displayedEntities}
           domains={domains}
           activeScopeName={scopeName}
+          loading={status === "loading" || loadedScopeName !== scopeName}
           editingEntity={draft}
           editingEntityName={selectedName}
           onDraftChange={updateDraft}
