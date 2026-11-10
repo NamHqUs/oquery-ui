@@ -591,6 +591,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   );
   const toolbarActions = activeSection === "diagram"
     ? <div className="editor-actions" role="toolbar" aria-label="Diagram domain actions">
+      {scopeName && activeDomainIsBuiltin && <span className="metadata-editor-heading-status readonly">Built-in - Read Only</span>}
       {scopeName && !activeDomainIsBuiltin && <button className="icon-button definition-action-button primary" type="button" title="Save domain" aria-label="Save domain" onClick={() => void saveDiagramDomain()} disabled={!dirty || status === "saving"}>
         <Icon name="save" size={17} />
       </button>}

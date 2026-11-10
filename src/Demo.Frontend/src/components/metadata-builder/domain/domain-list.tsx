@@ -621,7 +621,7 @@ export default function DomainList({
               <span className="domain-summary-content">
                 <strong>{scope.name}</strong>
                 {scope.description && <small className="domain-summary-description">{scope.description}</small>}
-                <small>                {scope.isBuiltin ? "Built-in domain" : "Custom domain"}</small>
+                <small>{scope.isBuiltin ? "Built-in - Read Only" : "Custom domain"}</small>
               </span>
               <span className="domain-summary-stats">
                 <b>{scope.entities.length}</b>
@@ -654,7 +654,7 @@ export default function DomainList({
               .map(scope => (
                 <button key={scope.name} type="button" className={`metadata-entity${scope.name === selectedName ? " active" : ""}`} onClick={() => selectScope(scope)}>
                   <span className="entity-icon"><Icon name="folder" size={14} /></span>
-                  <span><b>{scope.name}</b><small>{scope.entities.length} entities{scope.isBuiltin ? " · Built-in" : ""}</small></span>
+                  <span><b>{scope.name}</b><small>{scope.entities.length} entities{scope.isBuiltin ? " · Built-in - Read Only" : ""}</small></span>
                   <Icon name="chevron" size={14} />
                 </button>
               )),
@@ -664,7 +664,7 @@ export default function DomainList({
       </>}
       <div className="domain-editor">
         <div className="domain-editor-heading">
-          <div><span className="section-kicker">BUSINESS LOGIC</span><h2>{selected ? selected.name : "New domain"}</h2></div>
+          <div><span className="section-kicker">BUSINESS LOGIC</span><h2>{selected ? selected.name : "New domain"}</h2>{selected?.isBuiltin && <span className="metadata-editor-heading-status readonly">Built-in - Read Only</span>}</div>
           {selected && <label className="domain-scope-picker">
             <span>Domain</span>
             <select value={selected.name} onChange={event => {
