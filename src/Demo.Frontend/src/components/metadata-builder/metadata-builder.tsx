@@ -182,6 +182,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const loadEntities = async (selectFirst = false, preferredName = selectedName) => {
     setStatus("loading");
     setMessage("");
+    setScopedEntities(scopeName ? [] : null);
     try {
       const result = await dispatch(fetchQueryMetadata(scopeName));
       if (!fetchQueryMetadata.fulfilled.match(result)) {

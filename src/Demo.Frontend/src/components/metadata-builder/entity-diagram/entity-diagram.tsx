@@ -48,7 +48,7 @@ export default function EntityDiagram({
   const scopeGroups = domains?.map((scope, index) => ({
     name: scope.name,
     tone: diagramGroupTone(index),
-    tables: scope.entities.map(applyDraft).map((entity) => ({
+    tables: (scope.name === activeScopeName ? displayedEntities : scope.entities).map(applyDraft).map((entity) => ({
       schema: entity.schema || "dbo",
       name: entity.name,
       columns: entity.fields.map((field) => ({

@@ -361,8 +361,12 @@ export default function DiagramView({
         hasInitialLayoutSize.current = true;
       }
       if (autoRange) {
-        setLayoutSize({ width: nextWidth, height: nextHeight });
-        setPositions({});
+        setLayoutSize((current) =>
+          current.width === nextWidth && current.height === nextHeight
+            ? current
+            : { width: nextWidth, height: nextHeight },
+        );
+        setPositions((current) => Object.keys(current).length === 0 ? current : {});
       }
       setBoardSize((current) => current.width === nextWidth && current.height === nextHeight
         ? current
@@ -406,8 +410,8 @@ export default function DiagramView({
   }, [diagramTables, suppliedGroups, suppliedTables]);
 
   const activeGroup = suppliedTables
-    ? groups.find((group) => group.name === selectedGroup)
-      || groups.find((group) => group.name === initialGroup)
+    ? groups.find((group) => group.name === initialGroup)
+      || groups.find((group) => group.name === selectedGroup)
       || groups.find((group) => group.name === "All")
       || groups[0]
     : groups.find((group) => group.name === selectedGroup) || groups[0];
