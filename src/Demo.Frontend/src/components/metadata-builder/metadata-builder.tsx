@@ -212,6 +212,10 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     setDirty(false);
     setMessage("");
   };
+  const reload = async () => {
+    setMessage("");
+    await loadEntities(false, selectedName);
+  };
 
   const save = async (): Promise<boolean> => {
     if (selectedIsBuiltin) {
@@ -233,7 +237,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       const column = selectedTable?.columns.find((item) =>
         item.name.trim().toLowerCase() === fieldColumn,
       );
-      return column ? toAbstractDataType(column.dataType, field.name) : field.dataType || "String";
+      return field.dataType || (column ? toAbstractDataType(column.dataType, field.name) : "String");
     };
     if (!draft?.name.trim() || draft.fields.some((field) => !field.name.trim())) {
       setMessage("Entity and field names are required.");
@@ -429,6 +433,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     saving: status === "saving",
     onSave: save,
     onDiscard: discardChanges,
+    onReload: reload,
     onDelete: remove,
     onNew: () => void addEntity(),
   };
@@ -466,6 +471,12 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     nextSearchParams.set("scope", name);
     navigate(`/metadata?${nextSearchParams.toString()}`);
   };
+  const selectDiagramDomain = (name: string) => {
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.set("section", "diagram");
+    nextSearchParams.set("scope", name);
+    navigate(`/metadata?${nextSearchParams.toString()}`);
+  };
 
   return (
     <>
@@ -476,7 +487,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           activeScopeName={scopeName}
           editingEntity={draft}
           editingEntityName={selectedName}
-          onSelectDomain={selectDomain}
+          onDraftChange={updateDraft}
+          onSelectDomain={selectDiagramDomain}
           onOpenEntity={(table) => openTableAsEntity(table, false)}
           entityEditorHeader={
             <div className="table-details-heading metadata-editor-heading">
@@ -489,7 +501,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
                   <span className="metadata-editor-heading-icon"><Icon name="table" size={18} /></span>
                   <h3>{draft?.name || "Select an entity"}</h3>
                 </div>
-                <p>{draft ? "Configure the entity mapping, fields, and relations." : "Choose an entity from the navigation to begin."}</p>
               </div>
               <span className={`metadata-editor-heading-status${selectedIsBuiltin ? " readonly" : ""}`}>
                 {selectedIsBuiltin ? "Read-only" : draft ? "Ready to edit" : "No selection"}
@@ -564,7 +575,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
                   <span className="metadata-editor-heading-icon"><Icon name="table" size={18} /></span>
                   <h3>{draft?.name || "Select an entity"}</h3>
                 </div>
-                <p>{draft ? "Configure the entity mapping, fields, and relations." : "Choose an entity from the navigation to begin."}</p>
               </div>
               <span className={`metadata-editor-heading-status${selectedIsBuiltin ? " readonly" : ""}`}>
                 {selectedIsBuiltin ? "Read-only" : draft ? "Ready to edit" : "No selection"}

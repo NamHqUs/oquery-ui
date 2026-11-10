@@ -45,6 +45,22 @@
   background: #11151d;
 }
 
+.diagram-edge {
+  cursor: pointer;
+  outline: none;
+}
+
+.diagram-edge path {
+  pointer-events: stroke;
+}
+
+.diagram-edge:hover path,
+.diagram-edge:focus path {
+  stroke: #f0d98a;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 5px #f0bd6888);
+}
+
 .diagram-group-switch {
   display: flex;
   flex: 1 1 auto;

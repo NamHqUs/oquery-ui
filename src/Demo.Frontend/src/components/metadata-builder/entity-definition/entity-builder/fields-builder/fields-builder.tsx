@@ -303,12 +303,14 @@ export default function FieldsBuilder({
               </svg>
             </span>
             <input
+              spellCheck={false}
               value={field.name}
               onChange={(event) => updateField(index, (current) => ({ ...current, name: event.target.value }))}
               placeholder="Field name"
             />
             <div className="field-source-cell">
               <input
+                spellCheck={false}
                 value={field.dbColumn ?? ""}
                 onChange={(event) => {
                   const dbColumn = event.target.value;

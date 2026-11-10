@@ -13,6 +13,7 @@ export interface DefinitionActionAdapter {
   saving: boolean;
   onSave?: () => Promise<boolean>;
   onDiscard?: () => void;
+  onReload?: () => Promise<void>;
   onDelete?: () => Promise<void>;
   onNew?: () => void;
 }
@@ -127,6 +128,18 @@ export default function DefinitionActions({ adapter }: { adapter: DefinitionActi
           disabled={!adapter.onSave || !adapter.dirty || adapter.saving}
         >
           <Icon name="save" size={17} />
+        </button>
+      )}
+      {adapter.onReload && (
+        <button
+          className="icon-button definition-action-button"
+          type="button"
+          title="Reload metadata and discard current edits"
+          aria-label="Reload metadata and discard current edits"
+          onClick={() => void adapter.onReload?.()}
+          disabled={adapter.saving}
+        >
+          <Icon name="reset" size={17} />
         </button>
       )}
       {adapter.isBuiltIn && <span className="section-kicker definition-readonly">BUILT-IN · READ-ONLY</span>}

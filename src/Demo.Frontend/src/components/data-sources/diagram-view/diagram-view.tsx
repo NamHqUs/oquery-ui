@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Icon from "../../icon/icon";
 import { fetchDbTableData, selectDbTable, setPreviewDbTable } from "../database-slice";
@@ -19,6 +20,7 @@ export type DiagramRelationship = {
   targetTable: string;
   targetColumns: string[];
   isUnique: boolean;
+  sourceRelationIndex?: number;
 };
 export const DIAGRAM_GROUP_TONES: DiagramGroupTone[] = ["revenue", "customer", "product", "finance", "custom"];
 
@@ -28,6 +30,8 @@ type DiagramViewProps = {
   initialGroup?: string;
   relationships?: DiagramRelationship[];
   onSelectGroup?: (groupName: string) => void;
+  onSelectRelation?: (relation: DiagramRelationship & { from: string; to: string }) => void;
+  relationInspector?: ReactNode;
   onOpenTable?: (table: DiagramTable) => void;
 };
 
@@ -127,7 +131,7 @@ function relationGeometry(from, to, cardWidth, fromHeight, toHeight = fromHeight
   const toOffset = (cardWidth / 2) * Math.abs(unitX) + (toHeight / 2) * Math.abs(unitY);
   return {
     start: { x: start.x + unitX * fromOffset, y: start.y + unitY * fromOffset },
-    end: { x: end.x - unitX * (toOffset + ARROW_CLEARANCE), y: end.y - unitY * (toOffset + ARROW_CLEARANCE) },
+    end: { x: end.x - unitX * toOffset, y: end.y - unitY * toOffset },
     midpoint: { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 },
     distance,
     requiredDistance,
@@ -327,6 +331,8 @@ export default function DiagramView({
   initialGroup,
   relationships: suppliedRelationships,
   onSelectGroup,
+  onSelectRelation,
+  relationInspector,
   onOpenTable,
 }: DiagramViewProps) {
   const dispatch = useDispatch();
@@ -352,7 +358,7 @@ export default function DiagramView({
         setLayoutSize({ width: nextWidth, height: nextHeight });
         hasInitialLayoutSize.current = true;
       }
-      if (autoRange && !suppliedTables) {
+      if (autoRange) {
         setLayoutSize({ width: nextWidth, height: nextHeight });
         setPositions({});
       }
@@ -367,7 +373,7 @@ export default function DiagramView({
     });
     observer.observe(scrollElement);
     return () => observer.disconnect();
-  }, [autoRange, scrollElement]);
+  }, [autoRange, scrollElement, suppliedTables]);
 
   const groups = useMemo(() => {
     if (suppliedGroups?.length) {
@@ -543,11 +549,12 @@ export default function DiagramView({
           </button>
         </div>
       </div>}
+      {relationInspector}
       <div className="diagram-scroll" ref={setScrollElement}>
         <div className="diagram-board" style={boardSize}>
           <svg className="diagram-relations" width={boardSize.width} height={boardSize.height} aria-label="Table relationships">
             <defs>
-              <marker id="diagram-relation-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+              <marker id="diagram-relation-arrow" markerWidth="7" markerHeight="7" refX="7" refY="3.5" orient="auto">
                 <path d="M0,0 L7,3.5 L0,7 Z" />
               </marker>
             </defs>
@@ -560,7 +567,20 @@ export default function DiagramView({
               const geometry = relationGeometry(from, to, layout.cardWidth, fromHeight, toHeight);
               if (!geometry) return null;
               return (
-                        <g className={`diagram-edge${relation.isManyToMany ? " many-to-many" : ""}`} key={`${relation.name}-${index}`}>
+                        <g
+                          className={`diagram-edge${relation.isManyToMany ? " many-to-many" : ""}`}
+                          key={`${relation.name}-${index}`}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Select relation ${relation.name || `${relation.from} to ${relation.to}`}`}
+                          onClick={() => onSelectRelation?.(relation)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              onSelectRelation?.(relation);
+                            }
+                          }}
+                        >
                           <path
                             d={`M ${geometry.start.x} ${geometry.start.y} L ${geometry.end.x} ${geometry.end.y}`}
                             markerEnd="url(#diagram-relation-arrow)"

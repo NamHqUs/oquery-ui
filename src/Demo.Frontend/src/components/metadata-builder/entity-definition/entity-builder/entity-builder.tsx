@@ -87,6 +87,7 @@ export default function EntityBuilder({
         <label>
           Entity name
           <input
+            spellCheck={false}
             value={draft.name}
             onChange={(event) =>
               onDraftChange((entity) => ({ ...entity, name: event.target.value }))
@@ -167,6 +168,7 @@ export default function EntityBuilder({
                 </button>
                 <input
                   autoFocus
+                  spellCheck={false}
                   value={tableSearch}
                   onChange={(event) => setTableSearch(event.target.value)}
                   placeholder="Select a table"
@@ -196,7 +198,7 @@ export default function EntityBuilder({
         <FieldsBuilder
           fields={draft.fields}
           selectedTableColumns={selectedTableColumns}
-          allowDataTypeEdit={showRawSql}
+          allowDataTypeEdit
           onChange={(fieldsUpdater) =>
             onDraftChange((entity) => ({
               ...entity,

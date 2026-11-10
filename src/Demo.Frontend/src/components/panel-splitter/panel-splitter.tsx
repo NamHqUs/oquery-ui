@@ -6,17 +6,30 @@ import "./panel-splitter.css";
 type PanelSplitterProps = {
   panel: ResizablePanel;
   label: string;
+  orientation?: "vertical" | "horizontal";
+  collapsible?: boolean;
+  horizontalAnchor?: "top" | "bottom";
 };
 
 const keyboardStep = 16;
 
-export default function PanelSplitter({ panel, label }: PanelSplitterProps) {
+export default function PanelSplitter({
+  panel,
+  label,
+  orientation = "vertical",
+  collapsible = true,
+  horizontalAnchor = "bottom",
+}: PanelSplitterProps) {
   const { width, collapsed, min, max, setWidth, toggle } = panel;
+  const horizontal = orientation === "horizontal";
 
   const resizeFromPointer = (event: PointerEvent<HTMLDivElement>) => {
     const container = event.currentTarget.closest(".split-workspace");
     if (!container) return;
-    setWidth(event.clientX - container.getBoundingClientRect().left);
+    const bounds = container.getBoundingClientRect();
+    setWidth(horizontal
+      ? horizontalAnchor === "top" ? event.clientY - bounds.top : bounds.bottom - event.clientY
+      : event.clientX - bounds.left);
   };
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -30,8 +43,8 @@ export default function PanelSplitter({ panel, label }: PanelSplitterProps) {
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "ArrowLeft") setWidth(width - keyboardStep);
-    else if (event.key === "ArrowRight") setWidth(width + keyboardStep);
+    if ((!horizontal && event.key === "ArrowLeft") || (horizontal && event.key === "ArrowDown")) setWidth(width - keyboardStep);
+    else if ((!horizontal && event.key === "ArrowRight") || (horizontal && event.key === "ArrowUp")) setWidth(width + keyboardStep);
     else if (event.key === "Home") setWidth(min);
     else if (event.key === "End") setWidth(max);
     else return;
@@ -39,12 +52,12 @@ export default function PanelSplitter({ panel, label }: PanelSplitterProps) {
   };
 
   return (
-    <div className={`panel-splitter${collapsed ? " collapsed" : ""}`}>
+    <div className={`panel-splitter${horizontal ? ` horizontal ${horizontalAnchor}` : ""}${collapsed ? " collapsed" : ""}`}>
       {!collapsed && (
         <div
           className="panel-splitter-handle"
           role="separator"
-          aria-orientation="vertical"
+          aria-orientation={orientation}
           aria-label={`Resize ${label}`}
           aria-valuemin={min}
           aria-valuemax={max}
@@ -56,16 +69,18 @@ export default function PanelSplitter({ panel, label }: PanelSplitterProps) {
           onDoubleClick={toggle}
         />
       )}
-      <button
-        type="button"
-        className="panel-splitter-toggle"
-        onClick={toggle}
-        aria-expanded={!collapsed}
-        aria-label={collapsed ? `Expand ${label}` : `Collapse ${label}`}
-        title={collapsed ? `Expand ${label}` : `Collapse ${label}`}
-      >
-        <Icon name={collapsed ? "chevron-right" : "chevron-left"} size={12} />
-      </button>
+      {collapsible && (
+        <button
+          type="button"
+          className="panel-splitter-toggle"
+          onClick={toggle}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? `Expand ${label}` : `Collapse ${label}`}
+          title={collapsed ? `Expand ${label}` : `Collapse ${label}`}
+        >
+          <Icon name={collapsed ? "chevron-right" : "chevron-left"} size={12} />
+        </button>
+      )}
     </div>
   );
 }

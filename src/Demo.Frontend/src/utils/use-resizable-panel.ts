@@ -63,6 +63,9 @@ export function useResizablePanel(key: string, defaultWidth = DEFAULT_PANEL_WIDT
     max,
     setWidth,
     toggle,
-    style: { "--panel-width": collapsed ? "0px" : `${width}px` } as CSSProperties,
+    style: {
+      "--panel-width": collapsed ? "0px" : `${width}px`,
+      "--panel-height": collapsed ? "0px" : `${width}px`,
+    } as CSSProperties,
   };
 }

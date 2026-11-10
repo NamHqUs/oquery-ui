@@ -170,6 +170,7 @@ export default function RelationsBuilder({
                     {keyIndex === 0
                       ? <div className="relation-name-cell">
                           <input
+                            spellCheck={false}
                             value={relation.name}
                             onChange={(event) => updateRelation(index, "name", event.target.value)}
                             placeholder="Relation name"

@@ -333,6 +333,7 @@ export default function OperatorDefinition({ onNavigationGuardChange }: Operator
                   <label>
                     Name
                     <input
+                      spellCheck={false}
                       readOnly={Boolean(selectedId)}
                       value={draft.name}
                       onChange={(event) => updateDraft((current) => ({ ...current, name: event.target.value }))}
@@ -342,6 +343,7 @@ export default function OperatorDefinition({ onNavigationGuardChange }: Operator
                   <label>
                     Operator symbol
                     <input
+                      spellCheck={false}
                       value={draft.symbol}
                       onChange={(event) => updateDraft((current) => ({ ...current, symbol: event.target.value }))}
                       placeholder="e.g. CONTAINS"
@@ -350,6 +352,7 @@ export default function OperatorDefinition({ onNavigationGuardChange }: Operator
                   <label className="operator-description">
                     Description
                     <input
+                      spellCheck={false}
                       value={draft.description}
                       onChange={(event) => updateDraft((current) => ({ ...current, description: event.target.value }))}
                       placeholder="Describe what this operator compares"
@@ -386,6 +389,7 @@ export default function OperatorDefinition({ onNavigationGuardChange }: Operator
                       <label key={provider}>
                         {provider}
                         <textarea
+                          spellCheck={false}
                           rows={2}
                           value={draft.sqlTemplates[provider] ?? ""}
                           onChange={(event) => updateDraft((current) => ({

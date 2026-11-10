@@ -558,7 +558,7 @@ export default function DomainList({ active }: { active: boolean }) {
         </div>
         <label className="domain-catalog-filter">
           <Icon name="search" size={14} />
-          <input value={scopeFilter} onChange={event => setScopeFilter(event.target.value)} placeholder="Filter domains" />
+          <input spellCheck={false} value={scopeFilter} onChange={event => setScopeFilter(event.target.value)} placeholder="Filter domains" />
         </label>
         {status === "loading" && <p className="empty-state">Loading domains…</p>}
         {status !== "loading" && !scopes.filter(scope => scope.name.toLowerCase().includes(scopeFilter.toLowerCase())).length && <p className="empty-state">No domains match this filter.</p>}
@@ -687,7 +687,7 @@ export default function DomainList({ active }: { active: boolean }) {
             </div>}
             {step === nameStep && <div className="domain-final-details">
               <label className="domain-name"><span>Domain name</span><input autoFocus spellCheck={false} value={draftName} onChange={event => setDraftName(event.target.value)} placeholder="e.g. Sales" /><small>Use a name that describes the business area this workspace serves.</small></label>
-              <label className="domain-description"><span>Description <small>(optional)</small></span><textarea value={draftDescription} onChange={event => setDraftDescription(event.target.value)} placeholder="Describe the business area this domain represents." rows={4} /></label>
+              <label className="domain-description"><span>Description <small>(optional)</small></span><textarea spellCheck={false} value={draftDescription} onChange={event => setDraftDescription(event.target.value)} placeholder="Describe the business area this domain represents." rows={4} /></label>
             </div>}
             {step === entityStep && <div className="domain-generation">
               <strong>Review and generate metadata</strong>
@@ -720,7 +720,7 @@ export default function DomainList({ active }: { active: boolean }) {
               <button type="button" onClick={importTables} disabled={selected.isBuiltin || !schema.tables.length} title="Import database tables"><Icon name="database" size={14} /></button>
               <button type="button" onClick={addManualEntity} disabled={selected.isBuiltin} title="Create entity manually"><Icon name="plus" size={14} /></button>
             </div>
-            <label className="domain-entity-filter"><Icon name="search" size={13} /><input value={entityFilter} onChange={event => setEntityFilter(event.target.value)} placeholder="Filter entities" /></label>
+            <label className="domain-entity-filter"><Icon name="search" size={13} /><input spellCheck={false} value={entityFilter} onChange={event => setEntityFilter(event.target.value)} placeholder="Filter entities" /></label>
             <div className="domain-entity-list">
               {selected.entities.filter(entity => entity.name.toLowerCase().includes(entityFilter.toLowerCase())).map(entity => (
                 <button key={entity.name} type="button" className={entity.name === selectedEntityName ? "active" : ""} onClick={() => selectEntity(entity)}>
