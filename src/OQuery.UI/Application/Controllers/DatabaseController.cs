@@ -62,9 +62,6 @@ public sealed class DatabaseController(
         return NoContent();
     }
 
-    [HttpGet("tables")]
-    public ActionResult<string[]> GetTables() => Ok(databaseService.GetTableNames());
-
     [HttpGet("schema")]
     public ActionResult<DatabaseSchemaDto> GetSchema() => Ok(databaseService.GetDatabaseSchema());
 

@@ -1,7 +1,7 @@
 .metadata-list-group { margin-top: 13px; }
 .metadata-list-group.no-header { margin-top: 0; }
 .metadata-list-group + .metadata-list-group { margin-top: 15px; padding-top: 12px; }
-.metadata-list-group-head { display: flex; align-items: center; width: 100%; margin-bottom: 7px; padding: 8px 10px; border: 0; border-radius: 5px; background: #171b24; color: inherit; cursor: pointer; font: inherit; text-align: left; }
+.metadata-list-group-head { display: flex; align-items: center; width: 100%; margin-bottom: 7px; padding: 8px 10px; border: 0; border-radius: 3px; background: #171b24; color: inherit; cursor: pointer; font: inherit; text-align: left; }
 .metadata-list-group-head:hover { background: #202633; }
 .metadata-list-group-head > .tab-number { margin-left: auto; }
 .metadata-list-group-title { color: #858fa1; font: 500 11px "Manrope", sans-serif; letter-spacing: .8px; text-transform: uppercase; }

@@ -2,7 +2,7 @@
   min-width: 0;
   padding: 11px;
   border: 1px solid #36404f;
-  border-radius: 9px;
+  border-radius: 5px;
   background: linear-gradient(145deg, #1b222d, #171d27 72%);
   box-shadow: inset 0 1px 0 #ffffff08, 0 4px 12px #080a0f20;
 }
@@ -62,7 +62,7 @@
   margin-left: auto;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: 3px;
   color: #8993a5;
   background: transparent;
   cursor: pointer;
@@ -146,7 +146,7 @@
   box-sizing: border-box;
   padding: 5px 9px;
   border: 1px solid #574b76;
-  border-radius: 7px;
+  border-radius: 4px;
   color: #72adff;
   background: linear-gradient(135deg, #302841, #262337);
   box-shadow: inset 0 1px 0 #ffffff0a;
@@ -187,7 +187,7 @@
   margin-bottom: 4px;
   padding: 6px 8px;
   border: 1px solid #4a4163;
-  border-radius: 4px;
+  border-radius: 2px;
   outline: 0;
   color: #dce1eb;
   background: #191e28;
@@ -277,7 +277,7 @@
   padding: 14px;
   box-sizing: border-box;
   border: 1px solid #37384e;
-  border-radius: 10px;
+  border-radius: 5px;
   background:
     radial-gradient(ellipse at 100% 0%, #7b63b318, transparent 52%),
     linear-gradient(145deg, #1b1c2a, #151a23);
@@ -291,7 +291,7 @@
   box-sizing: border-box;
   padding: 7px 9px;
   border: 1px solid #4a4163;
-  border-radius: 6px;
+  border-radius: 3px;
   outline: 0;
   color: #dce1eb;
   background: #191e28;
@@ -311,7 +311,7 @@
   max-height: 260px;
   overflow: auto;
   border: 1px solid #37384e;
-  border-radius: 6px;
+  border-radius: 3px;
 }
 
 .expression-function-template-table table {

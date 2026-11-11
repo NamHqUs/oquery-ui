@@ -5,7 +5,7 @@
 .query-result-description { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
 .query-result-description-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .query-result-description-row .query-result-description { margin: 0; }
-.query-result-copy { display: inline-grid; width: 24px; height: 24px; place-items: center; padding: 0; border: 0; border-radius: 4px; color: var(--muted); background: transparent; cursor: pointer; }
+.query-result-copy { display: inline-grid; width: 24px; height: 24px; place-items: center; padding: 0; border: 0; border-radius: 2px; color: var(--muted); background: transparent; cursor: pointer; }
 .query-result-copy:hover { color: #c8ced9; background: rgba(255, 255, 255, .06); }
 .query-result-copy:focus-visible { outline: 2px solid #a78bfa; outline-offset: 2px; }
 .query-result-copy-feedback { color: var(--muted); font-size: 12px; }

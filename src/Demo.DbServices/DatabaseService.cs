@@ -70,8 +70,6 @@ public class DatabaseService(IConfiguration configuration) : IDatabaseService, I
 
     public IDbConnection CreateConnection() => CurrentDbInstance.CreateDbConnection();
 
-    public string[] GetTableNames() => CurrentDbInstance.GetTableNames();
-
     public DatabaseSchemaDto GetDatabaseSchema() => CurrentDbInstance.GetDatabaseSchema();
 
     public DatabaseTableDataDto GetTableData(string tableName, string? schema = null, int? limit = null)

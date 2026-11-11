@@ -12,7 +12,7 @@ type TableListProps = {
 export default function TableList({ scrollStyle }: TableListProps) {
   const dispatch = useDispatch();
   const [searchQuery, setSearchQuery] = useState("");
-  const { schema, selectedTable, selectedSchema, tableStatus, tableError, schemaStatus, schemaError, debugUiEnabled } = useSelector((state) => state.database);
+  const { schema, selectedTable, selectedSchema, schemaStatus, schemaError, debugUiEnabled } = useSelector((state) => state.database);
   const tableListRef = useRef<HTMLDivElement>(null);
   const filteredTables = useMemo(() => {
     const query = searchQuery.trim().toLocaleLowerCase();
@@ -31,8 +31,6 @@ export default function TableList({ scrollStyle }: TableListProps) {
         schema,
         selectedTable,
         selectedSchema,
-        tableStatus,
-        tableError,
         schemaStatus,
         schemaError,
       },
@@ -46,8 +44,6 @@ export default function TableList({ scrollStyle }: TableListProps) {
     schema,
     selectedTable,
     selectedSchema,
-    tableStatus,
-    tableError,
     schemaStatus,
     schemaError,
     searchQuery,
@@ -94,8 +90,7 @@ export default function TableList({ scrollStyle }: TableListProps) {
       searchClassName="database-table-search"
       scrollStyle={scrollStyle}
     >
-        {(tableStatus === "loading" || schemaStatus === "loading") && <p className="database-message">Loading tables…</p>}
-        {tableStatus === "failed" && <p className="database-message error" role="alert">{tableError}</p>}
+        {schemaStatus === "loading" && <p className="database-message">Loading tables…</p>}
         {schemaStatus === "failed" && <p className="database-message error" role="alert">{schemaError}</p>}
         {schemaStatus === "succeeded" && filteredTables.map((table) => {
             const isSelected = table.name === selectedTable && table.schema === selectedSchema;

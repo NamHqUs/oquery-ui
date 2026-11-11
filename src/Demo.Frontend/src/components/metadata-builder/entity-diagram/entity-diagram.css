@@ -1,15 +1,15 @@
-.entity-diagram { min-height: 640px; overflow: hidden; background: #10141c; border-radius: 9px; color: #b7bfce; }
+.entity-diagram { min-height: 640px; overflow: hidden; background: #10141c; border-radius: 5px; color: #b7bfce; }
 .entity-diagram-toolbar, .entity-diagram-domain-bar { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 15px 20px; border-bottom: 1px solid #252b38; background: #11151d; }
 .entity-diagram-toolbar p { margin: 6px 0 0; color: #818b9d; font-size: 11px; }
 .entity-domain-create, .entity-diagram-add-table { display: flex; align-items: center; gap: 8px; }
-.entity-domain-create input, .entity-diagram-add-table select { min-width: 150px; color: #dce1eb; background: #191e28; border: 1px solid #323947; border-radius: 5px; padding: 8px 10px; font-size: 12px; }
+.entity-domain-create input, .entity-diagram-add-table select { min-width: 150px; color: #dce1eb; background: #191e28; border: 1px solid #323947; border-radius: 3px; padding: 8px 10px; font-size: 12px; }
 .entity-domain-list { display: flex; flex-wrap: wrap; gap: 7px; }
-.entity-domain-list button { display: inline-flex; align-items: center; gap: 7px; padding: 8px 10px; color: #aeb7c5; border: 1px solid transparent; border-radius: 6px; background: transparent; font-size: 11px; }
+.entity-domain-list button { display: inline-flex; align-items: center; gap: 7px; padding: 8px 10px; color: #aeb7c5; border: 1px solid transparent; border-radius: 3px; background: transparent; font-size: 11px; }
 .entity-domain-list button:hover, .entity-domain-list button.active { color: #f2f0fa; border-color: #8068b555; background: #211b32; }
 .entity-domain-list button span { min-width: 17px; padding: 2px 5px; border-radius: 999px; background: #252b35; text-align: center; font-size: 11px; }
 .entity-diagram-empty { color: #818b9d; font-size: 12px; }
 .entity-diagram-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; align-content: start; min-height: 420px; padding: 24px; background: radial-gradient(circle at 50% 20%, #1a2030, #10141c 65%); }
-.entity-diagram-card { min-height: 190px; padding: 13px; border: 1px solid #364052; border-radius: 7px; background: #171d28; box-shadow: 0 8px 20px #00000025; animation: entity-diagram-card-in .2s ease both; animation-delay: calc(var(--card-index) * 35ms); }
+.entity-diagram-card { min-height: 190px; padding: 13px; border: 1px solid #364052; border-radius: 4px; background: #171d28; box-shadow: 0 8px 20px #00000025; animation: entity-diagram-card-in .2s ease both; animation-delay: calc(var(--card-index) * 35ms); }
 .entity-diagram-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .entity-diagram-card-head button:first-child { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 0; color: #e6e6ed; border: 0; background: none; text-align: left; }
 .entity-diagram-card-head strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -55,7 +55,7 @@
 .metadata-relation-path span { padding: 0 5px; color: #f0bd68; }
 .metadata-relation-inspector-fields { display: grid !important; grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr); gap: 8px 12px !important; }
 .metadata-relation-inspector label { display: grid; gap: 5px; color: #9c91c5; font-size: 10px; font-weight: 600; text-transform: uppercase; }
-.metadata-relation-inspector input, .metadata-relation-inspector select { min-width: 0; padding: 7px 8px; color: #f0edfb; border: 1px solid #4a4162; border-radius: 5px; background: #171522; font-size: 11px; }
+.metadata-relation-inspector input, .metadata-relation-inspector select { min-width: 0; padding: 7px 8px; color: #f0edfb; border: 1px solid #4a4162; border-radius: 3px; background: #171522; font-size: 11px; }
 .metadata-relation-inspector select { appearance: none; -webkit-appearance: none; padding-right: 25px; background-color: #171522; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath d='M1 1l3 3 3-3' fill='none' stroke='%239c91c5' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-position: right 9px center; background-repeat: no-repeat; }
 .metadata-relation-mapping { display: flex; grid-column: 1 / -1; align-items: center; gap: 7px; color: #c9c1df; font-size: 11px; }
 .metadata-relation-mapping select { flex: 1 1 0; }

@@ -59,6 +59,11 @@ export type DomainRelation = {
   targetFields: string[];
 };
 
+const queryMetadataCache = new Map<string, {
+  entities: MetadataEntity[];
+  relations: DomainRelation[];
+}>();
+
 export type DomainEntityDto = {
   name: string;
   dbSchema?: string | null;
@@ -1040,6 +1045,8 @@ export const fetchQueryMetadata = createAsyncThunk(
   async (domainId: string | undefined = undefined, { rejectWithValue }) => {
     try {
       const requestedDomainId = domainId?.trim() || "All";
+      const cached = queryMetadataCache.get(requestedDomainId);
+      if (cached) return cached;
       const payload = await requestJson(apiUrls.metadata.domainById(requestedDomainId));
       const entities = typeof payload === "object" && payload !== null && "entities" in payload
         ? payload.entities
@@ -1052,10 +1059,12 @@ export const fetchQueryMetadata = createAsyncThunk(
         || !Array.isArray(entity.fields))) {
         return rejectWithValue("Domain API must return entities with fields and relations.");
       }
-      return {
+      const result = {
         entities: (entities as DomainEntityDto[]).map(metadataEntityFromDto),
         relations: relations as DomainRelation[],
       };
+      queryMetadataCache.set(requestedDomainId, result);
+      return result;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : "Unable to load query metadata.");
     }
@@ -1386,6 +1395,7 @@ const queryBuilderSlice = createSlice({
       state.queryRequestsError = "";
     },
     invalidateQueryMetadata(state) {
+      queryMetadataCache.clear();
       state.metadata = [];
       state.metadataRelations = [];
       state.metadataStatus = "idle";

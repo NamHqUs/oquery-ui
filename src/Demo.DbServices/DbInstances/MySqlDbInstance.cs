@@ -27,9 +27,6 @@ public sealed class MySqlDbInstance(string connectionString, string[] scriptFile
     protected override string SqlInsertTrackedTable
         => "INSERT INTO `scripts`.`TrackedTables` (`TableName`) VALUES (@TableName);";
 
-    protected override string SqlGetTableNames
-        => "SELECT TABLE_NAME FROM information_schema.tables WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME;";
-
     protected override string SqlGetColumns => """
         SELECT
             TABLE_SCHEMA AS SchemaName,

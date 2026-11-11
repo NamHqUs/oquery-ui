@@ -22,6 +22,12 @@
   background: radial-gradient(ellipse at 92% 10%, #7049b928, transparent 38%), linear-gradient(145deg, #171a28, #11151d);
 }
 
+.table-details-heading .section-kicker {
+  color: #b8a9ee;
+  font: 700 11px "Manrope", sans-serif;
+  letter-spacing: 1.3px;
+}
+
 .table-details-title {
   min-width: 0;
 }
@@ -80,7 +86,7 @@
 .table-details-summary span {
   padding: 6px 9px;
   border: 1px solid #ffffff12;
-  border-radius: 6px;
+  border-radius: 3px;
   color: #aaa4bd;
   background: #ffffff06;
   font-size: 11px;
@@ -144,7 +150,7 @@
   gap: 7px;
   padding: 7px 9px;
   border: 1px solid #403660;
-  border-radius: 6px;
+  border-radius: 3px;
   color: #d2c5fa;
   background: #242039;
   font-size: 12px;
@@ -175,7 +181,7 @@
   position: relative;
   padding: 11px 13px;
   border: 0;
-  border-radius: 6px 6px 0 0;
+  border-radius: 3px 6px 0 0;
   color: #939bad;
   background: transparent;
   font-size: 11px;
@@ -273,7 +279,7 @@
 .table-details-key {
   padding: 3px 6px;
   border: 1px solid #7e6ac34d;
-  border-radius: 4px;
+  border-radius: 2px;
   color: #c2b2fa;
   background: #5b478b2e;
   font-size: 11px;

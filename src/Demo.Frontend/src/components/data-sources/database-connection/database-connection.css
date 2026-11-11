@@ -4,7 +4,7 @@
   place-items: center;
   padding: 38px 20px;
   border: 1px solid #252b38;
-  border-radius: 9px;
+  border-radius: 5px;
   background: radial-gradient(ellipse at 50% 0%, #31254740, transparent 48%), #11141c;
 }
 
@@ -12,7 +12,7 @@
   width: min(100%, 520px);
   padding: 34px;
   border: 1px solid #ffffff14;
-  border-radius: 12px;
+  border-radius: 6px;
   background: linear-gradient(145deg, #171b26, #121620);
   box-shadow: 0 18px 54px #0000003b, inset 0 1px #ffffff08;
 }
@@ -24,7 +24,7 @@
   margin-bottom: 22px;
   place-items: center;
   border: 1px solid #7663ac80;
-  border-radius: 12px;
+  border-radius: 6px;
   color: #d0c2ff;
   background: linear-gradient(145deg, #45366e, #28213c);
 }
@@ -49,7 +49,7 @@
   margin-top: 22px;
   padding: 4px;
   border: 1px solid #ffffff14;
-  border-radius: 8px;
+  border-radius: 4px;
   background: #0c1019;
 }
 
@@ -57,7 +57,7 @@
   flex: 1;
   padding: 10px 12px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 3px;
   color: #969daf;
   background: transparent;
   font-size: 11px;
@@ -95,7 +95,7 @@
   min-height: 40px;
   padding: 0 12px;
   border: 1px solid #333847;
-  border-radius: 6px;
+  border-radius: 3px;
   outline: none;
   color: #e7e9ef;
   background: #0e121a;
@@ -143,7 +143,7 @@
   justify-content: center;
   gap: 8px;
   border: 1px solid #806bc14d;
-  border-radius: 7px;
+  border-radius: 4px;
   color: #f2edff;
   background: linear-gradient(135deg, #5a478c, #382a58);
   font-size: 12px;
@@ -229,7 +229,7 @@
   gap: 8px;
   padding: 0 11px;
   border: 1px solid #ffffff17;
-  border-radius: 7px;
+  border-radius: 4px;
   color: #d6d2e3;
   background: #ffffff08;
   font-size: 11px;
@@ -353,7 +353,7 @@
   max-height: calc(100vh - 48px);
   overflow: auto;
   border: 1px solid #ffffff20;
-  border-radius: 12px;
+  border-radius: 6px;
   background: #10151b;
   box-shadow: 0 28px 90px #00000080;
 }
@@ -361,7 +361,7 @@
 .database-connection-dialog .connection-screen {
   min-height: 580px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 6px;
 }
 
 .database-connection-dialog-close {
@@ -374,7 +374,7 @@
   height: 34px;
   place-items: center;
   border: 1px solid #ffffff20;
-  border-radius: 7px;
+  border-radius: 4px;
   color: #c6ccda;
   background: #11151ecc;
 }

@@ -8,7 +8,6 @@ export const apiUrls = {
     provider: `${backendApiUrl}/db/connections/provider`,
     connect: `${backendApiUrl}/db/connect`,
     disconnect: `${backendApiUrl}/db/disconnect`,
-    tables: `${backendApiUrl}/db/tables`,
     schema: `${backendApiUrl}/db/schema`,
     tableData: (tableName: string, schema?: string, limit?: number) => {
       const query = new URLSearchParams();

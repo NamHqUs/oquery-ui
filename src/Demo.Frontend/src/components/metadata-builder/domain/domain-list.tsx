@@ -281,10 +281,12 @@ export default function DomainList({
   active,
   domains,
   onDomainChanged,
+  onDomainDeleted,
 }: {
   active: boolean;
   domains: Domain[];
   onDomainChanged?: (domain: Domain, pendingSave?: boolean) => void | Promise<void>;
+  onDomainDeleted?: (domainId: string) => void;
 }) {
   const [domainItems, setDomainItems] = useState<Domain[]>(() => uniqueDomains(domains).map(cloneDomain));
   const location = useLocation();
@@ -881,6 +883,8 @@ export default function DomainList({
     setError("");
     try {
       await request<void>(apiUrls.metadata.domainById(domain.id), { method: "DELETE" });
+      dispatch(invalidateQueryMetadata());
+      onDomainDeleted?.(domain.id);
       setDomainItems(current => current.filter(item => item.id !== domain.id));
       if (selectedName === domain.id) {
         setSelectedName("");

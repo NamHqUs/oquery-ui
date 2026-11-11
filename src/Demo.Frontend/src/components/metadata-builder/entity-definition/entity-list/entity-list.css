@@ -1,9 +1,9 @@
 .metadata-list { background: #0e1117; border-right: 1px solid var(--line); padding: 22px 12px; }
 .metadata-list.entity-list { display: flex; min-height: 0; flex-direction: column; overflow: hidden; padding-bottom: 22px; }
 .entity-list .metadata-sidebar-scroll { min-height: 0; flex: 1 1 0; overflow-y: auto; scrollbar-gutter: stable; }
-.metadata-search { display: flex; align-items: center; gap: 8px; color: #687385; background: #171b24; border: 1px solid #2b3340; border-radius: 5px; padding: 0 9px; margin-bottom: 14px; }
+.metadata-search { display: flex; align-items: center; gap: 8px; color: #687385; background: #171b24; border: 1px solid #2b3340; border-radius: 3px; padding: 0 9px; margin-bottom: 14px; }
 .metadata-search input { width: 100%; border: 0; outline: 0; color: #e9edf4; background: transparent; font-size: 12px; padding: 9px 0; }
-.metadata-list .metadata-entity { width: 100%; display: flex; align-items: center; gap: 9px; padding: 13px 9px; text-align: left; color: #aeb6c5; background: transparent !important; border: 1px solid transparent; border-radius: 6px; }
+.metadata-list .metadata-entity { width: 100%; display: flex; align-items: center; gap: 9px; padding: 13px 9px; text-align: left; color: #aeb6c5; background: transparent !important; border: 1px solid transparent; border-radius: 3px; }
 .metadata-entity:hover, .metadata-entity.active { background: transparent !important; color: #fff; }
 .metadata-entity.active { border-color: #6452a055; box-shadow: inset 3px 0 #8f7fca; }
 .metadata-entity b { display: block; }

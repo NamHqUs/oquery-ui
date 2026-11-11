@@ -26,9 +26,6 @@ public sealed class CockroachDbInstance(string connectionString, string[] script
     protected override string SqlInsertTrackedTable
         => """INSERT INTO "scripts"."TrackedTables" ("TableName") VALUES (@TableName);""";
 
-    protected override string SqlGetTableNames
-        => "SELECT table_name FROM information_schema.tables WHERE table_type = 'BASE TABLE' AND table_schema <> 'information_schema' AND table_schema NOT LIKE 'pg\\_%' ESCAPE '\\' ORDER BY table_schema, table_name;";
-
     protected override string SqlGetColumns => """
         SELECT
             columns.table_schema AS "SchemaName",

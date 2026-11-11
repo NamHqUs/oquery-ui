@@ -38,9 +38,6 @@ END
     protected override string SqlInsertTrackedTable
         => """INSERT INTO "TrackedTables" ("TableName") VALUES (@TableName)""";
 
-    protected override string SqlGetTableNames
-        => "SELECT TRIM(RDB$RELATION_NAME) FROM RDB$RELATIONS WHERE COALESCE(RDB$SYSTEM_FLAG, 0) = 0 AND RDB$VIEW_BLR IS NULL ORDER BY RDB$RELATION_NAME;";
-
     protected override string SqlGetColumns => """
         SELECT
             '' AS "SchemaName",

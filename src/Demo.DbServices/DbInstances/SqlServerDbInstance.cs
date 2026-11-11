@@ -26,9 +26,6 @@ public class SqlServerDbInstance(string connectionString, string[] scriptFiles, 
     protected override string SqlInsertTrackedTable
         => "INSERT INTO [scripts].[TrackedTables] ([TableName]) VALUES (@TableName);";
 
-    protected override string SqlGetTableNames
-        => "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME;";
-
     protected override string SqlGetColumns => """
         SELECT
             schemas.name AS SchemaName,

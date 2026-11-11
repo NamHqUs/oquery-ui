@@ -24,7 +24,6 @@ public abstract class DbInstance
     protected abstract string SqlInsertTrackedTable { get; }
     protected virtual string SqlVersionParameterName => "@DbVersion";
     protected virtual string SqlTableNameParameterName => "@TableName";
-    protected abstract string SqlGetTableNames { get; }
     protected abstract string SqlGetColumns { get; }
     protected abstract string SqlGetRelationships { get; }
     protected virtual string IdentifierQuotePrefix => "\"";
@@ -48,22 +47,6 @@ public abstract class DbInstance
 
     public abstract IDbConnection CreateDbConnection();
 
-
-    public virtual string[] GetTableNames()
-    {
-        using var connection = CreateDbConnection();
-        if (connection.State != ConnectionState.Open)
-            connection.Open();
-
-        return ExecuteRawSql(connection, SqlGetTableNames, command =>
-        {
-            using var reader = command.ExecuteReader();
-            var tableNames = new List<string>();
-            while (reader.Read())
-                tableNames.Add(reader.GetString(0));
-            return tableNames.ToArray();
-        });
-    }
 
     public virtual bool TestConnection()
     {

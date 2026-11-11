@@ -1,9 +1,9 @@
 .message-box-backdrop { position: fixed; z-index: 2000; inset: 0; display: grid; place-items: center; padding: 20px; background: #05060bcc; backdrop-filter: blur(5px); }
-.message-box { width: min(520px, 100%); padding: 24px; border: 1px solid #343044; border-radius: 12px; background: linear-gradient(145deg, #171923, #10131a); box-shadow: 0 24px 80px #0009; }
+.message-box { width: min(520px, 100%); padding: 24px; border: 1px solid #343044; border-radius: 6px; background: linear-gradient(145deg, #171923, #10131a); box-shadow: 0 24px 80px #0009; }
 .message-box h2 { margin: 10px 0 8px; color: #f0edf9; font-size: 19px; }
 .message-box > p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .message-box-confirmation { display: grid; gap: 7px; margin-top: 16px; color: #c9ced9; font-size: 12px; }
-.message-box-confirmation input { padding: 9px 10px; border: 1px solid #3a4252; border-radius: 5px; outline: 0; color: #e9edf4; background: #0e1117; font-size: 12px; }
+.message-box-confirmation input { padding: 9px 10px; border: 1px solid #3a4252; border-radius: 3px; outline: 0; color: #e9edf4; background: #0e1117; font-size: 12px; }
 .message-box-confirmation input:focus { border-color: var(--purple); }
 .message-box-confirmation small { color: #f0a6ae; font-size: 11px; }
 .message-box-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 22px; }

@@ -1,6 +1,6 @@
 .function-form { min-width: 0; margin: 0; border: 0; padding: 22px 28px 35px; }
 .function-form label { display: grid; gap: 8px; color: #aeb6c5; font-size: 12px; font-weight: 600; }
-.function-form input, .function-form select { width: 100%; min-width: 0; color: #dce1eb; background: #191e28; border: 1px solid #323947; border-radius: 5px; outline: 0; padding: 9px 10px; font: 12px "Manrope", sans-serif; }
+.function-form input, .function-form select { width: 100%; min-width: 0; color: #dce1eb; background: #191e28; border: 1px solid #323947; border-radius: 3px; outline: 0; padding: 9px 10px; font: 12px "Manrope", sans-serif; }
 .function-form input:focus, .function-form select:focus { border-color: #7054d4; }
 .function-signature { display: flex; align-items: center; gap: 10px; padding: 14px; background: #10131a; }
 .signature-name { flex: 0 0 190px; }
@@ -8,7 +8,7 @@
 .signature-paren, .signature-arrow { color: #8f7fca; font: 500 20px "Manrope", sans-serif; }
 .signature-argument-list { flex: 1 1 auto; min-width: 0; }
 .signature-result { flex: 0 0 130px; }
-.function-argument-table-wrap { overflow: hidden; border: 1px solid #2a3140; border-radius: 6px; }
+.function-argument-table-wrap { overflow: hidden; border: 1px solid #2a3140; border-radius: 3px; }
 .function-argument-table-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; color: #dce1eb; border-bottom: 1px solid #2a3140; }
 .function-argument-table-header strong { font-size: 12px; }
 .function-argument-table { width: 100%; min-width: 0; table-layout: fixed; border-collapse: collapse; text-align: left; }
@@ -30,7 +30,7 @@
 .function-description { grid-column: 1 / -1; }
 .function-checkbox { display: flex !important; align-items: center; gap: 9px !important; }
 .function-checkbox input { width: 14px; accent-color: #8064e8; }
-.function-template-table-wrap { overflow-x: auto; margin-top: 14px; border: 1px solid #2a3140; border-radius: 6px; }
+.function-template-table-wrap { overflow-x: auto; margin-top: 14px; border: 1px solid #2a3140; border-radius: 3px; }
 .function-template-table { width: 100%; border-collapse: collapse; text-align: left; }
 .function-template-table th { color: #858fa1; background: #10131a; border-bottom: 1px solid #2a3140; font: 500 11px "Manrope", sans-serif; letter-spacing: .5px; text-transform: uppercase; padding: 10px 12px; }
 .function-template-table td { padding: 6px 12px; border-bottom: 1px solid #202633; }

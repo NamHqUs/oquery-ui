@@ -3,10 +3,10 @@
 .operator-empty { display: grid; justify-items: center; gap: 12px; padding: 35px 14px; color: var(--muted); font-size: 12px; line-height: 1.5; text-align: center; }
 .operator-empty svg { color: #6d5baf; }
 .operator-editor { min-width: 0; }
-.operator-notice { margin: 18px 28px 0; padding: 10px 12px; border: 1px solid #3b3650; border-radius: 5px; color: #b9aed9; background: #191625; font-size: 12px; }
+.operator-notice { margin: 18px 28px 0; padding: 10px 12px; border: 1px solid #3b3650; border-radius: 3px; color: #b9aed9; background: #191625; font-size: 12px; }
 .operator-form { min-width: 0; margin: 0; border: 0; padding: 8px 28px 35px; }
 .operator-form label { display: grid; gap: 8px; color: #aeb6c5; font-size: 12px; font-weight: 600; }
-.operator-form input, .operator-form select, .operator-form textarea { width: 100%; min-width: 0; color: #dce1eb; background: #191e28; border: 1px solid #323947; border-radius: 5px; outline: 0; padding: 9px 10px; font-size: 12px; font-family: inherit; }
+.operator-form input, .operator-form select, .operator-form textarea { width: 100%; min-width: 0; color: #dce1eb; background: #191e28; border: 1px solid #323947; border-radius: 3px; outline: 0; padding: 9px 10px; font-size: 12px; font-family: inherit; }
 .operator-form input::placeholder { color: #697385; }
 .operator-description { grid-column: 1 / -1; }
 .operator-template-list { display: grid; gap: 12px; margin-top: 14px; }

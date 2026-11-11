@@ -27,9 +27,6 @@ public sealed class Db2DbInstance(string connectionString, string[] scriptFiles,
     protected override string SqlInsertTrackedTable
         => "INSERT INTO scripts.TrackedTables (TableName) VALUES (@TableName)";
 
-    protected override string SqlGetTableNames
-        => "SELECT TABNAME FROM SYSCAT.TABLES WHERE TYPE = 'T' AND TABSCHEMA NOT LIKE 'SYS%' ORDER BY TABSCHEMA, TABNAME";
-
     protected override string SqlGetColumns => """
         SELECT
             columns.TABSCHEMA AS SchemaName,

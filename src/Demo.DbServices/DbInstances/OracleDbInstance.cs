@@ -36,9 +36,6 @@ END;
     protected override string SqlInsertTrackedTable
         => """INSERT INTO "scripts"."TrackedTables" ("TableName") VALUES (:TableName)""";
 
-    protected override string SqlGetTableNames
-        => "SELECT TABLE_NAME FROM ALL_TABLES ORDER BY OWNER, TABLE_NAME";
-
     protected override string SqlGetColumns => """
         SELECT
             OWNER AS "SchemaName",

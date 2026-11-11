@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import Icon from "../icon/icon";
 import PanelSplitter from "../panel-splitter/panel-splitter";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
-import { fetchDbSchema, fetchDbTables } from "./database-slice";
+import { fetchDbSchema } from "./database-slice";
 import TableList from "./table-list/table-list";
 import TableDetails from "./table-details/table-details";
 import "./data-sources.css";
@@ -16,7 +16,7 @@ export default function DataSources({ onRequestConnection }: DataSourcesProps) {
   const dispatch = useDispatch();
   const {
     selectedTable,
-    tableStatus,
+    schemaStatus,
     connectionStatus,
     providerCheckStatus,
     connectedProvider,
@@ -35,7 +35,6 @@ export default function DataSources({ onRequestConnection }: DataSourcesProps) {
       return;
     }
     if (connectionStatus === "failed" || connectionStatus === "loading") return;
-    dispatch(fetchDbTables());
     dispatch(fetchDbSchema());
   }, [dispatch, providerCheckStatus, connectionStatus, connectedProvider, onRequestConnection]);
 
@@ -119,7 +118,7 @@ export default function DataSources({ onRequestConnection }: DataSourcesProps) {
               ) : (
                 <div className="database-placeholder">
                   <Icon name="database" size={24} />
-                  <p>{tableStatus === "succeeded" ? "Select a table to view its details and records." : "Loading database tables…"}</p>
+                  <p>{schemaStatus === "succeeded" ? "Select a table to view its details and records." : "Loading database tables…"}</p>
                 </div>
               )}
             </section>

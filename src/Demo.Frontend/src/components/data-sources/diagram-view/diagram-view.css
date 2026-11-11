@@ -30,7 +30,7 @@
   padding: 7px 10px;
   color: #d7c8ff;
   border: 1px solid #51446e;
-  border-radius: 6px;
+  border-radius: 3px;
   background: #211b32;
   font: 600 11px "Manrope", sans-serif;
 }
@@ -258,7 +258,7 @@
   padding: 8px 11px;
   color: #c9c0e8;
   border: 1px solid #39334f;
-  border-radius: 6px;
+  border-radius: 3px;
   background: #201b31;
   font-size: 12px;
 }
@@ -337,7 +337,7 @@
   resize: both;
   box-sizing: border-box;
   border: 1px solid #373d4d;
-  border-radius: 8px;
+  border-radius: 4px;
   background: #181d27;
   box-shadow: 0 9px 22px #00000042;
 }
@@ -401,7 +401,7 @@
   padding: 2px 5px;
   color: #a9e3e5;
   border: 1px solid #3d7180;
-  border-radius: 4px;
+  border-radius: 2px;
   background: #263d4a;
   font-size: 11px;
   line-height: 1;
@@ -419,7 +419,7 @@
   place-items: center;
   color: #b9abd9;
   border: 0;
-  border-radius: 4px;
+  border-radius: 2px;
   background: #302a40;
 }
 
@@ -497,7 +497,7 @@
   gap: 7px;
   padding: 10px 12px;
   color: #818b9d;
-  border-radius: 6px;
+  border-radius: 3px;
   font-size: 11px;
 }
 

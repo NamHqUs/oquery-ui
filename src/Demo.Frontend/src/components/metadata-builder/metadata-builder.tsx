@@ -54,6 +54,8 @@ type SavedDomainDto = {
   entities: DomainEntityDto[];
   relations: DomainRelation[];
 };
+let domainSummaryCache: DomainSummary[] | null = null;
+let domainSummaryRequest: Promise<DomainSummary[]> | null = null;
 const DOMAINS_PATH = "/metadata/domains";
 const DIAGRAMS_PATH = "/metadata/diagrams";
 const DIAGRAM_CREATE_PATH = "/metadata/diagrams/create";
@@ -115,14 +117,23 @@ async function request<T = unknown>(url: string, options?: RequestInit): Promise
 }
 
 async function loadDomainSummaries(): Promise<DomainSummary[]> {
-  const domains = await request<DomainOption[]>(apiUrls.metadata.domainNamesWithDescriptions);
-  return domains.map(domain => ({
-    ...domain,
-    entities: [],
-    relations: [],
-    canDelete: domain.id !== "All",
-    isBuiltin: domain.id === "All",
-  }));
+  if (domainSummaryCache) return domainSummaryCache;
+  if (domainSummaryRequest) return domainSummaryRequest;
+  domainSummaryRequest = request<DomainOption[]>(apiUrls.metadata.domainNamesWithDescriptions)
+    .then((domains) => {
+      domainSummaryCache = domains.map(domain => ({
+        ...domain,
+        entities: [],
+        relations: [],
+        canDelete: domain.id !== "All",
+        isBuiltin: domain.id === "All",
+      }));
+      return domainSummaryCache;
+    })
+    .finally(() => {
+      domainSummaryRequest = null;
+    });
+  return domainSummaryRequest;
 }
 
 type MetadataBuilderProps = {
@@ -203,6 +214,11 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     setDomains((current) => current.some((item) => item.id === domain.id)
       ? current.map((item) => item.id === domain.id ? domain : item)
       : [...current, domain]);
+    if (domainSummaryCache) {
+      domainSummaryCache = domainSummaryCache.some((item) => item.id === domain.id)
+        ? domainSummaryCache.map((item) => item.id === domain.id ? domain : item)
+        : [...domainSummaryCache, domain];
+    }
     skipNextMetadataLoadRef.current = true;
   };
   const [dirty, setDirty] = useState(false);
@@ -376,25 +392,20 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   useEffect(() => {
     let cancelled = false;
     if (activeSection === "diagram") {
-      void request<Array<Pick<DomainOption, "id" | "name">>>(apiUrls.metadata.domainNames)
-        .then((options) => {
+      void loadDomainSummaries()
+        .then((result) => {
           if (!cancelled) {
-            const domainOptionsWithDefaults = options.map(option => ({
-              ...option,
-              description: "",
-            }));
-            setDomainOptions(domainOptionsWithDefaults);
-            const selectedDomain = options.find(domain => domain.id === domainId);
+            setDomainOptions(result.map(domain => ({
+              id: domain.id,
+              name: domain.name,
+              description: domain.description,
+            })));
+            const selectedDomain = result.find(domain => domain.id === domainId);
             setDomains(selectedDomain
               ? [{
                   ...selectedDomain,
-                  description: "",
-                  entities: [],
-                  relations: [],
-                  canDelete: selectedDomain.id !== "All",
-                  isBuiltin: selectedDomain.id === "All",
                 }]
-              : []);
+              : result);
           }
         })
         .catch((reason) => {
@@ -599,6 +610,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       const nextDomain = domainOptions[deletedIndex + 1] || domainOptions[deletedIndex - 1];
       setDomainOptions((current) => current.filter((domain) => domain.id !== domainId));
       setDomains((current) => current.filter((domain) => domain.id !== domainId));
+      if (domainSummaryCache) domainSummaryCache = domainSummaryCache.filter((domain) => domain.id !== domainId);
       navigate(nextDomain
         ? `${DIAGRAMS_PATH}?domain=${encodeURIComponent(nextDomain.id)}`
         : DIAGRAMS_PATH);
@@ -1119,6 +1131,13 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           active={activeSection === "domains" || isDiagramWizardRoute}
           domains={domains}
           onDomainChanged={handleDomainChanged}
+          onDomainDeleted={(deletedDomainId) => {
+            setDomains((current) => current.filter((domain) => domain.id !== deletedDomainId));
+            setDomainOptions((current) => current.filter((domain) => domain.id !== deletedDomainId));
+            if (domainSummaryCache) {
+              domainSummaryCache = domainSummaryCache.filter((domain) => domain.id !== deletedDomainId);
+            }
+          }}
         />
       </div>}
     </>
