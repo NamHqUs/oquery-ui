@@ -1,7 +1,7 @@
 import { createPortal } from "react-dom";
 import { useEffect, useState, type ReactNode } from "react";
 import type { DomainRelation, MetadataEntity } from "../../query-builder/query-design/query-builder-slice";
-import DiagramView, { diagramGroupTone, type DiagramRelationship } from "../../data-sources/diagram-view/diagram-view";
+import DiagramView, { diagramGroupTone, type DiagramRelationship } from "./diagram-view";
 import PanelSplitter from "../../panel-splitter/panel-splitter";
 import { useResizablePanel } from "../../../utils/use-resizable-panel";
 import type { EditableEntity } from "../types";

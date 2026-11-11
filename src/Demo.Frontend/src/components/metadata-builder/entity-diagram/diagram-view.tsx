@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Icon, { type IconName } from "../../icon/icon";
-import { fetchDbTableData, selectDbTable, setPreviewDbTable } from "../database-slice";
+import { fetchDbTableData, selectDbTable, setPreviewDbTable } from "../../data-sources/database-slice";
 import "./diagram-view.css";
 
 export type DiagramTable = {
