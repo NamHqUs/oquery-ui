@@ -1,18 +1,12 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useSearchParams } from "react-router-dom";
 import Icon from "../icon/icon";
 import PanelSplitter from "../panel-splitter/panel-splitter";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
-import DataGrid from "./data-grid/data-grid";
-import DiagramSplitter from "./diagram-splitter/diagram-splitter";
-import DiagramView from "./diagram-view/diagram-view";
-import { fetchDbSchema, fetchDbTables, setDatabaseViewMode } from "./database-slice";
+import { fetchDbSchema, fetchDbTables } from "./database-slice";
 import TableList from "./table-list/table-list";
 import TableDetails from "./table-details/table-details";
 import "./data-sources.css";
-
-type DatabaseViewMode = "data" | "diagram";
 
 type DataSourcesProps = {
   onRequestConnection: () => void;
@@ -20,15 +14,9 @@ type DataSourcesProps = {
 
 export default function DataSources({ onRequestConnection }: DataSourcesProps) {
   const dispatch = useDispatch();
-  const [searchParams, setSearchParams] = useSearchParams();
   const {
-    tables,
     selectedTable,
-    selectedSchema,
-    previewTable,
-    viewMode,
     tableStatus,
-    dataByTable,
     connectionStatus,
     providerCheckStatus,
     connectedProvider,
@@ -36,23 +24,9 @@ export default function DataSources({ onRequestConnection }: DataSourcesProps) {
     connectionError,
   } = useSelector((state) => state.database);
   const isConnected = connectionStatus === "succeeded";
-  const routeViewMode = searchParams.get("view") === "diagram" ? "diagram" : "data";
-  const selectedKey = selectedSchema ? `${selectedSchema}.${selectedTable}` : selectedTable;
-  const selectedStatus = dataByTable[selectedKey]?.status;
-  const selectedData = dataByTable[selectedKey];
   const panel = useResizablePanel("data-sources");
   const workspaceRef = useRef<HTMLDivElement>(null);
   const [tableListPosition, setTableListPosition] = useState<{ top: number; left: number; width: number; bottom: number } | null>(null);
-  const [diagramHeight, setDiagramHeight] = useState(600);
-  const minDiagramHeight = 360;
-
-  function resizeDiagram(height: number) {
-    setDiagramHeight(Math.max(minDiagramHeight, Math.round(height)));
-  }
-
-  useEffect(() => {
-    dispatch(setDatabaseViewMode(routeViewMode));
-  }, [dispatch, routeViewMode]);
 
   useEffect(() => {
     if (providerCheckStatus === "loading" || providerCheckStatus === "idle") return;
@@ -111,17 +85,7 @@ export default function DataSources({ onRequestConnection }: DataSourcesProps) {
       window.removeEventListener("resize", updateListPosition);
       window.removeEventListener("scroll", updateListPosition, true);
     };
-  }, [isConnected, viewMode]);
-
-  function changeViewMode(nextViewMode: DatabaseViewMode) {
-    dispatch(setDatabaseViewMode(nextViewMode));
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current);
-      if (nextViewMode === "diagram") next.set("view", "diagram");
-      else next.delete("view");
-      return next;
-    });
-  }
+  }, [isConnected]);
 
   const tableListStyle: CSSProperties | undefined = tableListPosition
     ? {
@@ -140,66 +104,26 @@ export default function DataSources({ onRequestConnection }: DataSourcesProps) {
 
   return (
     <>
-      <section className="page-heading database-page-heading">
-        <div className="database-heading-main">
-          <span className="database-heading-mark" aria-hidden="true"><Icon name="database" size={21} /></span>
-          <div className="database-heading-copy">
-            <span className="database-heading-eyebrow">DATA EXPLORER <i /> TABLES · COLUMNS · RECORDS</span>
-          </div>
-        </div>
-        {isConnected && (
-          <nav className="database-section-tabs" role="tablist" aria-label="Database views">
-            <button type="button" role="tab" aria-selected={viewMode === "data"} className={viewMode === "data" ? "active" : ""} onClick={() => changeViewMode("data")}>
-              <Icon name="table" size={14} /> Schema 
-            </button>
-            <button type="button" role="tab" aria-selected={viewMode === "diagram"} className={viewMode === "diagram" ? "active" : ""} onClick={() => changeViewMode("diagram")}>
-              <Icon name="schema" size={14} /> Diagram
-            </button>
-
-          </nav>
-        )}
-      </section>
       {isConnected && connectionError && <p className="database-message error" role="alert">{connectionError}</p>}
       {isConnected ? (
-        <section className={`database-browser${viewMode === "data" ? ` split-workspace${panel.collapsed ? " panel-collapsed" : ""}` : " diagram-browser"}`} style={viewMode === "data" ? panel.style : undefined}>
-          {viewMode === "data" ? (
-            <div
-              ref={workspaceRef}
-              className={`database-workspace split-workspace${panel.collapsed ? " panel-collapsed" : ""}`}
-            >
-              <TableList scrollStyle={tableListStyle} />
-              <PanelSplitter panel={panel} label="tables panel" />
-              <section className="database-content" aria-live="polite">
-                {selectedTable ? (
-                  <>
-                    <TableDetails dataLoadingEnabled={isConnected && routeViewMode === "data" && viewMode === "data"} />
-                  </>
-                ) : (
-                  <div className="database-placeholder">
-                    <Icon name="database" size={24} />
-                    <p>{tableStatus === "succeeded" ? "Select a table to view its details and records." : "Loading database tables…"}</p>
-                  </div>
-                )}
-              </section>
-            </div>
-          ) : (
-            <div className="diagram-mode-content" style={{ "--diagram-panel-height": `${diagramHeight}px` } as CSSProperties}>
-              <DiagramView />
-              <DiagramSplitter
-                height={diagramHeight}
-                minHeight={minDiagramHeight}
-                onResize={resizeDiagram}
-              />
-              <section className="diagram-preview" aria-label="Data grid view" aria-live="polite">
-                {previewTable ? <DataGrid table={previewTable} /> : (
-                  <div className="diagram-preview-placeholder">
-                    <Icon name="table" size={19} />
-                    <span>Double-click a table header to preview its first 10 rows.</span>
-                  </div>
-                )}
-              </section>
-            </div>
-          )}
+        <section className={`database-browser split-workspace${panel.collapsed ? " panel-collapsed" : ""}`} style={panel.style}>
+          <div
+            ref={workspaceRef}
+            className={`database-workspace split-workspace${panel.collapsed ? " panel-collapsed" : ""}`}
+          >
+            <TableList scrollStyle={tableListStyle} />
+            <PanelSplitter panel={panel} label="tables panel" />
+            <section className="database-content" aria-live="polite">
+              {selectedTable ? (
+                <TableDetails dataLoadingEnabled={isConnected} />
+              ) : (
+                <div className="database-placeholder">
+                  <Icon name="database" size={24} />
+                  <p>{tableStatus === "succeeded" ? "Select a table to view its details and records." : "Loading database tables…"}</p>
+                </div>
+              )}
+            </section>
+          </div>
         </section>
       ) : (
         <section className="database-browser database-disconnected">

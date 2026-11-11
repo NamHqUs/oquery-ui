@@ -25,7 +25,7 @@ import type { RootState } from "../../store/store";
 export * from "./types";
 
 type NavigationGuard = (continueNavigation: () => void, cancelNavigation?: () => void) => void;
-type MetadataSection = "diagram" | "entities" | "domains" | "functions" | "operators";
+type MetadataSection = "diagram" | "entities" | "domains" | "functions" | "operators" | "explorer";
 type DatabaseRelationship = {
   name: string;
   sourceSchema: string;
@@ -59,6 +59,7 @@ const DIAGRAMS_PATH = "/metadata/diagrams";
 const DIAGRAM_CREATE_PATH = "/metadata/diagrams/create";
 const DIAGRAM_EDIT_PATH = "/metadata/diagrams/edit";
 const ENTITIES_PATH = "/metadata/entities";
+const DATABASE_EXPLORER_PATH = "/metadata/explorer";
 
 function diagramEditDomainId(pathname: string) {
   const match = pathname.match(/^\/metadata\/diagrams\/edit\/([^/]+)$/);
@@ -252,6 +253,10 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     }
     if (section === "domains") {
       navigate(DOMAINS_PATH);
+      return;
+    }
+    if (section === "explorer") {
+      navigate(DATABASE_EXPLORER_PATH);
       return;
     }
     if (section === "diagram") {

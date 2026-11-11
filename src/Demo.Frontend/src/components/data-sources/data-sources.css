@@ -26,154 +26,6 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-.database-section-tabs {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex: 0 0 auto;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 5px;
-  margin-left: auto;
-  padding: 5px;
-  border: 1px solid #ffffff18;
-  border-radius: 10px;
-  background: linear-gradient(145deg, #0c1019c9, #171827b8);
-  box-shadow: inset 0 1px #ffffff0a, 0 8px 24px #00000020;
-}
-
-.database-section-tabs button {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  color: #9299aa;
-  background: transparent;
-  font-size: 11px;
-  font-weight: 600;
-  transition: color .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease;
-}
-
-.database-section-tabs button:hover {
-  color: #eee9ff;
-  background: #ffffff08;
-}
-
-.database-section-tabs button.active {
-  border-color: #9b83e54a;
-  color: #f1edff;
-  background: linear-gradient(135deg, #5a478c70, #332849a8);
-  box-shadow: inset 0 1px #ffffff16, 0 3px 12px #00000026;
-}
-
-.database-section-tabs button svg {
-  width: 23px;
-  height: 23px;
-  padding: 4px;
-  border-radius: 6px;
-  color: #828ba0;
-  background: #ffffff08;
-}
-
-.database-section-tabs button.active svg {
-  color: #d0c2ff;
-  background: #9e84ed24;
-}
-
-.diagram-browser {
-  display: flex;
-  height: auto;
-  min-height: 1120px;
-  flex-direction: column;
-}
-
-.diagram-mode-content {
-  display: grid;
-  flex: 1 1 auto;
-  grid-template-rows: minmax(360px, var(--diagram-panel-height, 600px)) 8px auto;
-  min-height: 0;
-}
-
-.diagram-preview {
-  min-width: 0;
-  padding: 8px 18px;
-  overflow: visible;
-  border-top: 1px solid #292e3a;
-  background: linear-gradient(135deg, #121620, #10141b);
-}
-
-.diagram-preview-placeholder {
-  display: flex;
-  min-height: 38px;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  color: #818b9d;
-  font-size: 11px;
-}
-
-.diagram-preview-placeholder .icon {
-  color: #a28bd9;
-}
-
-section.page-heading.database-page-heading {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  min-height: 78px;
-  padding: 14px 24px;
-  overflow: hidden;
-  border: 0;
-}
-
-.database-heading-main {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-width: 0;
-}
-
-.database-heading-mark {
-  display: grid;
-  flex: 0 0 44px;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border: 1px solid #7663ac80;
-  border-radius: 11px;
-  background: linear-gradient(145deg, #45366e, #28213c);
-  color: #d0c2ff;
-  box-shadow: inset 0 1px #ffffff12, 0 7px 18px #00000020;
-}
-
-.database-heading-copy {
-  min-width: 0;
-}
-
-.database-heading-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  color: #b4a4e9;
-  font: 500 11px "Manrope", sans-serif;
-  letter-spacing: 1.15px;
-}
-
-.database-heading-eyebrow i {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: #7866aa;
-}
-
 .database-content {
   min-width: 0;
   padding: 21px 27px 30px;
@@ -212,29 +64,12 @@ section.page-heading.database-page-heading {
 }
 
 @media (max-width: 760px) {
-  section.page-heading.database-page-heading {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 17px;
-    padding: 20px 27px;
-  }
-
-  .database-section-tabs {
-    justify-content: flex-start;
-    margin-left: 60px;
-  }
-
   .database-browser {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .database-workspace {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .diagram-browser {
-    height: auto;
-    min-height: 1120px;
   }
 
   .database-content {
