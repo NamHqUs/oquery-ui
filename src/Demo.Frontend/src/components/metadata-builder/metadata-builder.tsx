@@ -372,7 +372,24 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         }
       });
     return () => { cancelled = true; };
-  }, [activeSection, entityOnly, domainId]);
+  }, [activeSection, entityOnly]);
+  useEffect(() => {
+    if (activeSection !== "diagram" || !domainId) return;
+    const selectedDomain = domainOptions.find(domain => domain.id === domainId);
+    if (!selectedDomain) return;
+    setDomains((current) => {
+      const existing = current.find(domain => domain.id === domainId);
+      if (existing) return current;
+      return [{
+        ...selectedDomain,
+        description: "",
+        entities: [],
+        relations: [],
+        canDelete: selectedDomain.id !== "All",
+        isBuiltin: selectedDomain.id === "All",
+      }];
+    });
+  }, [activeSection, domainId, domainOptions]);
   useEffect(() => {
     if (!domainId || !domainEntities || !domainRelations) return;
     setDomains((current) => {

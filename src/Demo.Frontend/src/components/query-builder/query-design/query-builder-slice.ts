@@ -86,8 +86,8 @@ export type EntityRelationView = {
   toFields: string[];
 };
 
-export function relationsForEntity(entityName: string, relations: DomainRelation[]): EntityRelationView[] {
-  return relations.flatMap((relation, relationIndex): EntityRelationView[] => {
+export function relationsForEntity(entityName: string, relations: DomainRelation[] | undefined): EntityRelationView[] {
+  return (relations ?? []).flatMap((relation, relationIndex): EntityRelationView[] => {
     const views: EntityRelationView[] = [];
     if (relation.sourceEntity === entityName) {
       views.push({
