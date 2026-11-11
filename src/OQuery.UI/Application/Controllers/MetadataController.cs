@@ -13,34 +13,44 @@ public sealed class MetadataController(
     IFunctionDefinitionService functionDefinitionService,
     IOperatorDefinitionService operatorDefinitionService) : ControllerBase
 {
-    [HttpGet]
-    public ActionResult<IReadOnlyList<MetadataEntityDto>> GetMetadata([FromQuery] string? scope)
-        => Ok(domainService.GetEntities(scope));
-
     [HttpPost("reset")]
     public ActionResult<IReadOnlyList<Entity>> Reset()
         => Ok(metadataService.Reset());
 
-    [HttpGet("domains")]
-    public ActionResult<IReadOnlyList<DomainDto>> GetDomains()
-        => Ok(domainService.GetAll());
+    [HttpGet("domains/names")]
+    public ActionResult<IReadOnlyList<DomainNameDto>> GetDomainNames()
+        => Ok(domainService.GetAllDomainNames());
+
+    [HttpGet("domains/names-with-descriptions")]
+    public ActionResult<IReadOnlyList<DomainNameWithDescriptionDto>> GetDomainNamesWithDescriptions()
+        => Ok(domainService.GetAllDomainNameWithDescriptions());
+
+    [HttpGet("domains/{domainId}")]
+    public ActionResult<DomainDto> GetDomain(string domainId)
+        => Ok(domainService.GetById(domainId));
 
     [HttpPost("domains")]
     public ActionResult<DomainDto> CreateDomain([FromBody] DomainDto scope)
-        => Created($"/metadata/domains/{Uri.EscapeDataString(scope.Name)}", domainService.Create(scope));
+    {
+        var created = domainService.Create(scope);
+        return Created($"/metadata/domains/{Uri.EscapeDataString(created.Id)}", created);
+    }
 
     [HttpPost("domains/generate")]
     public ActionResult<DomainDto> GenerateDomain([FromBody] DomainGenerationRequestDto request)
-        => Created($"/metadata/domains/{Uri.EscapeDataString(request.Name)}", domainService.Generate(request));
-
-    [HttpPut("domains/{scopeName}")]
-    public ActionResult<DomainDto> UpdateDomain(string scopeName, [FromBody] DomainDto scope)
-        => Ok(domainService.Update(scopeName, scope));
-
-    [HttpDelete("domains/{scopeName}")]
-    public IActionResult DeleteDomain(string scopeName)
     {
-        domainService.Delete(scopeName);
+        var created = domainService.Generate(request);
+        return Created($"/metadata/domains/{Uri.EscapeDataString(created.Id)}", created);
+    }
+
+    [HttpPut("domains/{domainId}")]
+    public ActionResult<DomainDto> UpdateDomain(string domainId, [FromBody] DomainDto scope)
+        => Ok(domainService.Update(domainId, scope));
+
+    [HttpDelete("domains/{domainId}")]
+    public IActionResult DeleteDomain(string domainId)
+    {
+        domainService.Delete(domainId);
         return NoContent();
     }
 

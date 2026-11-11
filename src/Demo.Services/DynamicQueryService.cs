@@ -25,7 +25,9 @@ public sealed class DynamicQueryService(
     {
         using var connection = dbConnectionService.CreateConnection();
         var dialect = SqlDialect.ForProvider(dbConnectionService.GetCurrentProvider(), connection);
-        var metadataProvider = domainService.GetMetadataProvider(scopeName);
+        var metadataProvider = new MetadataProvider(domainService.GetById(scopeName ?? "All")
+            .ToEntities()
+            .ToArray());
         using var context = new OQueryEngine(
             connection,
             metadataProvider,
@@ -45,7 +47,9 @@ public sealed class DynamicQueryService(
 
         using var connection = dbConnectionService.CreateConnection();
         var dialect = SqlDialect.ForProvider(dbConnectionService.GetCurrentProvider(), connection);
-        var metadataProvider = domainService.GetMetadataProvider(scopeName);
+        var metadataProvider = new MetadataProvider(domainService.GetById(scopeName ?? "All")
+            .ToEntities()
+            .ToArray());
         using var context = new OQueryEngine(
             connection,
             metadataProvider,

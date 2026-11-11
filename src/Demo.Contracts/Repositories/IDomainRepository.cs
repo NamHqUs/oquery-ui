@@ -4,4 +4,5 @@ namespace Demo.Contracts.Repositories;
 
 public interface IDomainRepository : IRepository<DomainDto>
 {
+    string CreateId(string userSectionId);
 }

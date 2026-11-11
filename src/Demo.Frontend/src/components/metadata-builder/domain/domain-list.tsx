@@ -10,7 +10,7 @@ import MetadataSidebar, { type MetadataSidebarGroup } from "../metadata-sidebar/
 import EntityBuilder, { type DatabaseTableOption } from "../entity-definition/entity-builder/entity-builder";
 import DatabaseConnection from "../../data-sources/database-connection/database-connection";
 import { emptyEntity, toAbstractDataType, toEditable, type EditableEntity } from "../types";
-import type { MetadataEntity } from "../../query-builder/query-design/query-builder-slice";
+import { invalidateQueryMetadata, type MetadataEntity } from "../../query-builder/query-design/query-builder-slice";
 import { fetchDbSchema } from "../../data-sources/database-slice";
 import type { RootState } from "../../../store/store";
 import { apiUrls } from "../../../const/api-urls";
@@ -20,6 +20,7 @@ import MarkdownDescription from "./markdown-description";
 import "./domain-list.css";
 
 export type Domain = {
+  id: string;
   name: string;
   description: string;
   entities: MetadataEntity[];
@@ -63,6 +64,17 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 const tableKey = (table: Pick<DatabaseTable, "schema" | "name">) => `${table.schema}.${table.name}`;
+const normalizeTablePart = (value: string) => value.trim().replace(/[\[\]"`]/g, "").toLowerCase();
+const entityMatchesTable = (entity: MetadataEntity, table: DatabaseTable) => {
+  const tableName = normalizeTablePart(table.name);
+  const qualifiedName = `${normalizeTablePart(table.schema)}.${tableName}`;
+  return [entity.rawSql || "", entity.name].some(value => {
+    const normalized = normalizeTablePart(value);
+    return normalized === tableName
+      || normalized === qualifiedName
+      || normalized.endsWith(`.${tableName}`);
+  });
+};
 const dataTypeIcons: Record<string, IconName> = {
   string: "type",
   number: "type-number",
@@ -108,10 +120,12 @@ function parseUploadedTables(text: string, fileName: string): DatabaseTable[] {
 
 export default function DomainList({
   active,
+  domains,
 }: {
   active: boolean;
+  domains: Domain[];
 }) {
-  const [scopes, setScopes] = useState<Domain[]>([]);
+  const [scopes, setScopes] = useState<Domain[]>(domains);
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -120,6 +134,7 @@ export default function DomainList({
   const [draftName, setDraftName] = useState("");
   const [draftDescription, setDraftDescription] = useState("");
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
+  const [sourceSelectionInitialized, setSourceSelectionInitialized] = useState(false);
   const [removedEntityNames, setRemovedEntityNames] = useState<string[]>([]);
   const [uploadedTables, setUploadedTables] = useState<DatabaseTable[]>([]);
   const [selectedColumns, setSelectedColumns] = useState<Record<string, string[]>>({});
@@ -160,6 +175,7 @@ export default function DomainList({
       setEntityDraft(null);
       setEntityDirty(false);
       setSelectedTables([]);
+      setSourceSelectionInitialized(true);
       setRemovedEntityNames([]);
       setUploadedTables([]);
       setSelectedColumns({});
@@ -172,6 +188,7 @@ export default function DomainList({
     if (location.pathname === EDIT_DOMAIN_PATH) {
       setWizardSource("database");
       setSelectedTables([]);
+      setSourceSelectionInitialized(false);
       setRemovedEntityNames([]);
       setUploadedTables([]);
       setSelectedColumns({});
@@ -185,19 +202,23 @@ export default function DomainList({
     }
   }, [active, location.pathname, location.search]);
 
-  const selected = scopes.find(scope => scope.name === selectedName);
+  const selected = scopes.find(scope => scope.id === selectedName);
   const load = async () => {
     setStatus("loading");
     setError("");
     try {
-      const scopeResult = await request<Domain[]>(apiUrls.metadata.domains);
+      const scopeResult = domains;
       setScopes(scopeResult);
-      const routeScopeName = new URLSearchParams(location.search).get("scope");
-      const requestedScope = routeScopeName || selectedName;
+      const routeScopeId = new URLSearchParams(location.search).get("scope");
+      const requestedScope = routeScopeId || selectedName;
       if (requestedScope && location.pathname !== CREATE_DOMAIN_PATH) {
-        const refreshed = scopeResult.find(scope => scope.name === requestedScope);
+        const summary = scopeResult.find(scope => scope.id === requestedScope);
+        const refreshed = summary && location.pathname === EDIT_DOMAIN_PATH
+          ? await request<Domain>(apiUrls.metadata.domainById(summary.id))
+          : summary;
         if (refreshed) {
-          setSelectedName(refreshed.name);
+          setScopes(scopeResult.map(scope => scope.id === refreshed.id ? { ...scope, ...refreshed } : scope));
+          setSelectedName(refreshed.id);
           setDraftName(refreshed.name);
           setDraftDescription(refreshed.description || "");
           const entity = refreshed.entities.find(item => item.name === selectedEntityName) || refreshed.entities[0];
@@ -212,30 +233,38 @@ export default function DomainList({
       setStatus("ready");
     }
   };
-  useEffect(() => { void load(); }, [active, location.pathname, location.search]);
+  useEffect(() => {
+    if (!active) return;
+    void load();
+  }, [active, location.pathname, location.search, domains]);
   useEffect(() => {
     if (schemaStatus === "idle") void dispatch(fetchDbSchema());
   }, [dispatch, schemaStatus]);
   useEffect(() => {
-    if (location.pathname !== EDIT_DOMAIN_PATH || wizardSource !== "database" || !selected || !schema.tables.length || selectedTables.length) return;
+    if (location.pathname !== EDIT_DOMAIN_PATH
+      || wizardSource !== "database"
+      || sourceSelectionInitialized
+      || !selected
+      || !schema.tables.length) return;
     const existingKeys = selected.entities
-      .map(entity => schema.tables.find(table =>
-        table.name.toLowerCase() === entity.name.toLowerCase()
-        && (!entity.schema || entity.schema.toLowerCase() === table.schema.toLowerCase() || entity.schema.toLowerCase() === "dbo"),
-      ))
+      .map(entity => schema.tables.find(table => entityMatchesTable(entity, table)))
       .filter((table): table is DatabaseTable => Boolean(table))
       .map(tableKey);
-    if (!existingKeys.length) return;
+    if (!existingKeys.length) {
+      setSourceSelectionInitialized(true);
+      return;
+    }
     setSelectedTables(existingKeys);
     setSelectedColumns(Object.fromEntries(existingKeys.map(key => {
       const table = schema.tables.find(candidate => tableKey(candidate) === key);
       return [key, table?.columns.map(column => column.name) || []];
     })));
-  }, [location.pathname, schema.tables, selected, selectedTables.length, wizardSource]);
+    setSourceSelectionInitialized(true);
+  }, [location.pathname, schema.tables, selected, sourceSelectionInitialized, wizardSource]);
 
   const selectScope = (scope: Domain) => {
-    navigate(`/metadata?section=diagram&scope=${encodeURIComponent(scope.name)}`);
-    setSelectedName(scope.name);
+    navigate(`/metadata?section=diagram&scope=${encodeURIComponent(scope.id)}`);
+    setSelectedName(scope.id);
     setDraftName(scope.name);
     setDraftDescription(scope.description || "");
     const firstEntity = scope.entities[0];
@@ -261,9 +290,17 @@ export default function DomainList({
       setEntityDraft(null);
       return;
     }
-    const routeScope = scopes.find(scope => scope.name === routeScopeName);
-    if (!routeScope || routeScope.name === selectedName) return;
-    setSelectedName(routeScope.name);
+    const routeScope = scopes.find(scope =>
+      scope.id === routeScopeName || scope.name === routeScopeName);
+    if (!routeScope) return;
+    if (routeScope.id !== routeScopeName) {
+      const nextSearchParams = new URLSearchParams(location.search);
+      nextSearchParams.set("scope", routeScope.id);
+      navigate(`${location.pathname}?${nextSearchParams.toString()}`, { replace: true });
+      return;
+    }
+    if (routeScope.id === selectedName) return;
+    setSelectedName(routeScope.id);
     setDraftName(routeScope.name);
     setDraftDescription(routeScope.description || "");
     const firstEntity = routeScope.entities[0];
@@ -296,9 +333,9 @@ export default function DomainList({
   };
   const editScope = (scope: Domain) => {
     if (scope.isBuiltin) return;
-    navigate(`${EDIT_DOMAIN_PATH}?section=domains&scope=${encodeURIComponent(scope.name)}&returnSection=domains`);
+    navigate(`${EDIT_DOMAIN_PATH}?section=domains&scope=${encodeURIComponent(scope.id)}&returnSection=domains`);
     setViewMode("wizard");
-    setSelectedName(scope.name);
+    setSelectedName(scope.id);
     setDraftName(scope.name);
     setDraftDescription(scope.description || "");
     setSelectedEntityName(scope.entities[0]?.name || "");
@@ -309,7 +346,7 @@ export default function DomainList({
     setError("");
   };
   const updateSelectedScope = (updater: (scope: Domain) => Domain) => {
-    setScopes(current => current.map(scope => scope.name === selectedName ? updater(scope) : scope));
+    setScopes(current => current.map(scope => scope.id === selectedName ? updater(scope) : scope));
   };
   const selectEntity = (entity: MetadataEntity) => {
     setSelectedEntityName(entity.name);
@@ -355,7 +392,13 @@ export default function DomainList({
   };
   const removeEntity = (entityName: string) => {
     if (!selected || selected.isBuiltin) return;
-    const remaining = selected.entities.filter(entity => entity.name !== entityName);
+    const remaining = selected.entities
+      .filter(entity => entity.name !== entityName)
+      .map(entity => ({
+        ...entity,
+        relations: (entity.relations || []).filter(relation =>
+          relation.refEntity.toLowerCase() !== entityName.toLowerCase()),
+      }));
     updateSelectedScope(scope => ({ ...scope, entities: remaining }));
     const next = remaining[0];
     setSelectedEntityName(next?.name || "");
@@ -407,17 +450,6 @@ export default function DomainList({
       if (selected && entityDraft && entityDirty) commitEntityDraft();
       const editEntities = selected
         ? (() => {
-          const normalizeTablePart = (value: string) => value.trim().replace(/[\[\]"`]/g, "").toLowerCase();
-          const entityMatchesTable = (entity: MetadataEntity, table: DatabaseTable) => {
-            const tableName = normalizeTablePart(table.name);
-            const qualifiedName = `${normalizeTablePart(table.schema)}.${tableName}`;
-            return [entity.rawSql || "", entity.name].some(value => {
-              const normalized = normalizeTablePart(value);
-              return normalized === tableName
-                || normalized === qualifiedName
-                || normalized.endsWith(`.${tableName}`);
-            });
-          };
           const entityForTable = (entities: MetadataEntity[], table: DatabaseTable) =>
             entities.find(entity => entityMatchesTable(entity, table));
           const tableEntityName = (table: DatabaseTable, fallback: string) =>
@@ -496,7 +528,7 @@ export default function DomainList({
         })()
         : [];
       const saved = selected
-        ? await request<Domain>(apiUrls.metadata.domainByName(selected.name), {
+        ? await request<Domain>(apiUrls.metadata.domainById(selected.id), {
             method: "PUT",
               body: JSON.stringify({
                 name: draftName.trim(),
@@ -505,7 +537,7 @@ export default function DomainList({
               }),
             })
         : wizardSource === "file"
-          ? await request<Domain>(apiUrls.metadata.domains, {
+          ? await request<Domain>(apiUrls.metadata.createDomain, {
             method: "POST",
             body: JSON.stringify({
               name: draftName.trim(),
@@ -559,13 +591,14 @@ export default function DomainList({
             }),
           });
       setScopes(current => selected
-        ? current.map(scope => scope.name === selected.name ? saved : scope)
+        ? current.map(scope => scope.id === selected.id ? saved : scope)
         : [...current, saved]);
       setEntityDirty(false);
       setRemovedEntityNames([]);
+      dispatch(invalidateQueryMetadata());
       const returnSection = new URLSearchParams(location.search).get("returnSection") || "domains";
-      navigate(`/metadata?section=${encodeURIComponent(returnSection)}&scope=${encodeURIComponent(saved.name)}`);
-      setSelectedName(saved.name);
+      navigate(`/metadata?section=${encodeURIComponent(returnSection)}&scope=${encodeURIComponent(saved.id)}`);
+      setSelectedName(saved.id);
       setDraftName(saved.name);
       setStep(3);
       setViewMode("detail");
@@ -594,9 +627,9 @@ export default function DomainList({
     setStatus("saving");
     setError("");
     try {
-      await request<void>(apiUrls.metadata.domainByName(scope.name), { method: "DELETE" });
-      setScopes(current => current.filter(item => item.name !== scope.name));
-      if (selectedName === scope.name) {
+      await request<void>(apiUrls.metadata.domainById(scope.id), { method: "DELETE" });
+      setScopes(current => current.filter(item => item.id !== scope.id));
+      if (selectedName === scope.id) {
         setSelectedName("");
         setDraftName("");
         setSelectedEntityName("");
@@ -724,7 +757,7 @@ export default function DomainList({
   };
   const canContinue = step === 1
     ? (selected
-      ? selected.entities.some(entity => !removedEntityNames.includes(entity.name)) || selectedTables.length > 0
+      ? true
       : wizardSource === "database"
       ? connectionStatus === "succeeded" && selectedTables.length > 0
       : selectedTables.length > 0)
@@ -735,10 +768,6 @@ export default function DomainList({
   const goNext = () => {
     if (!selected && step === 1 && wizardSource === "database" && connectionStatus !== "succeeded") {
       setError("Connect to a database to continue.");
-      return;
-    }
-    if (step === 1 && selected && !canContinue) {
-      setError("Keep at least one entity or select a database table to add.");
       return;
     }
     if (step === 1 && !selected && !selectedTables.length) {
@@ -884,7 +913,7 @@ export default function DomainList({
             content: scopes
               .filter(scope => scope.name.toLowerCase().includes(scopeFilter.toLowerCase()))
               .map(scope => (
-                <button key={scope.name} type="button" className={`metadata-entity${scope.name === selectedName ? " active" : ""}`} onClick={() => selectScope(scope)}>
+                <button key={scope.id} type="button" className={`metadata-entity${scope.id === selectedName ? " active" : ""}`} onClick={() => selectScope(scope)}>
                   <span className="entity-icon"><Icon name="folder" size={14} /></span>
                   <span><b>{scope.name}</b><small>{scope.entities.length} entities{scope.isBuiltin ? " · Built-in - Read Only" : ""}</small></span>
                   <Icon name="chevron" size={14} />
@@ -960,15 +989,16 @@ export default function DomainList({
                     <div className="domain-schema-heading"><span>{schemaName}</span><small>{tables.length} {tables.length === 1 ? "table" : "tables"}</small></div>
                     <div className="domain-schema-tables">{tables.map(table => {
                       const key = tableKey(table);
-                      const alreadyIncluded = selected?.entities.some(entity => entity.name.toLowerCase() === table.name.toLowerCase()) ?? false;
+                      const existingEntity = selected?.entities.find(entity => entityMatchesTable(entity, table));
+                      const alreadyIncluded = Boolean(existingEntity);
                       const sourceClass = selected ? (alreadyIncluded ? " existing-source" : " append-source") : "";
                       return <label key={key} className={sourceClass.trim()}><input type="checkbox" checked={selectedTables.includes(key)} onChange={() => {
                         const isSelected = selectedTables.includes(key);
                         setSelectedTables(current => isSelected ? current.filter(item => item !== key) : [...current, key]);
-                        if (alreadyIncluded) {
+                        if (existingEntity) {
                           setRemovedEntityNames(current => isSelected
-                            ? [...current, table.name]
-                            : current.filter(name => name.toLowerCase() !== table.name.toLowerCase()));
+                            ? current.includes(existingEntity.name) ? current : [...current, existingEntity.name]
+                            : current.filter(name => name.toLowerCase() !== existingEntity.name.toLowerCase()));
                         }
                       }} /><span>{table.name}</span></label>;
                     })}</div>
@@ -976,13 +1006,16 @@ export default function DomainList({
                   {schema.tables.length > 0 && !filteredTables.length && <p className="empty-state">No tables match this filter.</p>}
                 </div>
                 <aside className="domain-selected-tables" aria-label="Selected database tables">
-                  <div className="domain-table-list-heading"><strong>Selected tables</strong><span><small>{selectedTableDetails.length}</small><button type="button" className="domain-clear-selection" onClick={() => setSelectedTables([])} disabled={!selectedTableDetails.length}>Clear all</button></span></div>
+                  <div className="domain-table-list-heading"><strong>Selected tables</strong><span><small>{selectedTableDetails.length}</small><button type="button" className="domain-clear-selection" onClick={() => {
+                    setSelectedTables([]);
+                    if (selected) setRemovedEntityNames(selected.entities.map(entity => entity.name));
+                  }} disabled={!selectedTableDetails.length}>Clear all</button></span></div>
                   {selectedTableDetails.length > 0 ? <div className="domain-selected-table-list">{selectedTableDetails.map(table => {
-                    const existing = selected?.entities.some(entity => entity.name.toLowerCase() === table.name.toLowerCase()) ?? false;
+                    const existing = selected?.entities.some(entity => entityMatchesTable(entity, table)) ?? false;
                     return <button key={tableKey(table)} className={existing ? "existing-source" : "append-source"} type="button" onClick={() => {
                     setSelectedTables(current => current.filter(key => key !== tableKey(table)));
                     if (selected) {
-                      const existing = selected.entities.find(entity => entity.name.toLowerCase() === table.name.toLowerCase());
+                      const existing = selected.entities.find(entity => entityMatchesTable(entity, table));
                       if (existing) setRemovedEntityNames(current => current.includes(existing.name) ? current : [...current, existing.name]);
                     }
                   }} title={`Remove ${table.name}`}>

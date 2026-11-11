@@ -12,39 +12,51 @@ public sealed class DomainService(
     IUserSectionManager userSectionManager,
     IDatabaseService databaseService) : IDomainService
 {
-    public IReadOnlyList<DomainDto> GetAll()
+    private IReadOnlyList<DomainDto> GetAllDomainsForValidation()
     {
         var sectionId = userSectionManager.GetSectionId();
-        var builtinEntities = metadataRepository.GetBuiltin()
-            .Select(MetadataEntityDto.FromEntity)
-            .ToArray();
-        var userNames = repository.GetUserDefined(sectionId)
-            .Select(scope => scope.Name)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
         return repository.GetBuiltin()
             .Concat(repository.GetUserDefined(sectionId))
-            .Select(scope => Copy(
-                scope,
-                scope.Entities.Count == 0 && !scope.CanDelete ? builtinEntities : scope.Entities,
-                userNames.Contains(scope.Name)))
+            .Select(scope => new DomainDto
+            {
+                Id = scope.Id,
+                Name = scope.Name,
+                Description = scope.Description,
+                CanDelete = scope.CanDelete,
+                IsBuiltin = scope.IsBuiltin,
+            })
             .OrderBy(scope => scope.Name, StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }
 
-    public IReadOnlyList<MetadataEntityDto> GetEntities(string? scopeName)
-        => GetAll().FirstOrDefault(scope =>
-                scope.Name.Equals(string.IsNullOrWhiteSpace(scopeName) ? "All" : scopeName.Trim(),
-                    StringComparison.OrdinalIgnoreCase))
-            ?.Entities
-            ?? throw new KeyNotFoundException($"Domain '{scopeName}' was not found.");
+    public IReadOnlyList<DomainNameDto> GetAllDomainNames()
+        => GetAllDomainsForValidation()
+            .Select(scope => new DomainNameDto(scope.Id, scope.Name))
+            .ToArray();
+
+    public IReadOnlyList<DomainNameWithDescriptionDto> GetAllDomainNameWithDescriptions()
+        => GetAllDomainsForValidation()
+            .Select(scope => new DomainNameWithDescriptionDto(scope.Id, scope.Name, scope.Description))
+            .ToArray();
+
+    public DomainDto GetById(string domainId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(domainId);
+        var requestedId = domainId.Trim();
+        var domain = repository.Get(userSectionManager.GetSectionId(), requestedId)
+            ?? throw new KeyNotFoundException($"Domain '{requestedId}' was not found.");
+        if (requestedId.Equals("All", StringComparison.OrdinalIgnoreCase))
+            domain.Entities = metadataRepository.GetBuiltin().Select(MetadataEntityDto.FromEntity).ToList();
+        return domain;
+    }
 
     public DomainDto Create(DomainDto scope)
     {
         var normalized = Validate(scope);
         var sectionId = userSectionManager.GetSectionId();
-        if (GetAll().Any(existing => existing.Name.Equals(normalized.Name, StringComparison.OrdinalIgnoreCase)))
+        if (GetAllDomainsForValidation().Any(existing => existing.Name.Equals(normalized.Name, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException($"A domain named '{normalized.Name}' already exists.");
+        normalized.Id = repository.CreateId(sectionId);
         ValidateEntities(normalized.Entities);
         normalized.CanDelete = true;
         normalized.IsBuiltin = false;
@@ -115,43 +127,31 @@ public sealed class DomainService(
         });
     }
 
-    public DomainDto Update(string scopeName, DomainDto scope)
+    public DomainDto Update(string domainId, DomainDto scope)
     {
         var sectionId = userSectionManager.GetSectionId();
-        if (repository.GetBuiltin().Any(existing => existing.Name.Equals(scopeName, StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidOperationException($"Built-in domain '{scopeName}' is read-only.");
-        var existing = repository.GetUserDefined(sectionId).FirstOrDefault(item =>
-            item.Name.Equals(scopeName, StringComparison.OrdinalIgnoreCase))
-            ?? throw new KeyNotFoundException($"Domain '{scopeName}' was not found.");
+        var existing = GetById(domainId);
+        if (existing.IsBuiltin)
+            throw new InvalidOperationException($"Built-in domain '{existing.Name}' is read-only.");
         var normalized = Validate(scope);
         ValidateEntities(normalized.Entities);
-        if (GetAll().Any(item => !item.Name.Equals(scopeName, StringComparison.OrdinalIgnoreCase)
+        if (GetAllDomainsForValidation().Any(item => !item.Id.Equals(existing.Id, StringComparison.OrdinalIgnoreCase)
             && item.Name.Equals(normalized.Name, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException($"A domain named '{normalized.Name}' already exists.");
+        normalized.Id = existing.Id;
         normalized.CanDelete = true;
         normalized.IsBuiltin = false;
         repository.Save(sectionId, normalized);
-        if (!existing.Name.Equals(normalized.Name, StringComparison.OrdinalIgnoreCase))
-            repository.Delete(sectionId, existing.Name);
         return normalized;
     }
 
-    public void Delete(string scopeName)
+    public void Delete(string domainId)
     {
         var sectionId = userSectionManager.GetSectionId();
-        if (repository.GetBuiltin().Any(scope => scope.Name.Equals(scopeName, StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidOperationException($"Built-in domain '{scopeName}' cannot be deleted.");
-        if (repository.GetUserDefined(sectionId).Any(scope => scope.Name.Equals(scopeName, StringComparison.OrdinalIgnoreCase)))
-            repository.Delete(sectionId, scopeName);
-    }
-
-    public IMetadataProvider GetMetadataProvider(string? scopeName)
-    {
-        var requestedName = string.IsNullOrWhiteSpace(scopeName) ? "All" : scopeName.Trim();
-        var scope = GetAll().FirstOrDefault(item =>
-            item.Name.Equals(requestedName, StringComparison.OrdinalIgnoreCase))
-            ?? throw new KeyNotFoundException($"Domain '{requestedName}' was not found.");
-        return new MetadataProvider(scope.Entities.Select(entity => entity.ToEntity()).ToArray());
+        var scope = GetById(domainId);
+        if (scope.IsBuiltin)
+            throw new InvalidOperationException($"Built-in domain '{scope.Name}' cannot be deleted.");
+        repository.Delete(sectionId, scope.Id);
     }
 
     private static void ValidateEntities(IReadOnlyCollection<MetadataEntityDto> entities)
@@ -174,16 +174,6 @@ public sealed class DomainService(
         scope.Name = scope.Name.Trim();
         return scope;
     }
-
-    private static DomainDto Copy(DomainDto source, IReadOnlyList<MetadataEntityDto> entities, bool canDelete)
-        => new()
-        {
-            Name = source.Name,
-            Description = source.Description,
-            Entities = entities.ToList(),
-            CanDelete = canDelete,
-            IsBuiltin = !canDelete,
-        };
 
     private static Entity CreateEntity(DatabaseTableDto table, DatabaseTableSelectionDto selection)
         => new(

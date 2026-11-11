@@ -430,7 +430,6 @@ export default function DiagramView({
   const groups = useMemo(() => {
     if (suppliedGroups?.length) {
       return suppliedGroups
-        .filter((group) => group.tables.length > 0)
         .map((group) => ({
           name: group.name,
           tables: [...group.tables].sort((left, right) => left.name.localeCompare(right.name)),
@@ -522,7 +521,7 @@ export default function DiagramView({
   if (!suppliedTables && schemaStatus === "failed") {
     return <p className="diagram-state error" role="alert">{schemaError || "Unable to load database relationships."}</p>;
   }
-  if (diagramTables.length === 0) {
+  if (!suppliedTables && diagramTables.length === 0) {
     return <div className="diagram-state"><Icon name="table" size={20} /><span>No database tables are available.</span></div>;
   }
 

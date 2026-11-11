@@ -1,7 +1,5 @@
 using Demo.Contracts.Dto;
 using Demo.Contracts.Repositories;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 
 namespace Demo.Repositories.FileStorage;
@@ -11,7 +9,7 @@ public sealed class DomainFileRepository(FilePathResolver filePathResolver)
 {
     public override IReadOnlyCollection<DomainDto> GetBuiltin() =>
     [
-        new DomainDto { Name = "All", Entities = [] },
+        new DomainDto { Id = "All", Name = "All", Entities = [], IsBuiltin = true },
     ];
 
     public override IReadOnlyCollection<DomainDto> GetUserDefined(string userSectionId)
@@ -32,32 +30,47 @@ public sealed class DomainFileRepository(FilePathResolver filePathResolver)
                 throw new InvalidDataException($"User domain '{scope.Name}' cannot replace a built-in domain.");
             if (!scopes.TryAdd(scope.Name, scope))
                 throw new InvalidDataException($"Duplicate user domain '{scope.Name}' found in '{path}'.");
+            scope.Id = string.IsNullOrWhiteSpace(scope.Id)
+                ? Path.GetFileNameWithoutExtension(path)
+                : scope.Id;
         }
 
         return scopes.Values.ToArray();
     }
 
     public override DomainDto? Get(string userSectionId, string id)
-        => GetUserDefined(userSectionId).FirstOrDefault(scope =>
-            string.Equals(scope.Name, id, StringComparison.OrdinalIgnoreCase));
+        => string.Equals(id, "All", StringComparison.OrdinalIgnoreCase)
+            ? GetBuiltin().Single()
+            : ReadDomainFile(userSectionId, id);
 
     public override void Save(string userSectionId, DomainDto scope)
     {
         Directory.CreateDirectory(GetUserStoreFolder(userSectionId));
         File.WriteAllText(
-            GetUserFilePath(userSectionId, GetFileId(scope.Name)),
+            GetUserFilePath(userSectionId, scope.Id),
             JsonSerializer.Serialize(scope, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     public override bool Delete(string userSectionId, string id)
     {
-        var path = GetUserFilePath(userSectionId, GetFileId(id));
+        var path = GetUserFilePath(userSectionId, id);
         if (!File.Exists(path))
             return false;
         File.Delete(path);
         return true;
     }
 
-    private static string GetFileId(string id)
-        => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(id.ToUpperInvariant())));
+    private DomainDto? ReadDomainFile(string userSectionId, string id)
+    {
+        var path = GetUserFilePath(userSectionId, id);
+        if (!File.Exists(path))
+            return null;
+
+        var scope = JsonSerializer.Deserialize<DomainDto>(File.ReadAllText(path))
+            ?? throw new InvalidOperationException($"Failed to deserialize domain from '{path}'.");
+        scope.Id = string.IsNullOrWhiteSpace(scope.Id)
+            ? Path.GetFileNameWithoutExtension(path)
+            : scope.Id;
+        return scope;
+    }
 }

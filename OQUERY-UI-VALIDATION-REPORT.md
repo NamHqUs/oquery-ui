@@ -199,7 +199,7 @@ after every test.
 | 2 | Edit description | PASS | Saved model contained `QA description`; restore returned HTTP 200 |
 | 3 | Add entity (`Users`) | PASS | Entity count increased from 5 to 6 and `Users` was present |
 | 4 | Update entity name (`Departments` → `Departments QA`) | PASS | Saved model contained `Departments QA` |
-| 5 | Remove entity (`Locations`) | PASS | `Locations` was absent from the saved model |
+| 5 | Remove entity (`Locations`) | **FAIL / incomplete coverage** | Single-entity removal was absent from the immediate JSON response, but the all-but-one Healthcare scenario was not tested and the diagram was not verified after navigation |
 | 6 | Add field (`QAField`) | PASS | `QAField` was present on `Departments` |
 | 7 | Update field (`Id` → `Id QA`) | PASS | `Departments.fields` contained `Id QA` |
 | 8 | Remove field (`Name`) | PASS | `Name` was absent and the remaining field list was preserved |
@@ -215,6 +215,50 @@ not change the persisted JSON model. The same field update through the
 diagram's visible Entity Definition editor passed. This is a scoped workflow
 failure: existing-entity field edits should either be persisted by the wizard
 or the wizard should clearly make the entity editor the required path.
+
+### Entity removal regression
+
+The previous entity-removal PASS was not sufficient. It removed one entity and
+checked only the immediate API response. It did not validate the required
+scenario where Healthcare is reduced to one remaining entity and the diagram
+is reloaded.
+
+Reported reproduction:
+
+1. Open the Healthcare domain.
+2. Remove all entities except one.
+3. Save the domain.
+4. Return to or reload the diagram.
+5. The diagram still shows the original full entity set.
+
+Expected behavior: an empty domain is valid, and saving with one or zero
+entities must persist exactly that entity set. The diagram must not restore
+previous entities. This scenario is now classified as **FAIL** until verified
+fixed.
+
+Retest evidence from Healthcare: the committed baseline contained 6 entities
+(`Diagnoses`, `LabResults`, `Visits`, `Patients`, `Locations`, `Employees`).
+After keeping only `Employees` and saving, the persisted JSON contained
+`Patients` and `Employees` (2 entities). The removed entities were not all
+removed. The committed Healthcare model was restored after the retest.
+
+### Fix retest
+
+The domain editor was corrected to match existing entities by `rawSql` table
+mapping as well as entity name, track the actual entity name when a mapped
+table is removed, allow an existing domain to become empty, and prevent the
+initial source-selection effect from repopulating a deliberate `Clear all`.
+Entity removal now also cleans relations referencing the removed entity.
+
+Retested results:
+
+| Scenario | Result |
+|---|---|
+| Healthcare: keep only `Employees`, save, reload | PASS; persisted JSON contained only `Employees` |
+| Healthcare: `Clear all`, save, reload | PASS; persisted JSON contained zero entities |
+| Entity removal in the definition editor | PASS; relations referencing the removed entity are removed from remaining in-memory entities |
+| Relation with empty From/source or To/target key | PASS; save is rejected with a validation message |
+| Frontend production build | PASS (`npm run build`) |
 
 ### Final-state verification
 
@@ -259,3 +303,15 @@ through the Domain Wizard was a cross-workflow scenario and is therefore
 **out of scope**, not a confirmed Domain Edit defect. Relation-specific
 validation should be performed entirely in Entity Definition, with the JSON
 model compared after each individual relation action.
+
+### Empty-domain save from the Domain Diagram
+
+Validation date: 2026-11-10
+
+From the Healthcare Domain Diagram, the edit wizard was opened, all six
+entities were cleared in Step 1, the wizard advanced through Step 2, and
+“Save domain changes” was invoked in Step 3. The persisted
+`Healthcare` domain returned zero entities from the API, and the Diagram
+reloaded with no selected entity or entity cards.
+
+Result: **PASS**

@@ -8,7 +8,8 @@ import "./entity-diagram.css";
 
 type EntityDiagramProps = {
   entities: MetadataEntity[];
-  domains?: { name: string; entities: MetadataEntity[] }[];
+  domains?: { id: string; name: string; entities: MetadataEntity[] }[];
+  domainNames?: { id: string; name: string }[];
   activeScopeName?: string;
   selectedEntityName?: string;
   loading?: boolean;
@@ -24,6 +25,7 @@ type EntityDiagramProps = {
 export default function EntityDiagram({
   entities,
   domains,
+  domainNames,
   activeScopeName,
   selectedEntityName,
   loading = false,
@@ -53,10 +55,13 @@ export default function EntityDiagram({
       isPrimaryKey: false,
     })),
   }));
-  const scopeGroups = domains?.map((scope, index) => ({
+  const scopeGroups = (domainNames || domains)?.map((scope, index) => ({
     name: scope.name,
     tone: diagramGroupTone(index),
-    tables: (scope.name === activeScopeName ? displayedEntities : scope.entities).map(applyDraft).map((entity) => ({
+    tables: (scope.id === activeScopeName || (!activeScopeName && scope.id === "All")
+      ? displayedEntities
+      : domains?.find(domain => domain.id === scope.id)?.entities || [])
+      .map(applyDraft).map((entity) => ({
       schema: entity.schema || "dbo",
       name: entity.name,
       columns: entity.fields.map((field) => ({

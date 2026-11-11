@@ -985,16 +985,18 @@ export const fetchQueryMetadata = createAsyncThunk(
   "queryBuilder/fetchMetadata",
   async (scope: string | undefined = undefined, { rejectWithValue }) => {
     try {
-      const url = new URL(apiUrls.metadata.list, window.location.origin);
-      if (scope?.trim()) url.searchParams.set("scope", scope.trim());
-      const payload = await requestJson(url.toString());
-      if (!Array.isArray(payload) || payload.some((entity) => !entity
+      const domainId = scope?.trim() || "All";
+      const payload = await requestJson(apiUrls.metadata.domainById(domainId));
+      const entities = typeof payload === "object" && payload !== null && "entities" in payload
+        ? payload.entities
+        : null;
+      if (!Array.isArray(entities) || entities.some((entity) => !entity
         || typeof entity.name !== "string"
         || !Array.isArray(entity.fields)
         || (entity.relations !== undefined && !Array.isArray(entity.relations)))) {
-        return rejectWithValue("Metadata API must return entities with fields.");
+        return rejectWithValue("Domain API must return entities with fields.");
       }
-      return payload as MetadataEntity[];
+      return entities as MetadataEntity[];
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : "Unable to load query metadata.");
     }
