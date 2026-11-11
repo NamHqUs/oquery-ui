@@ -49,9 +49,6 @@ type DomainOption = {
   id: string;
   name: string;
 };
-type DomainSummaryDto = DomainOption & {
-  description: string;
-};
 type SavedDomainDto = {
   entities: DomainEntityDto[];
   relations: DomainRelation[];
@@ -100,9 +97,10 @@ async function request<T = unknown>(url: string, options?: RequestInit): Promise
 }
 
 async function loadDomainSummaries(): Promise<DomainSummary[]> {
-  const domains = await request<DomainSummaryDto[]>(apiUrls.metadata.domainNamesWithDescriptions);
+  const domains = await request<DomainOption[]>(apiUrls.metadata.domainNames);
   return domains.map(domain => ({
     ...domain,
+    description: "",
     entities: [],
     relations: [],
     canDelete: domain.id !== "All",
@@ -165,11 +163,20 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     setDirty(false);
     setStatus("succeeded");
   };
-  const handleDomainSaved = (domain: Domain) => {
+  const handleDomainChanged = (domain: Domain, pendingSave = false) => {
     setDomainEntities(domain.entities);
     setDomainRelations(domain.relations);
     setLoadedDomainId(domain.id);
+    if (pendingSave) {
+      setSelectedName("");
+      setDraft(null);
+      setDirty(true);
+    } else {
+      setDirty(false);
+    }
     dispatch(setQueryMetadata({ entities: domain.entities, relations: domain.relations }));
+    setDomainOptions((current) => current.map((item) =>
+      item.id === domain.id ? { ...item, name: domain.name } : item));
     setDomains((current) => current.some((item) => item.id === domain.id)
       ? current.map((item) => item.id === domain.id ? domain : item)
       : [...current, domain]);
@@ -974,7 +981,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         <DomainList
           active={activeSection === "domains"}
           domains={domains}
-          onDomainSaved={handleDomainSaved}
+          onDomainChanged={handleDomainChanged}
         />
       </div>}
       {toolbarHost && createPortal(

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -130,11 +130,11 @@ function parseUploadedTables(text: string, fileName: string): DatabaseTable[] {
 export default function DomainList({
   active,
   domains,
-  onDomainSaved,
+  onDomainChanged,
 }: {
   active: boolean;
   domains: Domain[];
-  onDomainSaved?: (domain: Domain) => void;
+  onDomainChanged?: (domain: Domain, pendingSave?: boolean) => void;
 }) {
   const [domainItems, setDomainItems] = useState<Domain[]>(domains);
   const location = useLocation();
@@ -167,6 +167,7 @@ export default function DomainList({
   const [status, setStatus] = useState<"loading" | "ready" | "saving">("loading");
   const [error, setError] = useState("");
   const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
+  const editDomainRequestRef = useRef<string | null>(null);
   const panel = useResizablePanel("domain");
   const showMessageBox = useMessageBox();
   const toggleDescription = (name: string) => {
@@ -218,12 +219,20 @@ export default function DomainList({
     setStatus("loading");
     setError("");
     try {
+      if (location.pathname !== EDIT_DOMAIN_PATH) editDomainRequestRef.current = null;
       const domainResult = domains;
-      setDomainItems(domainResult);
       const routeDomainId = new URLSearchParams(location.search).get("domain");
       const requestedDomain = routeDomainId || selectedName;
       if (requestedDomain && location.pathname !== CREATE_DOMAIN_PATH) {
         const summary = domainResult.find(domain => domain.id === requestedDomain);
+        const shouldRefreshEditDomain = Boolean(
+          summary
+          && location.pathname === EDIT_DOMAIN_PATH
+          && editDomainRequestRef.current !== requestedDomain,
+        );
+        if (summary && location.pathname === EDIT_DOMAIN_PATH && !shouldRefreshEditDomain) return;
+        if (shouldRefreshEditDomain) editDomainRequestRef.current = requestedDomain;
+        setDomainItems(domainResult);
         const refreshed = summary && location.pathname === EDIT_DOMAIN_PATH
           ? toDomain(await request<DomainDto>(apiUrls.metadata.domainById(summary.id)))
           : summary;
@@ -238,8 +247,11 @@ export default function DomainList({
           setEntityDraft(entity ? toEditable(entity) : null);
           setEntityDirty(false);
         }
+      } else {
+        setDomainItems(domainResult);
       }
     } catch (reason) {
+      if (location.pathname === EDIT_DOMAIN_PATH) editDomainRequestRef.current = null;
       setError(reason instanceof Error ? reason.message : "Unable to load domains and database tables.");
     } finally {
       setStatus("ready");
@@ -529,17 +541,27 @@ export default function DomainList({
         const relationProblem = findRelationProblem(saveTarget.entities, saveTarget.relations);
         if (relationProblem) throw new Error(relationProblem);
       }
-      const savedDto = selected
-        ? await request<DomainDto>(apiUrls.metadata.domainById(selected.id), {
-            method: "PUT",
-              body: JSON.stringify({
-                name: draftName.trim(),
-                description: draftDescription.trim(),
-                entities: saveTarget.entities.map(toEntityPayload),
-                relations: toRelationPayload(saveTarget.relations),
-              }),
-            })
-        : wizardSource === "file"
+      if (selected) {
+        const applied = {
+          ...selected,
+          name: draftName.trim(),
+          description: draftDescription.trim(),
+          entities: saveTarget.entities,
+          relations: saveTarget.relations,
+        };
+        onDomainChanged?.(applied, true);
+        setDomainItems(current => current.map(domain => domain.id === applied.id ? applied : domain));
+        setEntityDirty(false);
+        setRemovedEntityNames([]);
+        const returnSection = new URLSearchParams(location.search).get("returnSection") || "domains";
+        navigate(`/metadata?section=${encodeURIComponent(returnSection)}&domain=${encodeURIComponent(applied.id)}`);
+        setSelectedName(applied.id);
+        setDraftName(applied.name);
+        setStep(3);
+        setViewMode("detail");
+        return true;
+      }
+      const savedDto = wizardSource === "file"
           ? await request<DomainDto>(apiUrls.metadata.createDomain, {
             method: "POST",
             body: JSON.stringify({
@@ -593,7 +615,7 @@ export default function DomainList({
             }),
           });
       const saved = toDomain(savedDto);
-      onDomainSaved?.(saved);
+      onDomainChanged?.(saved);
       setDomainItems(current => selected
         ? current.map(domain => domain.id === selected.id ? saved : domain)
         : [...current, saved]);
@@ -608,7 +630,7 @@ export default function DomainList({
       setViewMode("detail");
       return true;
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Unable to generate domain metadata.");
+      setError(reason instanceof Error ? reason.message : selected ? "Unable to apply domain changes." : "Unable to generate domain metadata.");
       return false;
     } finally {
       setStatus("ready");
@@ -1056,9 +1078,9 @@ export default function DomainList({
             {step === 3 && <div className="domain-final-details">
               <label className="domain-name"><span>Domain name</span><input autoFocus spellCheck={false} value={draftName} onChange={event => setDraftName(event.target.value)} placeholder="e.g. Sales" /><small>Use a name that describes the business area this workspace serves.</small></label>
               <label className="domain-description"><span>Description <small>(optional)</small></span><textarea spellCheck={false} value={draftDescription} onChange={event => setDraftDescription(event.target.value)} placeholder="Describe the business area this domain represents." rows={4} /></label>
-              <p className="domain-generation-summary">{selected ? `${selected.entities.length - removedEntityNames.length + selectedTableDetails.filter(table => !selected.entities.some(entity => entity.name.toLowerCase() === table.name.toLowerCase())).length} entities will be saved.` : `${selectedTables.length} entities are ready to generate.`}</p>
+              <p className="domain-generation-summary">{selected ? `${selected.entities.length - removedEntityNames.length + selectedTableDetails.filter(table => !selected.entities.some(entity => entity.name.toLowerCase() === table.name.toLowerCase())).length} entities will be applied to the diagram.` : `${selectedTables.length} entities are ready to generate.`}</p>
               <button type="button" className="domain-primary domain-generate-content-button" onClick={() => void save()} disabled={status === "saving" || !canContinue}>
-                {status === "saving" ? (selected ? "Saving…" : "Generating…") : (selected ? "Save domain changes" : "Generate metadata")} <Icon name={selected ? "save" : "arrow-right"} size={14} />
+                {status === "saving" ? (selected ? "Applying…" : "Generating…") : (selected ? "Apply domain changes" : "Generate metadata")} <Icon name={selected ? "check" : "arrow-right"} size={14} />
               </button>
             </div>}
           </DomainWizard>

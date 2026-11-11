@@ -37,7 +37,7 @@ export default function DomainWizard({
   children,
 }: DomainWizardProps) {
   const steps = mode === "edit"
-    ? [["1", "Append Sources", "Existing and new tables or entities"], ["2", "Design entities", "Existing and new entity fields"], ["3", "Save changes", "Review domain updates"]]
+    ? [["1", "Append Sources", "Existing and new tables or entities"], ["2", "Design entities", "Existing and new entity fields"], ["3", "Apply changes", "Review domain updates"]]
     : [["1", "Source", "Database or file"], ["2", "Design entities", "Entity fields and relations"], ["3", "Generate", "Domain identity"]];
   const finalStep = 3;
   const [railFloating, setRailFloating] = useState(false);
@@ -64,7 +64,7 @@ export default function DomainWizard({
         <div>
           <h3>{mode === "edit" ? "Edit domain" : "New domain"}</h3>
           {mode === "edit" && domainDisplayName && <strong className="domain-wizard-current-domain">{domainDisplayName}</strong>}
-          <p>{mode === "edit" ? "Update this existing domain by adding or removing entities, then save the complete definition." : "Choose a source, prepare its entities, and generate query-ready metadata."}</p>
+          <p>{mode === "edit" ? "Update this existing domain by adding or removing entities, then apply the changes to the diagram." : "Choose a source, prepare its entities, and generate query-ready metadata."}</p>
         </div>
         <div className="domain-wizard-header-actions">
           <span className="domain-progress">STEP {step} OF {finalStep}</span>
