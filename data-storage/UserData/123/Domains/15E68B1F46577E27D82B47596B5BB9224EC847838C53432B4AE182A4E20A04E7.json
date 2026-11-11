@@ -18,7 +18,7 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "Departments",
+      "DbTable": "Departments",
       "DbSchema": "hr"
     },
     {
@@ -61,7 +61,7 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "LeaveRequests",
+      "DbTable": "LeaveRequests",
       "DbSchema": "hr"
     },
     {
@@ -98,7 +98,7 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "PerformanceReviews",
+      "DbTable": "PerformanceReviews",
       "DbSchema": "hr"
     },
     {
@@ -165,7 +165,7 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "Employees",
+      "DbTable": "Employees",
       "DbSchema": "main"
     },
     {
@@ -196,7 +196,7 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "Locations",
+      "DbTable": "Locations",
       "DbSchema": "main"
     }
   ],

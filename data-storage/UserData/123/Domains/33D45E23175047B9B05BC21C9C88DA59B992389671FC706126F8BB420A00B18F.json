@@ -48,7 +48,7 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "User",
+      "DbTable": "User",
       "DbSchema": null
     },
     {
@@ -73,7 +73,7 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "School",
+      "DbTable": "School",
       "DbSchema": "main"
     },
     {
@@ -98,7 +98,7 @@
           "IsRawSql": true
         }
       ],
-      "RawSql": "Select * From [User]",
+      "DbTable": "Select * From [User]",
       "DbSchema": null
     }
   ],

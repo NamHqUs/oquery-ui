@@ -42,7 +42,7 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "OrderItems",
+      "DbTable": "OrderItems",
       "DbSchema": "sa"
     },
     {
@@ -85,7 +85,7 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "Orders",
+      "DbTable": "Orders",
       "DbSchema": "sa"
     },
     {
@@ -122,7 +122,7 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "Products",
+      "DbTable": "Products",
       "DbSchema": "sa"
     },
     {
@@ -189,7 +189,7 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "Employees",
+      "DbTable": "Employees",
       "DbSchema": "main"
     },
     {
@@ -238,7 +238,7 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "Users",
+      "DbTable": "Users",
       "DbSchema": null
     }
   ],

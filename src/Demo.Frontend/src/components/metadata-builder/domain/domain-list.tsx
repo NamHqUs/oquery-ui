@@ -28,6 +28,18 @@ export type Domain = {
   canDelete: boolean;
   isBuiltin: boolean;
 };
+export const cloneDomain = (domain: Domain): Domain => ({
+  ...domain,
+  entities: domain.entities.map(entity => ({
+    ...entity,
+    fields: entity.fields.map(field => ({ ...field })),
+  })),
+  relations: domain.relations.map(relation => ({
+    ...relation,
+    sourceFields: [...relation.sourceFields],
+    targetFields: [...relation.targetFields],
+  })),
+});
 type DomainDto = Omit<Domain, "entities"> & { entities: DomainEntityDto[] };
 const toDomain = (dto: DomainDto): Domain => ({ ...dto, entities: dto.entities.map(metadataEntityFromDto) });
 const normalizeEntityDraft = (draft: EditableEntity): EditableEntity => ({
@@ -76,14 +88,39 @@ const tableKey = (table: Pick<DatabaseTable, "schema" | "name">) => `${table.sch
 const normalizeTablePart = (value: string) => value.trim().replace(/[\[\]"`]/g, "").toLowerCase();
 const entityMatchesTable = (entity: MetadataEntity, table: DatabaseTable) => {
   const tableName = normalizeTablePart(table.name);
-  const qualifiedName = `${normalizeTablePart(table.schema)}.${tableName}`;
-  return [entity.rawSql || "", entity.name].some(value => {
+  const tableSchema = normalizeTablePart(table.schema || "dbo");
+  const qualifiedName = `${tableSchema}.${tableName}`;
+  return [entity.dbTable || "", entity.rawSql || "", entity.name].some(value => {
     const normalized = normalizeTablePart(value);
     return normalized === tableName
       || normalized === qualifiedName
       || normalized.endsWith(`.${tableName}`);
   });
 };
+const existingTableKeys = (domain: Domain, tables: DatabaseTable[]) =>
+  domain.entities
+    .map(entity => tables.find(table => entityMatchesTable(entity, table)))
+    .filter((table): table is DatabaseTable => Boolean(table))
+    .map(tableKey);
+const entityNamesForTables = (domain: Domain, tables: DatabaseTable[], keys: string[]) =>
+  Object.fromEntries(keys.flatMap(key => {
+    const table = tables.find(candidate => tableKey(candidate) === key);
+    const entity = table && domain.entities.find(candidate => entityMatchesTable(candidate, table));
+    return table && entity ? [[key, entity.name]] : [];
+  }));
+const relationMatchesDatabaseRelation = (domain: Domain, relation: DatabaseRelationship) =>
+  domain.relations.some(existing => {
+    const source = domain.entities.find(entity => entity.name === existing.sourceEntity);
+    const target = domain.entities.find(entity => entity.name === existing.targetEntity);
+    return Boolean(
+      source
+      && target
+      && entityMatchesTable(source, { schema: relation.sourceSchema, name: relation.sourceTable, columns: [] })
+      && entityMatchesTable(target, { schema: relation.targetSchema, name: relation.targetTable, columns: [] })
+      && JSON.stringify(existing.sourceFields) === JSON.stringify(relation.sourceColumns)
+      && JSON.stringify(existing.targetFields) === JSON.stringify(relation.targetColumns),
+    );
+  });
 const dataTypeIcons: Record<string, IconName> = {
   string: "type",
   number: "type-number",
@@ -136,7 +173,7 @@ export default function DomainList({
   domains: Domain[];
   onDomainChanged?: (domain: Domain, pendingSave?: boolean) => void;
 }) {
-  const [domainItems, setDomainItems] = useState<Domain[]>(domains);
+  const [domainItems, setDomainItems] = useState<Domain[]>(() => domains.map(cloneDomain));
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -220,7 +257,12 @@ export default function DomainList({
     setError("");
     try {
       if (location.pathname !== EDIT_DOMAIN_PATH) editDomainRequestRef.current = null;
-      const domainResult = domains;
+      const routedDomain = (location.state as { domain?: Domain } | null)?.domain;
+      const domainResult = routedDomain
+        ? domains.some(domain => domain.id === routedDomain.id)
+          ? domains.map(domain => domain.id === routedDomain.id ? routedDomain : domain)
+          : [...domains, routedDomain]
+        : domains;
       const routeDomainId = new URLSearchParams(location.search).get("domain");
       const requestedDomain = routeDomainId || selectedName;
       if (requestedDomain && location.pathname !== CREATE_DOMAIN_PATH) {
@@ -228,9 +270,10 @@ export default function DomainList({
         const shouldRefreshEditDomain = Boolean(
           summary
           && location.pathname === EDIT_DOMAIN_PATH
+          && !routedDomain
           && editDomainRequestRef.current !== requestedDomain,
         );
-        if (summary && location.pathname === EDIT_DOMAIN_PATH && !shouldRefreshEditDomain) return;
+        if (summary && location.pathname === EDIT_DOMAIN_PATH && !shouldRefreshEditDomain && !routedDomain) return;
         if (shouldRefreshEditDomain) editDomainRequestRef.current = requestedDomain;
         setDomainItems(domainResult);
         const refreshed = summary && location.pathname === EDIT_DOMAIN_PATH
@@ -270,19 +313,13 @@ export default function DomainList({
       || sourceSelectionInitialized
       || !selected
       || !schema.tables.length) return;
-    const existingKeys = selected.entities
-      .map(entity => schema.tables.find(table => entityMatchesTable(entity, table)))
-      .filter((table): table is DatabaseTable => Boolean(table))
-      .map(tableKey);
-    if (!existingKeys.length) {
-      setSourceSelectionInitialized(true);
-      return;
-    }
+    const existingKeys = existingTableKeys(selected, schema.tables);
     setSelectedTables(existingKeys);
     setSelectedColumns(Object.fromEntries(existingKeys.map(key => {
       const table = schema.tables.find(candidate => tableKey(candidate) === key);
       return [key, table?.columns.map(column => column.name) || []];
     })));
+    setEntityNames(entityNamesForTables(selected, schema.tables, existingKeys));
     setSourceSelectionInitialized(true);
   }, [location.pathname, schema.tables, selected, sourceSelectionInitialized, wizardSource]);
 
@@ -364,7 +401,14 @@ export default function DomainList({
     setSelectedEntityName(domain.entities[0]?.name || "");
     setEntityDraft(domain.entities[0] ? toEditable(domain.entities[0]) : null);
     setRemovedEntityNames([]);
-    setSelectedTables([]);
+    const existingKeys = existingTableKeys(domain, schema.tables);
+    setSelectedTables(existingKeys);
+    setSelectedColumns(Object.fromEntries(existingKeys.map(key => {
+      const table = schema.tables.find(candidate => tableKey(candidate) === key);
+      return [key, table?.columns.map(column => column.name) || []];
+    })));
+    setEntityNames(entityNamesForTables(domain, schema.tables, existingKeys));
+    setSourceSelectionInitialized(schema.tables.length > 0);
     setStep(1);
     setError("");
   };
@@ -1024,7 +1068,7 @@ export default function DomainList({
                             ? current.includes(existingEntity.name) ? current : [...current, existingEntity.name]
                             : current.filter(name => name.toLowerCase() !== existingEntity.name.toLowerCase()));
                         }
-                      }} /><span>{table.name}</span></label>;
+                      }} /><span><strong>{table.name}</strong>{existingEntity && <small className="domain-table-entity">Entity: {existingEntity.name}</small>}</span></label>;
                     })}</div>
                   </section>)}
                   {schema.tables.length > 0 && !filteredTables.length && <p className="empty-state">No tables match this filter.</p>}
@@ -1035,15 +1079,16 @@ export default function DomainList({
                     if (selected) setRemovedEntityNames(selected.entities.map(entity => entity.name));
                   }} disabled={!selectedTableDetails.length}>Clear all</button></span></div>
                   {selectedTableDetails.length > 0 ? <div className="domain-selected-table-list">{selectedTableDetails.map(table => {
-                    const existing = selected?.entities.some(entity => entityMatchesTable(entity, table)) ?? false;
+                    const existingEntity = selected?.entities.find(entity => entityMatchesTable(entity, table));
+                    const existing = Boolean(existingEntity);
                     return <button key={tableKey(table)} className={existing ? "existing-source" : "append-source"} type="button" onClick={() => {
                     setSelectedTables(current => current.filter(key => key !== tableKey(table)));
                     if (selected) {
-                      const existing = selected.entities.find(entity => entityMatchesTable(entity, table));
-                      if (existing) setRemovedEntityNames(current => current.includes(existing.name) ? current : [...current, existing.name]);
+                      const entity = selected.entities.find(item => entityMatchesTable(item, table));
+                      if (entity) setRemovedEntityNames(current => current.includes(entity.name) ? current : [...current, entity.name]);
                     }
                   }} title={`Remove ${table.name}`}>
-                    <span><strong>{table.name}</strong><small>{table.schema}</small></span><b aria-hidden="true">×</b>
+                    <span><strong>{table.name}</strong><small>{table.schema}</small>{existingEntity && <small className="domain-table-entity">Entity: {existingEntity.name}</small>}</span><b aria-hidden="true">×</b>
                   </button>;
                   })}</div> : <p className="domain-selected-empty">Choose tables from the list to add them to this domain.</p>}
                 </aside>
@@ -1062,7 +1107,7 @@ export default function DomainList({
                 const columns = selectedColumns[key] || table.columns.map(column => column.name);
                 const collapsed = collapsedEntities[key] ?? false;
                 const orderedColumns = [...table.columns].sort((left, right) => Number(columns.includes(right.name)) - Number(columns.includes(left.name)));
-                const existing = selected?.entities.some(entity => entity.name.toLowerCase() === table.name.toLowerCase()) ?? false;
+                const existing = selected?.entities.some(entity => entityMatchesTable(entity, table)) ?? false;
                 return <div key={key} className={`domain-entity-item ${existing ? "existing-source" : "append-source"}`}><button type="button" className="domain-collapse" onClick={() => setCollapsedEntities(current => ({ ...current, [key]: !collapsed }))} aria-expanded={!collapsed} aria-label={`${collapsed ? "Expand" : "Collapse"} ${table.name} entity`}><Icon name={collapsed ? "chevron-right" : "chevron-down"} size={15} /></button><section className="domain-preview-card">
                   <div className="domain-preview-heading"><div className="domain-entity-heading-names"><input className="domain-entity-name" spellCheck={false} value={entityNames[key] ?? table.name} onChange={event => setEntityNames(current => ({ ...current, [key]: event.target.value }))} aria-label={`Entity name for ${table.name}`} /><small>{table.schema}.{table.name}</small></div><button type="button" className="domain-remove" onClick={() => setSelectedTables(current => current.filter(item => item !== key))} aria-label={`Remove ${table.name} table`} title="Remove table"><Icon name="trash" size={15} /></button></div>
                   {!collapsed && <div className="domain-column-grid">{orderedColumns.map(column => <label key={column.name}><input type="checkbox" checked={columns.includes(column.name)} onChange={() => setSelectedColumns(current => ({ ...current, [key]: columns.includes(column.name) ? columns.filter(name => name !== column.name) : [...columns, column.name] }))} /><input className="domain-field-name" spellCheck={false} value={fieldNames[key]?.[column.name] ?? column.name} disabled={!columns.includes(column.name)} onChange={event => setFieldNames(current => ({ ...current, [key]: { ...current[key], [column.name]: event.target.value } }))} aria-label={`Field name for ${column.name}`} /><small className="domain-data-type" title={column.dataType} aria-label={`Data type: ${column.dataType}`}><Icon name={getDataTypeIcon(column.dataType, column.name)} size={14} /></small></label>)}</div>}
@@ -1072,13 +1117,14 @@ export default function DomainList({
               {selectedRelations.length > 0 && <div className="domain-step-section"><h4>Relations</h4><div className="domain-relation-preview"><div className="domain-relation-header"><strong>Relation</strong><strong>Lookup name</strong><strong>Collection name</strong></div>{selectedRelations.map(relation => {
                 const key = relationKey(relation);
                 const names = relationNames[key] || { lookup: singularize(relation.targetTable), collection: pluralize(relation.sourceTable) };
-                return <div key={key} className="domain-relation-row"><span>{relation.sourceTable} → {relation.targetTable}</span><input spellCheck={false} value={names.lookup} aria-label={`Lookup relation for ${relation.name}`} onChange={event => setRelationNames(current => ({ ...current, [key]: { ...names, lookup: event.target.value } }))} /><input spellCheck={false} value={names.collection} aria-label={`Collection relation for ${relation.name}`} onChange={event => setRelationNames(current => ({ ...current, [key]: { ...names, collection: event.target.value } }))} /></div>;
+                const existing = selected ? relationMatchesDatabaseRelation(selected, relation) : false;
+                return <div key={key} className={`domain-relation-row${selected ? (existing ? " existing-source" : " append-source") : ""}`}><span>{relation.sourceTable} → {relation.targetTable}</span><input spellCheck={false} value={names.lookup} aria-label={`Lookup relation for ${relation.name}`} onChange={event => setRelationNames(current => ({ ...current, [key]: { ...names, lookup: event.target.value } }))} /><input spellCheck={false} value={names.collection} aria-label={`Collection relation for ${relation.name}`} onChange={event => setRelationNames(current => ({ ...current, [key]: { ...names, collection: event.target.value } }))} /></div>;
               })}</div></div>}
             </div>}
             {step === 3 && <div className="domain-final-details">
               <label className="domain-name"><span>Domain name</span><input autoFocus spellCheck={false} value={draftName} onChange={event => setDraftName(event.target.value)} placeholder="e.g. Sales" /><small>Use a name that describes the business area this workspace serves.</small></label>
               <label className="domain-description"><span>Description <small>(optional)</small></span><textarea spellCheck={false} value={draftDescription} onChange={event => setDraftDescription(event.target.value)} placeholder="Describe the business area this domain represents." rows={4} /></label>
-              <p className="domain-generation-summary">{selected ? `${selected.entities.length - removedEntityNames.length + selectedTableDetails.filter(table => !selected.entities.some(entity => entity.name.toLowerCase() === table.name.toLowerCase())).length} entities will be applied to the diagram.` : `${selectedTables.length} entities are ready to generate.`}</p>
+              <p className="domain-generation-summary">{selected ? `${selected.entities.length - removedEntityNames.length + selectedTableDetails.filter(table => !selected.entities.some(entity => entityMatchesTable(entity, table))).length} entities will be applied to the diagram.` : `${selectedTables.length} entities are ready to generate.`}</p>
               <button type="button" className="domain-primary domain-generate-content-button" onClick={() => void save()} disabled={status === "saving" || !canContinue}>
                 {status === "saving" ? (selected ? "Applying…" : "Generating…") : (selected ? "Apply domain changes" : "Generate metadata")} <Icon name={selected ? "check" : "arrow-right"} size={14} />
               </button>

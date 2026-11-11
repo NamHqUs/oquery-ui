@@ -25,7 +25,7 @@ export function toEditable(entity: MetadataEntity): EditableEntity {
   return {
     ...entity,
     schema: entity.schema || "dbo",
-    rawSql: entity.rawSql || "",
+    rawSql: entity.rawSql || entity.dbTable || "",
     fields: entity.fields.map((field) => ({ ...field, id: createFieldId() })),
   };
 }
@@ -38,6 +38,7 @@ export function toEntityPayload(entity: MetadataEntity) {
   return {
     name: entity.name,
     dbSchema: entity.schema || undefined,
+    dbTable: entity.dbTable || entity.rawSql || entity.name,
     rawSql: entity.rawSql || entity.name,
     fields: entity.fields.map((field) => ({
       name: field.name,

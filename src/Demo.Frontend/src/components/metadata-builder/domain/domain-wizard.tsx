@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import Icon from "../../icon/icon";
 import "./domain-wizard.css";
 
@@ -42,11 +43,11 @@ export default function DomainWizard({
   const finalStep = 3;
   const [railFloating, setRailFloating] = useState(false);
   const [railLeft, setRailLeft] = useState<number | null>(null);
+  const wizardBodyRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const sidebar = document.querySelector<HTMLElement>(".domain-wizard-sidebar");
-    setRailLeft(sidebar?.getBoundingClientRect().left ?? 22);
     const updateRailPosition = () => {
       const documentScrollTop = document.scrollingElement?.scrollTop ?? 0;
+      setRailLeft(wizardBodyRef.current?.getBoundingClientRect().left ?? 22);
       setRailFloating(Math.max(window.scrollY, document.documentElement.scrollTop, documentScrollTop) > 220);
     };
     updateRailPosition();
@@ -57,6 +58,24 @@ export default function DomainWizard({
       document.removeEventListener("scroll", updateRailPosition, { capture: true });
     };
   }, []);
+  const sidebar = (
+    <aside
+      className={`domain-wizard-sidebar${railFloating ? " is-floating" : ""}`}
+      style={railFloating && railLeft !== null ? { left: `${railLeft}px` } : undefined}
+    >
+      <div className="domain-steps" aria-label={`Domain ${mode} steps`}>
+        {steps.map(([number, label, description]) => (
+          <button key={number} type="button" className={step === Number(number) ? "active" : step > Number(number) ? "complete" : ""} onClick={() => Number(number) <= step && onStepChange(Number(number) as WizardStep)} disabled={Number(number) > step}>
+            <strong>{step > Number(number) ? "✓" : number}</strong><span><b>{label}</b><small>{description}</small></span>
+          </button>
+        ))}
+      </div>
+      <footer className="domain-wizard-footer">
+        <button type="button" className="domain-secondary" onClick={onBack} disabled={step === 1 || saving}><Icon name="arrow-left" size={14} /> Back</button>
+        <button type="button" className="domain-primary" onClick={onNext} disabled={step === finalStep || !canContinue || saving}>Next <Icon name="arrow-right" size={14} /></button>
+      </footer>
+    </aside>
+  );
 
   return (
     <div className="domain-wizard">
@@ -79,23 +98,10 @@ export default function DomainWizard({
         </button>
       </div>
       {error && <p className="domain-error" role="alert">{error}</p>}
-      <div className="domain-wizard-body">
-        <aside
-          className={`domain-wizard-sidebar${railFloating ? " is-floating" : ""}`}
-          style={railFloating && railLeft !== null ? { left: `${railLeft}px` } : undefined}
-        >
-          <div className="domain-steps" aria-label={`Domain ${mode} steps`}>
-            {steps.map(([number, label, description]) => (
-              <button key={number} type="button" className={step === Number(number) ? "active" : step > Number(number) ? "complete" : ""} onClick={() => Number(number) <= step && onStepChange(Number(number) as WizardStep)} disabled={Number(number) > step}>
-                <strong>{step > Number(number) ? "✓" : number}</strong><span><b>{label}</b><small>{description}</small></span>
-              </button>
-            ))}
-          </div>
-          <footer className="domain-wizard-footer">
-            <button type="button" className="domain-secondary" onClick={onBack} disabled={step === 1 || saving}><Icon name="arrow-left" size={14} /> Back</button>
-            <button type="button" className="domain-primary" onClick={onNext} disabled={step === finalStep || !canContinue || saving}>Next <Icon name="arrow-right" size={14} /></button>
-          </footer>
-        </aside>
+      <div ref={wizardBodyRef} className="domain-wizard-body">
+        {railFloating
+          ? createPortal(<div className="domain-create-view domain-wizard-portal">{sidebar}</div>, document.body)
+          : sidebar}
         <div className="domain-step-panel">{children}</div>
       </div>
     </div>

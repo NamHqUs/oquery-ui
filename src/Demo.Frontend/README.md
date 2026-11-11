@@ -44,6 +44,31 @@ strings are never returned to the frontend. The active database instance is
 shared by all clients; `POST /db/disconnect` does not release or dispose it, so
 one client's disconnect cannot interrupt other clients.
 
+## Domain identity and routing
+
+Domain names are display labels only. Every domain lookup, metadata request,
+selection, edit flow, and URL route must use the persisted domain `id`; never
+use the display `name` as a domain identifier.
+
+The domain list endpoint returns both values:
+
+```json
+{ "id": "<domain-id>", "name": "HR" }
+```
+
+Use the `id` for API and route operations:
+
+```text
+GET /metadata/domains/{domain-id}
+PUT /metadata/domains/{domain-id}
+/metadata?section=diagram&domain={domain-id}
+```
+
+The frontend may render `name` in domain bars, selectors, and headings, but it
+must resolve that display value back to the canonical `id` before retrieving
+metadata or navigating. This keeps domain names renameable without breaking
+domain identity or loading the wrong domain.
+
 After connecting, the Data View groups tables by schema, displays column and relationship metadata, and previews up to 10 rows. Schema and relationship metadata come from `GET /db/schema`; preview data comes from `GET /db/data/{tableName}` with `schema` and `limit=10` query parameters. The schema Diagram remains available as the metadata-builder view.
 
 Run it with:

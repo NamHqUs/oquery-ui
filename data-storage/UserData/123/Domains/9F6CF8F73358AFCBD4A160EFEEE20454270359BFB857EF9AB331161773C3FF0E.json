@@ -66,7 +66,7 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "Claims",
+      "DbTable": "Claims",
       "DbSchema": "in"
     },
     {
@@ -115,7 +115,7 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "InsurancePlans",
+      "DbTable": "InsurancePlans",
       "DbSchema": "in"
     },
     {
@@ -164,7 +164,7 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "Policies",
+      "DbTable": "Policies",
       "DbSchema": "in"
     },
     {
@@ -201,7 +201,7 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "PremiumPayments",
+      "DbTable": "PremiumPayments",
       "DbSchema": "in"
     },
     {
@@ -268,7 +268,7 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "Employees",
+      "DbTable": "Employees",
       "DbSchema": "main"
     },
     {
@@ -317,7 +317,7 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "Users",
+      "DbTable": "Users",
       "DbSchema": "main"
     }
   ],

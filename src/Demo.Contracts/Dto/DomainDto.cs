@@ -22,7 +22,7 @@ public sealed class DomainDto
                 entity.Name,
                 entity.Fields,
                 entity.DbSchema,
-                entity.RawSql,
+                entity.DbTable ?? entity.RawSql,
                 [],
                 entity.IsRawSql))
             .ToDictionary(entity => entity.Name, StringComparer.OrdinalIgnoreCase);
@@ -56,12 +56,14 @@ public sealed record EntityDto(
     List<Field> Fields,
     string RawSql)
 {
-    public string? DbSchema { get; init; }
-    public bool IsRawSql { get; init; }
+    public string? DbTable { get; init; } = null;
+    public string? DbSchema { get; init; } = null;
+    public bool IsRawSql { get; init; } = false;
 
     public static EntityDto FromEntity(OQuery.Entity entity)
         => new(entity.Name, entity.Fields, entity.DbTable ?? entity.Name)
         {
+            DbTable = entity.DbTable,
             DbSchema = entity.DbSchema,
             IsRawSql = entity.IsRawSql,
         };

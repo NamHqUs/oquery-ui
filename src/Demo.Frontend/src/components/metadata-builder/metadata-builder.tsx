@@ -15,7 +15,7 @@ import EntityDiagram from "./entity-diagram/entity-diagram";
 import { EditableEntity, emptyEntity, findEntityNameProblem, findRelationProblem, pluralize, removeEntityFromRelations, renameEntityInRelations, singularize, toAbstractDataType, toEditable, toEntityPayload, toRelationPayload } from "./types";
 import FunctionDefinitionsWorkspace from "../function-definition/function-definition";
 import OperatorDefinition from "./operator-definition/operator-definition";
-import DomainList, { type Domain } from "./domain/domain-list";
+import DomainList, { cloneDomain, type Domain } from "./domain/domain-list";
 import { resolveDefinitionChanges, useDefinitionUnsavedWarning } from "./definition-actions/definition-actions";
 import DefinitionActions from "./definition-actions/definition-actions";
 import type { DefinitionActionAdapter } from "./definition-actions/definition-actions";
@@ -61,7 +61,7 @@ function normalizeTablePart(value: string) {
 function entityUsesTable(entity: MetadataEntity, table: { schema: string; name: string }) {
   const tableName = normalizeTablePart(table.name);
   const qualifiedName = `${normalizeTablePart(table.schema || "dbo")}.${tableName}`;
-  return [entity.name, entity.rawSql || ""].some((value) => {
+  return [entity.name, entity.dbTable || "", entity.rawSql || ""].some((value) => {
     const normalized = value.trim().toLowerCase();
     return normalized === tableName
       || normalized === qualifiedName
@@ -71,8 +71,9 @@ function entityUsesTable(entity: MetadataEntity, table: { schema: string; name: 
 
 function entityUsesRawSql(entity: MetadataEntity, tables: DatabaseTableOption[] = []) {
   const rawSql = entity.rawSql?.trim() || "";
+  const dbTable = entity.dbTable?.trim() || "";
   if (entity.fields.some((field) => field.isRawSql)) return true;
-  if (!rawSql || rawSql === entity.name.trim()) return false;
+  if (!rawSql || rawSql === entity.name.trim() || dbTable) return false;
   return !tables.some((table) => entityUsesTable(entity, table));
 }
 
@@ -243,6 +244,29 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     || loadedDomainId !== domainId;
   const canManageCurrentDomain = Boolean(domainId) && !activeDomainIsBuiltin;
   const canSaveCurrentDomain = canManageCurrentDomain && (Boolean(draft) || dirty);
+  const editCurrentDomain = () => {
+    if (!domainId) return;
+    const domain = domains.find(item => item.id === domainId);
+    if (!domain) return;
+    const currentEntities = draft && dirty && selectedName
+      ? displayedEntities.map(entity => entity.name === selectedName ? {
+        ...draft,
+        name: draft.name.trim(),
+        schema: draft.schema.trim(),
+        rawSql: draft.rawSql.trim() || draft.name.trim(),
+        fields: draft.fields.map(field => ({ ...field })),
+      } : entity)
+      : displayedEntities;
+    navigate(`/metadata/domains/edit?section=domains&domain=${encodeURIComponent(domainId)}&returnSection=diagram`, {
+      state: {
+        domain: cloneDomain({
+          ...domain,
+          entities: currentEntities,
+          relations: displayedRelations,
+        }),
+      },
+    });
+  };
   useDefinitionUnsavedWarning(dirty);
 
   const loadEntities = async (selectFirst = false, preferredName = selectedName) => {
@@ -316,6 +340,13 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
             setMessage(reason instanceof Error ? reason.message : "Unable to load the selected domain.");
           }
         });
+      return () => { cancelled = true; };
+    }
+
+    const routedDomain = (location.state as { domain?: DomainSummary } | null)?.domain;
+    if (location.pathname === "/metadata/domains/edit"
+      && domainId
+      && routedDomain?.id === domainId) {
       return () => { cancelled = true; };
     }
 
@@ -781,7 +812,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       {domainId && <button className="icon-button definition-action-button" type="button" title="Reload domain" aria-label="Reload domain" onClick={() => void reloadDiagramDomain()} disabled={metadataBusy}>
         <Icon name="reset" size={17} />
       </button>}
-      {canManageCurrentDomain && <button className="icon-button definition-action-button" type="button" title="Edit domain entities in wizard" aria-label="Edit domain entities in wizard" onClick={() => navigate(`/metadata/domains/edit?section=domains&domain=${encodeURIComponent(domainId)}&returnSection=diagram`)} disabled={metadataBusy}>
+      {canManageCurrentDomain && <button className="icon-button definition-action-button" type="button" title="Edit domain entities in wizard" aria-label="Edit domain entities in wizard" onClick={editCurrentDomain} disabled={metadataBusy}>
         <Icon name="edit" size={17} />
       </button>}
       <button className="icon-button definition-action-button create" type="button" title="Create domain" aria-label="Create domain" onClick={createDiagramDomain} disabled={metadataBusy}>
@@ -828,7 +859,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     navigate(`/metadata?${nextSearchParams.toString()}`);
   };
   const selectDiagramDomain = (domainId: string) => {
-    const domain = domainOptions.find(item => item.id === domainId);
+    const domain = domainOptions.find(item => item.id === domainId)
+      || domainOptions.find(item => item.name === domainId);
     if (!domain) return;
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.set("section", "diagram");

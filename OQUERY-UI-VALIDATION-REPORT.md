@@ -185,13 +185,14 @@ intermediate frame.
 
 Validation date: 2026-11-10  
 Environment: local API on `http://localhost:21210`, frontend on
-`http://localhost:4173`, domain under test: `HR`.
+`http://localhost:4173`, domain under test: display name `HR`, persisted
+`domainId` `<HR_DOMAIN_ID>`.
 
 Each mutation was performed as an isolated browser action. Before the action,
-the complete `HR` JSON model was fetched from `GET /metadata/domains`. After
-saving, the response was fetched again and compared against the expected
-single change. The original JSON model was restored with `PUT /metadata/domains/HR`
-after every test.
+the complete `HR` JSON model was fetched from
+`GET /metadata/domains/<HR_DOMAIN_ID>`. After saving, the response was fetched
+again and compared against the expected single change. The original JSON model
+was restored with `PUT /metadata/domains/<HR_DOMAIN_ID>` after every test.
 
 | # | Isolated action | Result | JSON comparison |
 |---:|---|---|---|

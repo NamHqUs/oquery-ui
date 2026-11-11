@@ -45,6 +45,7 @@ type StoredQueryRequestPayload = {
 export type MetadataEntity = {
   name: string;
   schema?: string | null;
+  dbTable?: string | null;
   fields: MetadataField[];
   rawSql?: string;
 };
@@ -61,6 +62,7 @@ export type DomainRelation = {
 export type DomainEntityDto = {
   name: string;
   dbSchema?: string | null;
+  dbTable?: string | null;
   rawSql?: string;
   fields: MetadataField[];
 };
@@ -69,6 +71,7 @@ export function metadataEntityFromDto(entity: DomainEntityDto): MetadataEntity {
   return {
     name: entity.name,
     schema: entity.dbSchema ?? null,
+    dbTable: entity.dbTable,
     rawSql: entity.rawSql,
     fields: entity.fields,
   };

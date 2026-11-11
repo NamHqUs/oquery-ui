@@ -67,7 +67,8 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "Employees",
+      "RawSql": "Doctors",
+      "DbTable": "Employees",
       "DbSchema": "dbo",
       "IsRawSql": false
     },
@@ -117,7 +118,8 @@
           "IsRawSql": false
         }
       ],
-      "RawSql": "Users",
+      "RawSql": "Patients",
+      "DbTable": "Users",
       "DbSchema": "dbo",
       "IsRawSql": false
     },
@@ -156,6 +158,7 @@
         }
       ],
       "RawSql": "Diagnoses",
+      "DbTable": "Diagnoses",
       "DbSchema": "dbo",
       "IsRawSql": false
     },
@@ -200,6 +203,7 @@
         }
       ],
       "RawSql": "LabResults",
+      "DbTable": "LabResults",
       "DbSchema": null,
       "IsRawSql": false
     },
@@ -268,7 +272,41 @@
         }
       ],
       "RawSql": "Visits",
+      "DbTable": "Visits",
       "DbSchema": "dbo",
+      "IsRawSql": false
+    },
+    {
+      "Name": "Locations",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Name",
+          "DbColumn": "Name",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "City",
+          "DbColumn": "City",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "State",
+          "DbColumn": "State",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Locations",
+      "DbTable": "Locations",
+      "DbSchema": "main",
       "IsRawSql": false
     }
   ],
@@ -329,6 +367,30 @@
       ],
       "TargetEntity": "Patients",
       "TargetRelationName": "Patient",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Doctors",
+      "SourceRelationName": "Location",
+      "SourceFields": [
+        "LocationId"
+      ],
+      "TargetEntity": "Locations",
+      "TargetRelationName": "Doctors",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Visits",
+      "SourceRelationName": "Location",
+      "SourceFields": [
+        "LocationId"
+      ],
+      "TargetEntity": "Locations",
+      "TargetRelationName": "Visits",
       "TargetFields": [
         "Id"
       ]
