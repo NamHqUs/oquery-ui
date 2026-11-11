@@ -28,6 +28,7 @@ type DiagramViewProps = {
   tables?: DiagramTable[];
   groups?: { name: string; tables: DiagramTable[]; tone?: DiagramGroupTone }[];
   initialGroup?: string;
+  selectedTableName?: string;
   loading?: boolean;
   relationships?: DiagramRelationship[];
   onSelectGroup?: (groupName: string) => void;
@@ -374,6 +375,7 @@ export default function DiagramView({
   tables: suppliedTables,
   groups: suppliedGroups,
   initialGroup,
+  selectedTableName,
   loading = false,
   relationships: suppliedRelationships,
   onSelectGroup,
@@ -650,9 +652,10 @@ export default function DiagramView({
             const expanded = Boolean(expandedTables[key]);
             return (
               <article
-                className={`diagram-table-card${expanded ? " expanded" : ""}`}
+                className={`diagram-table-card${expanded ? " expanded" : ""}${selectedTableName === table.name ? " selected" : ""}`}
                 key={key}
                 style={{ left: position.x, top: position.y, width: layout.cardWidth, height: expanded ? layout.cardHeight : 42 }}
+                aria-label={`${table.name}${selectedTableName === table.name ? " (selected)" : ""}`}
               >
                 <button
                   type="button"

@@ -212,7 +212,7 @@ export default function DomainList({
       setStatus("ready");
     }
   };
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); }, [active, location.pathname, location.search]);
   useEffect(() => {
     if (schemaStatus === "idle") void dispatch(fetchDbSchema());
   }, [dispatch, schemaStatus]);
@@ -406,26 +406,94 @@ export default function DomainList({
     try {
       if (selected && entityDraft && entityDirty) commitEntityDraft();
       const editEntities = selected
-        ? [
-          ...selected.entities
-            .filter(entity => !removedEntityNames.some(name => name.toLowerCase() === entity.name.toLowerCase()))
-            .map(entity => entity.name === selectedEntityName && entityDraft && entityDirty ? entityDraft : entity),
-          ...selectedTableDetails
-            .filter(table => !selected.entities.some(entity => !removedEntityNames.includes(entity.name) && entity.name.toLowerCase() === table.name.toLowerCase()))
-            .map(table => ({
-              name: table.name,
-              schema: table.schema,
-              rawSql: table.name,
-              fields: table.columns.map(column => ({
-                name: column.name,
-                dbColumn: column.name,
-                dataType: toAbstractDataType(column.dataType, column.name),
-                isRawSql: false,
+        ? (() => {
+          const normalizeTablePart = (value: string) => value.trim().replace(/[\[\]"`]/g, "").toLowerCase();
+          const entityMatchesTable = (entity: MetadataEntity, table: DatabaseTable) => {
+            const tableName = normalizeTablePart(table.name);
+            const qualifiedName = `${normalizeTablePart(table.schema)}.${tableName}`;
+            return [entity.rawSql || "", entity.name].some(value => {
+              const normalized = normalizeTablePart(value);
+              return normalized === tableName
+                || normalized === qualifiedName
+                || normalized.endsWith(`.${tableName}`);
+            });
+          };
+          const entityForTable = (entities: MetadataEntity[], table: DatabaseTable) =>
+            entities.find(entity => entityMatchesTable(entity, table));
+          const tableEntityName = (table: DatabaseTable, fallback: string) =>
+            entityNames[tableKey(table)]?.trim() || fallback;
+          const entities = [
+            ...selected.entities
+              .filter(entity => !removedEntityNames.some(name => name.toLowerCase() === entity.name.toLowerCase()))
+              .map(entity => {
+                if (entity.name === selectedEntityName && entityDraft && entityDirty) return entityDraft;
+                const table = selectedTableDetails.find(candidate => entityMatchesTable(entity, candidate));
+                const renamed = table ? entityNames[tableKey(table)]?.trim() : undefined;
+                return renamed ? { ...entity, name: renamed } : entity;
+              }),
+            ...selectedTableDetails
+              .filter(table => !entityForTable(selected.entities, table)
+                || removedEntityNames.some(name => name.toLowerCase() === entityForTable(selected.entities, table)?.name.toLowerCase()))
+              .map(table => ({
+                name: tableEntityName(table, table.name),
+                schema: table.schema,
+                rawSql: table.name,
+                fields: table.columns.map(column => ({
+                  name: column.name,
+                  dbColumn: column.name,
+                  dataType: toAbstractDataType(column.dataType, column.name),
+                  isRawSql: false,
+                })),
+                relations: [],
+                canDelete: true,
               })),
-              relations: [],
-              canDelete: true,
-            })),
-        ]
+          ];
+
+          return selectedRelations.reduce((currentEntities, relation) => {
+            const sourceTable = { schema: relation.sourceSchema, name: relation.sourceTable, columns: [] };
+            const targetTable = { schema: relation.targetSchema, name: relation.targetTable, columns: [] };
+            const source = entityForTable(currentEntities, sourceTable);
+            const target = entityForTable(currentEntities, targetTable);
+            if (!source || !target) return currentEntities;
+            const names = relationNames[relationKey(relation)];
+            const sourceRelationName = names?.lookup || singularize(target.name);
+            const targetRelationName = names?.collection || pluralize(source.name);
+            const sourceRelations = source.relations || [];
+            const targetRelations = target.relations || [];
+            const sameKeys = (left: { dbColumn: string; refDbColumn: string }[], right: string[], reverseRight: string[]) =>
+              left.length === right.length
+                && left.every((item, index) => item.dbColumn === right[index] && item.refDbColumn === reverseRight[index]);
+            const existingSourceRelation = sourceRelations.find(item =>
+              item.type === "Lookup"
+              && sameKeys(item.refKeys, relation.sourceColumns, relation.targetColumns));
+            const existingTargetRelation = targetRelations.find(item =>
+              item.type === "Collection"
+              && sameKeys(item.refKeys, relation.targetColumns, relation.sourceColumns));
+            const sourceRelation = {
+              name: names?.lookup || existingSourceRelation?.name || sourceRelationName,
+              refEntity: target.name,
+              type: "Lookup" as const,
+              refKeys: relation.sourceColumns.map((dbColumn, index) => ({
+                dbColumn,
+                refDbColumn: relation.targetColumns[index] || "",
+              })),
+            };
+            const targetRelation = {
+              name: names?.collection || existingTargetRelation?.name || targetRelationName,
+              refEntity: source.name,
+              type: "Collection" as const,
+              refKeys: relation.targetColumns.map((dbColumn, index) => ({
+                dbColumn,
+                refDbColumn: relation.sourceColumns[index] || "",
+              })),
+            };
+            return currentEntities.map(entity => entity === source
+              ? { ...entity, relations: [...sourceRelations.filter(item => !existingSourceRelation || item !== existingSourceRelation), sourceRelation] }
+              : entity === target
+                ? { ...entity, relations: [...targetRelations.filter(item => !existingTargetRelation || item !== existingTargetRelation), targetRelation] }
+                : entity);
+          }, entities);
+        })()
         : [];
       const saved = selected
         ? await request<Domain>(apiUrls.metadata.domainByName(selected.name), {
@@ -533,6 +601,8 @@ export default function DomainList({
         setDraftName("");
         setSelectedEntityName("");
         setEntityDraft(null);
+        setViewMode("list");
+        navigate("/metadata?section=domains");
       }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : `Unable to delete domain "${scope.name}".`);
@@ -957,7 +1027,7 @@ export default function DomainList({
               </button>
             </div>}
           </DomainWizard>
-        ) : <div className="domain-detail-layout">
+        ) : selected ? <div className="domain-detail-layout">
           <aside className="domain-entity-panel">
             <label className="domain-name">Domain name<input spellCheck={false} value={draftName} disabled={selected.isBuiltin} onChange={event => setDraftName(event.target.value)} /></label>
             <div className="domain-entity-toolbar">
@@ -1000,7 +1070,7 @@ export default function DomainList({
             />
             {entityDraft && !selected.isBuiltin && <div className="domain-entity-save"><span>{entityDirty ? "Unsaved entity changes" : "Entity changes saved locally"}</span><button type="button" className="domain-add" onClick={commitEntityDraft} disabled={!entityDirty}>Apply entity changes</button></div>}
           </div>
-        </div>}
+        </div> : null}
       </div>
       </>}
       {connectionDialogOpen && createPortal(

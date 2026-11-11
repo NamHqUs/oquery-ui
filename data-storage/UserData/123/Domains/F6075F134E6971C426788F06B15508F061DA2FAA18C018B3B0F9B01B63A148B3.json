@@ -65,6 +65,50 @@
               "RefDbColumn": "Id"
             }
           ]
+        },
+        {
+          "Name": "Product",
+          "RefEntity": "Products",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "ProductId",
+              "RefDbColumn": "Id"
+            }
+          ]
+        },
+        {
+          "Name": "Order",
+          "RefEntity": "Orders",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "OrderId",
+              "RefDbColumn": "Id"
+            }
+          ]
+        },
+        {
+          "Name": "Product",
+          "RefEntity": "Products",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "ProductId",
+              "RefDbColumn": "Id"
+            }
+          ]
+        },
+        {
+          "Name": "Order",
+          "RefEntity": "Orders",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "OrderId",
+              "RefDbColumn": "Id"
+            }
+          ]
         }
       ],
       "DbSchema": "sa"
@@ -132,6 +176,72 @@
               "RefDbColumn": "Id"
             }
           ]
+        },
+        {
+          "Name": "OrderItems",
+          "RefEntity": "OrderItems",
+          "Type": 1,
+          "RefKeys": [
+            {
+              "DbColumn": "Id",
+              "RefDbColumn": "OrderId"
+            }
+          ]
+        },
+        {
+          "Name": "Employee",
+          "RefEntity": "Employees",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "SalesRepId",
+              "RefDbColumn": "Id"
+            }
+          ]
+        },
+        {
+          "Name": "User",
+          "RefEntity": "Users",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "UserId",
+              "RefDbColumn": "Id"
+            }
+          ]
+        },
+        {
+          "Name": "OrderItems",
+          "RefEntity": "OrderItems",
+          "Type": 1,
+          "RefKeys": [
+            {
+              "DbColumn": "Id",
+              "RefDbColumn": "OrderId"
+            }
+          ]
+        },
+        {
+          "Name": "Employee",
+          "RefEntity": "Employees",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "SalesRepId",
+              "RefDbColumn": "Id"
+            }
+          ]
+        },
+        {
+          "Name": "Customer",
+          "RefEntity": "Cusotmers",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "UserId",
+              "RefDbColumn": "Id"
+            }
+          ]
         }
       ],
       "DbSchema": "sa"
@@ -172,6 +282,28 @@
       ],
       "RawSql": "Products",
       "Relations": [
+        {
+          "Name": "OrderItems",
+          "RefEntity": "OrderItems",
+          "Type": 1,
+          "RefKeys": [
+            {
+              "DbColumn": "Id",
+              "RefDbColumn": "ProductId"
+            }
+          ]
+        },
+        {
+          "Name": "OrderItems",
+          "RefEntity": "OrderItems",
+          "Type": 1,
+          "RefKeys": [
+            {
+              "DbColumn": "Id",
+              "RefDbColumn": "ProductId"
+            }
+          ]
+        },
         {
           "Name": "OrderItems",
           "RefEntity": "OrderItems",
@@ -284,12 +416,56 @@
               "RefDbColumn": "SalesRepId"
             }
           ]
+        },
+        {
+          "Name": "Employee",
+          "RefEntity": "Employees",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "ManagerId",
+              "RefDbColumn": "Id"
+            }
+          ]
+        },
+        {
+          "Name": "Orders",
+          "RefEntity": "Orders",
+          "Type": 1,
+          "RefKeys": [
+            {
+              "DbColumn": "Id",
+              "RefDbColumn": "SalesRepId"
+            }
+          ]
+        },
+        {
+          "Name": "Employee",
+          "RefEntity": "Employees",
+          "Type": 0,
+          "RefKeys": [
+            {
+              "DbColumn": "ManagerId",
+              "RefDbColumn": "Id"
+            }
+          ]
+        },
+        {
+          "Name": "Orders",
+          "RefEntity": "Orders",
+          "Type": 1,
+          "RefKeys": [
+            {
+              "DbColumn": "Id",
+              "RefDbColumn": "SalesRepId"
+            }
+          ]
         }
       ],
       "DbSchema": "main"
     },
     {
-      "Name": "User",
+      "Name": "Cusotmers",
       "Fields": [
         {
           "Name": "Id",
@@ -298,45 +474,57 @@
           "IsRawSql": false
         },
         {
-          "Name": "ManagerId",
-          "DbColumn": "ManagerId",
-          "DataType": 1,
-          "IsRawSql": false
-        },
-        {
-          "Name": "SchoolId",
-          "DbColumn": "SchoolId",
-          "DataType": 1,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Name",
-          "DbColumn": "Name",
+          "Name": "FirstName",
+          "DbColumn": "FirstName",
           "DataType": 0,
           "IsRawSql": false
         },
         {
-          "Name": "Age",
-          "DbColumn": "Age",
-          "DataType": 1,
+          "Name": "LastName",
+          "DbColumn": "LastName",
+          "DataType": 0,
           "IsRawSql": false
         },
         {
-          "Name": "Birthday",
-          "DbColumn": "Birthday",
+          "Name": "BirthDate",
+          "DbColumn": "BirthDate",
           "DataType": 2,
           "IsRawSql": false
         },
         {
-          "Name": "IsMale",
-          "DbColumn": "IsMale",
-          "DataType": 3,
+          "Name": "Gender",
+          "DbColumn": "Gender",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "City",
+          "DbColumn": "City",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "State",
+          "DbColumn": "State",
+          "DataType": 0,
           "IsRawSql": false
         }
       ],
-      "RawSql": "User",
-      "Relations": [],
-      "DbSchema": "main"
+      "RawSql": "Users",
+      "Relations": [
+        {
+          "Name": "Orders",
+          "RefEntity": "Orders",
+          "Type": 1,
+          "RefKeys": [
+            {
+              "DbColumn": "Id",
+              "RefDbColumn": "UserId"
+            }
+          ]
+        }
+      ],
+      "DbSchema": null
     }
   ],
   "CanDelete": true,

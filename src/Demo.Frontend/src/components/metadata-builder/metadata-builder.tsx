@@ -191,6 +191,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     try {
       const result = await dispatch(fetchQueryMetadata(scopeName));
       if (!fetchQueryMetadata.fulfilled.match(result)) {
+        if (result.meta.condition) return false;
         throw new Error(String(result.payload || "Unable to load metadata."));
       }
       const payload = result.payload;
@@ -620,7 +621,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const toolbarActions = activeSection === "diagram"
     ? <div className="editor-actions" role="toolbar" aria-label="Diagram domain actions">
       {scopeName && activeDomainIsBuiltin && <span className="metadata-editor-heading-status readonly">Built-in - Read Only</span>}
-      {canManageCurrentDomain && <button className="icon-button definition-action-button primary" type="button" title="Save domain" aria-label="Save domain" onClick={() => void saveDiagramDomain()} disabled={metadataBusy || !canSaveCurrentDomain || !dirty}>
+      {canManageCurrentDomain && <button className="icon-button definition-action-button primary" type="button" title="Save domain" aria-label="Save domain" onClick={() => void saveDiagramDomain()} disabled={metadataBusy || !canSaveCurrentDomain}>
         <Icon name="save" size={17} />
       </button>}
 
@@ -688,6 +689,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           entities={displayedEntities}
           domains={domains}
           activeScopeName={scopeName}
+          selectedEntityName={selectedName}
           loading={metadataBusy}
           editingEntity={draft}
           editingEntityName={selectedName}

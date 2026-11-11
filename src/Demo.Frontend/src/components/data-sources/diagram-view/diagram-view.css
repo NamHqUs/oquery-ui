@@ -347,6 +347,15 @@
   box-shadow: 0 11px 26px #00000057, 0 0 0 1px #685a8845;
 }
 
+.diagram-table-card.selected {
+  border-color: #b49aff;
+  box-shadow: 0 11px 26px #00000057, 0 0 0 2px #b49aff88, 0 0 22px #8068b555;
+}
+
+.diagram-table-card.selected .diagram-table-header {
+  background: linear-gradient(100deg, #403565, #292f43);
+}
+
 .diagram-table-header {
   display: flex;
   width: 100%;

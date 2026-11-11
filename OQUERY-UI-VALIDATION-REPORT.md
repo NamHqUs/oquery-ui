@@ -180,3 +180,82 @@ slots.
 The pending section update is committed synchronously before the asynchronous
 dirty-state guard runs, preventing the previous group from painting for an
 intermediate frame.
+
+## Domain editing scenario validation
+
+Validation date: 2026-11-10  
+Environment: local API on `http://localhost:21210`, frontend on
+`http://localhost:4173`, domain under test: `HR`.
+
+Each mutation was performed as an isolated browser action. Before the action,
+the complete `HR` JSON model was fetched from `GET /metadata/domains`. After
+saving, the response was fetched again and compared against the expected
+single change. The original JSON model was restored with `PUT /metadata/domains/HR`
+after every test.
+
+| # | Isolated action | Result | JSON comparison |
+|---:|---|---|---|
+| 1 | Edit domain name (`HR` → `HR QA Name`) | PASS | Saved model contained the new name; restore returned HTTP 200 |
+| 2 | Edit description | PASS | Saved model contained `QA description`; restore returned HTTP 200 |
+| 3 | Add entity (`Users`) | PASS | Entity count increased from 5 to 6 and `Users` was present |
+| 4 | Update entity name (`Departments` → `Departments QA`) | PASS | Saved model contained `Departments QA` |
+| 5 | Remove entity (`Locations`) | PASS | `Locations` was absent from the saved model |
+| 6 | Add field (`QAField`) | PASS | `QAField` was present on `Departments` |
+| 7 | Update field (`Id` → `Id QA`) | PASS | `Departments.fields` contained `Id QA` |
+| 8 | Remove field (`Name`) | PASS | `Name` was absent and the remaining field list was preserved |
+| 9 | Add relation (`QA Relation`) | PASS | Relation count increased and `QA Relation` was present |
+| 10 | Update relation (`Employees` → `Employees QA`) | PASS | `Departments.relations` contained `Employees QA` |
+| 11 | Remove relation | PASS | The selected relation was absent from the saved model |
+
+### Finding
+
+The field update was also attempted through the Domain Wizard's Step 2
+generated entity preview. Editing the existing `Departments` field there did
+not change the persisted JSON model. The same field update through the
+diagram's visible Entity Definition editor passed. This is a scoped workflow
+failure: existing-entity field edits should either be persisted by the wizard
+or the wizard should clearly make the entity editor the required path.
+
+### Final-state verification
+
+The final `HR` model matched the original model used for each isolated test:
+
+- 5 entities: `Departments`, `LeaveRequests`, `PerformanceReviews`,
+  `Employees`, and `Locations`
+- `Departments` fields: `Id`, `Name`
+- `Departments` relation: `Employees`
+- No temporary QA names, fields, relations, or descriptions remained
+
+## Relation workflow scope clarification
+
+The Domain Wizard edit flow is intended to edit the domain sources/entities and
+their generated metadata. It is not the workflow for explicitly creating or
+maintaining custom relations. Relation creation, renaming, and removal belong
+to the Entity Definition editor, which exposes explicit relation controls.
+
+Entity removal has an additional integrity requirement: removing an entity
+must remove every relation that references it from both sides of the
+relationship. No dangling relation may remain on another entity.
+
+Every relation condition must also require both key columns: the From/source
+column and the To/target column must be non-null and non-empty. Incomplete
+relation conditions must not be saveable.
+
+### Unsaved entity removal finding
+
+Removing an entity in the Domain editor before saving currently filters the
+entity from the selected list but does not remove relations pointing to that
+entity from the remaining in-memory entities. For example, after removing
+`Employees` from Healthcare, selecting `Visits` can still show a relation
+referencing `Employees`.
+
+Expected behavior: entity removal must immediately clean both sides of every
+affected relation in the unsaved editor state, before the user saves or
+selects another entity. The same invariant must also be enforced when the
+domain is persisted.
+
+The earlier check that renamed a relation in Entity Definition and then saved
+through the Domain Wizard was a cross-workflow scenario and is therefore
+**out of scope**, not a confirmed Domain Edit defect. Relation-specific
+validation should be performed entirely in Entity Definition, with the JSON
+model compared after each individual relation action.
