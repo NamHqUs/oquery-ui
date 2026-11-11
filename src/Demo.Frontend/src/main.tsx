@@ -27,8 +27,11 @@ const PAGE_PATHS = {
 } as const;
 
 const LEGACY_FUNCTIONS_PATH = "/functions";
-const CREATE_DOMAIN_PATH = "/metadata/domains/create";
-const EDIT_DOMAIN_PATH = "/metadata/domains/edit";
+const DOMAINS_PATH = "/metadata/domains";
+const DIAGRAMS_PATH = "/metadata/diagrams";
+const DIAGRAM_CREATE_PATH = "/metadata/diagrams/create";
+const DIAGRAM_EDIT_PATH = "/metadata/diagrams/edit";
+const ENTITIES_PATH = "/metadata/entities";
 
 type Page = keyof typeof PAGE_PATHS;
 type NavigationGuard = (continueNavigation: () => void, cancelNavigation?: () => void) => void;
@@ -51,7 +54,9 @@ const PAGE_SUBMENUS: Record<Exclude<Page, "home">, readonly string[]> = {
 };
 
 function pageForPath(path: string): Page | null {
-  if (path === CREATE_DOMAIN_PATH || path === EDIT_DOMAIN_PATH) return "metadata";
+  if (path === DOMAINS_PATH || path === DIAGRAMS_PATH || path === DIAGRAM_CREATE_PATH
+    || path === ENTITIES_PATH || path.startsWith(`${DIAGRAM_EDIT_PATH}/`)
+    || path.startsWith(`${ENTITIES_PATH}/`)) return "metadata";
   return (Object.keys(PAGE_PATHS) as Page[]).find((page) => PAGE_PATHS[page] === path) ?? null;
 }
 
@@ -69,7 +74,15 @@ function PageSubnav({
   onMetadataSectionSelect: (section: MetadataSection) => void;
 }) {
   const location = useLocation();
-  const metadataSection = new URLSearchParams(location.search).get("section") ?? "diagram";
+  const metadataSection = location.pathname === DOMAINS_PATH
+    ? "domains"
+    : location.pathname === ENTITIES_PATH || location.pathname.startsWith(`${ENTITIES_PATH}/`)
+      ? "entities"
+    : location.pathname === DIAGRAMS_PATH
+      || location.pathname === DIAGRAM_CREATE_PATH
+      || location.pathname.startsWith(`${DIAGRAM_EDIT_PATH}/`)
+      ? "diagram"
+      : new URLSearchParams(location.search).get("section") ?? "diagram";
   if (!page) return null;
 
   if (page === "home") {
@@ -115,7 +128,7 @@ function App() {
   const routerNavigate = useNavigate();
   const database = useSelector((state: RootState) => state.database);
   const page = pageForPath(location.pathname);
-  const [metadataVisited, setMetadataVisited] = useState(() => location.pathname === PAGE_PATHS.metadata || location.pathname === CREATE_DOMAIN_PATH || location.pathname === EDIT_DOMAIN_PATH);
+  const [metadataVisited, setMetadataVisited] = useState(() => location.pathname === PAGE_PATHS.metadata || pageForPath(location.pathname) === "metadata");
   const [functionDefinitionsVisited, setFunctionDefinitionsVisited] = useState(() => location.pathname === PAGE_PATHS.functions);
   const [queryBuilderVisited, setQueryBuilderVisited] = useState(() => location.pathname === PAGE_PATHS.builder);
   const [queryBuilderInstance, setQueryBuilderInstance] = useState(0);
@@ -159,7 +172,7 @@ function App() {
   });
 
   useEffect(() => {
-    if (location.pathname === PAGE_PATHS.metadata || location.pathname === CREATE_DOMAIN_PATH || location.pathname === EDIT_DOMAIN_PATH) setMetadataVisited(true);
+    if (location.pathname === PAGE_PATHS.metadata || pageForPath(location.pathname) === "metadata") setMetadataVisited(true);
     if (location.pathname === PAGE_PATHS.functions) setFunctionDefinitionsVisited(true);
     if (location.pathname === PAGE_PATHS.builder) setQueryBuilderVisited(true);
   }, [location.pathname]);
@@ -179,6 +192,8 @@ function App() {
     if (nextPage === page && !(nextPage === "builder" && fromHome)) return;
     const destination = nextPage === "builder" && fromHome
       ? `${PAGE_PATHS.builder}?from=home`
+      : nextPage === "metadata"
+        ? DOMAINS_PATH
       : PAGE_PATHS[nextPage];
     const continueNavigation = () => {
       if (nextPage === "metadata") setMetadataVisited(true);
@@ -272,8 +287,12 @@ function App() {
           <Route path={PAGE_PATHS.documentation} element={<div className="page-transition page-transition-no-slide"><Documentation /></div>} />
           <Route path={PAGE_PATHS.builder} element={null} />
           <Route path={PAGE_PATHS.metadata} element={null} />
-          <Route path={CREATE_DOMAIN_PATH} element={null} />
-          <Route path={EDIT_DOMAIN_PATH} element={null} />
+          <Route path={DOMAINS_PATH} element={null} />
+          <Route path={DIAGRAMS_PATH} element={null} />
+          <Route path={DIAGRAM_CREATE_PATH} element={null} />
+          <Route path={`${DIAGRAM_EDIT_PATH}/:domainId`} element={null} />
+          <Route path={ENTITIES_PATH} element={null} />
+          <Route path={`${ENTITIES_PATH}/:domainId`} element={null} />
           <Route path={PAGE_PATHS.functions} element={null} />
           <Route path={LEGACY_FUNCTIONS_PATH} element={<Navigate to={PAGE_PATHS.functions} replace />} />
           <Route path={PAGE_PATHS.sources} element={<div className="page-transition page-transition-no-slide"><DataSources onRequestConnection={requestDatabaseConnection} /></div>} />

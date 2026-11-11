@@ -1,4 +1,4 @@
-import { createPortal, flushSync } from "react-dom";
+import { flushSync } from "react-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -54,6 +54,21 @@ type SavedDomainDto = {
   entities: DomainEntityDto[];
   relations: DomainRelation[];
 };
+const DOMAINS_PATH = "/metadata/domains";
+const DIAGRAMS_PATH = "/metadata/diagrams";
+const DIAGRAM_CREATE_PATH = "/metadata/diagrams/create";
+const DIAGRAM_EDIT_PATH = "/metadata/diagrams/edit";
+const ENTITIES_PATH = "/metadata/entities";
+
+function diagramEditDomainId(pathname: string) {
+  const match = pathname.match(/^\/metadata\/diagrams\/edit\/([^/]+)$/);
+  return match?.[1];
+}
+
+function entityDomainId(pathname: string) {
+  const match = pathname.match(/^\/metadata\/entities\/([^/]+)$/);
+  return match?.[1];
+}
 
 function normalizeTablePart(value: string) {
   return value.trim().replace(/[\[\]"`]/g, "").toLowerCase();
@@ -184,7 +199,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     skipNextMetadataLoadRef.current = true;
   };
   const [dirty, setDirty] = useState(false);
-  const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
   const [domains, setDomains] = useState<DomainSummary[]>([]);
   const [domainOptions, setDomainOptions] = useState<DomainOption[]>([]);
   const [domainsExpanded, setDomainsExpanded] = useState(true);
@@ -194,42 +208,56 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const skipNextMetadataLoadRef = useRef(false);
   const sectionNavigationRef = useRef<(section: MetadataSection) => void>(() => undefined);
   const [pendingToolbarSection, setPendingToolbarSection] = useState<MetadataSection | null>(null);
-  useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   useEffect(() => { selectedNameRef.current = selectedName; }, [selectedName]);
-  const requestedSection = searchParams.get("section")
-    ?? (location.pathname === "/metadata/domains/create" ? "domains" : null);
-  const domainId = searchParams.get("domain") || searchParams.get("edit") || undefined;
+  const isDiagramWizardRoute = location.pathname === DIAGRAM_CREATE_PATH
+    || Boolean(diagramEditDomainId(location.pathname));
+  const entityRouteDomainId = entityDomainId(location.pathname);
+  const requestedSection = location.pathname === DOMAINS_PATH
+    ? "domains"
+    : location.pathname === DIAGRAMS_PATH || isDiagramWizardRoute
+      ? "diagram"
+      : location.pathname === ENTITIES_PATH || entityRouteDomainId
+        ? "entities"
+      : searchParams.get("section");
+  const domainId = diagramEditDomainId(location.pathname) || entityRouteDomainId || searchParams.get("domain") || undefined;
   const activeSection: MetadataSection = entityOnly ? "entities" : requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "domains" || requestedSection === "functions" || requestedSection === "operators"
     ? requestedSection
     : "diagram";
   useEffect(() => {
     if (entityOnly || requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "domains" || requestedSection === "functions" || requestedSection === "operators") return;
+    if (location.pathname === "/metadata") {
+      navigate(DOMAINS_PATH, { replace: true });
+      return;
+    }
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.set("section", "diagram");
     setSearchParams(nextSearchParams, { replace: true });
-  }, [entityOnly, requestedSection, searchParams, setSearchParams]);
+  }, [entityOnly, location.pathname, navigate, requestedSection, searchParams, setSearchParams]);
   const selectSection = async (section: MetadataSection) => {
     if ((section === activeSection
       && !(section === "domains"
-        && (location.pathname === "/metadata/domains/create" || searchParams.has("domain"))))
+        && (isDiagramWizardRoute || searchParams.has("domain"))))
       ) return;
     flushSync(() => setPendingToolbarSection(section));
     if (!(await resolveAllDirtyChanges(activeSection))) {
       setPendingToolbarSection(null);
       return;
     }
+    if (section === "domains") {
+      navigate(DOMAINS_PATH);
+      return;
+    }
+    if (section === "diagram") {
+      navigate(DIAGRAMS_PATH);
+      return;
+    }
+    if (section === "entities") {
+      navigate(domainId ? `${ENTITIES_PATH}/${encodeURIComponent(domainId)}` : ENTITIES_PATH);
+      return;
+    }
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.set("section", section);
-    if (section === "domains"
-      && (location.pathname === "/metadata/domains/create"
-        || location.pathname === "/metadata/domains/edit"
-        || searchParams.has("edit"))) {
-      nextSearchParams.delete("domain");
-      nextSearchParams.delete("edit");
-      navigate(`/metadata?${nextSearchParams.toString()}`);
-    } else {
-      setSearchParams(nextSearchParams);
-    }
+    setSearchParams(nextSearchParams);
   };
   useEffect(() => {
     if (pendingToolbarSection === activeSection) setPendingToolbarSection(null);
@@ -264,7 +292,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         fields: draft.fields.map(field => ({ ...field })),
       } : entity)
       : displayedEntities;
-    navigate(`/metadata?section=diagram&edit=${encodeURIComponent(domainId)}`, {
+    navigate(`${DIAGRAM_EDIT_PATH}/${encodeURIComponent(domainId)}`, {
       state: {
         domain: cloneDomain({
           ...domain,
@@ -350,7 +378,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     }
 
     const routedDomain = (location.state as { domain?: DomainSummary } | null)?.domain;
-    if (location.pathname === "/metadata/domains/edit"
+    if (isDiagramWizardRoute
       && domainId
       && routedDomain?.id === domainId) {
       return () => { cancelled = true; };
@@ -423,7 +451,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   };
 
   const createDiagramDomain = () => {
-    navigate("/metadata/domains/create?section=domains&source=database&returnSection=diagram");
+    navigate(DIAGRAM_CREATE_PATH);
   };
 
   const saveDiagramDomain = async () => {
@@ -543,8 +571,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       setDomainOptions((current) => current.filter((domain) => domain.id !== domainId));
       setDomains((current) => current.filter((domain) => domain.id !== domainId));
       navigate(nextDomain
-        ? `/metadata?section=diagram&domain=${encodeURIComponent(nextDomain.id)}`
-        : "/metadata?section=diagram");
+        ? `${DIAGRAMS_PATH}?domain=${encodeURIComponent(nextDomain.id)}`
+        : DIAGRAMS_PATH);
     } catch (error) {
       setStatus("failed");
       setMessage(error instanceof Error ? error.message : "Unable to delete the diagram domain.");
@@ -903,24 +931,21 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const selectDomain = (domainId: string) => {
     const domain = domainOptions.find(item => item.id === domainId);
     if (!domain) return;
-    const nextSearchParams = new URLSearchParams(searchParams);
-    nextSearchParams.set("section", "entities");
-    nextSearchParams.set("domain", domain.id);
-    navigate(`/metadata?${nextSearchParams.toString()}`);
+    navigate(`${ENTITIES_PATH}/${encodeURIComponent(domain.id)}`);
   };
   const selectDiagramDomain = (domainId: string) => {
     const domain = domainOptions.find(item => item.id === domainId)
       || domainOptions.find(item => item.name === domainId);
     if (!domain) return;
     const nextSearchParams = new URLSearchParams(searchParams);
-    nextSearchParams.set("section", "diagram");
+    nextSearchParams.delete("section");
     nextSearchParams.set("domain", domain.id);
-    navigate(`/metadata?${nextSearchParams.toString()}`);
+    navigate(`${DIAGRAMS_PATH}?${nextSearchParams.toString()}`);
   };
 
   return (
     <>
-      {!entityOnly &&       <div className="metadata-workspace-panel" hidden={activeSection !== "diagram" || Boolean(searchParams.get("edit"))}>
+      {!entityOnly && activeSection === "diagram" && !isDiagramWizardRoute && <div className="metadata-workspace-panel">
         <EntityDiagram
           entities={displayedEntities}
           relations={displayedRelations}
@@ -935,6 +960,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           onRelationsChange={updateRelations}
           onSelectDomain={selectDiagramDomain}
           onOpenEntity={(table) => openTableAsEntity(table, false)}
+          toolbarActions={toolbarActions}
           entityEditorHeader={
             <div className="table-details-heading metadata-editor-heading">
               <div className="table-details-title">
@@ -1059,17 +1085,13 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       {!entityOnly && activeSection === "operators" && <div className="metadata-workspace-panel">
         <OperatorDefinition onNavigationGuardChange={updateOperatorNavigationGuard} />
       </div>}
-      {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "domains" && !searchParams.get("edit")}>
+      {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "domains" && !isDiagramWizardRoute}>
         <DomainList
-          active={activeSection === "domains" || Boolean(searchParams.get("edit"))}
+          active={activeSection === "domains" || isDiagramWizardRoute}
           domains={domains}
           onDomainChanged={handleDomainChanged}
         />
       </div>}
-      {toolbarHost && createPortal(
-        toolbarActions,
-        toolbarHost,
-      )}
     </>
   );
 }

@@ -52,8 +52,10 @@ type DatabaseTable = { schema: string; name: string; columns: { name: string; da
 type DatabaseRelationship = { name: string; sourceSchema: string; sourceTable: string; sourceColumns: string[]; targetSchema: string; targetTable: string; targetColumns: string[]; isUnique: boolean };
 type Step = 1 | 2 | 3;
 type ViewMode = "list" | "wizard" | "detail";
-const CREATE_DOMAIN_PATH = "/metadata/domains/create";
-const EDIT_DOMAIN_PATH = "/metadata/domains/edit";
+const DOMAINS_PATH = "/metadata/domains";
+const DIAGRAMS_PATH = "/metadata/diagrams";
+const DIAGRAM_CREATE_PATH = "/metadata/diagrams/create";
+const DIAGRAM_EDIT_PATH = "/metadata/diagrams/edit";
 const DESCRIPTION_PREVIEW_LENGTH = 240;
 
 function getPlainDescription(description: string) {
@@ -191,7 +193,10 @@ export default function DomainList({
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const isEditRoute = location.pathname === EDIT_DOMAIN_PATH || Boolean(new URLSearchParams(location.search).get("edit"));
+  const editRouteMatch = location.pathname.match(/^\/metadata\/diagrams\/edit\/([^/]+)$/);
+  const editRouteDomainId = editRouteMatch?.[1];
+  const isCreateRoute = location.pathname === DIAGRAM_CREATE_PATH;
+  const isEditRoute = Boolean(editRouteDomainId) || Boolean(new URLSearchParams(location.search).get("edit"));
   const { schema, schemaStatus, connectionStatus } = useSelector((state: RootState) => state.database);
   const [selectedName, setSelectedName] = useState("");
   const [draftName, setDraftName] = useState("");
@@ -215,7 +220,7 @@ export default function DomainList({
   const [step, setStep] = useState<Step>(1);
   const [wizardSource, setWizardSource] = useState<WizardSource>("database");
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>(location.pathname === CREATE_DOMAIN_PATH || isEditRoute ? "wizard" : "list");
+  const [viewMode, setViewMode] = useState<ViewMode>(isCreateRoute || isEditRoute ? "wizard" : "list");
   const [status, setStatus] = useState<"loading" | "ready" | "saving">("loading");
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -229,8 +234,8 @@ export default function DomainList({
   useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   useEffect(() => {
     if (!active) return;
-    setViewMode(location.pathname === CREATE_DOMAIN_PATH || isEditRoute ? "wizard" : "list");
-    if (location.pathname === CREATE_DOMAIN_PATH) {
+    setViewMode(isCreateRoute || isEditRoute ? "wizard" : "list");
+    if (isCreateRoute) {
       const source = new URLSearchParams(location.search).get("source");
       setWizardSource(source === "file" ? "file" : "database");
       setSelectedName("");
@@ -290,10 +295,10 @@ export default function DomainList({
           ? domains.map(domain => domain.id === routedDomain.id ? routedDomain : domain)
           : [...domains, routedDomain]
         : domains;
-      const routeDomainId = new URLSearchParams(location.search).get("domain")
+      const routeDomainId = editRouteDomainId || new URLSearchParams(location.search).get("domain")
         || new URLSearchParams(location.search).get("edit");
       const requestedDomain = routeDomainId || selectedName;
-      if (requestedDomain && location.pathname !== CREATE_DOMAIN_PATH) {
+      if (requestedDomain && !isCreateRoute) {
         const summary = domainResult.find(domain => domain.id === requestedDomain);
         const shouldRefreshEditDomain = Boolean(
           summary
@@ -331,7 +336,7 @@ export default function DomainList({
   useEffect(() => {
     if (!active) return;
     void load();
-  }, [active, location.pathname, location.search, domains]);
+  }, [active, location.pathname, location.search, domains, editRouteDomainId, isCreateRoute]);
   useEffect(() => {
     if (schemaStatus === "idle") void dispatch(fetchDbSchema());
   }, [dispatch, schemaStatus]);
@@ -348,10 +353,10 @@ export default function DomainList({
       return [key, table?.columns.map(column => column.name) || []];
     })));
     setSourceSelectionInitialized(true);
-  }, [location.pathname, schema.tables, selected, sourceSelectionInitialized, wizardSource]);
+  }, [location.pathname, schema.tables, selected, sourceSelectionInitialized, wizardSource, editRouteDomainId, isCreateRoute]);
 
   const selectDomain = (domain: Domain) => {
-    navigate(`/metadata?section=diagram&domain=${encodeURIComponent(domain.id)}`);
+    navigate(`${DIAGRAMS_PATH}?domain=${encodeURIComponent(domain.id)}`);
     setSelectedName(domain.id);
     setDraftName(domain.name);
     setDraftDescription(domain.description || "");
@@ -372,8 +377,8 @@ export default function DomainList({
     setSuccessMessage("");
   };
   useEffect(() => {
-    if (!active || status === "loading" || location.pathname === CREATE_DOMAIN_PATH) return;
-    const routeDomainId = new URLSearchParams(location.search).get("domain");
+    if (!active || status === "loading" || isCreateRoute) return;
+    const routeDomainId = editRouteDomainId || new URLSearchParams(location.search).get("domain");
     if (!routeDomainId) {
       setSelectedName("");
       setEntityDraft(null);
@@ -395,9 +400,9 @@ export default function DomainList({
     setSelectedEntityName(firstEntity?.name || "");
     setEntityDraft(firstEntity ? toEditable(firstEntity) : null);
     setEntityDirty(false);
-  }, [active, location.pathname, location.search, domainItems, selectedName, status]);
+  }, [active, location.pathname, location.search, domainItems, selectedName, status, editRouteDomainId, isCreateRoute]);
   const createDomain = (source: WizardSource = "database") => {
-    navigate(`${CREATE_DOMAIN_PATH}?section=domains&source=${source}`);
+    navigate(DIAGRAM_CREATE_PATH);
     setViewMode("wizard");
     setWizardSource(source);
     setSelectedName("");
@@ -422,7 +427,7 @@ export default function DomainList({
   };
   const editDomain = (domain: Domain) => {
     if (domain.isBuiltin) return;
-    navigate(`/metadata?section=diagram&edit=${encodeURIComponent(domain.id)}`);
+    navigate(`${DIAGRAM_EDIT_PATH}/${encodeURIComponent(domain.id)}`);
     setViewMode("wizard");
     setSelectedName(domain.id);
     setDraftName(domain.name);
@@ -655,8 +660,7 @@ export default function DomainList({
         setDomainItems(current => current.map(domain => domain.id === saved.id ? saved : domain));
         setEntityDirty(false);
         setRemovedEntityNames([]);
-        const returnSection = new URLSearchParams(location.search).get("returnSection") || "domains";
-        navigate(`/metadata?section=${encodeURIComponent(returnSection)}&domain=${encodeURIComponent(saved.id)}`);
+        navigate(`${DIAGRAMS_PATH}?domain=${encodeURIComponent(saved.id)}`);
         setSelectedName(saved.id);
         setDraftName(saved.name);
         setStep(3);
@@ -725,8 +729,7 @@ export default function DomainList({
       setEntityDirty(false);
       setRemovedEntityNames([]);
       dispatch(invalidateQueryMetadata());
-      const returnSection = new URLSearchParams(location.search).get("returnSection") || "domains";
-      navigate(`/metadata?section=${encodeURIComponent(returnSection)}&domain=${encodeURIComponent(saved.id)}`);
+      navigate(`${DIAGRAMS_PATH}?domain=${encodeURIComponent(saved.id)}`);
       setSelectedName(saved.id);
       setDraftName(saved.name);
       setStep(3);
@@ -766,7 +769,7 @@ export default function DomainList({
         setSelectedEntityName("");
         setEntityDraft(null);
         setViewMode("list");
-        navigate("/metadata?section=domains");
+        navigate(DIAGRAMS_PATH);
       }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : `Unable to delete domain "${domain.name}".`);
@@ -876,7 +879,7 @@ export default function DomainList({
     if (location.key !== "default") {
       navigate(-1);
     } else {
-      navigate("/metadata?section=domains");
+      navigate(DOMAINS_PATH);
     }
   };
   const canContinue = step === 1
@@ -1100,8 +1103,8 @@ export default function DomainList({
         {successMessage && viewMode === "detail" && <p className="domain-success" role="status">{successMessage}</p>}
         {viewMode === "wizard" ? (
           <DomainWizard
-            mode={selected ? "edit" : "create"}
-            domainDisplayName={selected?.name}
+            mode={isEditRoute ? "edit" : "create"}
+            domainDisplayName={selected?.name || (isEditRoute ? draftName : undefined)}
             source={wizardSource}
             step={step}
             canContinue={canContinue}

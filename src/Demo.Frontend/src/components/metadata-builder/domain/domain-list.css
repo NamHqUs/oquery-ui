@@ -539,14 +539,6 @@
   color: #eeeaff;
   background: #382d61;
 }
-.domain-summary-card:hover {
-  border-color: #7562aa;
-  background:
-    linear-gradient(135deg, #211c3a, #171d2c 72%),
-    #171d2c;
-  box-shadow: inset 0 1px #ffffff0a, 0 12px 26px #00000024;
-  transform: translateY(-2px);
-}
 .domain-summary-open {
   display: inline;
   min-width: 0;

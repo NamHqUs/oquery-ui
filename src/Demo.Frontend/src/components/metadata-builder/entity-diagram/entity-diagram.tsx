@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { useEffect, useState, type ReactNode } from "react";
 import type { DomainRelation, MetadataEntity } from "../../query-builder/query-design/query-builder-slice";
 import DiagramView, { diagramGroupTone, type DiagramRelationship } from "../../data-sources/diagram-view/diagram-view";
 import PanelSplitter from "../../panel-splitter/panel-splitter";
@@ -20,6 +21,7 @@ type EntityDiagramProps = {
   onRelationsChange?: (updater: (relations: DomainRelation[]) => DomainRelation[]) => void;
   onSelectDomain?: (domainId: string) => void;
   onOpenEntity: (table: { schema: string; name: string; columns: { name: string; dataType: string; isPrimaryKey: boolean }[] }) => void;
+  toolbarActions?: ReactNode;
   entityEditorHeader: ReactNode;
   entityEditor: ReactNode;
 };
@@ -38,11 +40,14 @@ export default function EntityDiagram({
   onRelationsChange,
   onSelectDomain,
   onOpenEntity,
+  toolbarActions,
   entityEditorHeader,
   entityEditor,
 }: EntityDiagramProps) {
   const panel = useResizablePanel("metadata-entity-diagram-height", 480, 280, 900);
+  const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
   const [selectedRelation, setSelectedRelation] = useState<(DiagramRelationship & { from: string; to: string }) | null>(null);
+  useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   const applyDraft = (entity: MetadataEntity) =>
     editingEntity && entity.name === editingEntityName ? editingEntity : entity;
   const isNewDraft = Boolean(editingEntity && !editingEntityName && editingEntity.name.trim());
@@ -125,10 +130,12 @@ export default function EntityDiagram({
   };
 
   return (
-    <div
-      className="metadata-diagram-mode-content split-workspace"
-      style={panel.style}
-    >
+    <>
+      {toolbarHost && toolbarActions && createPortal(toolbarActions, toolbarHost)}
+      <div
+        className="metadata-diagram-mode-content split-workspace"
+        style={panel.style}
+      >
       <section className="metadata-diagram-editor split-panel" aria-label="Entity definition editor">
         {entityEditorHeader}
         {entityEditor}
@@ -234,6 +241,7 @@ export default function EntityDiagram({
         )}
         onOpenTable={onOpenEntity}
       />
-    </div>
+      </div>
+    </>
   );
 }
