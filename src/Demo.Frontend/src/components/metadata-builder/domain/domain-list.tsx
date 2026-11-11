@@ -130,11 +130,13 @@ function parseUploadedTables(text: string, fileName: string): DatabaseTable[] {
 export default function DomainList({
   active,
   domains,
+  onDomainSaved,
 }: {
   active: boolean;
   domains: Domain[];
+  onDomainSaved?: (domain: Domain) => void;
 }) {
-  const [scopes, setScopes] = useState<Domain[]>(domains);
+  const [domainItems, setDomainItems] = useState<Domain[]>(domains);
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -152,7 +154,7 @@ export default function DomainList({
   const [collapsedEntities, setCollapsedEntities] = useState<Record<string, boolean>>({});
   const [relationNames, setRelationNames] = useState<Record<string, { lookup: string; collection: string }>>({});
   const [tableFilter, setTableFilter] = useState("");
-  const [scopeFilter, setScopeFilter] = useState("");
+  const [domainFilter, setDomainFilter] = useState("");
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
   const [entityFilter, setEntityFilter] = useState("");
   const [selectedEntityName, setSelectedEntityName] = useState("");
@@ -211,23 +213,23 @@ export default function DomainList({
     }
   }, [active, location.pathname, location.search]);
 
-  const selected = scopes.find(scope => scope.id === selectedName);
+  const selected = domainItems.find(domain => domain.id === selectedName);
   const load = async () => {
     setStatus("loading");
     setError("");
     try {
-      const scopeResult = domains;
-      setScopes(scopeResult);
-      const routeScopeId = new URLSearchParams(location.search).get("scope");
-      const requestedScope = routeScopeId || selectedName;
-      if (requestedScope && location.pathname !== CREATE_DOMAIN_PATH) {
-        const summary = scopeResult.find(scope => scope.id === requestedScope);
+      const domainResult = domains;
+      setDomainItems(domainResult);
+      const routeDomainId = new URLSearchParams(location.search).get("domain");
+      const requestedDomain = routeDomainId || selectedName;
+      if (requestedDomain && location.pathname !== CREATE_DOMAIN_PATH) {
+        const summary = domainResult.find(domain => domain.id === requestedDomain);
         const refreshed = summary && location.pathname === EDIT_DOMAIN_PATH
           ? toDomain(await request<DomainDto>(apiUrls.metadata.domainById(summary.id)))
           : summary;
         if (refreshed) {
           const domain = refreshed;
-          setScopes(scopeResult.map(scope => scope.id === domain.id ? { ...scope, ...domain } : scope));
+          setDomainItems(domainResult.map(item => item.id === domain.id ? { ...item, ...domain } : item));
           setSelectedName(domain.id);
           setDraftName(domain.name);
           setDraftDescription(domain.description || "");
@@ -272,12 +274,12 @@ export default function DomainList({
     setSourceSelectionInitialized(true);
   }, [location.pathname, schema.tables, selected, sourceSelectionInitialized, wizardSource]);
 
-  const selectScope = (scope: Domain) => {
-    navigate(`/metadata?section=diagram&scope=${encodeURIComponent(scope.id)}`);
-    setSelectedName(scope.id);
-    setDraftName(scope.name);
-    setDraftDescription(scope.description || "");
-    const firstEntity = scope.entities[0];
+  const selectDomain = (domain: Domain) => {
+    navigate(`/metadata?section=diagram&domain=${encodeURIComponent(domain.id)}`);
+    setSelectedName(domain.id);
+    setDraftName(domain.name);
+    setDraftDescription(domain.description || "");
+    const firstEntity = domain.entities[0];
     setSelectedEntityName(firstEntity?.name || "");
     setEntityDraft(firstEntity ? toEditable(firstEntity) : null);
     setEntityDirty(false);
@@ -294,31 +296,30 @@ export default function DomainList({
   };
   useEffect(() => {
     if (!active || status === "loading" || location.pathname === CREATE_DOMAIN_PATH) return;
-    const routeScopeName = new URLSearchParams(location.search).get("scope");
-    if (!routeScopeName) {
+    const routeDomainId = new URLSearchParams(location.search).get("domain");
+    if (!routeDomainId) {
       setSelectedName("");
       setEntityDraft(null);
       return;
     }
-    const routeScope = scopes.find(scope =>
-      scope.id === routeScopeName || scope.name === routeScopeName);
-    if (!routeScope) return;
-    if (routeScope.id !== routeScopeName) {
+    const routeDomain = domainItems.find(domain => domain.id === routeDomainId);
+    if (!routeDomain) return;
+    if (routeDomain.id !== routeDomainId) {
       const nextSearchParams = new URLSearchParams(location.search);
-      nextSearchParams.set("scope", routeScope.id);
+      nextSearchParams.set("domain", routeDomain.id);
       navigate(`${location.pathname}?${nextSearchParams.toString()}`, { replace: true });
       return;
     }
-    if (routeScope.id === selectedName) return;
-    setSelectedName(routeScope.id);
-    setDraftName(routeScope.name);
-    setDraftDescription(routeScope.description || "");
-    const firstEntity = routeScope.entities[0];
+    if (routeDomain.id === selectedName) return;
+    setSelectedName(routeDomain.id);
+    setDraftName(routeDomain.name);
+    setDraftDescription(routeDomain.description || "");
+    const firstEntity = routeDomain.entities[0];
     setSelectedEntityName(firstEntity?.name || "");
     setEntityDraft(firstEntity ? toEditable(firstEntity) : null);
     setEntityDirty(false);
-  }, [active, location.pathname, location.search, scopes, selectedName, status]);
-  const createScope = (source: WizardSource = "database") => {
+  }, [active, location.pathname, location.search, domainItems, selectedName, status]);
+  const createDomain = (source: WizardSource = "database") => {
     navigate(`${CREATE_DOMAIN_PATH}?section=domains&source=${source}`);
     setViewMode("wizard");
     setWizardSource(source);
@@ -341,27 +342,27 @@ export default function DomainList({
     setStep(1);
     setError("");
   };
-  const editScope = (scope: Domain) => {
-    if (scope.isBuiltin) return;
-    navigate(`${EDIT_DOMAIN_PATH}?section=domains&scope=${encodeURIComponent(scope.id)}&returnSection=domains`);
+  const editDomain = (domain: Domain) => {
+    if (domain.isBuiltin) return;
+    navigate(`${EDIT_DOMAIN_PATH}?section=domains&domain=${encodeURIComponent(domain.id)}&returnSection=domains`);
     setViewMode("wizard");
-    setSelectedName(scope.id);
-    setDraftName(scope.name);
-    setDraftDescription(scope.description || "");
-    setSelectedEntityName(scope.entities[0]?.name || "");
-    setEntityDraft(scope.entities[0] ? toEditable(scope.entities[0]) : null);
+    setSelectedName(domain.id);
+    setDraftName(domain.name);
+    setDraftDescription(domain.description || "");
+    setSelectedEntityName(domain.entities[0]?.name || "");
+    setEntityDraft(domain.entities[0] ? toEditable(domain.entities[0]) : null);
     setRemovedEntityNames([]);
     setSelectedTables([]);
     setStep(1);
     setError("");
   };
-  const updateSelectedScope = (updater: (scope: Domain) => Domain) => {
-    setScopes(current => current.map(scope => scope.id === selectedName ? updater(scope) : scope));
+  const updateSelectedDomain = (updater: (domain: Domain) => Domain) => {
+    setDomainItems(current => current.map(domain => domain.id === selectedName ? updater(domain) : domain));
   };
   const selectEntity = (entity: MetadataEntity) => {
     if (selected && entityDraft && entityDraft.name !== selectedEntityName) {
       const draftName = entityDraft.name;
-      updateSelectedScope(scope => ({ ...scope, relations: renameEntityInRelations(scope.relations, draftName, selectedEntityName) }));
+      updateSelectedDomain(domain => ({ ...domain, relations: renameEntityInRelations(domain.relations, draftName, selectedEntityName) }));
     }
     setSelectedEntityName(entity.name);
     setEntityDraft(toEditable(entity));
@@ -393,11 +394,11 @@ export default function DomainList({
         })),
       }));
     if (!imported.length) {
-      setError("All database tables are already represented in this scope.");
+      setError("All database tables are already represented in this domain.");
       return;
     }
     const next = imported[0];
-    updateSelectedScope(scope => ({ ...scope, entities: [...scope.entities, ...imported] }));
+    updateSelectedDomain(domain => ({ ...domain, entities: [...domain.entities, ...imported] }));
     setSelectedEntityName(next.name);
     setEntityDraft(next);
     setEntityDirty(true);
@@ -405,10 +406,10 @@ export default function DomainList({
   const removeEntity = (entityName: string) => {
     if (!selected || selected.isBuiltin) return;
     const remaining = selected.entities.filter(entity => entity.name !== entityName);
-    updateSelectedScope(scope => ({
-      ...scope,
+    updateSelectedDomain(domain => ({
+      ...domain,
       entities: remaining,
-      relations: removeEntityFromRelations(scope.relations, entityName),
+      relations: removeEntityFromRelations(domain.relations, entityName),
     }));
     const next = remaining[0];
     setSelectedEntityName(next?.name || "");
@@ -425,15 +426,15 @@ export default function DomainList({
     const duplicate = selected.entities.some(entity =>
       entity.name !== selectedEntityName && entity.name.trim().toLowerCase() === normalized.name.toLowerCase());
     if (duplicate) {
-      setError(`An entity named "${normalized.name}" already exists in this scope.`);
+      setError(`An entity named "${normalized.name}" already exists in this domain.`);
       return;
     }
-    updateSelectedScope(scope => ({
-      ...scope,
-      entities: scope.entities.some(entity => entity.name === selectedEntityName)
-        ? scope.entities.map(entity => entity.name === selectedEntityName ? normalized : entity)
-        : [...scope.entities, normalized],
-      relations: renameEntityInRelations(scope.relations, entityDraft.name, normalized.name),
+    updateSelectedDomain(domain => ({
+      ...domain,
+      entities: domain.entities.some(entity => entity.name === selectedEntityName)
+        ? domain.entities.map(entity => entity.name === selectedEntityName ? normalized : entity)
+        : [...domain.entities, normalized],
+      relations: renameEntityInRelations(domain.relations, entityDraft.name, normalized.name),
     }));
     setSelectedEntityName(normalized.name);
     setEntityDraft(normalized);
@@ -592,14 +593,15 @@ export default function DomainList({
             }),
           });
       const saved = toDomain(savedDto);
-      setScopes(current => selected
-        ? current.map(scope => scope.id === selected.id ? saved : scope)
+      onDomainSaved?.(saved);
+      setDomainItems(current => selected
+        ? current.map(domain => domain.id === selected.id ? saved : domain)
         : [...current, saved]);
       setEntityDirty(false);
       setRemovedEntityNames([]);
       dispatch(invalidateQueryMetadata());
       const returnSection = new URLSearchParams(location.search).get("returnSection") || "domains";
-      navigate(`/metadata?section=${encodeURIComponent(returnSection)}&scope=${encodeURIComponent(saved.id)}`);
+      navigate(`/metadata?section=${encodeURIComponent(returnSection)}&domain=${encodeURIComponent(saved.id)}`);
       setSelectedName(saved.id);
       setDraftName(saved.name);
       setStep(3);
@@ -612,14 +614,14 @@ export default function DomainList({
       setStatus("ready");
     }
   };
-  const deleteDomain = async (scope: Domain) => {
-    if (scope.isBuiltin) return;
+  const deleteDomain = async (domain: Domain) => {
+    if (domain.isBuiltin) return;
     const action = await showMessageBox({
       eyebrow: "DELETE DOMAIN",
-      title: `Delete ${scope.name}?`,
-      message: `This will permanently delete the ${scope.name} domain and all of its entity definitions.`,
-      confirmationText: scope.name,
-      confirmationLabel: `Enter ${scope.name} to confirm`,
+      title: `Delete ${domain.name}?`,
+      message: `This will permanently delete the ${domain.name} domain and all of its entity definitions.`,
+      confirmationText: domain.name,
+      confirmationLabel: `Enter ${domain.name} to confirm`,
       actions: [
         { value: "cancel", label: "Cancel", variant: "secondary" },
         { value: "delete", label: "Delete domain", variant: "danger" },
@@ -629,9 +631,9 @@ export default function DomainList({
     setStatus("saving");
     setError("");
     try {
-      await request<void>(apiUrls.metadata.domainById(scope.id), { method: "DELETE" });
-      setScopes(current => current.filter(item => item.id !== scope.id));
-      if (selectedName === scope.id) {
+      await request<void>(apiUrls.metadata.domainById(domain.id), { method: "DELETE" });
+      setDomainItems(current => current.filter(item => item.id !== domain.id));
+      if (selectedName === domain.id) {
         setSelectedName("");
         setDraftName("");
         setSelectedEntityName("");
@@ -640,7 +642,7 @@ export default function DomainList({
         navigate("/metadata?section=domains");
       }
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : `Unable to delete domain "${scope.name}".`);
+      setError(reason instanceof Error ? reason.message : `Unable to delete domain "${domain.name}".`);
     } finally {
       setStatus("ready");
     }
@@ -798,17 +800,17 @@ export default function DomainList({
         type="button"
         title="Create domain"
         aria-label="Create domain"
-        onClick={() => createScope()}
+        onClick={() => createDomain()}
         disabled={status === "saving"}
       >
         <Icon name="file-plus" size={17} />
       </button>
     </div>
   );
-  const visibleCatalogScopes = scopes.filter(scope => scope.name.toLowerCase().includes(scopeFilter.toLowerCase()));
+  const visibleCatalogDomains = domainItems.filter(domain => domain.name.toLowerCase().includes(domainFilter.toLowerCase()));
   const catalogColumns = [
-    visibleCatalogScopes.filter((_, index) => index % 2 === 0),
-    visibleCatalogScopes.filter((_, index) => index % 2 === 1),
+    visibleCatalogDomains.filter((_, index) => index % 2 === 0),
+    visibleCatalogDomains.filter((_, index) => index % 2 === 1),
   ];
   const renderWizardButtons = () => (
     <div className="editor-actions" role="toolbar" aria-label="Domain wizard actions">
@@ -840,55 +842,55 @@ export default function DomainList({
         </div>
         <label className="domain-catalog-filter">
           <Icon name="search" size={14} />
-          <input spellCheck={false} value={scopeFilter} onChange={event => setScopeFilter(event.target.value)} placeholder="Filter domains" />
+          <input spellCheck={false} value={domainFilter} onChange={event => setDomainFilter(event.target.value)} placeholder="Filter domains" />
         </label>
         {status === "loading" && <p className="empty-state">Loading domains…</p>}
-        {status !== "loading" && !visibleCatalogScopes.length && <p className="empty-state">No domains match this filter.</p>}
+        {status !== "loading" && !visibleCatalogDomains.length && <p className="empty-state">No domains match this filter.</p>}
         <div className="domain-catalog-grid">
           {catalogColumns.map((column, columnIndex) => (
             <div className="domain-catalog-column" key={columnIndex}>
-              {column.map(scope => (
-            <div key={scope.name} className="domain-summary-card">
-              <button type="button" className="domain-summary-open" onClick={() => selectScope(scope)}>
+              {column.map(domain => (
+            <div key={domain.name} className="domain-summary-card">
+              <button type="button" className="domain-summary-open" onClick={() => selectDomain(domain)}>
                 <span className="domain-summary-icon"><Icon name="folder" size={17} /></span>
                 <span className="domain-summary-content">
-                  <strong>{scope.name}</strong>
+                  <strong>{domain.name}</strong>
                 </span>
               </button>
-              {scope.description && (
+              {domain.description && (
                 <>
-                  {!expandedDescriptions[scope.name] && (
+                  {!expandedDescriptions[domain.name] && (
                     <p className="domain-summary-description-preview">
-                      {getDescriptionPreview(scope.description)}
+                      {getDescriptionPreview(domain.description)}
                     </p>
                   )}
                   <button
                     type="button"
                     className="domain-summary-description-toggle"
-                    aria-expanded={Boolean(expandedDescriptions[scope.name])}
-                    onClick={() => toggleDescription(scope.name)}
+                    aria-expanded={Boolean(expandedDescriptions[domain.name])}
+                    onClick={() => toggleDescription(domain.name)}
                   >
-                      {expandedDescriptions[scope.name] ? "Hide details" : "more..."}
+                      {expandedDescriptions[domain.name] ? "Hide details" : "more..."}
                   </button>
-                  {expandedDescriptions[scope.name] && (
+                  {expandedDescriptions[domain.name] && (
                     <div className="domain-summary-description-panel">
-                      <MarkdownDescription value={scope.description} />
+                      <MarkdownDescription value={domain.description} />
                     </div>
                   )}
                 </>
               )}
-              {scope.entities.length > 0 && (
+              {domain.entities.length > 0 && (
                 <div className="domain-summary-entity-preview" aria-label="Included entities">
                   <span className="domain-summary-entity-label">Included entities</span>
                   <div className="domain-summary-entity-chips">
-                    {scope.entities.slice(0, 5).map(entity => (
+                    {domain.entities.slice(0, 5).map(entity => (
                       <span key={entity.name} className="domain-summary-entity-chip">{entity.name}</span>
                     ))}
-                    {scope.entities.length > 5 && <span className="domain-summary-entity-chip domain-summary-entity-more">more...</span>}
+                    {domain.entities.length > 5 && <span className="domain-summary-entity-chip domain-summary-entity-more">more...</span>}
                   </div>
                 </div>
               )}
-              {!scope.isBuiltin && <button type="button" className="domain-summary-delete" title={`Delete ${scope.name} domain`} aria-label={`Delete ${scope.name} domain`} onClick={() => void deleteDomain(scope)}>
+              {!domain.isBuiltin && <button type="button" className="domain-summary-delete" title={`Delete ${domain.name} domain`} aria-label={`Delete ${domain.name} domain`} onClick={() => void deleteDomain(domain)}>
                 <Icon name="trash" size={15} />
               </button>}
             </div>
@@ -902,47 +904,47 @@ export default function DomainList({
         <MetadataSidebar
           className="metadata-list domain-route-list"
           title="DOMAINS"
-          totalCount={scopes.length}
-          filter={scopeFilter}
+          totalCount={domainItems.length}
+          filter={domainFilter}
           searchPlaceholder="Find a saved domain"
-          onFilterChange={setScopeFilter}
+          onFilterChange={setDomainFilter}
           groups={[{
             id: "route-domains",
             title: "Saved",
-            count: scopes.filter(scope => scope.name.toLowerCase().includes(scopeFilter.toLowerCase())).length,
-            content: scopes
-              .filter(scope => scope.name.toLowerCase().includes(scopeFilter.toLowerCase()))
-              .map(scope => (
-                <button key={scope.id} type="button" className={`metadata-entity${scope.id === selectedName ? " active" : ""}`} onClick={() => selectScope(scope)}>
+            count: domainItems.filter(domain => domain.name.toLowerCase().includes(domainFilter.toLowerCase())).length,
+            content: domainItems
+              .filter(domain => domain.name.toLowerCase().includes(domainFilter.toLowerCase()))
+              .map(domain => (
+                <button key={domain.id} type="button" className={`metadata-entity${domain.id === selectedName ? " active" : ""}`} onClick={() => selectDomain(domain)}>
                   <span className="entity-icon"><Icon name="folder" size={14} /></span>
-                  <span><b>{scope.name}</b><small>{scope.entities.length} entities{scope.isBuiltin ? " · Built-in - Read Only" : ""}</small></span>
+                  <span><b>{domain.name}</b><small>{domain.entities.length} entities{domain.isBuiltin ? " · Built-in - Read Only" : ""}</small></span>
                   <Icon name="chevron" size={14} />
                 </button>
               )),
-            emptyMessage: status !== "loading" && !scopes.length ? "No saved domains." : undefined,
+            emptyMessage: status !== "loading" && !domainItems.length ? "No saved domains." : undefined,
           } satisfies MetadataSidebarGroup]}
         />
       </>}
       <div className="domain-editor">
         <div className="domain-editor-heading">
           <div><span className="section-kicker">BUSINESS LOGIC</span><h2>{selected ? selected.name : "New domain"}</h2>{selected?.isBuiltin && <span className="metadata-editor-heading-status readonly">Built-in - Read Only</span>}</div>
-          {selected && <label className="domain-scope-picker">
+          {selected &&           <label className="domain-picker">
             <span>Domain</span>
-            <select value={selected.name} onChange={event => {
-              const next = scopes.find(scope => scope.name === event.target.value);
-              if (next) selectScope(next);
+            <select value={selected.id} onChange={event => {
+              const next = domainItems.find(domain => domain.id === event.target.value);
+              if (next) selectDomain(next);
             }}>
-              {scopes.map(scope => <option key={scope.name} value={scope.name}>{scope.name}</option>)}
+              {domainItems.map(domain => <option key={domain.id} value={domain.id}>{domain.name}</option>)}
             </select>
           </label>}
           <span className="domain-count">{selected?.entities.length ?? 0} entities</span>
-          {selected && !selected.isBuiltin && viewMode === "detail" && <button type="button" className="domain-primary" onClick={() => editScope(selected)}>Edit domain</button>}
+          {selected && !selected.isBuiltin && viewMode === "detail" && <button type="button" className="domain-primary" onClick={() => editDomain(selected)}>Edit domain</button>}
         </div>
         {error && selected && <p className="domain-error" role="alert">{error}</p>}
         {viewMode === "wizard" ? (
           <DomainWizard
             mode={selected ? "edit" : "create"}
-            domainName={selected?.name}
+            domainDisplayName={selected?.name}
             source={wizardSource}
             step={step}
             canContinue={canContinue}
@@ -1094,12 +1096,12 @@ export default function DomainList({
                 const nextDraft = updater(entityDraft);
                 setEntityDraft(nextDraft);
                 if (nextDraft.name !== entityDraft.name) {
-                  updateSelectedScope(scope => ({ ...scope, relations: renameEntityInRelations(scope.relations, entityDraft.name, nextDraft.name) }));
+                  updateSelectedDomain(domain => ({ ...domain, relations: renameEntityInRelations(domain.relations, entityDraft.name, nextDraft.name) }));
                 }
                 setEntityDirty(true);
               }}
               onRelationsChange={updater => {
-                updateSelectedScope(scope => ({ ...scope, relations: updater(scope.relations) }));
+                updateSelectedDomain(domain => ({ ...domain, relations: updater(domain.relations) }));
                 setEntityDirty(true);
               }}
               databaseTables={schema.tables as DatabaseTableOption[]}

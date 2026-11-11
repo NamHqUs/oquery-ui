@@ -77,6 +77,18 @@ export function removeEntityFromRelations(relations: DomainRelation[], name: str
   return relations.filter((relation) => relation.sourceEntity !== name && relation.targetEntity !== name);
 }
 
+export function findEntityNameProblem(entities: Pick<MetadataEntity, "name">[]): string | null {
+  const names = new Set<string>();
+  for (const entity of entities) {
+    const name = entity.name.trim();
+    const normalizedName = name.toLowerCase();
+    if (!name) return "Every entity must have a name.";
+    if (names.has(normalizedName)) return `An entity named "${name}" already exists in this domain.`;
+    names.add(normalizedName);
+  }
+  return null;
+}
+
 export function singularize(value: string): string {
   return value.endsWith("ies") ? `${value.slice(0, -3)}y` : value.endsWith("s") && !value.endsWith("ss") ? value.slice(0, -1) : value;
 }

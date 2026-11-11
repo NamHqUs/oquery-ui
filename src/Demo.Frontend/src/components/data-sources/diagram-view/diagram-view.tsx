@@ -26,12 +26,12 @@ export const DIAGRAM_GROUP_TONES: DiagramGroupTone[] = ["revenue", "customer", "
 
 type DiagramViewProps = {
   tables?: DiagramTable[];
-  groups?: { name: string; tables: DiagramTable[]; tone?: DiagramGroupTone }[];
+  groups?: { id?: string; name: string; tables: DiagramTable[]; tone?: DiagramGroupTone }[];
   initialGroup?: string;
   selectedTableName?: string;
   loading?: boolean;
   relationships?: DiagramRelationship[];
-  onSelectGroup?: (groupName: string) => void;
+  onSelectGroup?: (groupId: string) => void;
   onSelectRelation?: (relation: DiagramRelationship & { from: string; to: string }) => void;
   relationInspector?: ReactNode;
   onOpenTable?: (table: DiagramTable) => void;
@@ -565,7 +565,7 @@ export default function DiagramView({
                 }
                 if (activeGroup) committedGroupRef.current = activeGroup;
                 setSelectedGroup(group.name);
-                onSelectGroup?.(group.name);
+                onSelectGroup?.(group.id ?? group.name);
                 setLayoutSize(boardSize);
                 setPositions({});
               }}

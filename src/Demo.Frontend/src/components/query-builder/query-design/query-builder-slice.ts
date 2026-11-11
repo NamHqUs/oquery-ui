@@ -1034,10 +1034,10 @@ function toApiSavedRequest(request: { name: string; definition: QueryDefinition;
 
 export const fetchQueryMetadata = createAsyncThunk(
   "queryBuilder/fetchMetadata",
-  async (scope: string | undefined = undefined, { rejectWithValue }) => {
+  async (domainId: string | undefined = undefined, { rejectWithValue }) => {
     try {
-      const domainId = scope?.trim() || "All";
-      const payload = await requestJson(apiUrls.metadata.domainById(domainId));
+      const requestedDomainId = domainId?.trim() || "All";
+      const payload = await requestJson(apiUrls.metadata.domainById(requestedDomainId));
       const entities = typeof payload === "object" && payload !== null && "entities" in payload
         ? payload.entities
         : null;
@@ -1385,6 +1385,12 @@ const queryBuilderSlice = createSlice({
       state.metadataStatus = "idle";
       state.metadataError = "";
     },
+    setQueryMetadata(state, action: PayloadAction<{ entities: MetadataEntity[]; relations: DomainRelation[] }>) {
+      state.metadata = action.payload.entities;
+      state.metadataRelations = action.payload.relations;
+      state.metadataStatus = "succeeded";
+      state.metadataError = "";
+    },
     invalidateFunctionDefinitions(state) {
       state.functionDefinitions = [];
       state.functionDefinitionsStatus = "idle";
@@ -1555,6 +1561,7 @@ export const {
   invalidateFunctionDefinitions,
   invalidateQueryMetadata,
   setExpressionDebugUiEnabled,
+  setQueryMetadata,
 } = queryBuilderSlice.actions;
 export { fromApiQuery };
 export default queryBuilderSlice.reducer;

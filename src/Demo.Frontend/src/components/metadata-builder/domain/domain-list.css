@@ -1,7 +1,7 @@
 .domain-workspace { display: grid; min-height: 520px; grid-template-columns: var(--panel-width) minmax(0,1fr); overflow: hidden; border: 1px solid var(--line); border-radius: 9px; background: linear-gradient(135deg,#11141c,#0f1218); }
 .domain-workspace.domain-list-view { display: block; }
 .domain-list-page { display: grid; min-height: 520px; grid-template-columns: 280px minmax(0,1fr); padding: 0; }
-.domain-scope-list { min-height: 520px; }
+.domain-list { min-height: 520px; }
 .domain-route-list { min-width: 0; min-height: 520px; overflow: hidden; }
 .domain-list-welcome { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 48px; }
 .domain-list-welcome h2 { margin: 8px 0; font-size: 22px; color: #f0edff; }
@@ -88,7 +88,7 @@
   .domain-workspace { grid-template-columns: 1fr; }
   .domain-editor { grid-column: 1; }
   .domain-list-page, .domain-detail-layout { grid-template-columns: 1fr; }
-  .domain-scope-list, .domain-route-list, .domain-entity-panel { min-height: 0; border-right: 0; border-bottom: 1px solid #293141; }
+  .domain-list, .domain-route-list, .domain-entity-panel { min-height: 0; border-right: 0; border-bottom: 1px solid #293141; }
   .domain-list-welcome { padding: 32px 22px; }
   .domain-table-picker-layout { grid-template-columns: 1fr; }
   .domain-selected-tables { padding: 16px 0 0; border-top: 0; border-left: 0; }
@@ -96,7 +96,7 @@
   .domain-workspace .panel-splitter { display: none; }
 }
 
-/* Refined scope workspace surface */
+/* Refined domain workspace surface */
 .domain-workspace {
   min-height: 680px;
   border-color: #252c3b;
@@ -332,7 +332,7 @@
   background: linear-gradient(135deg, #846ff0, #6652c4);
 }
 
-/* Selected scopes use a two-level layout instead of a cramped nested split. */
+/* Selected domains use a two-level layout instead of a cramped nested split. */
 .domain-detail-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -342,8 +342,8 @@
   display: grid;
   grid-template-columns: minmax(190px, 230px) minmax(0, 1fr);
   grid-template-areas:
-    "scope toolbar"
-    "scope filter"
+    "domain toolbar"
+    "domain filter"
     "entities entities";
   gap: 12px 22px;
   align-items: center;
@@ -352,7 +352,7 @@
   border-bottom: 1px solid #252c3b;
 }
 .domain-entity-panel .domain-name {
-  grid-area: scope;
+  grid-area: domain;
   margin: 0;
 }
 .domain-entity-toolbar {
@@ -403,7 +403,7 @@
     display: grid;
     grid-template-columns: 1fr auto;
     grid-template-areas:
-      "scope toolbar"
+      "domain toolbar"
       "filter filter"
       "entities entities";
     gap: 12px;
@@ -665,7 +665,7 @@
   }
 }
 
-/* Scopes are few; keep them compact and give the high-cardinality entity list the rail. */
+/* Domains are few; keep them compact and give the high-cardinality entity list the rail. */
 .domain-workspace:not(.domain-list-view):not(.domain-create-view) {
   grid-template-columns: minmax(0, 1fr);
 }
@@ -675,7 +675,7 @@
 .domain-workspace:not(.domain-list-view):not(.domain-create-view) .domain-route-list {
   display: none;
 }
-.domain-scope-picker {
+.domain-picker {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -686,7 +686,7 @@
   letter-spacing: .08em;
   text-transform: uppercase;
 }
-.domain-scope-picker select {
+.domain-picker select {
   min-width: 150px;
   min-height: 36px;
   padding: 0 30px 0 11px;
@@ -700,7 +700,7 @@
   letter-spacing: 0;
   text-transform: none;
 }
-.domain-scope-picker select:focus {
+.domain-picker select:focus {
   border-color: #8064e8;
 }
 .domain-workspace:not(.domain-list-view):not(.domain-create-view) .domain-detail-layout {
@@ -743,7 +743,7 @@
   min-height: 0;
 }
 @media (max-width: 760px) {
-  .domain-scope-picker {
+  .domain-picker {
     margin-left: 0;
   }
   .domain-workspace:not(.domain-list-view):not(.domain-create-view) .domain-detail-layout {

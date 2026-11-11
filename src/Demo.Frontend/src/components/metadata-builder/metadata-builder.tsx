@@ -8,14 +8,14 @@ import Icon from "../icon/icon";
 import PanelSplitter from "../panel-splitter/panel-splitter";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
 import { fetchDbSchema } from "../data-sources/database-slice";
-import { fetchQueryMetadata, MetadataEntity, invalidateQueryMetadata, type DomainRelation } from "../query-builder/query-design/query-builder-slice";
+import { fetchQueryMetadata, metadataEntityFromDto, MetadataEntity, setQueryMetadata, type DomainEntityDto, type DomainRelation } from "../query-builder/query-design/query-builder-slice";
 import EntityList from "./entity-definition/entity-list/entity-list";
 import EntityBuilder, { type DatabaseTableOption } from "./entity-definition/entity-builder/entity-builder";
 import EntityDiagram from "./entity-diagram/entity-diagram";
-import { EditableEntity, emptyEntity, findRelationProblem, removeEntityFromRelations, renameEntityInRelations, toAbstractDataType, toEditable, toEntityPayload, toRelationPayload } from "./types";
+import { EditableEntity, emptyEntity, findEntityNameProblem, findRelationProblem, pluralize, removeEntityFromRelations, renameEntityInRelations, singularize, toAbstractDataType, toEditable, toEntityPayload, toRelationPayload } from "./types";
 import FunctionDefinitionsWorkspace from "../function-definition/function-definition";
 import OperatorDefinition from "./operator-definition/operator-definition";
-import DomainList from "./domain/domain-list";
+import DomainList, { type Domain } from "./domain/domain-list";
 import { resolveDefinitionChanges, useDefinitionUnsavedWarning } from "./definition-actions/definition-actions";
 import DefinitionActions from "./definition-actions/definition-actions";
 import type { DefinitionActionAdapter } from "./definition-actions/definition-actions";
@@ -45,12 +45,16 @@ type DomainSummary = {
   canDelete: boolean;
   isBuiltin: boolean;
 };
-type DomainName = {
+type DomainOption = {
   id: string;
   name: string;
 };
-type DomainNameWithDescription = DomainName & {
+type DomainSummaryDto = DomainOption & {
   description: string;
+};
+type SavedDomainDto = {
+  entities: DomainEntityDto[];
+  relations: DomainRelation[];
 };
 
 function normalizeTablePart(value: string) {
@@ -96,7 +100,7 @@ async function request<T = unknown>(url: string, options?: RequestInit): Promise
 }
 
 async function loadDomainSummaries(): Promise<DomainSummary[]> {
-  const domains = await request<DomainNameWithDescription[]>(apiUrls.metadata.domainNamesWithDescriptions);
+  const domains = await request<DomainSummaryDto[]>(apiUrls.metadata.domainNamesWithDescriptions);
   return domains.map(domain => ({
     ...domain,
     entities: [],
@@ -135,6 +139,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const [selectedName, setSelectedName] = useState("");
   const [selectedTableKey, setSelectedTableKey] = useState("");
   const selectedNameRef = useRef(selectedName);
+  const saveInProgressRef = useRef(false);
   const [draft, setDraft] = useState<EditableEntity | null>(null);
   const [filter, setFilter] = useState("");
   const panel = useResizablePanel("metadata-builder");
@@ -149,21 +154,43 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     setRawMessage(value);
     setMessageKind("success");
   };
+  const applySavedDomain = (saved: SavedDomainDto, preferredName: string) => {
+    const savedEntities = saved.entities.map(metadataEntityFromDto);
+    setDomainEntities(savedEntities);
+    setDomainRelations(saved.relations);
+    dispatch(setQueryMetadata({ entities: savedEntities, relations: saved.relations }));
+    const selectedEntity = savedEntities.find((entity) => entity.name === preferredName);
+    setSelectedName(selectedEntity?.name || "");
+    setDraft(selectedEntity ? toEditable(selectedEntity) : null);
+    setDirty(false);
+    setStatus("succeeded");
+  };
+  const handleDomainSaved = (domain: Domain) => {
+    setDomainEntities(domain.entities);
+    setDomainRelations(domain.relations);
+    setLoadedDomainId(domain.id);
+    dispatch(setQueryMetadata({ entities: domain.entities, relations: domain.relations }));
+    setDomains((current) => current.some((item) => item.id === domain.id)
+      ? current.map((item) => item.id === domain.id ? domain : item)
+      : [...current, domain]);
+    skipNextMetadataLoadRef.current = true;
+  };
   const [dirty, setDirty] = useState(false);
   const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
   const [domains, setDomains] = useState<DomainSummary[]>([]);
-  const [domainNames, setDomainNames] = useState<DomainName[]>([]);
+  const [domainOptions, setDomainOptions] = useState<DomainOption[]>([]);
   const [domainsExpanded, setDomainsExpanded] = useState(true);
-  const [scopedEntities, setScopedEntities] = useState<MetadataEntity[] | null>(null);
-  const [scopedRelations, setScopedRelations] = useState<DomainRelation[] | null>(null);
-  const [loadedScopeName, setLoadedScopeName] = useState<string | undefined>();
+  const [domainEntities, setDomainEntities] = useState<MetadataEntity[] | null>(null);
+  const [domainRelations, setDomainRelations] = useState<DomainRelation[] | null>(null);
+  const [loadedDomainId, setLoadedDomainId] = useState<string | undefined>();
+  const skipNextMetadataLoadRef = useRef(false);
   const sectionNavigationRef = useRef<(section: MetadataSection) => void>(() => undefined);
   const [pendingToolbarSection, setPendingToolbarSection] = useState<MetadataSection | null>(null);
   useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   useEffect(() => { selectedNameRef.current = selectedName; }, [selectedName]);
   const requestedSection = searchParams.get("section")
     ?? (location.pathname === "/metadata/domains/create" ? "domains" : null);
-  const scopeName = searchParams.get("scope") || undefined;
+  const domainId = searchParams.get("domain") || undefined;
   const activeSection: MetadataSection = entityOnly ? "entities" : requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "domains" || requestedSection === "functions" || requestedSection === "operators"
     ? requestedSection
     : "diagram";
@@ -176,7 +203,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const selectSection = async (section: MetadataSection) => {
     if ((section === activeSection
       && !(section === "domains"
-        && (location.pathname === "/metadata/domains/create" || searchParams.has("scope"))))
+        && (location.pathname === "/metadata/domains/create" || searchParams.has("domain"))))
       ) return;
     flushSync(() => setPendingToolbarSection(section));
     if (!(await resolveAllDirtyChanges(activeSection))) {
@@ -186,7 +213,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.set("section", section);
     if (section === "domains" && location.pathname === "/metadata/domains/create") {
-      nextSearchParams.delete("scope");
+      nextSearchParams.delete("domain");
       navigate(`/metadata?${nextSearchParams.toString()}`);
     } else {
       setSearchParams(nextSearchParams);
@@ -200,14 +227,14 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     onSectionNavigationChange?.((section) => sectionNavigationRef.current(section));
     return () => onSectionNavigationChange?.(null);
   }, [onSectionNavigationChange]);
-  const displayedEntities = scopedEntities ?? entities;
-  const displayedRelations = scopedRelations ?? metadataRelations;
-  const activeDomainIsBuiltin = !scopeName
-    || domains.find((domain) => domain.id === scopeName)?.isBuiltin === true;
+  const displayedEntities = domainEntities ?? entities;
+  const displayedRelations = domainRelations ?? metadataRelations;
+  const activeDomainIsBuiltin = !domainId
+    || domains.find((domain) => domain.id === domainId)?.isBuiltin === true;
   const metadataBusy = status === "loading"
     || status === "saving"
-    || loadedScopeName !== scopeName;
-  const canManageCurrentDomain = Boolean(scopeName) && !activeDomainIsBuiltin;
+    || loadedDomainId !== domainId;
+  const canManageCurrentDomain = Boolean(domainId) && !activeDomainIsBuiltin;
   const canSaveCurrentDomain = canManageCurrentDomain && (Boolean(draft) || dirty);
   useDefinitionUnsavedWarning(dirty);
 
@@ -215,15 +242,15 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     setStatus("loading");
     setMessage("");
     try {
-      const result = await dispatch(fetchQueryMetadata(scopeName));
+      const result = await dispatch(fetchQueryMetadata(domainId));
       if (!fetchQueryMetadata.fulfilled.match(result)) {
         if (result.meta.condition) return false;
         throw new Error(String(result.payload || "Unable to load metadata."));
       }
       const { entities: loadedEntities, relations: loadedRelations } = result.payload;
-      setScopedEntities(scopeName ? loadedEntities : null);
-      setScopedRelations(scopeName ? loadedRelations : null);
-      setLoadedScopeName(scopeName);
+      setDomainEntities(domainId ? loadedEntities : null);
+      setDomainRelations(domainId ? loadedRelations : null);
+      setLoadedDomainId(domainId);
       const preferred = loadedEntities.find((entity) => entity.name === preferredName);
       if (selectFirst || !preferredName || !preferred) {
         const next = selectFirst ? loadedEntities[0] : preferred;
@@ -241,7 +268,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       setStatus("succeeded");
       return true;
     } catch (error) {
-      setLoadedScopeName(scopeName);
+      setLoadedDomainId(domainId);
       setStatus("failed");
       setMessage(error instanceof Error ? error.message : "Unable to load metadata.");
       return false;
@@ -250,16 +277,20 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
 
   useEffect(() => {
     if (activeSection !== "diagram" && activeSection !== "entities") return;
+    if (skipNextMetadataLoadRef.current && domainId) {
+      skipNextMetadataLoadRef.current = false;
+      return;
+    }
     void loadEntities(true);
-  }, [activeSection, scopeName]);
+  }, [activeSection, domainId]);
   useEffect(() => {
     let cancelled = false;
     if (activeSection === "diagram") {
-      void request<DomainName[]>(apiUrls.metadata.domainNames)
-        .then((names) => {
+      void request<DomainOption[]>(apiUrls.metadata.domainNames)
+        .then((options) => {
           if (!cancelled) {
-            setDomainNames(names);
-            const selectedDomain = names.find(domain => domain.id === scopeName);
+            setDomainOptions(options);
+            const selectedDomain = options.find(domain => domain.id === domainId);
             setDomains(selectedDomain
               ? [{
                   ...selectedDomain,
@@ -290,7 +321,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       .then((result) => {
         if (!cancelled) {
           setDomains(result);
-          setDomainNames(result.map(domain => ({ id: domain.id, name: domain.name })));
+          setDomainOptions(result.map(domain => ({ id: domain.id, name: domain.name })));
         }
       })
       .catch((reason) => {
@@ -300,16 +331,16 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         }
       });
     return () => { cancelled = true; };
-  }, [activeSection, entityOnly]);
+  }, [activeSection, entityOnly, domainId]);
   useEffect(() => {
-    if (!scopeName || !scopedEntities || !scopedRelations) return;
+    if (!domainId || !domainEntities || !domainRelations) return;
     setDomains((current) => {
-      const selected = current.find(domain => domain.id === scopeName);
-      if (!selected || (selected.entities === scopedEntities && selected.relations === scopedRelations)) return current;
+      const selected = current.find(domain => domain.id === domainId);
+      if (!selected || (selected.entities === domainEntities && selected.relations === domainRelations)) return current;
       return current.map((domain) =>
-        domain.id === scopeName ? { ...domain, entities: scopedEntities, relations: scopedRelations } : domain);
+        domain.id === domainId ? { ...domain, entities: domainEntities, relations: domainRelations } : domain);
     });
-  }, [scopeName, scopedEntities, scopedRelations, domains]);
+  }, [domainId, domainEntities, domainRelations, domains]);
   useEffect(() => {
     if (databaseState.connectionStatus === "succeeded" && databaseState.schemaStatus === "idle") {
       dispatch(fetchDbSchema());
@@ -317,7 +348,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   }, [databaseState.connectionStatus, databaseState.schemaStatus, dispatch]);
 
   const discardChanges = () => {
-    if (scopeName) {
+    if (domainId) {
       void loadEntities(false, selectedName);
       return;
     }
@@ -332,16 +363,18 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   };
 
   const createDiagramDomain = () => {
-    navigate("/metadata/domains/create?section=domains&source=database");
+    navigate("/metadata/domains/create?section=domains&source=database&returnSection=diagram");
   };
 
   const saveDiagramDomain = async () => {
-    if (!scopeName || activeDomainIsBuiltin) return;
-    const scope = domains.find((domain) => domain.name === scopeName);
-    if (!scope) {
-      setMessage(`Domain "${scopeName}" was not found.`);
+    if (!domainId || activeDomainIsBuiltin) return;
+    if (saveInProgressRef.current) return;
+    const domain = domains.find((domain) => domain.id === domainId);
+    if (!domain) {
+      setMessage(`Domain "${domainId}" was not found.`);
       return;
     }
+    saveInProgressRef.current = true;
     setStatus("saving");
     setMessage("");
     try {
@@ -375,31 +408,35 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       const nextRelations = nextDraft && draft
         ? renameEntityInRelations(displayedRelations, draft.name, nextDraft.name)
         : displayedRelations;
+      const entityNameProblem = findEntityNameProblem(nextEntities);
+      if (entityNameProblem) {
+        setStatus("ready");
+        setMessage(entityNameProblem);
+        return;
+      }
       const relationProblem = findRelationProblem(nextEntities, nextRelations);
       if (relationProblem) {
         setStatus("ready");
         setMessage(relationProblem);
         return;
       }
-      await request(apiUrls.metadata.domainById(scope.id), {
+      const saved = await request<SavedDomainDto>(apiUrls.metadata.domainById(domain.id), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: scope.name,
-          description: scope.description,
+          name: domain.name,
+          description: domain.description,
           entities: nextEntities.map(toEntityPayload),
           relations: toRelationPayload(nextRelations),
         }),
       });
-      setScopedEntities(nextEntities);
-      setScopedRelations(nextRelations);
-      setDirty(false);
-      dispatch(invalidateQueryMetadata());
-      await loadEntities(false, nextDraft?.name || selectedName);
-      setSuccessMessage(`Domain "${scope.name}" saved successfully.`);
+      applySavedDomain(saved, nextDraft?.name || selectedName);
+      setSuccessMessage(`Domain "${domain.name}" saved successfully.`);
     } catch (error) {
       setStatus("failed");
       setMessage(error instanceof Error ? error.message : "Unable to save the diagram domain.");
+    } finally {
+      saveInProgressRef.current = false;
     }
   };
 
@@ -411,13 +448,13 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   };
 
   const deleteDiagramDomain = async () => {
-    if (!scopeName || activeDomainIsBuiltin) return;
+    if (!domainId || activeDomainIsBuiltin) return;
     const action = await showMessageBox({
       eyebrow: "DELETE DOMAIN",
-      title: `Delete ${scopeName}?`,
-      message: `This will permanently delete the ${scopeName} domain and all of its entity definitions.`,
-      confirmationText: scopeName,
-      confirmationLabel: `Enter ${scopeName} to confirm`,
+      title: `Delete ${domainId}?`,
+      message: `This will permanently delete the ${domainId} domain and all of its entity definitions.`,
+      confirmationText: domainId,
+      confirmationLabel: `Enter ${domainId} to confirm`,
       actions: [
         { value: "cancel", label: "Cancel", variant: "secondary" },
         { value: "delete", label: "Delete domain", variant: "danger" },
@@ -427,9 +464,14 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     setStatus("saving");
     setMessage("");
     try {
-      await request(apiUrls.metadata.domainById(scopeName), { method: "DELETE" });
-      setDomains((current) => current.filter((domain) => domain.id !== scopeName));
-      navigate("/metadata?section=diagram");
+      await request(apiUrls.metadata.domainById(domainId), { method: "DELETE" });
+      const deletedIndex = domainOptions.findIndex((domain) => domain.id === domainId);
+      const nextDomain = domainOptions[deletedIndex + 1] || domainOptions[deletedIndex - 1];
+      setDomainOptions((current) => current.filter((domain) => domain.id !== domainId));
+      setDomains((current) => current.filter((domain) => domain.id !== domainId));
+      navigate(nextDomain
+        ? `/metadata?section=diagram&domain=${encodeURIComponent(nextDomain.id)}`
+        : "/metadata?section=diagram");
     } catch (error) {
       setStatus("failed");
       setMessage(error instanceof Error ? error.message : "Unable to delete the diagram domain.");
@@ -466,6 +508,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       setMessage("Raw SQL expressions are required.");
       return false;
     }
+    if (saveInProgressRef.current) return false;
+    saveInProgressRef.current = true;
     const rawSql = draft.rawSql.trim();
     const payload: MetadataEntity = {
       name: draft.name.trim(),
@@ -481,58 +525,59 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     setStatus("saving");
     setMessage("");
     try {
-      if (scopeName && !draft) {
-        const scopeResult = await loadDomainSummaries();
-        const scope = scopeResult.find((item) => item.name === scopeName);
-        if (!scope) throw new Error(`Domain "${scopeName}" was not found.`);
+      if (domainId && !draft) {
+        const domain = domains.find((item) => item.id === domainId);
+        if (!domain) throw new Error(`Domain "${domainId}" was not found.`);
+        const entityNameProblem = findEntityNameProblem(displayedEntities);
+        if (entityNameProblem) throw new Error(entityNameProblem);
         const relationProblem = findRelationProblem(displayedEntities, displayedRelations);
         if (relationProblem) throw new Error(relationProblem);
-        await request(apiUrls.metadata.domainById(scope.id), {
+        const saved = await request<SavedDomainDto>(apiUrls.metadata.domainById(domain.id), {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: scope.name,
-            description: scope.description,
+            name: domain.name,
+            description: domain.description,
             entities: displayedEntities.map(toEntityPayload),
             relations: toRelationPayload(displayedRelations),
           }),
         });
-        dispatch(invalidateQueryMetadata());
-        return await loadEntities(true);
+        applySavedDomain(saved, selectedName);
+        return true;
       }
-      if (scopeName) {
-        const scopeResult = await loadDomainSummaries();
-        const scope = scopeResult.find((item) => item.name === scopeName);
-        if (!scope) throw new Error(`Domain "${scopeName}" was not found.`);
+      if (domainId) {
+        const domain = domains.find((item) => item.id === domainId);
+        if (!domain) throw new Error(`Domain "${domainId}" was not found.`);
         const nextEntities = selectedName
           ? displayedEntities.map((entity) => entity.name === selectedName ? payload : entity)
           : [...displayedEntities, payload];
         const nextRelations = renameEntityInRelations(displayedRelations, draft.name, payload.name);
+        const entityNameProblem = findEntityNameProblem(nextEntities);
+        if (entityNameProblem) throw new Error(entityNameProblem);
         const relationProblem = findRelationProblem(nextEntities, nextRelations);
         if (relationProblem) throw new Error(relationProblem);
-        await request(apiUrls.metadata.domainById(scope.id), {
+        const saved = await request<SavedDomainDto>(apiUrls.metadata.domainById(domain.id), {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: scope.name,
-            description: scope.description,
+            name: domain.name,
+            description: domain.description,
             entities: nextEntities.map(toEntityPayload),
             relations: toRelationPayload(nextRelations),
           }),
         });
-        setScopedEntities(nextEntities);
-        setScopedRelations(nextRelations);
+        applySavedDomain(saved, payload.name);
       }
-      dispatch(invalidateQueryMetadata());
-      const saved = await loadEntities(false, payload.name);
-      if (saved && scopeName) {
-        setSuccessMessage(`Domain "${scopeName}" saved successfully.`);
+      if (domainId) {
+        setSuccessMessage(`Domain "${domainId}" saved successfully.`);
       }
-      return saved;
+      return true;
     } catch (error) {
       setStatus("failed");
       setMessage(error instanceof Error ? error.message : "Unable to save metadata.");
       return false;
+    } finally {
+      saveInProgressRef.current = false;
     }
   };
 
@@ -584,13 +629,13 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     const nextDraft = update(draft);
     setDraft(nextDraft);
     if (nextDraft.name !== draft.name) {
-      setScopedRelations((current) => renameEntityInRelations(current ?? metadataRelations, draft.name, nextDraft.name));
+      setDomainRelations((current) => renameEntityInRelations(current ?? metadataRelations, draft.name, nextDraft.name));
     }
     setDirty(true);
   };
 
   const updateRelations = (update: (relations: DomainRelation[]) => DomainRelation[]) => {
-    setScopedRelations((current) => update(current ?? metadataRelations));
+    setDomainRelations((current) => update(current ?? metadataRelations));
     setDirty(true);
   };
 
@@ -598,8 +643,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     const name = selectedNameRef.current;
     if (!name || activeDomainIsBuiltin) return;
     const remaining = displayedEntities.filter((entity) => entity.name !== name);
-    setScopedEntities(remaining);
-    setScopedRelations(removeEntityFromRelations(displayedRelations, name));
+    setDomainEntities(remaining);
+    setDomainRelations(removeEntityFromRelations(displayedRelations, name));
     const next = remaining[0];
     setSelectedName(next?.name || "");
     setDraft(next ? toEditable(next) : null);
@@ -621,11 +666,11 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     rawSqlOverride?: string,
     preserveEntityName = false,
   ) => {
-    const entitiesWithCurrentDraft = scopeName && draft && selectedName
+    const entitiesWithCurrentDraft = domainId && draft && selectedName
       ? displayedEntities.map((entity) => entity.name === selectedName ? draft : entity)
       : displayedEntities;
-    if (entitiesWithCurrentDraft !== displayedEntities && scopeName) {
-      setScopedEntities(entitiesWithCurrentDraft);
+    if (entitiesWithCurrentDraft !== displayedEntities && domainId) {
+      setDomainEntities(entitiesWithCurrentDraft);
     }
     setSelectedTableKey(tableKey(table));
     const existing = entitiesWithCurrentDraft.find((entity) =>
@@ -645,10 +690,10 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         );
         return relatedEntities.map((entity) => ({
           sourceEntity: entityName,
-          sourceRelationName: relation.targetTable,
+          sourceRelationName: singularize(entity.name),
           sourceFields: [...relation.sourceColumns],
           targetEntity: entity.name,
-          targetRelationName: relation.targetTable,
+          targetRelationName: pluralize(entityName),
           targetFields: [...relation.targetColumns],
         }));
       });
@@ -660,7 +705,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     const newRelations = discoveredRelations.filter((relation) =>
       !displayedRelations.some((existingRelation) => sameRelation(existingRelation, relation)));
     if (newRelations.length) {
-      setScopedRelations((current) => [...(current ?? metadataRelations), ...newRelations]);
+      setDomainRelations((current) => [...(current ?? metadataRelations), ...newRelations]);
     }
     if (existing) {
       setSelectedName(existing.name);
@@ -718,7 +763,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   );
   const toolbarActions = activeSection === "diagram"
     ? <div className="editor-actions" role="toolbar" aria-label="Diagram domain actions">
-      {scopeName && activeDomainIsBuiltin && <span className="metadata-editor-heading-status readonly">Built-in - Read Only</span>}
+      {domainId && activeDomainIsBuiltin && <span className="metadata-editor-heading-status readonly">Built-in - Read Only</span>}
       {canManageCurrentDomain && <button className="icon-button definition-action-button primary" type="button" title="Save domain" aria-label="Save domain" onClick={() => void saveDiagramDomain()} disabled={metadataBusy || !canSaveCurrentDomain}>
         <Icon name="save" size={17} />
       </button>}
@@ -726,10 +771,10 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       {canManageCurrentDomain && <button className="icon-button definition-action-button danger" type="button" title="Delete domain" aria-label="Delete domain" onClick={() => void deleteDiagramDomain()} disabled={metadataBusy}>
         <Icon name="trash" size={17} />
       </button>}
-      {scopeName && <button className="icon-button definition-action-button" type="button" title="Reload domain" aria-label="Reload domain" onClick={() => void reloadDiagramDomain()} disabled={metadataBusy}>
+      {domainId && <button className="icon-button definition-action-button" type="button" title="Reload domain" aria-label="Reload domain" onClick={() => void reloadDiagramDomain()} disabled={metadataBusy}>
         <Icon name="reset" size={17} />
       </button>}
-      {canManageCurrentDomain && <button className="icon-button definition-action-button" type="button" title="Edit domain entities in wizard" aria-label="Edit domain entities in wizard" onClick={() => navigate(`/metadata/domains/edit?section=domains&scope=${encodeURIComponent(scopeName)}&returnSection=diagram`)} disabled={metadataBusy}>
+      {canManageCurrentDomain && <button className="icon-button definition-action-button" type="button" title="Edit domain entities in wizard" aria-label="Edit domain entities in wizard" onClick={() => navigate(`/metadata/domains/edit?section=domains&domain=${encodeURIComponent(domainId)}&returnSection=diagram`)} disabled={metadataBusy}>
         <Icon name="edit" size={17} />
       </button>}
       <button className="icon-button definition-action-button create" type="button" title="Create domain" aria-label="Create domain" onClick={createDiagramDomain} disabled={metadataBusy}>
@@ -767,20 +812,20 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const selectRawSqlMode = () => {
     setSelectedTableKey("");
   };
-  const selectDomain = (name: string) => {
-    const domain = domainNames.find(item => item.name === name);
+  const selectDomain = (domainId: string) => {
+    const domain = domainOptions.find(item => item.id === domainId);
     if (!domain) return;
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.set("section", "entities");
-    nextSearchParams.set("scope", domain.id);
+    nextSearchParams.set("domain", domain.id);
     navigate(`/metadata?${nextSearchParams.toString()}`);
   };
-  const selectDiagramDomain = (name: string) => {
-    const domain = domainNames.find(item => item.name === name);
+  const selectDiagramDomain = (domainId: string) => {
+    const domain = domainOptions.find(item => item.id === domainId);
     if (!domain) return;
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.set("section", "diagram");
-    nextSearchParams.set("scope", domain.id);
+    nextSearchParams.set("domain", domain.id);
     navigate(`/metadata?${nextSearchParams.toString()}`);
   };
 
@@ -791,8 +836,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           entities={displayedEntities}
           relations={displayedRelations}
           domains={domains}
-          domainNames={domainNames}
-          activeScopeName={scopeName}
+          domainOptions={domainOptions}
+          activeDomainId={domainId}
           selectedEntityName={selectedName}
           loading={metadataBusy}
           editingEntity={draft}
@@ -820,7 +865,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           entityEditor={
             <EntityBuilder
               draft={draft}
-              canEdit={Boolean(scopeName) && !activeDomainIsBuiltin}
+              canEdit={Boolean(domainId) && !activeDomainIsBuiltin}
               message={message}
               messageKind={messageKind}
               allEntities={displayedEntities}
@@ -841,10 +886,10 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         <section className={`metadata-workspace split-workspace${panel.collapsed ? " panel-collapsed" : ""}`} style={panel.style}>
           <div className="metadata-entity-navigation">
             {domains.length > 0 && (
-              <div className="metadata-scope-navigation">
+              <div className="metadata-domain-navigation">
                 <button
                   type="button"
-                  className={`metadata-scope-navigation-heading${domainsExpanded ? "" : " collapsed"}`}
+                  className={`metadata-domain-navigation-heading${domainsExpanded ? "" : " collapsed"}`}
                   aria-expanded={domainsExpanded}
                   aria-controls="metadata-domain-navigation"
                   onClick={() => setDomainsExpanded((expanded) => !expanded)}
@@ -853,20 +898,20 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
                   <Icon name="chevron-down" size={14} />
                 </button>
                 <nav id="metadata-domain-navigation" aria-label="Entity definition domains">
-                  {domains.map((scope) => {
-                    const isActive = (scopeName || "All") === scope.id;
+                  {domains.map((domain) => {
+                    const isActive = (domainId || "All") === domain.id;
                     if (!domainsExpanded && !isActive) return null;
                     return (
                       <button
                         type="button"
-                        className={`metadata-scope-navigation-item${isActive ? " active" : ""}`}
+                        className={`metadata-domain-navigation-item${isActive ? " active" : ""}`}
                         aria-pressed={isActive}
-                        key={scope.name}
-                        onClick={() => selectDomain(scope.name)}
+                        key={domain.name}
+                        onClick={() => selectDomain(domain.id)}
                       >
-                        <span className="metadata-scope-navigation-icon"><Icon name="folder" size={14} /></span>
-                        <span className="metadata-scope-navigation-name">{scope.name}</span>
-                        <span className="metadata-scope-navigation-count">{scope.entities.length}</span>
+                        <span className="metadata-domain-navigation-icon"><Icon name="folder" size={14} /></span>
+                        <span className="metadata-domain-navigation-name">{domain.name}</span>
+                        <span className="metadata-domain-navigation-count">{domain.entities.length}</span>
                       </button>
                     );
                   })}
@@ -903,7 +948,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
             </div>
             <EntityBuilder
               draft={draft}
-              canEdit={Boolean(scopeName) && !activeDomainIsBuiltin}
+              canEdit={Boolean(domainId) && !activeDomainIsBuiltin}
               message={message}
               messageKind={messageKind}
               allEntities={displayedEntities}
@@ -929,6 +974,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         <DomainList
           active={activeSection === "domains"}
           domains={domains}
+          onDomainSaved={handleDomainSaved}
         />
       </div>}
       {toolbarHost && createPortal(

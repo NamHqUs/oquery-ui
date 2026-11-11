@@ -1,10 +1,10 @@
 {
   "Id": "0834649CF2634DDE335A5E7FFFF5D8907934FE6721F9795E18A253E97FD12C74",
   "Name": "Healthcare",
-  "Description": "## Healthcare\n\nThe Healthcare domain manages patient care and clinical activity. It records patient visits, attending doctors, healthcare locations, diagnoses, visit charges, and laboratory results. Diagnoses can also identify chronic conditions, while lab results track abnormal findings.\n\nKey areas include:\n\n- Patient visits\n- Doctors and care locations\n- Visit dates, types, durations, and statuses\n- Diagnoses and diagnosis categories\n- Chronic-condition indicators\n- Visit charges\n- Laboratory tests and results\n- Abnormal lab-result detection",
+  "Description": "",
   "Entities": [
     {
-      "Name": "Employees",
+      "Name": "Doctors",
       "Fields": [
         {
           "Name": "Id",
@@ -68,7 +68,8 @@
         }
       ],
       "RawSql": "Employees",
-      "DbSchema": null
+      "DbSchema": "dbo",
+      "IsRawSql": false
     },
     {
       "Name": "Patients",
@@ -117,7 +118,8 @@
         }
       ],
       "RawSql": "Users",
-      "DbSchema": null
+      "DbSchema": "dbo",
+      "IsRawSql": false
     },
     {
       "Name": "Diagnoses",
@@ -154,7 +156,8 @@
         }
       ],
       "RawSql": "Diagnoses",
-      "DbSchema": null
+      "DbSchema": "dbo",
+      "IsRawSql": false
     },
     {
       "Name": "LabResults",
@@ -197,7 +200,8 @@
         }
       ],
       "RawSql": "LabResults",
-      "DbSchema": null
+      "DbSchema": null,
+      "IsRawSql": false
     },
     {
       "Name": "Visits",
@@ -264,19 +268,18 @@
         }
       ],
       "RawSql": "Visits",
-      "DbSchema": null
+      "DbSchema": "dbo",
+      "IsRawSql": false
     }
   ],
-  "CanDelete": true,
-  "IsBuiltin": false,
   "Relations": [
     {
-      "SourceEntity": "Employees",
+      "SourceEntity": "Doctors",
       "SourceRelationName": "Employee",
       "SourceFields": [
         "ManagerId"
       ],
-      "TargetEntity": "Employees",
+      "TargetEntity": "Doctors",
       "TargetRelationName": "Employee",
       "TargetFields": [
         "Id"
@@ -312,7 +315,7 @@
       "SourceFields": [
         "DoctorId"
       ],
-      "TargetEntity": "Employees",
+      "TargetEntity": "Doctors",
       "TargetRelationName": "Employee",
       "TargetFields": [
         "Id"
@@ -330,5 +333,7 @@
         "Id"
       ]
     }
-  ]
+  ],
+  "CanDelete": true,
+  "IsBuiltin": false
 }

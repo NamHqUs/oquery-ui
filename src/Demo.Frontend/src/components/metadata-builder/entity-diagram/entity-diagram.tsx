@@ -10,15 +10,15 @@ type EntityDiagramProps = {
   entities: MetadataEntity[];
   relations: DomainRelation[];
   domains?: { id: string; name: string; entities: MetadataEntity[] }[];
-  domainNames?: { id: string; name: string }[];
-  activeScopeName?: string;
+  domainOptions?: { id: string; name: string }[];
+  activeDomainId?: string;
   selectedEntityName?: string;
   loading?: boolean;
   editingEntity?: EditableEntity | null;
   editingEntityName?: string;
   onDraftChange?: (updater: (draft: EditableEntity) => EditableEntity) => void;
   onRelationsChange?: (updater: (relations: DomainRelation[]) => DomainRelation[]) => void;
-  onSelectDomain?: (name: string) => void;
+  onSelectDomain?: (domainId: string) => void;
   onOpenEntity: (table: { schema: string; name: string; columns: { name: string; dataType: string; isPrimaryKey: boolean }[] }) => void;
   entityEditorHeader: ReactNode;
   entityEditor: ReactNode;
@@ -28,8 +28,8 @@ export default function EntityDiagram({
   entities,
   relations,
   domains,
-  domainNames,
-  activeScopeName,
+  domainOptions,
+  activeDomainId,
   selectedEntityName,
   loading = false,
   editingEntity,
@@ -59,12 +59,13 @@ export default function EntityDiagram({
       isPrimaryKey: false,
     })),
   }));
-  const scopeGroups = (domainNames || domains)?.map((scope, index) => ({
-    name: scope.name,
+  const domainGroups = (domainOptions || domains)?.map((domainEntry, index) => ({
+    id: domainEntry.id,
+    name: domainEntry.name,
     tone: diagramGroupTone(index),
-    tables: (scope.id === activeScopeName || (!activeScopeName && scope.id === "All")
+    tables: (domainEntry.id === activeDomainId || (!activeDomainId && domainEntry.id === "All")
       ? displayedEntities
-      : domains?.find(domain => domain.id === scope.id)?.entities || [])
+      : domains?.find(domain => domain.id === domainEntry.id)?.entities || [])
       .map(applyDraft).map((entity) => ({
       schema: entity.schema || "dbo",
       name: entity.name,
@@ -75,6 +76,7 @@ export default function EntityDiagram({
       })),
     })),
   }));
+  const activeDomain = (domainOptions || domains)?.find((domain) => domain.id === activeDomainId);
   const relationships = relations.map((relation, sourceRelationIndex) => {
     const source = displayedEntities.find((entity) => entity.name === relation.sourceEntity);
     const target = displayedEntities.find((entity) => entity.name === relation.targetEntity);
@@ -138,8 +140,8 @@ export default function EntityDiagram({
       />
       <DiagramView
         tables={tables}
-        groups={scopeGroups}
-        initialGroup={activeScopeName}
+        groups={domainGroups}
+        initialGroup={activeDomain?.name || activeDomainId}
         selectedTableName={selectedEntityName}
         loading={loading}
         relationships={relationships}

@@ -7,7 +7,7 @@ export type WizardSource = "database" | "file";
 
 type DomainWizardProps = {
   mode?: "create" | "edit";
-  domainName?: string;
+  domainDisplayName?: string;
   source: WizardSource;
   step: WizardStep;
   canContinue: boolean;
@@ -23,7 +23,7 @@ type DomainWizardProps = {
 
 export default function DomainWizard({
   mode = "create",
-  domainName,
+  domainDisplayName,
   source,
   step,
   canContinue,
@@ -63,7 +63,7 @@ export default function DomainWizard({
       <header className="domain-wizard-header">
         <div>
           <h3>{mode === "edit" ? "Edit domain" : "New domain"}</h3>
-          {mode === "edit" && domainName && <strong className="domain-wizard-current-domain">{domainName}</strong>}
+          {mode === "edit" && domainDisplayName && <strong className="domain-wizard-current-domain">{domainDisplayName}</strong>}
           <p>{mode === "edit" ? "Update this existing domain by adding or removing entities, then save the complete definition." : "Choose a source, prepare its entities, and generate query-ready metadata."}</p>
         </div>
         <div className="domain-wizard-header-actions">
