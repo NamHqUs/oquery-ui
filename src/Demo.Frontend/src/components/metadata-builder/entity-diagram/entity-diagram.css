@@ -33,6 +33,8 @@
 .metadata-diagram-editor .metadata-editor-heading { flex: 0 0 auto; margin: 0; padding: 8px 16px; border: 0; border-bottom: 1px solid #35364a; border-radius: 0; background: linear-gradient(105deg, #262238a6, #1a1c29a6); }
 .metadata-diagram-editor .metadata-editor-heading .table-details-title h3 { margin: 7px 0 3px; color: #f0edfb; font-size: 15px; letter-spacing: -.2px; }
 .metadata-diagram-editor .metadata-editor-heading .editor-actions { gap: 6px; }
+.metadata-diagram-editor .metadata-editor-heading .definition-action-button { background: #131720 !important; }
+.metadata-diagram-editor .metadata-editor-heading .definition-action-button.create { background: #131720 !important; }
 .metadata-diagram-editor .metadata-editor-content { min-height: 0; flex: 1 1 auto; overflow: visible; padding-bottom: 14px; }
 .metadata-diagram-editor .metadata-editor-compact .metadata-form-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 .metadata-diagram-editor .metadata-editor-compact .metadata-table-picker > label,

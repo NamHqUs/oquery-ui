@@ -129,7 +129,6 @@ section.page-heading.metadata-page-heading { position: relative; display: flex; 
 .metadata-editor > .entity-details-heading .table-details-title { flex-direction: column; align-items: flex-start; gap: 4px; margin: 0; }
 .metadata-editor > .entity-details-heading .metadata-editor-heading-title { margin-top: 10px; }
 .metadata-editor > .entity-details-heading .metadata-editor-heading-icon { width: 18px; height: 18px; }
-.metadata-editor > .entity-details-heading .definition-action-button.create { order: -1; }
 .metadata-editor > .entity-details-heading .metadata-editor-heading-status { order: -1; }
 .metadata-workspace .metadata-domain-navigation-item,
 .metadata-workspace .metadata-domain-navigation-item:hover,
