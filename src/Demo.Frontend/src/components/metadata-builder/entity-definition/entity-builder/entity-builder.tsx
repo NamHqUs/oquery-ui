@@ -163,17 +163,19 @@ export default function EntityBuilder({
                   }
                 }}
               >
-                <button
-                  type="button"
-                  className="metadata-raw-sql-menu-item"
-                  onClick={() => {
-                    setRawSqlMode(true);
-                    onSelectRawSql?.();
-                    setTablePickerOpen(false);
-                  }}
-                >
-                  Raw SQL Statement
-                </button>
+                {!selectedTable && (
+                  <button
+                    type="button"
+                    className="metadata-raw-sql-menu-item"
+                    onClick={() => {
+                      setRawSqlMode(true);
+                      onSelectRawSql?.();
+                      setTablePickerOpen(false);
+                    }}
+                  >
+                    Raw SQL Statement
+                  </button>
+                )}
                 <input
                   autoFocus
                   spellCheck={false}
