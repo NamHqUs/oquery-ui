@@ -1,6 +1,6 @@
 {
-  "Id": "uahHADsAa7",
-  "Name": "All Business Domains",
+  "Id": "kznSy3cPfj",
+  "Name": "All Domains",
   "Description": "Demo NorthStar Health Group, whose business combines health and wellness product sales, clinical care, health insurance, and human resources. It presents a realistic shared data environment where the same users, employees, locations, and organizational relationships connect multiple business areas.\n\n- **Combining information across related business entities**\n- **Calculating financial and operational measures**\n- **Comparing current and historical activity**\n- **Handling one-to-many relationships correctly**\n- **Preserving records when related information is missing**\n- **Producing ranked and top-ten reports**\n- **Comparing results across multiple database systems**",
   "Entities": [
     {
@@ -27,18 +27,6 @@
         {
           "Name": "State",
           "DbColumn": "State",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Employees",
-          "DbColumn": "Employees",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Visits",
-          "DbColumn": "Visits",
           "DataType": 0,
           "IsRawSql": false
         }
@@ -92,24 +80,6 @@
           "DbColumn": "State",
           "DataType": 0,
           "IsRawSql": false
-        },
-        {
-          "Name": "Orders",
-          "DbColumn": "Orders",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "PatientVisits",
-          "DbColumn": "PatientVisits",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "MemberPolicies",
-          "DbColumn": "MemberPolicies",
-          "DataType": 0,
-          "IsRawSql": false
         }
       ],
       "RawSql": "Users",
@@ -129,12 +99,6 @@
         {
           "Name": "Name",
           "DbColumn": "Name",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Employees",
-          "DbColumn": "Employees",
           "DataType": 0,
           "IsRawSql": false
         }
@@ -206,60 +170,6 @@
           "DbColumn": "EmploymentType",
           "DataType": 0,
           "IsRawSql": false
-        },
-        {
-          "Name": "Department",
-          "DbColumn": "Department",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Location",
-          "DbColumn": "Location",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Manager",
-          "DbColumn": "Manager",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Members",
-          "DbColumn": "Members",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "SalesOrders",
-          "DbColumn": "SalesOrders",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "PhysicianVisits",
-          "DbColumn": "PhysicianVisits",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "AgentPolicies",
-          "DbColumn": "AgentPolicies",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "PerformanceReviews",
-          "DbColumn": "PerformanceReviews",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "LeaveRequests",
-          "DbColumn": "LeaveRequests",
-          "DataType": 0,
-          "IsRawSql": false
         }
       ],
       "RawSql": "Employees",
@@ -298,12 +208,6 @@
           "Name": "BonusAmount",
           "DbColumn": "BonusAmount",
           "DataType": 1,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Employee",
-          "DbColumn": "Employee",
-          "DataType": 0,
           "IsRawSql": false
         }
       ],
@@ -350,12 +254,6 @@
           "DbColumn": "Status",
           "DataType": 0,
           "IsRawSql": false
-        },
-        {
-          "Name": "Employee",
-          "DbColumn": "Employee",
-          "DataType": 0,
-          "IsRawSql": false
         }
       ],
       "RawSql": "LeaveRequests",
@@ -394,12 +292,6 @@
           "Name": "CostPrice",
           "DbColumn": "CostPrice",
           "DataType": 1,
-          "IsRawSql": false
-        },
-        {
-          "Name": "OrderItems",
-          "DbColumn": "OrderItems",
-          "DataType": 0,
           "IsRawSql": false
         }
       ],
@@ -444,24 +336,6 @@
         {
           "Name": "Status",
           "DbColumn": "Status",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "User",
-          "DbColumn": "User",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "SalesRep",
-          "DbColumn": "SalesRep",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Items",
-          "DbColumn": "Items",
           "DataType": 0,
           "IsRawSql": false
         }
@@ -509,18 +383,6 @@
           "DbColumn": "DiscountAmount",
           "DataType": 1,
           "IsRawSql": false
-        },
-        {
-          "Name": "Order",
-          "DbColumn": "Order",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Product",
-          "DbColumn": "Product",
-          "DataType": 0,
-          "IsRawSql": false
         }
       ],
       "RawSql": "OrderItems",
@@ -559,12 +421,6 @@
           "Name": "IsChronic",
           "DbColumn": "IsChronic",
           "DataType": 3,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Visits",
-          "DbColumn": "Visits",
-          "DataType": 0,
           "IsRawSql": false
         }
       ],
@@ -635,42 +491,6 @@
           "DbColumn": "Status",
           "DataType": 0,
           "IsRawSql": false
-        },
-        {
-          "Name": "Patient",
-          "DbColumn": "Patient",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Doctor",
-          "DbColumn": "Doctor",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Location",
-          "DbColumn": "Location",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Diagnosis",
-          "DbColumn": "Diagnosis",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "LabResults",
-          "DbColumn": "LabResults",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Claims",
-          "DbColumn": "Claims",
-          "DataType": 0,
-          "IsRawSql": false
         }
       ],
       "RawSql": "Visits",
@@ -715,12 +535,6 @@
           "Name": "IsAbnormal",
           "DbColumn": "IsAbnormal",
           "DataType": 3,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Visit",
-          "DbColumn": "Visit",
-          "DataType": 0,
           "IsRawSql": false
         }
       ],
@@ -773,12 +587,6 @@
           "DbColumn": "CoinsuranceRate",
           "DataType": 1,
           "IsRawSql": false
-        },
-        {
-          "Name": "Policies",
-          "DbColumn": "Policies",
-          "DataType": 0,
-          "IsRawSql": false
         }
       ],
       "RawSql": "InsurancePlans",
@@ -830,36 +638,6 @@
           "DbColumn": "Status",
           "DataType": 0,
           "IsRawSql": false
-        },
-        {
-          "Name": "User",
-          "DbColumn": "User",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Plan",
-          "DbColumn": "Plan",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Agent",
-          "DbColumn": "Agent",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "PremiumPayments",
-          "DbColumn": "PremiumPayments",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Claims",
-          "DbColumn": "Claims",
-          "DataType": 0,
-          "IsRawSql": false
         }
       ],
       "RawSql": "Policies",
@@ -897,12 +675,6 @@
         {
           "Name": "Status",
           "DbColumn": "Status",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Policy",
-          "DbColumn": "Policy",
           "DataType": 0,
           "IsRawSql": false
         }
@@ -974,18 +746,6 @@
           "DbColumn": "ProcessedDate",
           "DataType": 2,
           "IsRawSql": false
-        },
-        {
-          "Name": "Policy",
-          "DbColumn": "Policy",
-          "DataType": 0,
-          "IsRawSql": false
-        },
-        {
-          "Name": "Visit",
-          "DbColumn": "Visit",
-          "DataType": 0,
-          "IsRawSql": false
         }
       ],
       "RawSql": "Claims",
@@ -994,7 +754,488 @@
       "IsRawSql": false
     }
   ],
-  "Relations": [],
+  "Relations": [
+    {
+      "SourceEntity": "Employees",
+      "SourceRelationName": "Location",
+      "SourceFields": [
+        "LocationId"
+      ],
+      "TargetEntity": "Locations",
+      "TargetRelationName": "Employees",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Visits",
+      "SourceRelationName": "Location",
+      "SourceFields": [
+        "LocationId"
+      ],
+      "TargetEntity": "Locations",
+      "TargetRelationName": "Visits",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Orders",
+      "SourceRelationName": "User",
+      "SourceFields": [
+        "UserId"
+      ],
+      "TargetEntity": "Users",
+      "TargetRelationName": "Orders",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Visits",
+      "SourceRelationName": "User",
+      "SourceFields": [
+        "UserId"
+      ],
+      "TargetEntity": "Users",
+      "TargetRelationName": "Visits",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Policies",
+      "SourceRelationName": "User",
+      "SourceFields": [
+        "UserId"
+      ],
+      "TargetEntity": "Users",
+      "TargetRelationName": "Policies",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Employees",
+      "SourceRelationName": "Department",
+      "SourceFields": [
+        "DepartmentId"
+      ],
+      "TargetEntity": "Departments",
+      "TargetRelationName": "Employees",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Employees",
+      "SourceRelationName": "Department",
+      "SourceFields": [
+        "DepartmentId"
+      ],
+      "TargetEntity": "Departments",
+      "TargetRelationName": "Employees",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Employees",
+      "SourceRelationName": "Location",
+      "SourceFields": [
+        "LocationId"
+      ],
+      "TargetEntity": "Locations",
+      "TargetRelationName": "Employees",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Employees",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "ManagerId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "Employees",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Employees",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "ManagerId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "Employees",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Orders",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "SalesRepId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "Orders",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Visits",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "DoctorId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "Visits",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Policies",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "AgentId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "Policies",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "PerformanceReviews",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "EmployeeId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "PerformanceReviews",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "LeaveRequests",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "EmployeeId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "LeaveRequests",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "PerformanceReviews",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "EmployeeId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "PerformanceReviews",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "LeaveRequests",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "EmployeeId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "LeaveRequests",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "OrderItems",
+      "SourceRelationName": "Product",
+      "SourceFields": [
+        "ProductId"
+      ],
+      "TargetEntity": "Products",
+      "TargetRelationName": "OrderItems",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Orders",
+      "SourceRelationName": "User",
+      "SourceFields": [
+        "UserId"
+      ],
+      "TargetEntity": "Users",
+      "TargetRelationName": "Orders",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Orders",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "SalesRepId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "Orders",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "OrderItems",
+      "SourceRelationName": "Order",
+      "SourceFields": [
+        "OrderId"
+      ],
+      "TargetEntity": "Orders",
+      "TargetRelationName": "OrderItems",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "OrderItems",
+      "SourceRelationName": "Order",
+      "SourceFields": [
+        "OrderId"
+      ],
+      "TargetEntity": "Orders",
+      "TargetRelationName": "OrderItems",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "OrderItems",
+      "SourceRelationName": "Product",
+      "SourceFields": [
+        "ProductId"
+      ],
+      "TargetEntity": "Products",
+      "TargetRelationName": "OrderItems",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Visits",
+      "SourceRelationName": "Diagnose",
+      "SourceFields": [
+        "DiagnosisId"
+      ],
+      "TargetEntity": "Diagnoses",
+      "TargetRelationName": "Visits",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Visits",
+      "SourceRelationName": "User",
+      "SourceFields": [
+        "UserId"
+      ],
+      "TargetEntity": "Users",
+      "TargetRelationName": "Visits",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Visits",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "DoctorId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "Visits",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Visits",
+      "SourceRelationName": "Location",
+      "SourceFields": [
+        "LocationId"
+      ],
+      "TargetEntity": "Locations",
+      "TargetRelationName": "Visits",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Visits",
+      "SourceRelationName": "Diagnose",
+      "SourceFields": [
+        "DiagnosisId"
+      ],
+      "TargetEntity": "Diagnoses",
+      "TargetRelationName": "Visits",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "LabResults",
+      "SourceRelationName": "Visit",
+      "SourceFields": [
+        "VisitId"
+      ],
+      "TargetEntity": "Visits",
+      "TargetRelationName": "LabResults",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Claims",
+      "SourceRelationName": "Visit",
+      "SourceFields": [
+        "VisitId"
+      ],
+      "TargetEntity": "Visits",
+      "TargetRelationName": "Claims",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "LabResults",
+      "SourceRelationName": "Visit",
+      "SourceFields": [
+        "VisitId"
+      ],
+      "TargetEntity": "Visits",
+      "TargetRelationName": "LabResults",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Policies",
+      "SourceRelationName": "InsurancePlan",
+      "SourceFields": [
+        "PlanId"
+      ],
+      "TargetEntity": "InsurancePlans",
+      "TargetRelationName": "Policies",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Policies",
+      "SourceRelationName": "User",
+      "SourceFields": [
+        "UserId"
+      ],
+      "TargetEntity": "Users",
+      "TargetRelationName": "Policies",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Policies",
+      "SourceRelationName": "InsurancePlan",
+      "SourceFields": [
+        "PlanId"
+      ],
+      "TargetEntity": "InsurancePlans",
+      "TargetRelationName": "Policies",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Policies",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "AgentId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "Policies",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "PremiumPayments",
+      "SourceRelationName": "Policy",
+      "SourceFields": [
+        "PolicyId"
+      ],
+      "TargetEntity": "Policies",
+      "TargetRelationName": "PremiumPayments",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Claims",
+      "SourceRelationName": "Policy",
+      "SourceFields": [
+        "PolicyId"
+      ],
+      "TargetEntity": "Policies",
+      "TargetRelationName": "Claims",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "PremiumPayments",
+      "SourceRelationName": "Policy",
+      "SourceFields": [
+        "PolicyId"
+      ],
+      "TargetEntity": "Policies",
+      "TargetRelationName": "PremiumPayments",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Claims",
+      "SourceRelationName": "Policy",
+      "SourceFields": [
+        "PolicyId"
+      ],
+      "TargetEntity": "Policies",
+      "TargetRelationName": "Claims",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Claims",
+      "SourceRelationName": "Visit",
+      "SourceFields": [
+        "VisitId"
+      ],
+      "TargetEntity": "Visits",
+      "TargetRelationName": "Claims",
+      "TargetFields": [
+        "Id"
+      ]
+    }
+  ],
   "CanDelete": true,
   "IsBuiltin": false
 }

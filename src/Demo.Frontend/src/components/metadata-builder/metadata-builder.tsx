@@ -180,7 +180,12 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     setDirty(false);
     setStatus("succeeded");
   };
-  const handleDomainChanged = (domain: Domain, pendingSave = false) => {
+  const handleDomainChanged = async (domain: Domain, pendingSave = false) => {
+    const isNewDomain = !domainOptions.some((item) => item.id === domain.id);
+    if (isNewDomain) {
+      const options = await request<Array<Pick<DomainOption, "id" | "name">>>(apiUrls.metadata.domainNames);
+      setDomainOptions(options.map((option) => ({ ...option, description: "" })));
+    }
     setDomainEntities(domain.entities);
     setDomainRelations(domain.relations);
     setLoadedDomainId(domain.id);

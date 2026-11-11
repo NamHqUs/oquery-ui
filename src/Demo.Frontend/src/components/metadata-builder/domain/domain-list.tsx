@@ -148,35 +148,101 @@ const getAbstractDataType = (dataType: string, columnName?: string) =>
 const getDataTypeIcon = (dataType: string, columnName?: string): IconName =>
   dataTypeIcons[getAbstractDataType(dataType, columnName)] || "type";
 
-function parseUploadedTables(text: string, fileName: string): DatabaseTable[] {
+type ParsedUpload = {
+  tables: DatabaseTable[];
+  relationships: DatabaseRelationship[];
+  relationNames: Record<string, { lookup: string; collection: string }>;
+};
+
+function uniqueDomains(domains: Domain[]) {
+  const seen = new Set<string>();
+  return domains.filter((domain) => {
+    if (seen.has(domain.id)) return false;
+    seen.add(domain.id);
+    return true;
+  });
+}
+
+function parseUploadedTables(text: string, fileName: string): ParsedUpload {
   if (fileName.toLowerCase().endsWith(".json")) {
-    const parsed = JSON.parse(text) as { entities?: Array<{ name?: string; schema?: string; dbSchema?: string; dbTable?: string; fields?: Array<{ name?: string; dataType?: string }> }> };
-    return (parsed.entities || []).map(entity => ({
+    const parsed = JSON.parse(text) as {
+      entities?: Array<{ name?: string; schema?: string; dbSchema?: string; dbTable?: string; fields?: Array<{ name?: string; dataType?: string }> }>;
+      relations?: DatabaseRelationship[];
+    };
+    return {
+      tables: (parsed.entities || []).map(entity => ({
       schema: entity.schema || entity.dbSchema || "dbo",
       name: entity.name || entity.dbTable || "Entity",
       columns: (entity.fields || []).filter(field => field.name).map(field => ({ name: field.name!, dataType: field.dataType || "String" })),
-    }));
+      })),
+      relationships: parsed.relations || [],
+      relationNames: {},
+    };
   }
   const tables: DatabaseTable[] = [];
+  const relationships: DatabaseRelationship[] = [];
+  const relationNames: Record<string, { lookup: string; collection: string }> = {};
   let current: DatabaseTable | undefined;
   let readingFields = false;
+  let readingRelations = false;
   const cleanYamlValue = (value: string) => value.trim().replace(/^['"]|['"]$/g, "");
+  const relationshipKey = (sourceSchema: string, sourceTable: string, sourceColumns: string[], targetSchema: string, targetTable: string, targetColumns: string[]) =>
+    `${sourceSchema}.${sourceTable}:${sourceColumns.join(",")}:${targetSchema}.${targetTable}:${targetColumns.join(",")}`;
   for (const line of text.split(/\r?\n/)) {
     const entity = line.match(/^-\s+name:\s*(.+)\s*$/);
     if (entity) {
       current = { schema: "dbo", name: cleanYamlValue(entity[1]), columns: [] };
       tables.push(current);
       readingFields = false;
+      readingRelations = false;
       continue;
     }
     if (!current) continue;
     const schema = line.match(/^\s+(?:dbSchema|schema):\s*(.+)\s*$/);
     const table = line.match(/^\s+dbTable:\s*(.+)\s*$/);
     const fields = line.match(/^\s+fields:\s*$/);
+    const relations = line.match(/^\s+relations:\s*$/);
     const field = line.match(/^\s+-\s+name:\s*(.+)\s*$/);
+    const relation = line.match(/^\s+-\s*\{\s*name:\s*([^,}]+),\s*refEntity:\s*([^,}]+),\s*type:\s*([^,}]+),\s*refKeys:\s*\[\{\s*dbColumn:\s*([^,}]+),\s*refDbColumn:\s*([^}]+)\s*\}\]\s*\}\s*$/);
     if (schema) current.schema = schema[1].trim();
     else if (table) current.name = cleanYamlValue(table[1]);
-    else if (fields) readingFields = true;
+    else if (fields) {
+      readingFields = true;
+      readingRelations = false;
+    } else if (relations) {
+      readingFields = false;
+      readingRelations = true;
+    } else if (readingRelations && relation) {
+      const relationName = cleanYamlValue(relation[1]);
+      const refEntity = cleanYamlValue(relation[2]);
+      const type = cleanYamlValue(relation[3]).toLowerCase();
+      const dbColumn = cleanYamlValue(relation[4]);
+      const refDbColumn = cleanYamlValue(relation[5]);
+      const isLookup = type === "lookup";
+      const sourceSchema = isLookup ? current.schema : "dbo";
+      const sourceTable = isLookup ? current.name : refEntity;
+      const sourceColumns = [isLookup ? dbColumn : refDbColumn];
+      const targetSchema = isLookup ? "dbo" : current.schema;
+      const targetTable = isLookup ? refEntity : current.name;
+      const targetColumns = [isLookup ? refDbColumn : dbColumn];
+      const key = relationshipKey(sourceSchema, sourceTable, sourceColumns, targetSchema, targetTable, targetColumns);
+      if (!relationships.some(item => relationshipKey(item.sourceSchema, item.sourceTable, item.sourceColumns, item.targetSchema, item.targetTable, item.targetColumns) === key)) {
+        relationships.push({
+          name: relationName,
+          sourceSchema,
+          sourceTable,
+          sourceColumns,
+          targetSchema,
+          targetTable,
+          targetColumns,
+          isUnique: isLookup,
+        });
+      }
+      const names = relationNames[key] || { lookup: singularize(targetTable), collection: pluralize(sourceTable) };
+      relationNames[key] = isLookup
+        ? { ...names, lookup: relationName }
+        : { ...names, collection: relationName };
+    }
     else if (readingFields) {
       const inlineField = line.match(/^\s+-\s*\{\s*name:\s*([^,}]+)(?:,\s*dataType:\s*([^}]+))?.*\}\s*$/);
       if (inlineField) {
@@ -189,7 +255,26 @@ function parseUploadedTables(text: string, fileName: string): DatabaseTable[] {
       }
     }
   }
-  return tables.filter(table => table.columns.length > 0);
+  const tableSchemas = new Map(tables.map(table => [table.name.toLowerCase(), table.schema]));
+  const normalizedRelationNames: Record<string, { lookup: string; collection: string }> = {};
+  const normalizedRelationships = relationships.map(item => {
+    const sourceSchema = tableSchemas.get(item.sourceTable.toLowerCase()) || item.sourceSchema;
+    const targetSchema = tableSchemas.get(item.targetTable.toLowerCase()) || item.targetSchema;
+    const normalized = { ...item, sourceSchema, targetSchema };
+    const newKey = relationshipKey(sourceSchema, item.sourceTable, item.sourceColumns, targetSchema, item.targetTable, item.targetColumns);
+    const names = normalizedRelationNames[newKey] || { lookup: singularize(item.targetTable), collection: pluralize(item.sourceTable) };
+    const mergedNames = item.isUnique
+      ? { ...names, lookup: item.name }
+      : { ...names, collection: item.name };
+    normalizedRelationNames[newKey] = mergedNames;
+    normalizedRelationNames[`${newKey}:${item.name}`] = mergedNames;
+    return normalized;
+  });
+  return {
+    tables: tables.filter(table => table.columns.length > 0),
+    relationships: normalizedRelationships,
+    relationNames: normalizedRelationNames,
+  };
 }
 
 export default function DomainList({
@@ -199,9 +284,9 @@ export default function DomainList({
 }: {
   active: boolean;
   domains: Domain[];
-  onDomainChanged?: (domain: Domain, pendingSave?: boolean) => void;
+  onDomainChanged?: (domain: Domain, pendingSave?: boolean) => void | Promise<void>;
 }) {
-  const [domainItems, setDomainItems] = useState<Domain[]>(() => domains.map(cloneDomain));
+  const [domainItems, setDomainItems] = useState<Domain[]>(() => uniqueDomains(domains).map(cloneDomain));
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -217,6 +302,7 @@ export default function DomainList({
   const [sourceSelectionInitialized, setSourceSelectionInitialized] = useState(false);
   const [removedEntityNames, setRemovedEntityNames] = useState<string[]>([]);
   const [uploadedTables, setUploadedTables] = useState<DatabaseTable[]>([]);
+  const [uploadedRelationships, setUploadedRelationships] = useState<DatabaseRelationship[]>([]);
   const [selectedColumns, setSelectedColumns] = useState<Record<string, string[]>>({});
   const [entityNames, setEntityNames] = useState<Record<string, string>>({});
   const [fieldNames, setFieldNames] = useState<Record<string, Record<string, string>>>({});
@@ -260,6 +346,8 @@ export default function DomainList({
       setSourceSelectionInitialized(true);
       setRemovedEntityNames([]);
       setUploadedTables([]);
+      setUploadedRelationships([]);
+      setUploadedRelationships([]);
       setSelectedColumns({});
       setEntityNames({});
       setFieldNames({});
@@ -273,6 +361,7 @@ export default function DomainList({
       setSourceSelectionInitialized(false);
       setRemovedEntityNames([]);
       setUploadedTables([]);
+      setUploadedRelationships([]);
       setSelectedColumns({});
       setEntityNames({});
       setFieldNames({});
@@ -302,11 +391,11 @@ export default function DomainList({
     try {
       if (!isEditRoute) editDomainRequestRef.current = null;
       const routedDomain = (location.state as { domain?: Domain } | null)?.domain;
-      const domainResult = routedDomain
+      const domainResult = uniqueDomains(routedDomain
         ? domains.some(domain => domain.id === routedDomain.id)
           ? domains.map(domain => domain.id === routedDomain.id ? routedDomain : domain)
           : [...domains, routedDomain]
-        : domains;
+        : domains);
       const routeDomainId = editRouteDomainId || new URLSearchParams(location.search).get("domain")
         || new URLSearchParams(location.search).get("edit");
       const requestedDomain = routeDomainId || selectedName;
@@ -378,6 +467,7 @@ export default function DomainList({
     setEntityDirty(false);
     setSelectedTables([]);
     setUploadedTables([]);
+    setUploadedRelationships([]);
     setSelectedColumns({});
     setEntityNames({});
     setFieldNames({});
@@ -668,7 +758,7 @@ export default function DomainList({
           }),
         });
         const saved = toDomain(savedDto);
-        onDomainChanged?.(saved);
+        await onDomainChanged?.(saved);
         setDomainItems(current => current.map(domain => domain.id === saved.id ? saved : domain));
         setEntityDirty(false);
         setRemovedEntityNames([]);
@@ -701,7 +791,24 @@ export default function DomainList({
                   })),
                 });
               }),
-              relations: [],
+              relations: selectedRelations.map(relation => {
+                const sourceTable = { schema: relation.sourceSchema, name: relation.sourceTable, columns: [] };
+                const targetTable = { schema: relation.targetSchema, name: relation.targetTable, columns: [] };
+                const sourceEntity = entityNames[tableKey(sourceTable)]?.trim() || relation.sourceTable;
+                const targetEntity = entityNames[tableKey(targetTable)]?.trim() || relation.targetTable;
+                const names = relationNames[relationKey(relation)] || {
+                  lookup: singularize(targetEntity),
+                  collection: pluralize(sourceEntity),
+                };
+                return {
+                  sourceEntity,
+                  sourceRelationName: names.lookup,
+                  sourceFields: [...relation.sourceColumns],
+                  targetEntity,
+                  targetRelationName: names.collection,
+                  targetFields: [...relation.targetColumns],
+                };
+              }),
             }),
           })
           : await request<DomainDto>(apiUrls.metadata.generateDomain, {
@@ -734,7 +841,7 @@ export default function DomainList({
             }),
           });
       const saved = toDomain(savedDto);
-      onDomainChanged?.(saved);
+      await onDomainChanged?.(saved);
       setDomainItems(current => selected
         ? current.map(domain => domain.id === selected.id ? saved : domain)
         : [...current, saved]);
@@ -806,19 +913,21 @@ export default function DomainList({
     [schema.tables, selectedTables, uploadedTables, wizardSource],
   );
   const selectedRelations = useMemo(
-    () => schema.relationships.filter(relation => selectedTables.includes(tableKey({ schema: relation.sourceSchema, name: relation.sourceTable }))
+    () => (wizardSource === "file" ? uploadedRelationships : schema.relationships).filter(relation => selectedTables.includes(tableKey({ schema: relation.sourceSchema, name: relation.sourceTable }))
       && selectedTables.includes(tableKey({ schema: relation.targetSchema, name: relation.targetTable }))),
-    [schema.relationships, selectedTables],
+    [schema.relationships, selectedTables, uploadedRelationships, wizardSource],
   );
   const relationKey = (relation: DatabaseRelationship) => `${relation.sourceSchema}.${relation.sourceTable}:${relation.targetSchema}.${relation.targetTable}:${relation.name}`;
   const uploadFile = async (file: File) => {
     try {
-      const tables = parseUploadedTables(await file.text(), file.name);
-      if (!tables.length) throw new Error("The uploaded file does not contain any entities with fields.");
-      setUploadedTables(tables);
-      setSelectedTables(tables.map(tableKey));
-      setSelectedColumns(Object.fromEntries(tables.map(table => [tableKey(table), table.columns.map(column => column.name)])));
-      setEntityNames(Object.fromEntries(tables.map(table => [tableKey(table), table.name])));
+      const parsed = parseUploadedTables(await file.text(), file.name);
+      if (!parsed.tables.length) throw new Error("The uploaded file does not contain any entities with fields.");
+      setUploadedTables(parsed.tables);
+      setUploadedRelationships(parsed.relationships);
+      setSelectedTables(parsed.tables.map(tableKey));
+      setSelectedColumns(Object.fromEntries(parsed.tables.map(table => [tableKey(table), table.columns.map(column => column.name)])));
+      setEntityNames(Object.fromEntries(parsed.tables.map(table => [tableKey(table), table.name])));
+      setRelationNames(parsed.relationNames);
       setFieldNames({});
       setTableFilter("");
       setError("");
@@ -860,6 +969,7 @@ export default function DomainList({
     setWizardSource(source);
     setSelectedTables([]);
     setUploadedTables([]);
+    setUploadedRelationships([]);
     setSelectedColumns({});
     setEntityNames({});
     setFieldNames({});
