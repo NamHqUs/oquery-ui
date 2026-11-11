@@ -4,6 +4,8 @@ import { MetadataEntity, type DomainRelation } from "../../../query-builder/quer
 import { EditableEntity } from "../../types";
 import FieldsBuilder from "./fields-builder/fields-builder";
 import RelationsBuilder from "./relations-builder/relations-builder";
+import PanelSplitter from "../../../panel-splitter/panel-splitter";
+import { useResizablePanel } from "../../../../utils/use-resizable-panel";
 import "./entity-builder.css";
 
 type EntityBuilderProps = {
@@ -48,6 +50,7 @@ export default function EntityBuilder({
   const [tablePickerOpen, setTablePickerOpen] = useState(false);
   const [tableSearch, setTableSearch] = useState("");
   const [rawSqlMode, setRawSqlMode] = useState(false);
+  const splitPanel = useResizablePanel("metadata-entity-fields-width", 340, 240, 640);
   const tablePickerRef = useRef<HTMLDivElement>(null);
   const rawSql = draft?.rawSql.trim() || "";
   const entityName = draft?.name.trim() || "";
@@ -200,26 +203,34 @@ export default function EntityBuilder({
         )}
         </div>
 
-        <FieldsBuilder
-          fields={draft.fields}
-          selectedTableColumns={selectedTableColumns}
-          allowDataTypeEdit
-          onChange={(fieldsUpdater) =>
-            onDraftChange((entity) => ({
-              ...entity,
-              fields: fieldsUpdater(entity.fields),
-            }))
-          }
-        />
+        <div className="entity-split split-workspace" style={splitPanel.style}>
+          <div className="entity-fields-pane">
+            <FieldsBuilder
+              fields={draft.fields}
+              selectedTableColumns={selectedTableColumns}
+              allowDataTypeEdit
+              onChange={(fieldsUpdater) =>
+                onDraftChange((entity) => ({
+                  ...entity,
+                  fields: fieldsUpdater(entity.fields),
+                }))
+              }
+            />
+          </div>
 
-        <RelationsBuilder
-          domainRelations={domainRelations}
-          currentEntity={draft}
-          allEntities={allEntities}
-          databaseTables={databaseTables}
-          selectedTable={selectedTable}
-          onRelationsChange={onRelationsChange}
-        />
+          <PanelSplitter panel={splitPanel} label="fields and relations" collapsible={false} />
+
+          <div className="entity-relations-pane">
+            <RelationsBuilder
+              domainRelations={domainRelations}
+              currentEntity={draft}
+              allEntities={allEntities}
+              databaseTables={databaseTables}
+              selectedTable={selectedTable}
+              onRelationsChange={onRelationsChange}
+            />
+          </div>
+        </div>
             </fieldset>
           </div>
         </>}

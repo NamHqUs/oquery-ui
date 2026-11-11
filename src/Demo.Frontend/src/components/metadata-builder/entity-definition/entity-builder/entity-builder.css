@@ -6,6 +6,13 @@
 .metadata-workspace .editor-actions .button.primary:disabled { cursor: not-allowed; }
 .metadata-form { padding: 22px 28px 35px; }
 .metadata-form-fieldset { border: 0; margin: 0; min-width: 0; padding: 0; }
+.entity-split { display: flex; align-items: stretch; }
+.entity-fields-pane { flex: 0 0 var(--panel-width); box-sizing: border-box; min-width: 0; max-width: calc(100% - 320px); padding-right: 18px; }
+.entity-relations-pane { flex: 1 1 0; box-sizing: border-box; min-width: 0; padding-left: 18px; }
+@media (max-width: 760px) {
+  .entity-split { display: block; }
+  .entity-fields-pane, .entity-relations-pane { padding: 0; }
+}
 .metadata-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: start; gap: 18px; }
 .metadata-editor-content .metadata-form label { display: grid; gap: 8px; color: #8f7fca; font-size: 12px; font-weight: 600; }
 .metadata-editor-content .metadata-form input, .metadata-editor-content .metadata-form select, .metadata-editor-content .metadata-form textarea { width: 100%; box-sizing: border-box; color: #f0edfb; background: #191e28; border: 1px solid #323947; border-radius: 5px; outline: 0; padding: 9px 10px; font: inherit; font-size: 12px; resize: vertical; }

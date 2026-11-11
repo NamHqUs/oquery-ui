@@ -96,7 +96,7 @@ export function relationsForEntity(entityName: string, relations: DomainRelation
         toFields: [...relation.targetFields],
       });
     }
-    if (relation.targetEntity === entityName) {
+    if (relation.targetEntity === entityName && relation.sourceEntity !== entityName) {
       views.push({
         relationIndex,
         side: "target",

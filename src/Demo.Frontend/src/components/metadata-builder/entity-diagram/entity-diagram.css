@@ -35,17 +35,6 @@
 .metadata-diagram-editor .metadata-editor-heading .editor-actions { gap: 6px; }
 .metadata-diagram-editor .metadata-editor-content { min-height: 0; flex: 1 1 auto; overflow: visible; padding-bottom: 14px; }
 .metadata-diagram-editor .metadata-editor-compact .metadata-form-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
-.metadata-diagram-editor .metadata-form-fieldset { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 24px; align-items: start; }
-.metadata-diagram-editor .metadata-form-fieldset > .metadata-form-grid { grid-column: 1; }
-.metadata-diagram-editor .metadata-form-fieldset > .editor-section { grid-column: 1; }
-.metadata-diagram-editor .metadata-form-fieldset > .editor-section:last-child { grid-column: 2; grid-row: 1 / span 2; align-self: stretch; min-width: 0; margin-top: 0; padding-left: 24px; border-left: 1px solid #35364a; border-bottom: 1px solid #35364a; }
-.metadata-diagram-editor .metadata-form-fieldset > .editor-section:last-child .relation-editor-table { overflow: visible; }
-.metadata-diagram-editor .metadata-form-fieldset > .editor-section:last-child .relation-editor-head,
-.metadata-diagram-editor .metadata-form-fieldset > .editor-section:last-child .relation-editor-row {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, .85fr) minmax(0, .85fr);
-  gap: 5px;
-}
-.metadata-diagram-editor .metadata-form-fieldset > .editor-section:last-child .relation-editor-row { padding: 8px 6px; }
 .metadata-diagram-editor .metadata-editor-compact .metadata-table-picker > label,
 .metadata-diagram-editor .metadata-editor-compact .metadata-form-grid > label,
 .metadata-diagram-editor .metadata-editor-compact .editor-section-head h3 {
@@ -75,6 +64,4 @@
   .metadata-diagram-mode-content { grid-template-rows: 480px 8px auto; height: auto; overflow: auto; }
   .metadata-diagram-mode-content > .metadata-diagram-editor { grid-row: 2; }
   .metadata-diagram-mode-content > .database-diagram { grid-row: 1; }
-  .metadata-diagram-editor .metadata-form-fieldset { display: block; }
-  .metadata-diagram-editor .metadata-form-fieldset > .editor-section:last-child { margin-top: 29px; padding-top: 24px; padding-left: 0; border-top: 1px solid #35364a; border-left: 0; }
 }

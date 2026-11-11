@@ -77,6 +77,14 @@ export function removeEntityFromRelations(relations: DomainRelation[], name: str
   return relations.filter((relation) => relation.sourceEntity !== name && relation.targetEntity !== name);
 }
 
+export function singularize(value: string): string {
+  return value.endsWith("ies") ? `${value.slice(0, -3)}y` : value.endsWith("s") && !value.endsWith("ss") ? value.slice(0, -1) : value;
+}
+
+export function pluralize(value: string): string {
+  return value.endsWith("y") ? `${value.slice(0, -1)}ies` : value.endsWith("s") ? value : `${value}s`;
+}
+
 export type RelationSideChanges = {
   name?: string;
   refEntity?: string;

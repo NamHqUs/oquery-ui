@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Icon from "../../../../icon/icon";
-import { MetadataEntity, relationsForEntity, type DomainRelation } from "../../../../query-builder/query-design/query-builder-slice";
-import { EditableEntity, updateRelationSide, type RelationSideChanges } from "../../../types";
+import { MetadataEntity, relationsForEntity, type DomainRelation, type EntityRelationView } from "../../../../query-builder/query-design/query-builder-slice";
+import { EditableEntity, pluralize, singularize, updateRelationSide } from "../../../types";
 import "./relations-builder.css";
 
 type DatabaseTable = {
@@ -9,6 +10,16 @@ type DatabaseTable = {
   name: string;
   columns: { name: string }[];
 };
+
+type PickerState = {
+  index: number;
+  left: number;
+  width: number;
+  anchorY: number;
+  flipUp: boolean;
+};
+
+const pickerMenuMaxHeight = 240;
 
 type RelationsBuilderProps = {
   domainRelations: DomainRelation[];
@@ -28,19 +39,35 @@ export default function RelationsBuilder({
   onRelationsChange,
 }: RelationsBuilderProps) {
   const relations = relationsForEntity(currentEntity.name, domainRelations);
-  const [openEntityPicker, setOpenEntityPicker] = useState<number | null>(null);
-  const entityPickerRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const [openEntityPicker, setOpenEntityPicker] = useState<PickerState | null>(null);
+  const pickerTriggerRefs = useRef<Record<number, HTMLButtonElement | null>>({});
+  const pickerMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    function handleOutsidePointerDown(event: PointerEvent) {
-      if (openEntityPicker !== null
-        && !entityPickerRefs.current[openEntityPicker]?.contains(event.target as Node)) {
-        setOpenEntityPicker(null);
-      }
+    if (!openEntityPicker) return;
+    const openIndex = openEntityPicker.index;
+
+    function closeOnOutsidePointer(event: PointerEvent) {
+      const target = event.target as Node;
+      if (pickerMenuRef.current?.contains(target) || pickerTriggerRefs.current[openIndex]?.contains(target)) return;
+      setOpenEntityPicker(null);
+    }
+    function closeOnScroll(event: Event) {
+      if (pickerMenuRef.current?.contains(event.target as Node)) return;
+      setOpenEntityPicker(null);
+    }
+    function closeOnResize() {
+      setOpenEntityPicker(null);
     }
 
-    document.addEventListener("pointerdown", handleOutsidePointerDown);
-    return () => document.removeEventListener("pointerdown", handleOutsidePointerDown);
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    document.addEventListener("scroll", closeOnScroll, true);
+    window.addEventListener("resize", closeOnResize);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      document.removeEventListener("scroll", closeOnScroll, true);
+      window.removeEventListener("resize", closeOnResize);
+    };
   }, [openEntityPicker]);
 
   function isRawSql(entity: MetadataEntity | EditableEntity) {
@@ -96,45 +123,81 @@ export default function RelationsBuilder({
     ]);
   }
 
-  function removeRelation(viewIndex: number) {
-    const view = relations[viewIndex];
-    if (!view) return;
-    onRelationsChange((prev) => prev.filter((_, relationIndex) => relationIndex !== view.relationIndex));
+  function oppositeSide(side: "source" | "target") {
+    return side === "source" ? "target" : "source";
   }
 
-  function updateView(viewIndex: number, changes: RelationSideChanges) {
+  function nameOnSide(relation: DomainRelation, side: "source" | "target") {
+    return side === "source" ? relation.sourceRelationName : relation.targetRelationName;
+  }
+
+  function updateRelationAt(
+    viewIndex: number,
+    update: (relation: DomainRelation, view: EntityRelationView) => DomainRelation,
+  ) {
     const view = relations[viewIndex];
     if (!view) return;
     onRelationsChange((prev) =>
-      prev.map((relation, relationIndex) =>
-        relationIndex === view.relationIndex ? updateRelationSide(relation, view.side, changes) : relation,
-      ),
+      prev.map((relation, relationIndex) => relationIndex === view.relationIndex ? update(relation, view) : relation),
     );
   }
 
-  function updateRelation(viewIndex: number, key: "name" | "refEntity", value: string) {
-    updateView(viewIndex, { [key]: value });
-  }
-
-  function addKeyMapping(viewIndex: number) {
+  function removeRelation(viewIndex: number) {
     const view = relations[viewIndex];
     if (!view) return;
-    updateView(viewIndex, {
-      fromFields: [...view.fromFields, ""],
-      toFields: [...view.toFields, ""],
+    setOpenEntityPicker(null);
+    onRelationsChange((prev) => prev.filter((_, relationIndex) => relationIndex !== view.relationIndex));
+  }
+
+  // Picking the other entity also fills empty names on both sides, so a relation is complete after one edit.
+  function selectReferenceEntity(viewIndex: number, entityName: string) {
+    const view = relations[viewIndex];
+    setOpenEntityPicker(null);
+    if (!view || view.refEntity === entityName) return;
+    updateRelationAt(viewIndex, (relation) => {
+      const otherSide = oppositeSide(view.side);
+      const thisName = view.name.trim() ? view.name : singularize(entityName);
+      const otherName = nameOnSide(relation, otherSide).trim()
+        ? nameOnSide(relation, otherSide)
+        : currentEntity.name.trim() ? pluralize(currentEntity.name.trim()) : "";
+      const withEntity = updateRelationSide(relation, view.side, {
+        name: thisName,
+        refEntity: entityName,
+        toFields: view.fromFields.map(() => ""),
+      });
+      return updateRelationSide(withEntity, otherSide, { name: otherName });
     });
   }
 
-  function removeKeyMapping(viewIndex: number, keyIndex: number) {
-    const view = relations[viewIndex];
-    if (!view) return;
-    updateView(viewIndex, {
-      fromFields: view.fromFields.filter((_, mapIdx) => mapIdx !== keyIndex),
-      toFields: view.toFields.filter((_, mapIdx) => mapIdx !== keyIndex),
-    });
+  function renameThisSide(viewIndex: number, name: string) {
+    updateRelationAt(viewIndex, (relation, view) => updateRelationSide(relation, view.side, { name }));
   }
 
-  function updateKeyMapping(
+  function renameOtherSide(viewIndex: number, name: string) {
+    updateRelationAt(viewIndex, (relation, view) => updateRelationSide(relation, oppositeSide(view.side), { name }));
+  }
+
+  function setKeyPairs(viewIndex: number, fromFields: string[], toFields: string[]) {
+    updateRelationAt(viewIndex, (relation, view) => updateRelationSide(relation, view.side, { fromFields, toFields }));
+  }
+
+  function addKeyPair(viewIndex: number) {
+    const view = relations[viewIndex];
+    if (!view) return;
+    setKeyPairs(viewIndex, [...view.fromFields, ""], [...view.toFields, ""]);
+  }
+
+  function removeKeyPair(viewIndex: number, keyIndex: number) {
+    const view = relations[viewIndex];
+    if (!view) return;
+    setKeyPairs(
+      viewIndex,
+      view.fromFields.filter((_, mapIdx) => mapIdx !== keyIndex),
+      view.toFields.filter((_, mapIdx) => mapIdx !== keyIndex),
+    );
+  }
+
+  function updateKeyPair(
     viewIndex: number,
     keyIndex: number,
     field: "dbColumn" | "refDbColumn",
@@ -142,18 +205,61 @@ export default function RelationsBuilder({
   ) {
     const view = relations[viewIndex];
     if (!view) return;
-    if (field === "dbColumn") {
-      updateView(viewIndex, { fromFields: view.fromFields.map((item, mapIdx) => mapIdx === keyIndex ? value : item) });
-    } else {
-      updateView(viewIndex, { toFields: view.toFields.map((item, mapIdx) => mapIdx === keyIndex ? value : item) });
-    }
+    const replaceAt = (items: string[]) => items.map((item, mapIdx) => mapIdx === keyIndex ? value : item);
+    setKeyPairs(
+      viewIndex,
+      field === "dbColumn" ? replaceAt(view.fromFields) : view.fromFields,
+      field === "refDbColumn" ? replaceAt(view.toFields) : view.toFields,
+    );
   }
 
+  const otherEntities = allEntities.filter((entity) => entity.name !== currentEntity.name);
+  const thisLabel = currentEntity.name.trim() || "this entity";
+
+  function togglePicker(index: number, trigger: HTMLButtonElement) {
+    const rect = trigger.getBoundingClientRect();
+    const flipUp = rect.bottom + pickerMenuMaxHeight + 4 > window.innerHeight;
+    setOpenEntityPicker((current) => current?.index === index ? null : {
+      index,
+      left: rect.left,
+      width: Math.max(rect.width, 200),
+      anchorY: flipUp ? rect.top : rect.bottom,
+      flipUp,
+    });
+  }
+
+  const pickerMenu = openEntityPicker && createPortal(
+    <div
+      ref={pickerMenuRef}
+      className="relation-entity-picker-menu"
+      style={{
+        left: openEntityPicker.left,
+        width: openEntityPicker.width,
+        ...(openEntityPicker.flipUp
+          ? { bottom: window.innerHeight - openEntityPicker.anchorY + 4 }
+          : { top: openEntityPicker.anchorY + 4 }),
+      }}
+    >
+      {otherEntities.map((entity) => (
+        <button
+          type="button"
+          key={entity.name}
+          onClick={() => selectReferenceEntity(openEntityPicker.index, entity.name)}
+        >
+          {entity.name}
+        </button>
+      ))}
+      {!otherEntities.length && <span className="relation-entity-picker-empty">No other entities available.</span>}
+    </div>,
+    document.body,
+  );
+
   return (
-    <div className="editor-section">
+    <div className="editor-section relation-section">
       <div className="editor-section-head">
         <div>
           <h3>Relations</h3>
+          <p>Shared by both entities. Each side names how it reaches the other; key columns link the rows.</p>
         </div>
         <button
           className="button secondary compact relation-add-button"
@@ -167,122 +273,146 @@ export default function RelationsBuilder({
       </div>
 
       {!relations.length
-        ? <div className="section-empty">No relations defined.</div>
-        : <div className="relation-editor-table">
-            <div className="relation-editor-head" role="row">
-              <span>Relation Name</span>
-              <span>Reference Entity</span>
-              <span>From DbColumn</span>
-              <span>To DbColumn</span>
-            </div>
-            {relations.map((relation, index) => (
-              <div className="relation-group" key={`${relation.relationIndex}-${relation.side}`}>
-                {keyPairsOf(relation).map((key, keyIndex) => (
-                  <div
-                    className="relation-editor-row"
-                    role="row"
-                    key={keyIndex}
-                  >
-                    {keyIndex === 0
-                      ? <div className="relation-name-cell">
-                          <input
-                            spellCheck={false}
-                            value={relation.name}
-                            onChange={(event) => updateRelation(index, "name", event.target.value)}
-                            placeholder="Relation name"
-                            aria-label="Relation name"
-                          />
+        ? <div className="section-empty">No relations defined. Use + to link {thisLabel} to another entity.</div>
+        : <div className="relation-table-scroll">
+            <table className="relation-table">
+              <colgroup>
+                <col />
+                <col />
+                <col />
+                <col />
+                <col />
+                <col className="relation-col-key" />
+                <col className="relation-col-remove" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th scope="col" title={`How ${thisLabel} refers to the related entity`}>Name in {thisLabel}</th>
+                  <th scope="col">Related entity</th>
+                  <th scope="col" title="How the related entity refers back to this entity">Name in related entity</th>
+                  <th scope="col">{thisLabel} column</th>
+                  <th scope="col">Related column</th>
+                  <th scope="col" aria-label="Key actions" />
+                  <th scope="col" aria-label="Remove relation" />
+                </tr>
+              </thead>
+              <tbody>
+                {relations.flatMap((view, index) => {
+                  const pairs = keyPairsOf(view).length ? keyPairsOf(view) : [{ dbColumn: "", refDbColumn: "" }];
+                  const hasReference = Boolean(view.refEntity.trim());
+                  const referenceColumns = columnsForEntity(view.refEntity);
+                  const otherName = nameOnSide(domainRelations[view.relationIndex], oppositeSide(view.side));
+                  const pickerOpen = openEntityPicker?.index === index;
+                  return pairs.map((key, keyIndex) => {
+                    const isFirst = keyIndex === 0;
+                    const isLast = keyIndex === pairs.length - 1;
+                    return (
+                      <tr
+                        key={`${view.relationIndex}-${view.side}-${keyIndex}`}
+                        className={isFirst ? "relation-row relation-row-start" : "relation-row"}
+                      >
+                        {isFirst && <>
+                          <td rowSpan={pairs.length}>
+                            <input
+                              className="relation-field"
+                              spellCheck={false}
+                              value={view.name}
+                              onChange={(event) => renameThisSide(index, event.target.value)}
+                              placeholder="e.g. Customer"
+                              aria-label={`Name in ${thisLabel}`}
+                            />
+                          </td>
+                          <td rowSpan={pairs.length}>
+                            <button
+                              ref={(element) => { pickerTriggerRefs.current[index] = element; }}
+                              className={`relation-entity-picker-trigger${pickerOpen ? " open" : ""}`}
+                              type="button"
+                              onClick={(event) => togglePicker(index, event.currentTarget)}
+                              aria-expanded={pickerOpen}
+                              aria-label="Related entity"
+                            >
+                              <span>{view.refEntity || "Select entity"}</span>
+                              <Icon name="chevron" size={13} />
+                            </button>
+                          </td>
+                          <td rowSpan={pairs.length}>
+                            <input
+                              className="relation-field"
+                              spellCheck={false}
+                              value={otherName}
+                              onChange={(event) => renameOtherSide(index, event.target.value)}
+                              placeholder="e.g. Orders"
+                              aria-label="Name in related entity"
+                            />
+                          </td>
+                        </>}
+                        <td>
+                          <select
+                            className="relation-field relation-column-picker"
+                            value={key.dbColumn}
+                            onChange={(event) => updateKeyPair(index, keyIndex, "dbColumn", event.target.value)}
+                            aria-label={`${thisLabel} column, key ${keyIndex + 1}`}
+                          >
+                            <option value="">Select column</option>
+                            {currentColumns.map((column) => <option key={column} value={column}>{column}</option>)}
+                          </select>
+                        </td>
+                        <td>
+                          <div className="relation-select-wrapper">
+                            <select
+                            className="relation-field relation-column-picker"
+                              value={key.refDbColumn}
+                              disabled={!hasReference}
+                              onChange={(event) => updateKeyPair(index, keyIndex, "refDbColumn", event.target.value)}
+                              aria-label={`Related column, key ${keyIndex + 1}`}
+                            >
+                              <option value="">Select column</option>
+                              {referenceColumns.map((column) => <option key={column} value={column}>{column}</option>)}
+                            </select>
+                            <Icon name="chevron-down" size={13} />
+                          </div>
+                        </td>
+                        <td>
+                          <div className="relation-key-actions">
+                            {view.fromFields.length > 1 && <button
+                              className="icon-button subtle"
+                              type="button"
+                              title="Remove key"
+                              aria-label="Remove key"
+                              onClick={() => removeKeyPair(index, keyIndex)}
+                            >
+                              <Icon name="trash" size={12} />
+                            </button>}
+                            {isLast && hasReference && <button
+                              className="icon-button subtle"
+                              type="button"
+                              title="Add key"
+                              aria-label="Add key"
+                              onClick={() => addKeyPair(index)}
+                            >
+                              <Icon name="plus" size={12} />
+                            </button>}
+                          </div>
+                        </td>
+                        {isFirst && <td rowSpan={pairs.length} className="relation-remove-cell">
                           <button
                             className="icon-button subtle relation-remove"
                             type="button"
                             title="Remove relation"
+                            aria-label="Remove relation"
                             onClick={() => removeRelation(index)}
                           >
                             <Icon name="trash" size={14} />
                           </button>
-                        </div>
-                      : <span className="relation-cell-placeholder" aria-hidden="true" />}
-                    {keyIndex === 0
-                      ? <div
-                          className={`relation-entity-picker${openEntityPicker === index ? " open" : ""}`}
-                          ref={(element) => { entityPickerRefs.current[index] = element; }}
-                        >
-                          <button
-                            className="relation-entity-picker-trigger"
-                            type="button"
-                            onClick={() => setOpenEntityPicker((current) => current === index ? null : index)}
-                            aria-expanded={openEntityPicker === index}
-                          >
-                            <span>{relation.refEntity || "Select entity"}</span>
-                            <Icon name="chevron" size={13} />
-                          </button>
-                          {openEntityPicker === index && (
-                            <div className="relation-entity-picker-menu">
-                              {allEntities
-                                .filter((entity) => entity.name !== currentEntity.name)
-                                .map((entity) => (
-                                  <button
-                                    type="button"
-                                    key={entity.name}
-                                    onClick={() => {
-                                      updateRelation(index, "refEntity", entity.name);
-                                      setOpenEntityPicker(null);
-                                    }}
-                                  >
-                                    {entity.name}
-                                  </button>
-                                ))}
-                              {!allEntities.some((entity) => entity.name !== currentEntity.name)
-                                && <span className="relation-entity-picker-empty">No other entities available.</span>}
-                            </div>
-                          )}
-                        </div>
-                      : <span className="relation-cell-placeholder" aria-hidden="true" />}
-                    <div className="relation-source-cell">
-                      <select
-                        value={key.dbColumn}
-                        onChange={(event) =>
-                          updateKeyMapping(index, keyIndex, "dbColumn", event.target.value)
-                        }
-                        aria-label={`Condition ${keyIndex + 1} source column`}
-                      >
-                        {currentColumns.map((column) => <option key={column} value={column}>{column}</option>)}
-                      </select>
-                    </div>
-                    <div className="relation-target-cell">
-                      {relation.refEntity.trim() && <select
-                          value={key.refDbColumn}
-                          onChange={(event) =>
-                            updateKeyMapping(index, keyIndex, "refDbColumn", event.target.value)
-                          }
-                          aria-label={`Condition ${keyIndex + 1} target column`}
-                        >
-                          {columnsForEntity(relation.refEntity).map((column) =>
-                            <option key={column} value={column}>{column}</option>)}
-                        </select>}
-                      {relation.refEntity.trim() && keyIndex === relation.fromFields.length - 1 && <button
-                        className="icon-button subtle relation-condition-add"
-                        type="button"
-                        title="Add condition"
-                        aria-label="Add condition"
-                        onClick={() => addKeyMapping(index)}
-                      >
-                        <Icon name="plus" size={14} />
-                      </button>}
-                      {keyIndex > 0 && <button
-                        className="icon-button subtle"
-                        type="button"
-                        title="Remove condition"
-                        onClick={() => removeKeyMapping(index, keyIndex)}
-                      >
-                        <Icon name="trash" size={12} />
-                      </button>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ))}
+                        </td>}
+                      </tr>
+                    );
+                  });
+                })}
+              </tbody>
+            </table>
           </div>}
+      {pickerMenu}
     </div>
   );
 }

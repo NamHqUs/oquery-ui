@@ -20,9 +20,10 @@
 .field-editor-row button:focus { border: 0; box-shadow: none; outline: 0; }
 .field-source-cell { display: flex; min-width: 0; align-items: center; gap: 4px; }
 .field-source-cell input { flex: 1; min-width: 0; }
-.field-data-type { display: inline-flex; min-width: 0; align-items: center; padding: 7px 8px; color: #aeb6c5; }
+.field-data-type { display: inline-flex; min-width: 0; align-items: center; justify-content: flex-start; gap: 6px; padding: 7px 8px; color: #aeb6c5; text-align: left; }
 .field-data-type-picker { position: relative; min-width: 0; }
-.field-data-type-trigger { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 6px; padding: 7px 8px; color: #dce1eb; font-size: 12px; text-align: left; }
+.field-data-type-trigger { display: flex; width: 100%; align-items: center; justify-content: flex-start; gap: 6px; padding: 7px 8px; color: #dce1eb; font-size: 12px; text-align: left; }
+.field-data-type-trigger svg:last-child { margin-left: auto; }
 .field-data-type-trigger svg { flex: 0 0 auto; color: #a78bfa; }
 .field-data-type-trigger svg:last-child { color: #858fa1; }
 .field-data-type-menu { position: absolute; z-index: 10; top: calc(100% + 2px); right: 0; display: grid; min-width: 100%; width: max-content; padding: 4px; border: 1px solid #3b3d52; border-radius: 5px; background: #171923; box-shadow: 0 8px 18px #00000055; }

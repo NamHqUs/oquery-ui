@@ -9,7 +9,7 @@ import { useResizablePanel } from "../../../utils/use-resizable-panel";
 import MetadataSidebar, { type MetadataSidebarGroup } from "../metadata-sidebar/metadata-sidebar";
 import EntityBuilder, { type DatabaseTableOption } from "../entity-definition/entity-builder/entity-builder";
 import DatabaseConnection from "../../data-sources/database-connection/database-connection";
-import { emptyEntity, findRelationProblem, removeEntityFromRelations, renameEntitiesInRelations, renameEntityInRelations, toAbstractDataType, toEditable, toEntityPayload, toRelationPayload, type EditableEntity } from "../types";
+import { emptyEntity, findRelationProblem, pluralize, removeEntityFromRelations, renameEntitiesInRelations, renameEntityInRelations, singularize, toAbstractDataType, toEditable, toEntityPayload, toRelationPayload, type EditableEntity } from "../types";
 import { invalidateQueryMetadata, metadataEntityFromDto, relationsForEntity, type DomainEntityDto, type DomainRelation, type MetadataEntity } from "../../query-builder/query-design/query-builder-slice";
 import { fetchDbSchema } from "../../data-sources/database-slice";
 import type { RootState } from "../../../store/store";
@@ -667,8 +667,6 @@ export default function DomainList({
     [schema.relationships, selectedTables],
   );
   const relationKey = (relation: DatabaseRelationship) => `${relation.sourceSchema}.${relation.sourceTable}:${relation.targetSchema}.${relation.targetTable}:${relation.name}`;
-  const singularize = (value: string) => value.endsWith("ies") ? `${value.slice(0, -3)}y` : value.endsWith("s") && !value.endsWith("ss") ? value.slice(0, -1) : value;
-  const pluralize = (value: string) => value.endsWith("y") ? `${value.slice(0, -1)}ies` : value.endsWith("s") ? value : `${value}s`;
   const uploadFile = async (file: File) => {
     try {
       const tables = parseUploadedTables(await file.text(), file.name);

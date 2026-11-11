@@ -342,6 +342,7 @@ export default function FieldsBuilder({
                     onClick={() => setOpenDataTypeIndex((current) => current === index ? null : index)}
                   >
                     <Icon name={getDataTypeIcon(field.dataType || "String")} size={12} />
+                    <span>{field.dataType || "String"}</span>
                     <Icon name="chevron-down" size={12} />
                   </button>
                   {openDataTypeIndex === index && (
@@ -371,6 +372,7 @@ export default function FieldsBuilder({
                   aria-label={toAbstractDataType(getDatabaseColumn(field)?.dataType || field.dataType, field.name)}
                 >
                   <Icon name={getDataTypeIcon(toAbstractDataType(getDatabaseColumn(field)?.dataType || field.dataType, field.name))} size={14} />
+                  <span>{toAbstractDataType(getDatabaseColumn(field)?.dataType || field.dataType, field.name)}</span>
                 </span>}
             <button
               className="icon-button subtle"
