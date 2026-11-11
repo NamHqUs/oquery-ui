@@ -117,11 +117,20 @@ section.page-heading.metadata-page-heading { position: relative; display: flex; 
 .metadata-editor-content .metadata-form-grid { grid-template-columns: 1fr; }.editor-head { align-items: flex-start; flex-direction: column; }.editor-actions { flex: 1 1 100%; width: 100%; margin-left: 0; }.key-row { grid-template-columns: 1fr 18px 1fr 30px; } }
 @media (max-width: 760px) { .editor-actions { flex: 0 0 auto; align-self: flex-end; width: auto; margin-left: 0; }.metadata-editor-heading { padding: 20px; }.metadata-editor-heading-status { margin-top: 0; }.metadata-editor-heading p { margin-left: 0; } }
 
-.metadata-editor > .entity-details-heading { min-height: 80px; padding: 18px 20px; }
+.metadata-editor > .entity-details-heading {
+  min-height: 80px;
+  margin: 21px 27px 0;
+  padding: 20px 22px;
+  border: 1px solid #252b38;
+  border-radius: 0;
+  background: radial-gradient(ellipse at 92% 10%, #7049b928, transparent 38%), linear-gradient(145deg, #171a28, #11151d);
+}
 .metadata-editor > .entity-details-heading { align-items: flex-start; }
 .metadata-editor > .entity-details-heading .table-details-title { flex-direction: column; align-items: flex-start; gap: 4px; margin: 0; }
 .metadata-editor > .entity-details-heading .metadata-editor-heading-title { margin-top: 10px; }
 .metadata-editor > .entity-details-heading .metadata-editor-heading-icon { width: 18px; height: 18px; }
+.metadata-editor > .entity-details-heading .definition-action-button.create { order: -1; }
+.metadata-editor > .entity-details-heading .metadata-editor-heading-status { order: -1; }
 .metadata-workspace .metadata-domain-navigation-item,
 .metadata-workspace .metadata-domain-navigation-item:hover,
 .metadata-workspace .metadata-domain-navigation-item:active,
