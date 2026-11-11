@@ -79,6 +79,7 @@
 .domain-entity { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 8px; padding: 10px; border: 1px solid #2c3341; border-radius: 6px; color: #ded5ff; background: #151923; font-size: 12px; }
 .domain-entity small { grid-column: 2; color: var(--muted); font-size: 12px; }
 .domain-error { padding: 10px; border: 1px solid #81454d80; color: #f0a6ae; background: #2a141a66; font-size: 12px; }
+.domain-success { padding: 10px; border: 1px solid #3d806d80; color: #a6e6d2; background: #12231e66; font-size: 12px; }
 
 @media (max-width: 760px) {
   .domain-workspace,

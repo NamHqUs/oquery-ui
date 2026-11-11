@@ -1,6 +1,7 @@
 {
+  "Id": "9F6CF8F73358AFCBD4A160EFEEE20454270359BFB857EF9AB331161773C3FF0E",
   "Name": "Insurance",
-  "Description": "## Insurance\n\nThe Insurance domain manages customer insurance coverage and the financial lifecycle of policies. It includes insurance plans with tiers, premiums, deductibles, out-of-pocket limits, and coinsurance rates. Customers can hold policies managed by insurance agents, make premium payments, and submit claims linked to healthcare visits.\n\nKey areas include:\n\n- Insurance plans and coverage terms\n- Customer policies and policy status\n- Policy start and end dates\n- Premium payments\n- Healthcare claims\n- Billed, allowed, and paid amounts\n- Claim processing status and denial reasons",
+  "Description": "",
   "Entities": [
     {
       "Name": "Claims",
@@ -66,8 +67,10 @@
           "IsRawSql": false
         }
       ],
+      "RawSql": "Claims",
       "DbTable": "Claims",
-      "DbSchema": "in"
+      "DbSchema": "in",
+      "IsRawSql": false
     },
     {
       "Name": "InsurancePlans",
@@ -115,8 +118,10 @@
           "IsRawSql": false
         }
       ],
+      "RawSql": "InsurancePlans",
       "DbTable": "InsurancePlans",
-      "DbSchema": "in"
+      "DbSchema": "in",
+      "IsRawSql": false
     },
     {
       "Name": "Policies",
@@ -164,8 +169,10 @@
           "IsRawSql": false
         }
       ],
+      "RawSql": "Policies",
       "DbTable": "Policies",
-      "DbSchema": "in"
+      "DbSchema": "in",
+      "IsRawSql": false
     },
     {
       "Name": "PremiumPayments",
@@ -201,11 +208,13 @@
           "IsRawSql": false
         }
       ],
+      "RawSql": "PremiumPayments",
       "DbTable": "PremiumPayments",
-      "DbSchema": "in"
+      "DbSchema": "in",
+      "IsRawSql": false
     },
     {
-      "Name": "Employees",
+      "Name": "Agents",
       "Fields": [
         {
           "Name": "Id",
@@ -268,11 +277,13 @@
           "IsRawSql": false
         }
       ],
+      "RawSql": "Employees",
       "DbTable": "Employees",
-      "DbSchema": "main"
+      "DbSchema": "main",
+      "IsRawSql": false
     },
     {
-      "Name": "Patients",
+      "Name": "Clients",
       "Fields": [
         {
           "Name": "Id",
@@ -317,12 +328,12 @@
           "IsRawSql": false
         }
       ],
+      "RawSql": "Users",
       "DbTable": "Users",
-      "DbSchema": "main"
+      "DbSchema": "main",
+      "IsRawSql": false
     }
   ],
-  "CanDelete": true,
-  "IsBuiltin": false,
   "Relations": [
     {
       "SourceEntity": "Claims",
@@ -350,11 +361,11 @@
     },
     {
       "SourceEntity": "Policies",
-      "SourceRelationName": "Employee",
+      "SourceRelationName": "Agent",
       "SourceFields": [
         "AgentId"
       ],
-      "TargetEntity": "Employees",
+      "TargetEntity": "Agents",
       "TargetRelationName": "Policies",
       "TargetFields": [
         "Id"
@@ -362,11 +373,11 @@
     },
     {
       "SourceEntity": "Policies",
-      "SourceRelationName": "User",
+      "SourceRelationName": "Client",
       "SourceFields": [
         "UserId"
       ],
-      "TargetEntity": "Patients",
+      "TargetEntity": "Clients",
       "TargetRelationName": "Policies",
       "TargetFields": [
         "Id"
@@ -385,16 +396,18 @@
       ]
     },
     {
-      "SourceEntity": "Employees",
+      "SourceEntity": "Agents",
       "SourceRelationName": "Manager",
       "SourceFields": [
-        "ManagerId"
-      ],
-      "TargetEntity": "Employees",
-      "TargetRelationName": "Manager",
-      "TargetFields": [
         "Id"
+      ],
+      "TargetEntity": "Agents",
+      "TargetRelationName": "Members",
+      "TargetFields": [
+        "ManagerId"
       ]
     }
-  ]
+  ],
+  "CanDelete": true,
+  "IsBuiltin": false
 }

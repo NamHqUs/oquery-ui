@@ -1,6 +1,7 @@
 {
+  "Id": "F6075F134E6971C426788F06B15508F061DA2FAA18C018B3B0F9B01B63A148B3",
   "Name": "Sales",
-  "Description": "# Sales\n\nThe Sales domain manages customer purchases and product transactions. It includes products, product categories, pricing, costs, customer orders, sales representatives, sales channels, order status, and order-level discounts.\n\nKey areas include:\n\n- Products and product categories\n- Unit prices and cost prices\n- Customer orders\n- Sales representatives\n- Order dates and sales channels\n- Order status\n- Order items, quantities, and discounts\n- Product-level sales analysis",
+  "Description": "",
   "Entities": [
     {
       "Name": "OrderItems",
@@ -42,8 +43,10 @@
           "IsRawSql": false
         }
       ],
+      "RawSql": "OrderItems",
       "DbTable": "OrderItems",
-      "DbSchema": "sa"
+      "DbSchema": "sa",
+      "IsRawSql": false
     },
     {
       "Name": "Orders",
@@ -85,8 +88,10 @@
           "IsRawSql": false
         }
       ],
+      "RawSql": "Orders",
       "DbTable": "Orders",
-      "DbSchema": "sa"
+      "DbSchema": "sa",
+      "IsRawSql": false
     },
     {
       "Name": "Products",
@@ -122,11 +127,13 @@
           "IsRawSql": false
         }
       ],
+      "RawSql": "Products",
       "DbTable": "Products",
-      "DbSchema": "sa"
+      "DbSchema": "sa",
+      "IsRawSql": false
     },
     {
-      "Name": "Employees",
+      "Name": "Seller",
       "Fields": [
         {
           "Name": "Id",
@@ -189,11 +196,13 @@
           "IsRawSql": false
         }
       ],
+      "RawSql": "Employees",
       "DbTable": "Employees",
-      "DbSchema": "main"
+      "DbSchema": "main",
+      "IsRawSql": false
     },
     {
-      "Name": "Cusotmers",
+      "Name": "Customers",
       "Fields": [
         {
           "Name": "Id",
@@ -238,12 +247,12 @@
           "IsRawSql": false
         }
       ],
+      "RawSql": "Users",
       "DbTable": "Users",
-      "DbSchema": null
+      "DbSchema": "dbo",
+      "IsRawSql": false
     }
   ],
-  "CanDelete": true,
-  "IsBuiltin": false,
   "Relations": [
     {
       "SourceEntity": "OrderItems",
@@ -252,7 +261,7 @@
         "ProductId"
       ],
       "TargetEntity": "Products",
-      "TargetRelationName": "OrderItems",
+      "TargetRelationName": "Items",
       "TargetFields": [
         "Id"
       ]
@@ -264,18 +273,18 @@
         "OrderId"
       ],
       "TargetEntity": "Orders",
-      "TargetRelationName": "OrderItems",
+      "TargetRelationName": "Items",
       "TargetFields": [
         "Id"
       ]
     },
     {
       "SourceEntity": "Orders",
-      "SourceRelationName": "Employee",
+      "SourceRelationName": "Seller",
       "SourceFields": [
         "SalesRepId"
       ],
-      "TargetEntity": "Employees",
+      "TargetEntity": "Seller",
       "TargetRelationName": "Orders",
       "TargetFields": [
         "Id"
@@ -287,7 +296,7 @@
       "SourceFields": [
         "UserId"
       ],
-      "TargetEntity": "Users",
+      "TargetEntity": "Customers",
       "TargetRelationName": "User",
       "TargetFields": [
         "Id"
@@ -299,23 +308,25 @@
       "SourceFields": [
         "UserId"
       ],
-      "TargetEntity": "Cusotmers",
+      "TargetEntity": "Customers",
       "TargetRelationName": "Orders",
       "TargetFields": [
         "Id"
       ]
     },
     {
-      "SourceEntity": "Employees",
-      "SourceRelationName": "Employee",
+      "SourceEntity": "Seller",
+      "SourceRelationName": "Manager",
       "SourceFields": [
-        "ManagerId"
-      ],
-      "TargetEntity": "Employees",
-      "TargetRelationName": "Employee",
-      "TargetFields": [
         "Id"
+      ],
+      "TargetEntity": "Seller",
+      "TargetRelationName": "Members",
+      "TargetFields": [
+        "ManagerId"
       ]
     }
-  ]
+  ],
+  "CanDelete": true,
+  "IsBuiltin": false
 }

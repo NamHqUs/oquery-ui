@@ -12,7 +12,7 @@ import { fetchQueryMetadata, metadataEntityFromDto, MetadataEntity, setQueryMeta
 import EntityList from "./entity-definition/entity-list/entity-list";
 import EntityBuilder, { type DatabaseTableOption } from "./entity-definition/entity-builder/entity-builder";
 import EntityDiagram from "./entity-diagram/entity-diagram";
-import { EditableEntity, emptyEntity, findEntityNameProblem, findRelationProblem, pluralize, removeEntityFromRelations, renameEntityInRelations, singularize, toAbstractDataType, toEditable, toEntityPayload, toRelationPayload } from "./types";
+import { EditableEntity, emptyEntity, findEntityNameProblem, findRelationProblem, pluralize, removeEntityFromRelations, renameEntitiesInRelations, renameEntityInRelations, singularize, toAbstractDataType, toEditable, toEntityPayload, toRelationPayload } from "./types";
 import FunctionDefinitionsWorkspace from "../function-definition/function-definition";
 import OperatorDefinition from "./operator-definition/operator-definition";
 import DomainList, { cloneDomain, type Domain } from "./domain/domain-list";
@@ -237,6 +237,9 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   }, [onSectionNavigationChange]);
   const displayedEntities = domainEntities ?? entities;
   const displayedRelations = domainRelations ?? metadataRelations;
+  const editorEntities = draft && selectedName
+    ? displayedEntities.map((entity) => entity.name === selectedName ? draft : entity)
+    : displayedEntities;
   const activeDomainIsBuiltin = !domainId
     || domains.find((domain) => domain.id === domainId)?.isBuiltin === true;
   const metadataBusy = status === "loading"
@@ -438,14 +441,27 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           dataType: toAbstractDataType(field.dataType, field.name),
         })),
       } : null;
+      const currentEntity = draft && selectedName
+        ? displayedEntities.find((entity) => entity.name === selectedName)
+          ?? displayedEntities.find((entity) =>
+            entity.rawSql === draft.rawSql && (entity.schema || "dbo") === (draft.schema || "dbo"))
+        : undefined;
+      const currentEntityName = currentEntity?.name;
       const nextEntities = nextDraft
-        ? selectedName
-          ? displayedEntities.map((entity) => entity.name === selectedName ? nextDraft : entity)
+        ? currentEntityName
+          ? displayedEntities.map((entity) => entity.name === currentEntityName ? nextDraft : entity)
           : [...displayedEntities, nextDraft]
         : displayedEntities;
-      const nextRelations = nextDraft && draft
-        ? renameEntityInRelations(displayedRelations, draft.name, nextDraft.name)
-        : displayedRelations;
+      const entityRenames = new Map<string, string>();
+      displayedEntities.forEach((entity, index) => {
+        const nextEntity = nextEntities[index];
+        if (nextEntity && entity.name !== nextEntity.name) {
+          entityRenames.set(entity.name, nextEntity.name);
+          if (entity.dbTable) entityRenames.set(entity.dbTable, nextEntity.name);
+          if (entity.rawSql) entityRenames.set(entity.rawSql, nextEntity.name);
+        }
+      });
+      const nextRelations = renameEntitiesInRelations(displayedRelations, entityRenames);
       const entityNameProblem = findEntityNameProblem(nextEntities);
       if (entityNameProblem) {
         setStatus("ready");
@@ -586,10 +602,25 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       if (domainId) {
         const domain = domains.find((item) => item.id === domainId);
         if (!domain) throw new Error(`Domain "${domainId}" was not found.`);
-        const nextEntities = selectedName
-          ? displayedEntities.map((entity) => entity.name === selectedName ? payload : entity)
+        const currentEntity = selectedName
+          ? displayedEntities.find((entity) => entity.name === selectedName)
+            ?? displayedEntities.find((entity) =>
+              entity.rawSql === draft.rawSql && (entity.schema || "dbo") === (draft.schema || "dbo"))
+          : undefined;
+        const currentEntityName = currentEntity?.name;
+        const nextEntities = currentEntityName
+          ? displayedEntities.map((entity) => entity.name === currentEntityName ? payload : entity)
           : [...displayedEntities, payload];
-        const nextRelations = renameEntityInRelations(displayedRelations, draft.name, payload.name);
+        const entityRenames = new Map<string, string>();
+        displayedEntities.forEach((entity, index) => {
+          const nextEntity = nextEntities[index];
+          if (nextEntity && entity.name !== nextEntity.name) {
+            entityRenames.set(entity.name, nextEntity.name);
+            if (entity.dbTable) entityRenames.set(entity.dbTable, nextEntity.name);
+            if (entity.rawSql) entityRenames.set(entity.rawSql, nextEntity.name);
+          }
+        });
+        const nextRelations = renameEntitiesInRelations(displayedRelations, entityRenames);
         const entityNameProblem = findEntityNameProblem(nextEntities);
         if (entityNameProblem) throw new Error(entityNameProblem);
         const relationProblem = findRelationProblem(nextEntities, nextRelations);
@@ -907,7 +938,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
               canEdit={Boolean(domainId) && !activeDomainIsBuiltin}
               message={message}
               messageKind={messageKind}
-              allEntities={displayedEntities}
+              allEntities={editorEntities}
               domainRelations={displayedRelations}
               onDraftChange={updateDraft}
               onRelationsChange={updateRelations}
@@ -990,7 +1021,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
               canEdit={Boolean(domainId) && !activeDomainIsBuiltin}
               message={message}
               messageKind={messageKind}
-              allEntities={displayedEntities}
+              allEntities={editorEntities}
               domainRelations={displayedRelations}
               onDraftChange={updateDraft}
               onRelationsChange={updateRelations}

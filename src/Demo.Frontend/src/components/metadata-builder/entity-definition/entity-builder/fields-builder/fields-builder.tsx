@@ -39,6 +39,7 @@ export default function FieldsBuilder({
   const [dropTargetFieldIndex, setDropTargetFieldIndex] = useState<number | null>(null);
   const [openDataTypeIndex, setOpenDataTypeIndex] = useState<number | null>(null);
   const [columnPickerOpen, setColumnPickerOpen] = useState(false);
+  const [fieldsCollapsed, setFieldsCollapsed] = useState(false);
   const [selectedColumnNames, setSelectedColumnNames] = useState<string[]>([]);
   const [columnMenuPosition, setColumnMenuPosition] = useState({ top: 0, left: 0 });
   const schemaButtonRef = useRef<HTMLButtonElement>(null);
@@ -138,9 +139,16 @@ export default function FieldsBuilder({
   return (
     <div className="editor-section">
       <div className="editor-section-head">
-        <div>
+        <button
+          className="field-section-toggle"
+          type="button"
+          aria-expanded={!fieldsCollapsed}
+          onClick={() => setFieldsCollapsed((collapsed) => !collapsed)}
+        >
+          <Icon name="chevron-down" size={14} />
           <h3>Fields</h3>
-        </div>
+          <span>{fields.length}</span>
+        </button>
         <div className="field-actions">
           {availableSchemaColumns.length > 0 && (
             <div className="schema-column-picker">
@@ -235,7 +243,7 @@ export default function FieldsBuilder({
           </button>
         </div>
       </div>
-      <div className="field-editor-table">
+      {!fieldsCollapsed && <div className="field-editor-table">
         <div className="field-editor-head">
           <span className="drag-handle-col" />
           <span>Name</span>
@@ -385,7 +393,7 @@ export default function FieldsBuilder({
             </button>
           </div>
         ))}
-      </div>
+      </div>}
     </div>
   );
 }

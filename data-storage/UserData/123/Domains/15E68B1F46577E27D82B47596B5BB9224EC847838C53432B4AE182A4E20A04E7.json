@@ -1,6 +1,7 @@
 {
+  "Id": "15E68B1F46577E27D82B47596B5BB9224EC847838C53432B4AE182A4E20A04E7",
   "Name": "HR",
-  "Description": "## HR\n\nThe HR domain manages the organization’s workforce and employee lifecycle. It covers employee identity, departments, locations, reporting relationships, job roles, compensation, employment type, performance reviews, and leave requests.\n\nKey areas include:\n\n- Departments and organizational structure\n- Employee positions and job titles\n- Managers and team members\n- Hire dates and employment types\n- Salary information\n- Performance ratings and bonuses\n- Employee leave requests",
+  "Description": "",
   "Entities": [
     {
       "Name": "Departments",
@@ -18,8 +19,10 @@
           "IsRawSql": false
         }
       ],
+      "RawSql": "Departments",
       "DbTable": "Departments",
-      "DbSchema": "hr"
+      "DbSchema": "hr",
+      "IsRawSql": false
     },
     {
       "Name": "LeaveRequests",
@@ -61,8 +64,10 @@
           "IsRawSql": false
         }
       ],
+      "RawSql": "LeaveRequests",
       "DbTable": "LeaveRequests",
-      "DbSchema": "hr"
+      "DbSchema": "hr",
+      "IsRawSql": false
     },
     {
       "Name": "PerformanceReviews",
@@ -98,8 +103,10 @@
           "IsRawSql": false
         }
       ],
+      "RawSql": "PerformanceReviews",
       "DbTable": "PerformanceReviews",
-      "DbSchema": "hr"
+      "DbSchema": "hr",
+      "IsRawSql": false
     },
     {
       "Name": "Employees",
@@ -165,8 +172,10 @@
           "IsRawSql": false
         }
       ],
+      "RawSql": "Employees",
       "DbTable": "Employees",
-      "DbSchema": "main"
+      "DbSchema": "main",
+      "IsRawSql": false
     },
     {
       "Name": "Locations",
@@ -196,12 +205,12 @@
           "IsRawSql": false
         }
       ],
+      "RawSql": "Locations",
       "DbTable": "Locations",
-      "DbSchema": "main"
+      "DbSchema": "main",
+      "IsRawSql": false
     }
   ],
-  "CanDelete": true,
-  "IsBuiltin": false,
   "Relations": [
     {
       "SourceEntity": "LeaveRequests",
@@ -231,12 +240,12 @@
       "SourceEntity": "Employees",
       "SourceRelationName": "Manager",
       "SourceFields": [
-        "ManagerId"
+        "Id"
       ],
       "TargetEntity": "Employees",
-      "TargetRelationName": "Manager",
+      "TargetRelationName": "Members",
       "TargetFields": [
-        "Id"
+        "ManagerId"
       ]
     },
     {
@@ -263,5 +272,7 @@
         "Id"
       ]
     }
-  ]
+  ],
+  "CanDelete": true,
+  "IsBuiltin": false
 }

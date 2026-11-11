@@ -1,4 +1,10 @@
 .field-editor-table { margin-top: 14px; border: 1px solid #2a3140; border-radius: 6px; overflow: visible; background: #141821; }
+.field-section-toggle { display: inline-flex; align-items: center; gap: 7px; padding: 0; color: inherit; border: 0; background: transparent; }
+.field-section-toggle h3 { color: #8f7fca; }
+.field-section-toggle span { color: var(--muted); font-size: 11px; font-weight: 400; }
+.field-section-toggle svg { color: #858fa1; transition: transform .15s ease; }
+.field-section-toggle[aria-expanded="false"] svg { transform: rotate(-90deg); }
+.field-section-toggle:hover h3, .field-section-toggle:focus-visible h3 { color: #b9a7ef; }
 .field-editor-head, .field-editor-row { display: grid; grid-template-columns: 18px 1.1fr 1.2fr .8fr 26px; gap: 4px; align-items: center; }
 .field-editor-head { color: #858fa1; background: #10131a; border-bottom: 1px solid #2a3140; font: 500 11px "Manrope", sans-serif; text-transform: uppercase; letter-spacing: .5px; margin: 0; padding: 9px 4px; }
 .field-editor-row { margin-top: 0; padding: 4px; border-bottom: 1px solid #202633; background: #141821; transition: background-color .15s ease; }

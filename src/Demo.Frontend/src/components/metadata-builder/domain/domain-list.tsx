@@ -203,6 +203,7 @@ export default function DomainList({
   const [viewMode, setViewMode] = useState<ViewMode>(location.pathname === CREATE_DOMAIN_PATH || location.pathname === EDIT_DOMAIN_PATH ? "wizard" : "list");
   const [status, setStatus] = useState<"loading" | "ready" | "saving">("loading");
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
   const editDomainRequestRef = useRef<string | null>(null);
   const panel = useResizablePanel("domain");
@@ -342,6 +343,7 @@ export default function DomainList({
     setTableFilter("");
     setStep(1);
     setError("");
+    setSuccessMessage("");
   };
   useEffect(() => {
     if (!active || status === "loading" || location.pathname === CREATE_DOMAIN_PATH) return;
@@ -390,6 +392,7 @@ export default function DomainList({
     setTableFilter("");
     setStep(1);
     setError("");
+    setSuccessMessage("");
   };
   const editDomain = (domain: Domain) => {
     if (domain.isBuiltin) return;
@@ -411,6 +414,7 @@ export default function DomainList({
     setSourceSelectionInitialized(schema.tables.length > 0);
     setStep(1);
     setError("");
+    setSuccessMessage("");
   };
   const updateSelectedDomain = (updater: (domain: Domain) => Domain) => {
     setDomainItems(current => current.map(domain => domain.id === selectedName ? updater(domain) : domain));
@@ -490,7 +494,7 @@ export default function DomainList({
       entities: domain.entities.some(entity => entity.name === selectedEntityName)
         ? domain.entities.map(entity => entity.name === selectedEntityName ? normalized : entity)
         : [...domain.entities, normalized],
-      relations: renameEntityInRelations(domain.relations, entityDraft.name, normalized.name),
+      relations: renameEntityInRelations(domain.relations, selectedEntityName || entityDraft.name, normalized.name),
     }));
     setSelectedEntityName(normalized.name);
     setEntityDraft(normalized);
@@ -498,6 +502,7 @@ export default function DomainList({
     setError("");
   };
   const save = async (): Promise<boolean> => {
+    setSuccessMessage("");
     if (!draftName.trim()) {
       setError("A domain name is required.");
       setStep(3);
@@ -518,14 +523,22 @@ export default function DomainList({
             entities.find(entity => entityMatchesTable(entity, table));
           const tableEntityName = (table: DatabaseTable, fallback: string) =>
             entityNames[tableKey(table)]?.trim() || fallback;
+          const currentEntity = entityDraft
+            ? selected.entities.find(entity => entity.name === selectedEntityName)
+              ?? selected.entities.find(entity =>
+                entity.rawSql === entityDraft.rawSql
+                && (entity.schema || "dbo") === (entityDraft.schema || "dbo"))
+            : undefined;
           const renames = new Map<string, string>();
           const entities: MetadataEntity[] = [
             ...selected.entities
               .filter(entity => !removedEntityNames.some(name => name.toLowerCase() === entity.name.toLowerCase()))
               .map(entity => {
-                if (entity.name === selectedEntityName && entityDraft && entityDirty) {
+                if (entity === currentEntity && entityDraft && entityDirty) {
                   const draftEntity = normalizeEntityDraft(entityDraft);
-                  renames.set(entityDraft.name, draftEntity.name);
+                  renames.set(entity.name, draftEntity.name);
+                  if (entity.dbTable) renames.set(entity.dbTable, draftEntity.name);
+                  if (entity.rawSql) renames.set(entity.rawSql, draftEntity.name);
                   return draftEntity;
                 }
                 const table = selectedTableDetails.find(candidate => entityMatchesTable(entity, candidate));
@@ -603,6 +616,7 @@ export default function DomainList({
         setDraftName(applied.name);
         setStep(3);
         setViewMode("detail");
+        setSuccessMessage(`Domain "${applied.name}" changes applied successfully.`);
         return true;
       }
       const savedDto = wizardSource === "file"
@@ -672,8 +686,10 @@ export default function DomainList({
       setDraftName(saved.name);
       setStep(3);
       setViewMode("detail");
+      setSuccessMessage(`Domain "${saved.name}" generated successfully.`);
       return true;
     } catch (reason) {
+      setSuccessMessage("");
       setError(reason instanceof Error ? reason.message : selected ? "Unable to apply domain changes." : "Unable to generate domain metadata.");
       return false;
     } finally {
@@ -1007,6 +1023,7 @@ export default function DomainList({
           {selected && !selected.isBuiltin && viewMode === "detail" && <button type="button" className="domain-primary" onClick={() => editDomain(selected)}>Edit domain</button>}
         </div>
         {error && selected && <p className="domain-error" role="alert">{error}</p>}
+        {successMessage && viewMode === "detail" && <p className="domain-success" role="status">{successMessage}</p>}
         {viewMode === "wizard" ? (
           <DomainWizard
             mode={selected ? "edit" : "create"}
@@ -1157,7 +1174,8 @@ export default function DomainList({
               draft={entityDraft}
               canEdit={!selected.isBuiltin}
               message=""
-              allEntities={selected.entities}
+              allEntities={selected.entities.map(entity =>
+                entity.name === selectedEntityName && entityDraft ? entityDraft : entity)}
               domainRelations={selected.relations}
               onDraftChange={updater => {
                 if (!entityDraft) return;

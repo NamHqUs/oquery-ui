@@ -313,14 +313,14 @@
   "Relations": [
     {
       "SourceEntity": "Doctors",
-      "SourceRelationName": "Employee",
+      "SourceRelationName": "Manager",
       "SourceFields": [
-        "ManagerId"
+        "Id"
       ],
       "TargetEntity": "Doctors",
-      "TargetRelationName": "Employee",
+      "TargetRelationName": "Members",
       "TargetFields": [
-        "Id"
+        "ManagerId"
       ]
     },
     {
@@ -349,12 +349,12 @@
     },
     {
       "SourceEntity": "Visits",
-      "SourceRelationName": "Employee",
+      "SourceRelationName": "Doctor",
       "SourceFields": [
         "DoctorId"
       ],
       "TargetEntity": "Doctors",
-      "TargetRelationName": "Employee",
+      "TargetRelationName": "Examinations",
       "TargetFields": [
         "Id"
       ]
@@ -366,7 +366,7 @@
         "UserId"
       ],
       "TargetEntity": "Patients",
-      "TargetRelationName": "Patient",
+      "TargetRelationName": "Visits",
       "TargetFields": [
         "Id"
       ]
