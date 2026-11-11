@@ -198,7 +198,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   useEffect(() => { selectedNameRef.current = selectedName; }, [selectedName]);
   const requestedSection = searchParams.get("section")
     ?? (location.pathname === "/metadata/domains/create" ? "domains" : null);
-  const domainId = searchParams.get("domain") || undefined;
+  const domainId = searchParams.get("domain") || searchParams.get("edit") || undefined;
   const activeSection: MetadataSection = entityOnly ? "entities" : requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "domains" || requestedSection === "functions" || requestedSection === "operators"
     ? requestedSection
     : "diagram";
@@ -220,8 +220,12 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     }
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.set("section", section);
-    if (section === "domains" && location.pathname === "/metadata/domains/create") {
+    if (section === "domains"
+      && (location.pathname === "/metadata/domains/create"
+        || location.pathname === "/metadata/domains/edit"
+        || searchParams.has("edit"))) {
       nextSearchParams.delete("domain");
+      nextSearchParams.delete("edit");
       navigate(`/metadata?${nextSearchParams.toString()}`);
     } else {
       setSearchParams(nextSearchParams);
@@ -260,7 +264,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         fields: draft.fields.map(field => ({ ...field })),
       } : entity)
       : displayedEntities;
-    navigate(`/metadata/domains/edit?section=domains&domain=${encodeURIComponent(domainId)}&returnSection=diagram`, {
+    navigate(`/metadata?section=diagram&edit=${encodeURIComponent(domainId)}`, {
       state: {
         domain: cloneDomain({
           ...domain,
@@ -916,7 +920,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
 
   return (
     <>
-      {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "diagram"}>
+      {!entityOnly &&       <div className="metadata-workspace-panel" hidden={activeSection !== "diagram" || Boolean(searchParams.get("edit"))}>
         <EntityDiagram
           entities={displayedEntities}
           relations={displayedRelations}
@@ -1055,9 +1059,9 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       {!entityOnly && activeSection === "operators" && <div className="metadata-workspace-panel">
         <OperatorDefinition onNavigationGuardChange={updateOperatorNavigationGuard} />
       </div>}
-      {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "domains"}>
+      {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "domains" && !searchParams.get("edit")}>
         <DomainList
-          active={activeSection === "domains"}
+          active={activeSection === "domains" || Boolean(searchParams.get("edit"))}
           domains={domains}
           onDomainChanged={handleDomainChanged}
         />

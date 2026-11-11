@@ -12,6 +12,7 @@ type DomainWizardProps = {
   source: WizardSource;
   step: WizardStep;
   canContinue: boolean;
+  canNavigateToStep?: (step: WizardStep) => boolean;
   saving: boolean;
   error?: string;
   onStepChange: (step: WizardStep) => void;
@@ -28,6 +29,7 @@ export default function DomainWizard({
   source,
   step,
   canContinue,
+  canNavigateToStep = targetStep => targetStep <= step,
   saving,
   error,
   onStepChange,
@@ -65,7 +67,7 @@ export default function DomainWizard({
     >
       <div className="domain-steps" aria-label={`Domain ${mode} steps`}>
         {steps.map(([number, label, description]) => (
-          <button key={number} type="button" className={step === Number(number) ? "active" : step > Number(number) ? "complete" : ""} onClick={() => Number(number) <= step && onStepChange(Number(number) as WizardStep)} disabled={Number(number) > step}>
+          <button key={number} type="button" className={step === Number(number) ? "active" : step > Number(number) ? "complete" : ""} onClick={() => onStepChange(Number(number) as WizardStep)} disabled={!canNavigateToStep(Number(number) as WizardStep)}>
             <strong>{step > Number(number) ? "✓" : number}</strong><span><b>{label}</b><small>{description}</small></span>
           </button>
         ))}

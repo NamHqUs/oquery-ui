@@ -316,3 +316,21 @@ entities were cleared in Step 1, the wizard advanced through Step 2, and
 reloaded with no selected entity or entity cards.
 
 Result: **PASS**
+
+### No-change Sales Domain Wizard round-trip
+
+Validation date: 2026-11-11
+
+From the Sales Domain Diagram with `Seller` selected, the edit action was
+opened, the wizard was advanced through all three steps without changing any
+value, and `Apply domain changes` was invoked. The saved Sales model was
+compared with the serialized model captured before editing.
+
+| Check | Result |
+|---|---|
+| Sales entity count remains 5 | **PASS** |
+| Seller entity remains present | **PASS** |
+| Seller relations remain 2 | **PASS** |
+| Serialized domain model before/after edit is identical | **PASS** |
+
+No code fix was required for this scenario.

@@ -54,7 +54,7 @@ type Step = 1 | 2 | 3;
 type ViewMode = "list" | "wizard" | "detail";
 const CREATE_DOMAIN_PATH = "/metadata/domains/create";
 const EDIT_DOMAIN_PATH = "/metadata/domains/edit";
-const DESCRIPTION_PREVIEW_LENGTH = 20;
+const DESCRIPTION_PREVIEW_LENGTH = 240;
 
 function getPlainDescription(description: string) {
   return description
@@ -191,6 +191,7 @@ export default function DomainList({
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const isEditRoute = location.pathname === EDIT_DOMAIN_PATH || Boolean(new URLSearchParams(location.search).get("edit"));
   const { schema, schemaStatus, connectionStatus } = useSelector((state: RootState) => state.database);
   const [selectedName, setSelectedName] = useState("");
   const [draftName, setDraftName] = useState("");
@@ -214,7 +215,7 @@ export default function DomainList({
   const [step, setStep] = useState<Step>(1);
   const [wizardSource, setWizardSource] = useState<WizardSource>("database");
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>(location.pathname === CREATE_DOMAIN_PATH || location.pathname === EDIT_DOMAIN_PATH ? "wizard" : "list");
+  const [viewMode, setViewMode] = useState<ViewMode>(location.pathname === CREATE_DOMAIN_PATH || isEditRoute ? "wizard" : "list");
   const [status, setStatus] = useState<"loading" | "ready" | "saving">("loading");
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -228,7 +229,7 @@ export default function DomainList({
   useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   useEffect(() => {
     if (!active) return;
-    setViewMode(location.pathname === CREATE_DOMAIN_PATH || location.pathname === EDIT_DOMAIN_PATH ? "wizard" : "list");
+    setViewMode(location.pathname === CREATE_DOMAIN_PATH || isEditRoute ? "wizard" : "list");
     if (location.pathname === CREATE_DOMAIN_PATH) {
       const source = new URLSearchParams(location.search).get("source");
       setWizardSource(source === "file" ? "file" : "database");
@@ -249,7 +250,7 @@ export default function DomainList({
       setRelationNames({});
       setStep(1);
     }
-    if (location.pathname === EDIT_DOMAIN_PATH) {
+    if (isEditRoute) {
       setWizardSource("database");
       setSelectedTables([]);
       setSourceSelectionInitialized(false);
@@ -282,27 +283,28 @@ export default function DomainList({
     setStatus("loading");
     setError("");
     try {
-      if (location.pathname !== EDIT_DOMAIN_PATH) editDomainRequestRef.current = null;
+      if (!isEditRoute) editDomainRequestRef.current = null;
       const routedDomain = (location.state as { domain?: Domain } | null)?.domain;
       const domainResult = routedDomain
         ? domains.some(domain => domain.id === routedDomain.id)
           ? domains.map(domain => domain.id === routedDomain.id ? routedDomain : domain)
           : [...domains, routedDomain]
         : domains;
-      const routeDomainId = new URLSearchParams(location.search).get("domain");
+      const routeDomainId = new URLSearchParams(location.search).get("domain")
+        || new URLSearchParams(location.search).get("edit");
       const requestedDomain = routeDomainId || selectedName;
       if (requestedDomain && location.pathname !== CREATE_DOMAIN_PATH) {
         const summary = domainResult.find(domain => domain.id === requestedDomain);
         const shouldRefreshEditDomain = Boolean(
           summary
-          && location.pathname === EDIT_DOMAIN_PATH
+          && isEditRoute
           && !routedDomain
           && editDomainRequestRef.current !== requestedDomain,
         );
-        if (summary && location.pathname === EDIT_DOMAIN_PATH && !shouldRefreshEditDomain && !routedDomain) return;
+        if (summary && isEditRoute && !shouldRefreshEditDomain && !routedDomain) return;
         if (shouldRefreshEditDomain) editDomainRequestRef.current = requestedDomain;
         setDomainItems(domainResult);
-        const refreshed = summary && location.pathname === EDIT_DOMAIN_PATH
+        const refreshed = summary && isEditRoute
           ? toDomain(await request<DomainDto>(apiUrls.metadata.domainById(summary.id)))
           : summary;
         if (refreshed) {
@@ -320,7 +322,7 @@ export default function DomainList({
         setDomainItems(domainResult);
       }
     } catch (reason) {
-      if (location.pathname === EDIT_DOMAIN_PATH) editDomainRequestRef.current = null;
+      if (isEditRoute) editDomainRequestRef.current = null;
       setError(reason instanceof Error ? reason.message : "Unable to load domains and database tables.");
     } finally {
       setStatus("ready");
@@ -334,7 +336,7 @@ export default function DomainList({
     if (schemaStatus === "idle") void dispatch(fetchDbSchema());
   }, [dispatch, schemaStatus]);
   useEffect(() => {
-    if (location.pathname !== EDIT_DOMAIN_PATH
+    if (!isEditRoute
       || wizardSource !== "database"
       || sourceSelectionInitialized
       || !selected
@@ -420,7 +422,7 @@ export default function DomainList({
   };
   const editDomain = (domain: Domain) => {
     if (domain.isBuiltin) return;
-    navigate(`${EDIT_DOMAIN_PATH}?section=domains&domain=${encodeURIComponent(domain.id)}&returnSection=domains`);
+    navigate(`/metadata?section=diagram&edit=${encodeURIComponent(domain.id)}`);
     setViewMode("wizard");
     setSelectedName(domain.id);
     setDraftName(domain.name);
@@ -597,6 +599,18 @@ export default function DomainList({
               item.sourceEntity === source.name
               && item.targetEntity === target.name
               && relationFieldsMatch(item, relation));
+            if (existing) {
+              const names = relationNames[relationKey(relation)];
+              if (!names) return currentRelations;
+              const directFieldMatch = sameFields(existing.sourceFields, relation.sourceColumns)
+                && sameFields(existing.targetFields, relation.targetColumns);
+              const named = {
+                ...existing,
+                sourceRelationName: directFieldMatch ? names.lookup : names.collection,
+                targetRelationName: directFieldMatch ? names.collection : names.lookup,
+              };
+              return currentRelations.map(item => item === existing ? named : item);
+            }
             const next: DomainRelation = {
               sourceEntity: source.name,
               sourceRelationName: names?.lookup || existing?.sourceRelationName || singularize(target.name),
@@ -605,9 +619,7 @@ export default function DomainList({
               targetRelationName: names?.collection || existing?.targetRelationName || pluralize(source.name),
               targetFields: [...relation.targetColumns],
             };
-            return existing
-              ? currentRelations.map(item => item === existing ? next : item)
-              : [...currentRelations, next];
+            return [...currentRelations, next];
           }, relationsBase);
           const entityNamesInDomain = new Set(entities.map(entity => entity.name));
           return {
@@ -629,17 +641,27 @@ export default function DomainList({
           entities: saveTarget.entities,
           relations: saveTarget.relations,
         };
-        onDomainChanged?.(applied, true);
-        setDomainItems(current => current.map(domain => domain.id === applied.id ? applied : domain));
+        const savedDto = await request<DomainDto>(apiUrls.metadata.domainById(applied.id), {
+          method: "PUT",
+          body: JSON.stringify({
+            name: applied.name,
+            description: applied.description,
+            entities: applied.entities.map(toEntityPayload),
+            relations: toRelationPayload(applied.relations),
+          }),
+        });
+        const saved = toDomain(savedDto);
+        onDomainChanged?.(saved);
+        setDomainItems(current => current.map(domain => domain.id === saved.id ? saved : domain));
         setEntityDirty(false);
         setRemovedEntityNames([]);
         const returnSection = new URLSearchParams(location.search).get("returnSection") || "domains";
-        navigate(`/metadata?section=${encodeURIComponent(returnSection)}&domain=${encodeURIComponent(applied.id)}`);
-        setSelectedName(applied.id);
-        setDraftName(applied.name);
+        navigate(`/metadata?section=${encodeURIComponent(returnSection)}&domain=${encodeURIComponent(saved.id)}`);
+        setSelectedName(saved.id);
+        setDraftName(saved.name);
         setStep(3);
         setViewMode("detail");
-        setSuccessMessage(`Domain "${applied.name}" changes applied successfully.`);
+        setSuccessMessage(`Domain "${saved.name}" changes applied successfully.`);
         return true;
       }
       const savedDto = wizardSource === "file"
@@ -867,6 +889,21 @@ export default function DomainList({
       ? selectedTableDetails.every(table =>
         (selectedColumns[tableKey(table)] || table.columns.map(column => column.name)).length > 0)
       : Boolean(draftName.trim());
+  const canNavigateToStep = (targetStep: Step) => {
+    if (targetStep <= step) return true;
+
+    const hasSourceSelection = Boolean(selected)
+    || (wizardSource === "database"
+      ? connectionStatus === "succeeded" && selectedTables.length > 0
+      : selectedTables.length > 0);
+    if (targetStep === 2) return hasSourceSelection;
+
+    const hasValidEntityDesign = (selected?.entities.length ?? 0) > 0
+      || (selectedTableDetails.length > 0
+        && selectedTableDetails.every(table =>
+          (selectedColumns[tableKey(table)] || table.columns.map(column => column.name)).length > 0));
+    return hasSourceSelection && hasValidEntityDesign;
+  };
   const goNext = () => {
     if (!selected && step === 1 && wizardSource === "database" && connectionStatus !== "succeeded") {
       setError("Connect to a database to continue.");
@@ -951,18 +988,30 @@ export default function DomainList({
             <div className="domain-catalog-column" key={columnIndex}>
               {column.map(domain => (
             <div key={domain.name} className="domain-summary-card">
-              <button type="button" className="domain-summary-open" onClick={() => selectDomain(domain)}>
-                <span className="domain-summary-icon"><Icon name="folder" size={17} /></span>
-                <span className="domain-summary-content">
-                  <strong>{domain.name}</strong>
-                </span>
-              </button>
+              <div className="domain-summary-copy">
+                <button
+                  type="button"
+                  className="domain-summary-icon"
+                  aria-label={`Open ${domain.name} diagram`}
+                  title={`Open ${domain.name} diagram`}
+                  onClick={() => selectDomain(domain)}
+                >
+                  <Icon name="folder" size={17} />
+                </button>
+                <button type="button" className="domain-summary-open" onClick={() => selectDomain(domain)}>
+                  <span className="domain-summary-content">
+                    <strong>{domain.name}</strong>
+                  </span>
+                </button>
               {domain.description && (
                 <>
                   {!expandedDescriptions[domain.name] && (
-                    <p className="domain-summary-description-preview">
-                      {getDescriptionPreview(domain.description)}
-                    </p>
+                    <>
+                      <br />
+                      <span className="domain-summary-description-preview">
+                        {getDescriptionPreview(domain.description)}
+                      </span>
+                    </>
                   )}
                   {hasDescriptionPreviewOverflow(domain.description) && (
                     <button
@@ -981,6 +1030,7 @@ export default function DomainList({
                   )}
                 </>
               )}
+              </div>
               {domain.entities.length > 0 && (
                 <div className="domain-summary-entity-preview" aria-label="Included entities">
                   <span className="domain-summary-entity-label">Included entities</span>
@@ -1019,7 +1069,11 @@ export default function DomainList({
               .map(domain => (
                 <button key={domain.id} type="button" className={`metadata-entity${domain.id === selectedName ? " active" : ""}`} onClick={() => selectDomain(domain)}>
                   <span className="entity-icon"><Icon name="folder" size={14} /></span>
-                  <span><b>{domain.name}</b><small>{domain.entities.length} entities{domain.isBuiltin ? " · Built-in - Read Only" : ""}</small></span>
+                  <span className="domain-list-item-content">
+                    <b>{domain.name}</b>
+                    {domain.description && <small className="domain-list-item-description">{getPlainDescription(domain.description)}</small>}
+                    <small>{domain.entities.length} entities{domain.isBuiltin ? " · Built-in - Read Only" : ""}</small>
+                  </span>
                   <Icon name="chevron" size={14} />
                 </button>
               )),
@@ -1051,6 +1105,7 @@ export default function DomainList({
             source={wizardSource}
             step={step}
             canContinue={canContinue}
+            canNavigateToStep={canNavigateToStep}
             saving={status === "saving"}
             error={error}
             onStepChange={setStep}

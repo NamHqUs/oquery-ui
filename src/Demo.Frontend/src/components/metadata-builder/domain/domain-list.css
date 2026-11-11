@@ -167,6 +167,18 @@
   color: #e7eaf3;
   font-size: 12px;
 }
+.domain-workspace .metadata-entity .domain-list-item-content {
+  min-width: 0;
+}
+.domain-workspace .metadata-entity .domain-list-item-description {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-top: 3px;
+  color: #a4adbd;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+}
 .domain-workspace .metadata-entity small {
   color: #8d98aa;
 }
@@ -499,6 +511,34 @@
   box-shadow: inset 0 1px #ffffff08, 0 8px 22px #00000018;
   transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease, background .16s ease;
 }
+.domain-summary-copy {
+  min-width: 0;
+}
+.domain-summary-copy::after {
+  display: table;
+  clear: both;
+  content: "";
+}
+.domain-summary-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  float: left;
+  place-items: center;
+  margin: 0 13px 6px 0;
+  border: 1px solid #55458d;
+  border-radius: 10px;
+  color: #b6a7ff;
+  background: #272044;
+  cursor: pointer;
+  transition: border-color .16s ease, color .16s ease, background .16s ease;
+}
+.domain-summary-card:hover .domain-summary-icon,
+.domain-summary-icon:hover {
+  border-color: #9c87ec;
+  color: #eeeaff;
+  background: #382d61;
+}
 .domain-summary-card:hover {
   border-color: #7562aa;
   background:
@@ -508,21 +548,17 @@
   transform: translateY(-2px);
 }
 .domain-summary-open {
-  display: flex;
-  grid-column: 1 / -1;
-  min-height: 42px;
-  grid-column: 1;
+  display: inline;
   min-width: 0;
-  flex: 1;
-  align-items: flex-start;
-  gap: 13px;
+  width: auto;
   padding: 0;
-  padding-right: 34px;
   border: 0;
   color: inherit;
   background: transparent;
   text-align: left;
 }
+.domain-summary-content { display: inline; min-width: 0; }
+.domain-summary-content strong { color: #f0edff; font-size: 15px; }
 .domain-summary-description-toggle {
   grid-column: 1 / -1;
   align-self: start;
@@ -540,11 +576,12 @@
 }
 .domain-summary-description-toggle:hover { border-color: #bdaef0; color: #fff; background: transparent; }
 .domain-summary-description-preview {
-  grid-column: 1 / -1;
-  margin: 0;
+  display: inline;
   color: #9da9bb;
   font-size: 12px;
   line-height: 1.5;
+  text-align: left;
+  text-indent: 0;
 }
 .domain-summary-description-panel {
   grid-column: 1 / -1;
