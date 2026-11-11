@@ -1116,6 +1116,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
               selectedTable={selectedTable}
               onSelectTable={selectDatabaseTable}
               onSelectRawSql={selectRawSqlMode}
+              showFieldsRelationsSplitter={false}
             />
           </div>
         </section>

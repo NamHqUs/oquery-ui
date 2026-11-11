@@ -23,6 +23,7 @@ type EntityBuilderProps = {
   onSelectTable?: (table: DatabaseTableOption) => void;
   onSelectRawSql?: () => void;
   compact?: boolean;
+  showFieldsRelationsSplitter?: boolean;
 };
 
 export type DatabaseTableOption = {
@@ -46,6 +47,7 @@ export default function EntityBuilder({
   onSelectTable,
   onSelectRawSql,
   compact = false,
+  showFieldsRelationsSplitter = true,
 }: EntityBuilderProps) {
   const [tablePickerOpen, setTablePickerOpen] = useState(false);
   const [tableSearch, setTableSearch] = useState("");
@@ -205,7 +207,7 @@ export default function EntityBuilder({
         )}
         </div>
 
-        <div className="entity-split split-workspace" style={splitPanel.style}>
+        <div className={`entity-split split-workspace${showFieldsRelationsSplitter ? "" : " entity-split-stacked"}`} style={splitPanel.style}>
           <div className="entity-fields-pane">
             <FieldsBuilder
               fields={draft.fields}
@@ -220,7 +222,9 @@ export default function EntityBuilder({
             />
           </div>
 
-          <PanelSplitter panel={splitPanel} label="fields and relations" collapsible={false} />
+          {showFieldsRelationsSplitter && (
+            <PanelSplitter panel={splitPanel} label="fields and relations" collapsible={false} />
+          )}
 
           <div className="entity-relations-pane">
             <RelationsBuilder

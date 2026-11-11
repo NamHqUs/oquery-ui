@@ -9,6 +9,9 @@
 .entity-split { display: flex; align-items: stretch; margin-top: 24px; }
 .entity-fields-pane { flex: 0 0 var(--panel-width); box-sizing: border-box; min-width: 0; max-width: calc(100% - 320px); padding-right: 18px; }
 .entity-relations-pane { flex: 1 1 0; box-sizing: border-box; min-width: 0; padding-left: 18px; }
+.entity-split-stacked { display: block; }
+.entity-split-stacked .entity-fields-pane { max-width: none; padding-right: 0; }
+.entity-split-stacked .entity-relations-pane { padding-left: 0; }
 @media (max-width: 760px) {
   .entity-split { display: block; }
   .entity-fields-pane, .entity-relations-pane { padding: 0; }
@@ -56,6 +59,8 @@
 .metadata-diagram-editor .metadata-editor-compact .metadata-form input,
 .metadata-diagram-editor .metadata-editor-compact .metadata-form select,
 .metadata-diagram-editor .metadata-editor-compact .metadata-form textarea { padding: 6px 8px; font-size: 12px; }
+.metadata-diagram-editor .metadata-editor-compact .field-data-type-trigger > span,
+.metadata-diagram-editor .metadata-editor-compact .field-data-type-trigger svg:last-child { display: none; }
 .metadata-diagram-editor .metadata-editor-compact .editor-section { margin-top: 0; }
 .metadata-diagram-editor .metadata-editor-compact .editor-section h3 { font-size: 13px; }
 .metadata-diagram-editor .metadata-editor-compact .editor-section p { margin-top: 3px; font-size: 12px; }
