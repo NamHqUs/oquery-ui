@@ -6,7 +6,7 @@
 .metadata-workspace .editor-actions .button.primary:disabled { cursor: not-allowed; }
 .metadata-form { padding: 22px 28px 35px; }
 .metadata-form-fieldset { border: 0; margin: 0; min-width: 0; padding: 0; }
-.entity-split { display: flex; align-items: stretch; }
+.entity-split { display: flex; align-items: stretch; margin-top: 24px; }
 .entity-fields-pane { flex: 0 0 var(--panel-width); box-sizing: border-box; min-width: 0; max-width: calc(100% - 320px); padding-right: 18px; }
 .entity-relations-pane { flex: 1 1 0; box-sizing: border-box; min-width: 0; padding-left: 18px; }
 @media (max-width: 760px) {
@@ -24,7 +24,7 @@
 .metadata-editor-content .editor-section h3 { color: #8f7fca; }
 .metadata-editor-content .editor-section p { color: #9299aa; }
 .metadata-form input:focus, .metadata-form select:focus { border-color: #7054d4; }
-.editor-section { margin-top: 29px; }
+.editor-section { margin-top: 0; }
 .editor-section-head { display: flex; align-items: center; justify-content: space-between; }
 .editor-section h3 { margin: 0; font-size: 15px; }
 .editor-section p { color: var(--muted); margin: 5px 0 0; font-size: 12px; }
@@ -56,7 +56,7 @@
 .metadata-diagram-editor .metadata-editor-compact .metadata-form input,
 .metadata-diagram-editor .metadata-editor-compact .metadata-form select,
 .metadata-diagram-editor .metadata-editor-compact .metadata-form textarea { padding: 6px 8px; font-size: 12px; }
-.metadata-diagram-editor .metadata-editor-compact .editor-section { margin-top: 17px; }
+.metadata-diagram-editor .metadata-editor-compact .editor-section { margin-top: 0; }
 .metadata-diagram-editor .metadata-editor-compact .editor-section h3 { font-size: 13px; }
 .metadata-diagram-editor .metadata-editor-compact .editor-section p { margin-top: 3px; font-size: 12px; }
 .metadata-diagram-editor .metadata-editor-compact .metadata-alert { margin: 10px 16px 0; padding: 7px 9px; font-size: 12px; }
