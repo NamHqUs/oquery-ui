@@ -1,8 +1,9 @@
 import { useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import type { ApiQueryContextDefinition, MetadataEntity } from "../query-builder-slice";
+import { relationsForEntity, type ApiQueryContextDefinition, type DomainRelation, type EntityRelationView, type MetadataEntity } from "../../query-builder-slice";
 import Icon from "../../../../icon/icon";
 import { FieldBoxPopupContext } from "./field-box-popup-context";
+import { useMetadataRelations } from "../../metadata-relations-context";
 import "./field-box.css";
 
 type FieldBoxProps = {
@@ -56,10 +57,10 @@ function getJoinedContextFields(context: ApiQueryContextDefinition, metadata: Me
 }
 
 // Follows relation names from the root entity; returns undefined when a segment cannot be resolved.
-export function resolveEntity(root: MetadataEntity, metadata: MetadataEntity[], segments: string[]) {
+export function resolveEntity(root: MetadataEntity, metadata: MetadataEntity[], relations: DomainRelation[], segments: string[]) {
   let current: MetadataEntity | undefined = root;
   for (const segment of segments) {
-    const relation: { refEntity: string } | undefined = current?.relations?.find((item) => item.name === segment);
+    const relation: EntityRelationView | undefined = current && relationsForEntity(current.name, relations).find((item) => item.name === segment);
     current = relation && metadata.find((item) => item.name === relation.refEntity);
     if (!current) return undefined;
   }
@@ -230,7 +231,8 @@ export default function FieldBox({
   const valueJoinedContext = joinedContexts.find((context) => value.startsWith(`${context.alias ?? context.name}.`));
   const activeJoinedContext = pendingJoinedContext ?? valueJoinedContext;
   const path = activeJoinedContext ? [] : pendingPath ?? valueSegments.slice(0, -1);
-  const current = resolveEntity(entity, metadata, path) ?? entity;
+  const metadataRelations = useMetadataRelations();
+  const current = resolveEntity(entity, metadata, metadataRelations, path) ?? entity;
   const joinedContextFields = activeJoinedContext ? getJoinedContextFields(activeJoinedContext, metadata) : [];
   const selectedField = activeJoinedContext
     ? valueJoinedContext === activeJoinedContext
@@ -269,7 +271,7 @@ export default function FieldBox({
     closeMenu();
   };
 
-  const relations = (current.relations || []).filter((relation) => metadata.some((item) => item.name === relation.refEntity));
+  const relations = relationsForEntity(current.name, metadataRelations).filter((relation) => metadata.some((item) => item.name === relation.refEntity));
   const filteredJoinedContextFields = joinedContextFields.filter((field) =>
     field.toLowerCase().includes(fieldSearch.trim().toLowerCase()));
   const fields = current.fields.filter((field) =>
@@ -472,7 +474,7 @@ export default function FieldBox({
                     </button>
                   ))}
                   {relations.map((relation) => (
-                    <button type="button" className="operator-option" role="option" key={relation.name} onClick={() => handleSelect(`${RELATION_PREFIX}${relation.name}`)}>
+                    <button type="button" className="operator-option" role="option" key={`${relation.relationIndex}-${relation.side}`} onClick={() => handleSelect(`${RELATION_PREFIX}${relation.name}`)}>
                       {relation.name}
                     </button>
                   ))}

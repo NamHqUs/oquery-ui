@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Icon from "../../../../icon/icon";
-import { MetadataEntity } from "../../../../query-builder/query-design/query-builder-slice";
-import { EditableEntity, EditableRelation, emptyRelation } from "../../../types";
+import { MetadataEntity, relationsForEntity, type DomainRelation } from "../../../../query-builder/query-design/query-builder-slice";
+import { EditableEntity, updateRelationSide, type RelationSideChanges } from "../../../types";
 import "./relations-builder.css";
 
 type DatabaseTable = {
@@ -11,22 +11,23 @@ type DatabaseTable = {
 };
 
 type RelationsBuilderProps = {
-  relations: EditableRelation[];
+  domainRelations: DomainRelation[];
   currentEntity: EditableEntity;
   allEntities: MetadataEntity[];
   databaseTables: DatabaseTable[];
   selectedTable?: DatabaseTable;
-  onChange: (updater: (relations: EditableRelation[]) => EditableRelation[]) => void;
+  onRelationsChange: (updater: (relations: DomainRelation[]) => DomainRelation[]) => void;
 };
 
 export default function RelationsBuilder({
-  relations,
+  domainRelations,
   currentEntity,
   allEntities,
   databaseTables,
   selectedTable,
-  onChange,
+  onRelationsChange,
 }: RelationsBuilderProps) {
+  const relations = relationsForEntity(currentEntity.name, domainRelations);
   const [openEntityPicker, setOpenEntityPicker] = useState<number | null>(null);
   const entityPickerRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
@@ -74,70 +75,78 @@ export default function RelationsBuilder({
 
   const currentColumns = columnsForEntity(currentEntity.name);
 
+  function keyPairsOf(relation: { fromFields: string[]; toFields: string[] }) {
+    return relation.fromFields.map((dbColumn, keyIndex) => ({
+      dbColumn,
+      refDbColumn: relation.toFields[keyIndex] ?? "",
+    }));
+  }
+
   function addRelation() {
-    onChange((prev) => [...prev, emptyRelation()]);
+    onRelationsChange((prev) => [
+      ...prev,
+      {
+        sourceEntity: currentEntity.name,
+        sourceRelationName: "",
+        sourceFields: [""],
+        targetEntity: "",
+        targetRelationName: "",
+        targetFields: [""],
+      },
+    ]);
   }
 
-  function removeRelation(index: number) {
-    onChange((prev) => prev.filter((_, relationIndex) => relationIndex !== index));
+  function removeRelation(viewIndex: number) {
+    const view = relations[viewIndex];
+    if (!view) return;
+    onRelationsChange((prev) => prev.filter((_, relationIndex) => relationIndex !== view.relationIndex));
   }
 
-  function updateRelation<Key extends keyof EditableRelation>(
-    index: number,
-    key: Key,
-    value: EditableRelation[Key],
-  ) {
-    onChange((prev) =>
-      prev.map((item, relationIndex) =>
-        relationIndex === index ? { ...item, [key]: value } : item,
+  function updateView(viewIndex: number, changes: RelationSideChanges) {
+    const view = relations[viewIndex];
+    if (!view) return;
+    onRelationsChange((prev) =>
+      prev.map((relation, relationIndex) =>
+        relationIndex === view.relationIndex ? updateRelationSide(relation, view.side, changes) : relation,
       ),
     );
   }
 
-  function addKeyMapping(relationIndex: number) {
-    onChange((prev) =>
-      prev.map((item, idx) =>
-        idx === relationIndex
-          ? {
-              ...item,
-              refKeys: [...item.refKeys, { dbColumn: "", refDbColumn: "" }],
-            }
-          : item,
-      ),
-    );
+  function updateRelation(viewIndex: number, key: "name" | "refEntity", value: string) {
+    updateView(viewIndex, { [key]: value });
   }
 
-  function removeKeyMapping(relationIndex: number, keyIndex: number) {
-    onChange((prev) =>
-      prev.map((item, idx) =>
-        idx === relationIndex
-          ? {
-              ...item,
-              refKeys: item.refKeys.filter((_, mapIdx) => mapIdx !== keyIndex),
-            }
-          : item,
-      ),
-    );
+  function addKeyMapping(viewIndex: number) {
+    const view = relations[viewIndex];
+    if (!view) return;
+    updateView(viewIndex, {
+      fromFields: [...view.fromFields, ""],
+      toFields: [...view.toFields, ""],
+    });
+  }
+
+  function removeKeyMapping(viewIndex: number, keyIndex: number) {
+    const view = relations[viewIndex];
+    if (!view) return;
+    updateView(viewIndex, {
+      fromFields: view.fromFields.filter((_, mapIdx) => mapIdx !== keyIndex),
+      toFields: view.toFields.filter((_, mapIdx) => mapIdx !== keyIndex),
+    });
   }
 
   function updateKeyMapping(
-    relationIndex: number,
+    viewIndex: number,
     keyIndex: number,
     field: "dbColumn" | "refDbColumn",
     value: string,
   ) {
-    onChange((prev) =>
-      prev.map((item, idx) =>
-        idx === relationIndex
-          ? {
-              ...item,
-              refKeys: item.refKeys.map((mapping, mapIdx) =>
-                mapIdx === keyIndex ? { ...mapping, [field]: value } : mapping,
-              ),
-            }
-          : item,
-      ),
-    );
+    const view = relations[viewIndex];
+    if (!view) return;
+    if (field === "dbColumn") {
+      updateView(viewIndex, { fromFields: view.fromFields.map((item, mapIdx) => mapIdx === keyIndex ? value : item) });
+    } else {
+      updateView(viewIndex, { toFields: view.toFields.map((item, mapIdx) => mapIdx === keyIndex ? value : item) });
+    }
   }
 
   return (
@@ -167,8 +176,8 @@ export default function RelationsBuilder({
               <span>To DbColumn</span>
             </div>
             {relations.map((relation, index) => (
-              <div className="relation-group" key={relation.id ?? index}>
-                {relation.refKeys.map((key, keyIndex) => (
+              <div className="relation-group" key={`${relation.relationIndex}-${relation.side}`}>
+                {keyPairsOf(relation).map((key, keyIndex) => (
                   <div
                     className="relation-editor-row"
                     role="row"
@@ -251,7 +260,7 @@ export default function RelationsBuilder({
                           {columnsForEntity(relation.refEntity).map((column) =>
                             <option key={column} value={column}>{column}</option>)}
                         </select>}
-                      {relation.refEntity.trim() && keyIndex === relation.refKeys.length - 1 && <button
+                      {relation.refEntity.trim() && keyIndex === relation.fromFields.length - 1 && <button
                         className="icon-button subtle relation-condition-add"
                         type="button"
                         title="Add condition"

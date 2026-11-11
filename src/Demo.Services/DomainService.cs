@@ -22,6 +22,7 @@ public sealed class DomainService(
                 Id = scope.Id,
                 Name = scope.Name,
                 Description = scope.Description,
+                Relations = scope.Relations,
                 CanDelete = scope.CanDelete,
                 IsBuiltin = scope.IsBuiltin,
             })
@@ -43,10 +44,42 @@ public sealed class DomainService(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(domainId);
         var requestedId = domainId.Trim();
-        var domain = repository.Get(userSectionManager.GetSectionId(), requestedId)
-            ?? throw new KeyNotFoundException($"Domain '{requestedId}' was not found.");
+        var sectionId = userSectionManager.GetSectionId();
+        var domain = repository.Get(sectionId, requestedId)
+            ?? repository.GetUserDefined(sectionId)
+                .FirstOrDefault(scope => scope.Id.Equals(requestedId, StringComparison.OrdinalIgnoreCase));
+        domain ??= requestedId.Equals("All", StringComparison.OrdinalIgnoreCase)
+            ? repository.GetBuiltin().FirstOrDefault()
+            : null;
+        if (domain is null)
+            throw new KeyNotFoundException($"Domain '{requestedId}' was not found.");
         if (requestedId.Equals("All", StringComparison.OrdinalIgnoreCase))
-            domain.Entities = metadataRepository.GetBuiltin().Select(MetadataEntityDto.FromEntity).ToList();
+        {
+            var builtinEntities = metadataRepository.GetBuiltin().ToArray();
+            domain.Entities = builtinEntities.Select(EntityDto.FromEntity).ToList();
+            domain.Relations = builtinEntities
+                .SelectMany(entity => (entity.Relations ?? []).Select(relation => (Source: entity, Relation: relation)))
+                .Where(item => builtinEntities.Any(target => target.Name.Equals(item.Relation.RefEntity, StringComparison.OrdinalIgnoreCase)))
+                .Where(item => item.Relation.Type == RelationType.Lookup)
+                .Select(item =>
+                {
+                    var relation = item.Relation;
+                    var target = builtinEntities.Single(entity => entity.Name.Equals(relation.RefEntity, StringComparison.OrdinalIgnoreCase));
+                    var reverse = target.Relations?.FirstOrDefault(candidate =>
+                        candidate.RefEntity.Equals(item.Source.Name, StringComparison.OrdinalIgnoreCase)
+                        && candidate.Type == RelationType.Collection);
+                    return new RelationDto
+                    {
+                        SourceEntity = item.Source.Name,
+                        SourceRelationName = relation.Name,
+                        SourceFields = relation.RefKeys.Select(key => key.DbColumn).ToArray(),
+                        TargetEntity = relation.RefEntity,
+                        TargetRelationName = reverse?.Name ?? relation.Name,
+                        TargetFields = relation.RefKeys.Select(key => key.RefDbColumn).ToArray(),
+                    };
+                })
+                .ToList();
+        }
         return domain;
     }
 
@@ -58,6 +91,7 @@ public sealed class DomainService(
             throw new InvalidOperationException($"A domain named '{normalized.Name}' already exists.");
         normalized.Id = repository.CreateId(sectionId);
         ValidateEntities(normalized.Entities);
+        ValidateRelations(normalized);
         normalized.CanDelete = true;
         normalized.IsBuiltin = false;
         repository.Save(sectionId, normalized);
@@ -123,7 +157,29 @@ public sealed class DomainService(
         {
             Name = request.Name,
             Description = request.Description,
-            Entities = generated.Values.Select(MetadataEntityDto.FromEntity).ToList(),
+            Entities = generated.Values.Select(entity => EntityDto.FromEntity(entity)).ToList(),
+            Relations = generated
+                .SelectMany(pair => (pair.Value.Relations ?? []).Select(relation => (Source: pair.Value, Relation: relation)))
+                .Where(item => generated.Values.Any(target => target.Name.Equals(item.Relation.RefEntity, StringComparison.OrdinalIgnoreCase)))
+                .Where(item => item.Relation.Type == RelationType.Lookup)
+                .Select(item =>
+                {
+                    var relation = item.Relation;
+                    var target = generated.Values.Single(entity => entity.Name.Equals(relation.RefEntity, StringComparison.OrdinalIgnoreCase));
+                    var reverse = target.Relations?.FirstOrDefault(candidate =>
+                        candidate.RefEntity.Equals(item.Source.Name, StringComparison.OrdinalIgnoreCase)
+                        && candidate.Type == RelationType.Collection);
+                    return new RelationDto
+                    {
+                        SourceEntity = item.Source.Name,
+                        SourceRelationName = relation.Name,
+                        SourceFields = relation.RefKeys.Select(key => key.DbColumn).ToArray(),
+                        TargetEntity = relation.RefEntity,
+                        TargetRelationName = reverse?.Name ?? relation.Name,
+                        TargetFields = relation.RefKeys.Select(key => key.RefDbColumn).ToArray(),
+                    };
+                })
+                .ToList(),
         });
     }
 
@@ -135,6 +191,7 @@ public sealed class DomainService(
             throw new InvalidOperationException($"Built-in domain '{existing.Name}' is read-only.");
         var normalized = Validate(scope);
         ValidateEntities(normalized.Entities);
+        ValidateRelations(normalized);
         if (GetAllDomainsForValidation().Any(item => !item.Id.Equals(existing.Id, StringComparison.OrdinalIgnoreCase)
             && item.Name.Equals(normalized.Name, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException($"A domain named '{normalized.Name}' already exists.");
@@ -154,7 +211,7 @@ public sealed class DomainService(
         repository.Delete(sectionId, scope.Id);
     }
 
-    private static void ValidateEntities(IReadOnlyCollection<MetadataEntityDto> entities)
+    private static void ValidateEntities(IReadOnlyCollection<EntityDto> entities)
     {
         if (entities is null)
             throw new ArgumentException("Domain entities are required.", nameof(entities));
@@ -162,6 +219,30 @@ public sealed class DomainService(
             throw new ArgumentException("Every domain entity must have a name.", nameof(entities));
         if (entities.Select(entity => entity.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() != entities.Count)
             throw new ArgumentException("Entity names must be unique within a domain.", nameof(entities));
+    }
+
+    private static void ValidateRelations(DomainDto domain)
+    {
+        var entityNames = domain.Entities
+            .Select(entity => entity.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (domain.Relations is null)
+            throw new ArgumentException("Domain relations are required.", nameof(domain));
+        foreach (var relation in domain.Relations)
+        {
+            if (string.IsNullOrWhiteSpace(relation.SourceEntity)
+                || string.IsNullOrWhiteSpace(relation.TargetEntity)
+                || string.IsNullOrWhiteSpace(relation.SourceRelationName)
+                || string.IsNullOrWhiteSpace(relation.TargetRelationName)
+                || !entityNames.Contains(relation.SourceEntity)
+                || !entityNames.Contains(relation.TargetEntity)
+                || relation.SourceFields.Count == 0
+                || relation.TargetFields.Count == 0
+                || relation.SourceFields.Count != relation.TargetFields.Count
+                || relation.SourceFields.Any(string.IsNullOrWhiteSpace)
+                || relation.TargetFields.Any(string.IsNullOrWhiteSpace))
+                throw new ArgumentException("Every domain relation must reference two entities and matching non-empty fields.", nameof(domain));
+        }
     }
 
     private static DomainDto Validate(DomainDto scope)

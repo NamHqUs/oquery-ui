@@ -9,6 +9,7 @@ import FilterBuilder from "./filter-builder/filter-builder";
 import JoinsBuilder from "./joins-builder/joins-builder";
 import OQueryEditor from "../../oquery-editor/oquery-editor";
 import { getOQuerySuggestionData } from "../../oquery-editor/oquery-suggestion-data";
+import { useMetadataRelations } from "./metadata-relations-context";
 import "./query-design.css";
 
 type EntityMenuProps = {
@@ -243,7 +244,8 @@ export default function QueryDesign({
       fields: [...new Set(fields)].map((name) => ({ name, dbColumn: name })),
     };
   });
-  const suggestionData = getOQuerySuggestionData(metadata);
+  const metadataRelations = useMetadataRelations();
+  const suggestionData = getOQuerySuggestionData(metadata, metadataRelations);
   const metadataWithContexts = [
     ...metadata,
     ...contextEntities.filter((context) => !metadata.some((item) => item.name === context.name)),

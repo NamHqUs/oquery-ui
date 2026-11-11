@@ -42,22 +42,73 @@ type StoredQueryRequestPayload = {
   isBuiltin: boolean;
 };
 
-export type MetadataRelation = {
-  name: string;
-  refEntity: string;
-  type?: number | string;
-  refKeys?: RelationKey[];
-};
-
-export type RelationKey = { dbColumn: string; refDbColumn: string };
-
 export type MetadataEntity = {
   name: string;
   schema?: string | null;
   fields: MetadataField[];
-  relations?: MetadataRelation[];
   rawSql?: string;
 };
+
+export type DomainRelation = {
+  sourceEntity: string;
+  sourceRelationName: string;
+  sourceFields: string[];
+  targetEntity: string;
+  targetRelationName: string;
+  targetFields: string[];
+};
+
+export type DomainEntityDto = {
+  name: string;
+  dbSchema?: string | null;
+  rawSql?: string;
+  fields: MetadataField[];
+};
+
+export function metadataEntityFromDto(entity: DomainEntityDto): MetadataEntity {
+  return {
+    name: entity.name,
+    schema: entity.dbSchema ?? null,
+    rawSql: entity.rawSql,
+    fields: entity.fields,
+  };
+}
+
+export type EntityRelationView = {
+  relationIndex: number;
+  side: "source" | "target";
+  name: string;
+  refEntity: string;
+  fromFields: string[];
+  toFields: string[];
+};
+
+export function relationsForEntity(entityName: string, relations: DomainRelation[]): EntityRelationView[] {
+  return relations.flatMap((relation, relationIndex): EntityRelationView[] => {
+    const views: EntityRelationView[] = [];
+    if (relation.sourceEntity === entityName) {
+      views.push({
+        relationIndex,
+        side: "source",
+        name: relation.sourceRelationName,
+        refEntity: relation.targetEntity,
+        fromFields: [...relation.sourceFields],
+        toFields: [...relation.targetFields],
+      });
+    }
+    if (relation.targetEntity === entityName) {
+      views.push({
+        relationIndex,
+        side: "target",
+        name: relation.targetRelationName,
+        refEntity: relation.sourceEntity,
+        fromFields: [...relation.targetFields],
+        toFields: [...relation.sourceFields],
+      });
+    }
+    return views;
+  });
+}
 
 export type MatchOperation = "+" | "-" | "*" | "/" | "%" | "&" | "|";
 
@@ -990,13 +1041,18 @@ export const fetchQueryMetadata = createAsyncThunk(
       const entities = typeof payload === "object" && payload !== null && "entities" in payload
         ? payload.entities
         : null;
-      if (!Array.isArray(entities) || entities.some((entity) => !entity
+      const relations = typeof payload === "object" && payload !== null && "relations" in payload
+        ? payload.relations
+        : null;
+      if (!Array.isArray(entities) || !Array.isArray(relations) || entities.some((entity) => !entity
         || typeof entity.name !== "string"
-        || !Array.isArray(entity.fields)
-        || (entity.relations !== undefined && !Array.isArray(entity.relations)))) {
-        return rejectWithValue("Domain API must return entities with fields.");
+        || !Array.isArray(entity.fields))) {
+        return rejectWithValue("Domain API must return entities with fields and relations.");
       }
-      return entities as MetadataEntity[];
+      return {
+        entities: (entities as DomainEntityDto[]).map(metadataEntityFromDto),
+        relations: relations as DomainRelation[],
+      };
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : "Unable to load query metadata.");
     }
@@ -1294,6 +1350,7 @@ const queryBuilderSlice = createSlice({
   name: "queryBuilder",
   initialState: {
     metadata: [] as MetadataEntity[],
+    metadataRelations: [] as DomainRelation[],
     metadataStatus: "idle",
     metadataError: "",
     result: null as QueryResult | null,
@@ -1324,6 +1381,7 @@ const queryBuilderSlice = createSlice({
     },
     invalidateQueryMetadata(state) {
       state.metadata = [];
+      state.metadataRelations = [];
       state.metadataStatus = "idle";
       state.metadataError = "";
     },
@@ -1343,7 +1401,8 @@ const queryBuilderSlice = createSlice({
         state.metadataError = "";
       })
       .addCase(fetchQueryMetadata.fulfilled, (state, action) => {
-        state.metadata = action.payload;
+        state.metadata = action.payload.entities;
+        state.metadataRelations = action.payload.relations;
         state.metadataStatus = "succeeded";
       })
       .addCase(fetchQueryMetadata.rejected, (state, action) => {

@@ -49,19 +49,6 @@
         }
       ],
       "RawSql": "User",
-      "Relations": [
-        {
-          "Name": "School",
-          "RefEntity": "School",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "SchoolId",
-              "RefDbColumn": ""
-            }
-          ]
-        }
-      ],
       "DbSchema": null
     },
     {
@@ -87,7 +74,6 @@
         }
       ],
       "RawSql": "School",
-      "Relations": [],
       "DbSchema": "main"
     },
     {
@@ -113,22 +99,35 @@
         }
       ],
       "RawSql": "Select * From [User]",
-      "Relations": [
-        {
-          "Name": "Manager",
-          "RefEntity": "User",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "ManagerId",
-              "RefDbColumn": ""
-            }
-          ]
-        }
-      ],
       "DbSchema": null
     }
   ],
   "CanDelete": true,
-  "IsBuiltin": false
+  "IsBuiltin": false,
+  "Relations": [
+    {
+      "SourceEntity": "User",
+      "SourceRelationName": "School",
+      "SourceFields": [
+        "SchoolId"
+      ],
+      "TargetEntity": "School",
+      "TargetRelationName": "School",
+      "TargetFields": [
+        ""
+      ]
+    },
+    {
+      "SourceEntity": "RawUser",
+      "SourceRelationName": "Manager",
+      "SourceFields": [
+        "ManagerId"
+      ],
+      "TargetEntity": "User",
+      "TargetRelationName": "Manager",
+      "TargetFields": [
+        ""
+      ]
+    }
+  ]
 }

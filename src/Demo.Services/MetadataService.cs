@@ -22,11 +22,11 @@ public sealed class MetadataService : IMetadataService
         _userSectionManager = userSectionManager;
     }
 
-    public IReadOnlyList<MetadataEntityDto> GetAll()
+    public IReadOnlyList<EntityDto> GetAll()
     {
         var sectionId = _userSectionManager.GetSectionId();
         return GetAllEntities(sectionId)
-            .Select(MetadataEntityDto.FromEntity)
+            .Select(EntityDto.FromEntity)
             .ToArray();
     }
 

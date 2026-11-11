@@ -1,7 +1,334 @@
 {
+  "Id": "0834649CF2634DDE335A5E7FFFF5D8907934FE6721F9795E18A253E97FD12C74",
   "Name": "Healthcare",
   "Description": "## Healthcare\n\nThe Healthcare domain manages patient care and clinical activity. It records patient visits, attending doctors, healthcare locations, diagnoses, visit charges, and laboratory results. Diagnoses can also identify chronic conditions, while lab results track abnormal findings.\n\nKey areas include:\n\n- Patient visits\n- Doctors and care locations\n- Visit dates, types, durations, and statuses\n- Diagnoses and diagnosis categories\n- Chronic-condition indicators\n- Visit charges\n- Laboratory tests and results\n- Abnormal lab-result detection",
-  "Entities": [],
+  "Entities": [
+    {
+      "Name": "Employees",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "FirstName",
+          "DbColumn": "FirstName",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "LastName",
+          "DbColumn": "LastName",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "DepartmentId",
+          "DbColumn": "DepartmentId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "LocationId",
+          "DbColumn": "LocationId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ManagerId",
+          "DbColumn": "ManagerId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "JobTitle",
+          "DbColumn": "JobTitle",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "HireDate",
+          "DbColumn": "HireDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Salary",
+          "DbColumn": "Salary",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "EmploymentType",
+          "DbColumn": "EmploymentType",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Employees",
+      "DbSchema": null
+    },
+    {
+      "Name": "Patients",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "FirstName",
+          "DbColumn": "FirstName",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "LastName",
+          "DbColumn": "LastName",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "BirthDate",
+          "DbColumn": "BirthDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Gender",
+          "DbColumn": "Gender",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "City",
+          "DbColumn": "City",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "State",
+          "DbColumn": "State",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Users",
+      "DbSchema": null
+    },
+    {
+      "Name": "Diagnoses",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Code",
+          "DbColumn": "Code",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Name",
+          "DbColumn": "Name",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Category",
+          "DbColumn": "Category",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "IsChronic",
+          "DbColumn": "IsChronic",
+          "DataType": 3,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Diagnoses",
+      "DbSchema": null
+    },
+    {
+      "Name": "LabResults",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "VisitId",
+          "DbColumn": "VisitId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "TestName",
+          "DbColumn": "TestName",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ResultValue",
+          "DbColumn": "ResultValue",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ReferenceMax",
+          "DbColumn": "ReferenceMax",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "IsAbnormal",
+          "DbColumn": "IsAbnormal",
+          "DataType": 3,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "LabResults",
+      "DbSchema": null
+    },
+    {
+      "Name": "Visits",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "UserId",
+          "DbColumn": "UserId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "DoctorId",
+          "DbColumn": "DoctorId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "LocationId",
+          "DbColumn": "LocationId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "VisitDate",
+          "DbColumn": "VisitDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "VisitType",
+          "DbColumn": "VisitType",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "DiagnosisId",
+          "DbColumn": "DiagnosisId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "DurationMinutes",
+          "DbColumn": "DurationMinutes",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Charge",
+          "DbColumn": "Charge",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Status",
+          "DbColumn": "Status",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Visits",
+      "DbSchema": null
+    }
+  ],
   "CanDelete": true,
-  "IsBuiltin": false
+  "IsBuiltin": false,
+  "Relations": [
+    {
+      "SourceEntity": "Employees",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "ManagerId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "Employee",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "LabResults",
+      "SourceRelationName": "Visit",
+      "SourceFields": [
+        "VisitId"
+      ],
+      "TargetEntity": "Visits",
+      "TargetRelationName": "LabResults",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Visits",
+      "SourceRelationName": "Diagnose",
+      "SourceFields": [
+        "DiagnosisId"
+      ],
+      "TargetEntity": "Diagnoses",
+      "TargetRelationName": "Diagnose",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Visits",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "DoctorId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "Employee",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Visits",
+      "SourceRelationName": "Patient",
+      "SourceFields": [
+        "UserId"
+      ],
+      "TargetEntity": "Patients",
+      "TargetRelationName": "Patient",
+      "TargetFields": [
+        "Id"
+      ]
+    }
+  ]
 }

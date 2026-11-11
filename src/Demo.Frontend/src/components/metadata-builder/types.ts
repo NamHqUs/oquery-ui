@@ -1,15 +1,12 @@
-import { MetadataEntity, MetadataField, MetadataRelation } from "../query-builder/query-design/query-builder-slice";
+import type { DomainRelation, MetadataEntity, MetadataField } from "../query-builder/query-design/query-builder-slice";
+
+export type { DomainRelation } from "../query-builder/query-design/query-builder-slice";
 
 let nextFieldId = 1;
 export const createFieldId = () => `f_${nextFieldId++}`;
 
-let nextRelationId = 1;
-export const createRelationId = () => `r_${nextRelationId++}`;
-
-export type RelationKey = { dbColumn: string; refDbColumn: string };
 export type EditableField = MetadataField & { id?: string };
-export type EditableRelation = MetadataRelation & { id?: string; type: string; refKeys: RelationKey[] };
-export type EditableEntity = MetadataEntity & { schema: string; rawSql: string; fields: EditableField[]; relations: EditableRelation[] };
+export type EditableEntity = MetadataEntity & { schema: string; rawSql: string; fields: EditableField[] };
 
 export function toAbstractDataType(databaseType?: string, columnName?: string): string {
   const type = databaseType?.trim().toLowerCase() || "";
@@ -23,7 +20,6 @@ export function toAbstractDataType(databaseType?: string, columnName?: string): 
 }
 
 export const emptyField = (): EditableField => ({ id: createFieldId(), name: "", dbColumn: "", dataType: "String", isRawSql: false });
-export const emptyRelation = (): EditableRelation => ({ id: createRelationId(), name: "", refEntity: "", type: "Lookup", refKeys: [{ dbColumn: "", refDbColumn: "" }] });
 
 export function toEditable(entity: MetadataEntity): EditableEntity {
   return {
@@ -31,15 +27,95 @@ export function toEditable(entity: MetadataEntity): EditableEntity {
     schema: entity.schema || "dbo",
     rawSql: entity.rawSql || "",
     fields: entity.fields.map((field) => ({ ...field, id: createFieldId() })),
-    relations: (entity.relations || []).map((relation) => ({
-      ...relation,
-      id: (relation as Partial<EditableRelation>).id || createRelationId(),
-      type: String(relation.type ?? "Lookup"),
-      refKeys: (relation as MetadataRelation & { refKeys?: RelationKey[] }).refKeys || [{ dbColumn: "", refDbColumn: "" }],
-    })),
   };
 }
 
 export function emptyEntity(): EditableEntity {
-  return { name: "", schema: "dbo", rawSql: "", fields: [], relations: [] };
+  return { name: "", schema: "dbo", rawSql: "", fields: [] };
+}
+
+export function toEntityPayload(entity: MetadataEntity) {
+  return {
+    name: entity.name,
+    dbSchema: entity.schema || undefined,
+    rawSql: entity.rawSql || entity.name,
+    fields: entity.fields.map((field) => ({
+      name: field.name,
+      dbColumn: field.dbColumn,
+      dataType: field.dataType,
+      isRawSql: field.isRawSql,
+    })),
+  };
+}
+
+export function toRelationPayload(relations: DomainRelation[]): DomainRelation[] {
+  return relations.map((relation) => ({
+    sourceEntity: relation.sourceEntity.trim(),
+    sourceRelationName: relation.sourceRelationName.trim(),
+    sourceFields: relation.sourceFields.map((field) => field.trim()),
+    targetEntity: relation.targetEntity.trim(),
+    targetRelationName: relation.targetRelationName.trim(),
+    targetFields: relation.targetFields.map((field) => field.trim()),
+  }));
+}
+
+export function renameEntitiesInRelations(relations: DomainRelation[], renames: ReadonlyMap<string, string>): DomainRelation[] {
+  if (!renames.size) return relations;
+  const rename = (name: string) => renames.get(name) ?? name;
+  return relations.map((relation) => ({
+    ...relation,
+    sourceEntity: rename(relation.sourceEntity),
+    targetEntity: rename(relation.targetEntity),
+  }));
+}
+
+export function renameEntityInRelations(relations: DomainRelation[], from: string, to: string): DomainRelation[] {
+  return renameEntitiesInRelations(relations, new Map([[from, to]]));
+}
+
+export function removeEntityFromRelations(relations: DomainRelation[], name: string): DomainRelation[] {
+  return relations.filter((relation) => relation.sourceEntity !== name && relation.targetEntity !== name);
+}
+
+export type RelationSideChanges = {
+  name?: string;
+  refEntity?: string;
+  fromFields?: string[];
+  toFields?: string[];
+};
+
+export function updateRelationSide(relation: DomainRelation, side: "source" | "target", changes: RelationSideChanges): DomainRelation {
+  if (side === "source") {
+    return {
+      ...relation,
+      sourceRelationName: changes.name ?? relation.sourceRelationName,
+      targetEntity: changes.refEntity ?? relation.targetEntity,
+      sourceFields: changes.fromFields ?? relation.sourceFields,
+      targetFields: changes.toFields ?? relation.targetFields,
+    };
+  }
+  return {
+    ...relation,
+    targetRelationName: changes.name ?? relation.targetRelationName,
+    sourceEntity: changes.refEntity ?? relation.sourceEntity,
+    targetFields: changes.fromFields ?? relation.targetFields,
+    sourceFields: changes.toFields ?? relation.sourceFields,
+  };
+}
+
+export function findRelationProblem(entities: Pick<MetadataEntity, "name">[], relations: DomainRelation[]): string | null {
+  const entityNames = new Set(entities.map((entity) => entity.name.trim()));
+  for (const relation of relations) {
+    const sourceEntity = relation.sourceEntity.trim();
+    const targetEntity = relation.targetEntity.trim();
+    if (!sourceEntity || !targetEntity) return "Every relation must have a source and a target entity.";
+    if (!entityNames.has(sourceEntity) || !entityNames.has(targetEntity)) return "Every relation must reference entities in this domain.";
+    if (!relation.sourceRelationName.trim() || !relation.targetRelationName.trim()) return "Every relation must have a name on both sides.";
+    if (!relation.sourceFields.length
+      || relation.sourceFields.length !== relation.targetFields.length
+      || [...relation.sourceFields, ...relation.targetFields].some((field) => !field.trim())) {
+      return "Every relation must map equal, non-empty From and To columns.";
+    }
+  }
+  return null;
 }

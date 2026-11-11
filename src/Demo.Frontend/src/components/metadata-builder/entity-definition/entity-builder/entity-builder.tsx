@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Icon from "../../../icon/icon";
-import { MetadataEntity } from "../../../query-builder/query-design/query-builder-slice";
+import { MetadataEntity, type DomainRelation } from "../../../query-builder/query-design/query-builder-slice";
 import { EditableEntity } from "../../types";
 import FieldsBuilder from "./fields-builder/fields-builder";
 import RelationsBuilder from "./relations-builder/relations-builder";
@@ -12,7 +12,9 @@ type EntityBuilderProps = {
   message: string;
   messageKind?: "error" | "success";
   allEntities: MetadataEntity[];
+  domainRelations: DomainRelation[];
   onDraftChange: (updater: (draft: EditableEntity) => EditableEntity) => void;
+  onRelationsChange: (updater: (relations: DomainRelation[]) => DomainRelation[]) => void;
   databaseOptions?: string[];
   databaseTables?: DatabaseTableOption[];
   selectedTable?: DatabaseTableOption;
@@ -33,7 +35,9 @@ export default function EntityBuilder({
   message,
   messageKind = "error",
   allEntities,
+  domainRelations,
   onDraftChange,
+  onRelationsChange,
   databaseOptions = [],
   databaseTables = [],
   selectedTable,
@@ -209,17 +213,12 @@ export default function EntityBuilder({
         />
 
         <RelationsBuilder
-          relations={draft.relations}
+          domainRelations={domainRelations}
           currentEntity={draft}
           allEntities={allEntities}
           databaseTables={databaseTables}
           selectedTable={selectedTable}
-          onChange={(relationsUpdater) =>
-            onDraftChange((entity) => ({
-              ...entity,
-              relations: relationsUpdater(entity.relations),
-            }))
-          }
+          onRelationsChange={onRelationsChange}
         />
             </fieldset>
           </div>

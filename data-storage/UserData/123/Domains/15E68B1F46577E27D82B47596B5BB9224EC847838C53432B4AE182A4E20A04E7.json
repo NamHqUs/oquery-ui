@@ -1,6 +1,6 @@
 {
   "Name": "HR",
-  "Description": "## HR\n\nThe HR domain manages the organization\u2019s workforce and employee lifecycle. It covers employee identity, departments, locations, reporting relationships, job roles, compensation, employment type, performance reviews, and leave requests.\n\nKey areas include:\n\n- Departments and organizational structure\n- Employee positions and job titles\n- Managers and team members\n- Hire dates and employment types\n- Salary information\n- Performance ratings and bonuses\n- Employee leave requests",
+  "Description": "## HR\n\nThe HR domain manages the organization’s workforce and employee lifecycle. It covers employee identity, departments, locations, reporting relationships, job roles, compensation, employment type, performance reviews, and leave requests.\n\nKey areas include:\n\n- Departments and organizational structure\n- Employee positions and job titles\n- Managers and team members\n- Hire dates and employment types\n- Salary information\n- Performance ratings and bonuses\n- Employee leave requests",
   "Entities": [
     {
       "Name": "Departments",
@@ -19,19 +19,6 @@
         }
       ],
       "RawSql": "Departments",
-      "Relations": [
-        {
-          "Name": "Employees",
-          "RefEntity": "Employees",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "DepartmentId"
-            }
-          ]
-        }
-      ],
       "DbSchema": "hr"
     },
     {
@@ -75,19 +62,6 @@
         }
       ],
       "RawSql": "LeaveRequests",
-      "Relations": [
-        {
-          "Name": "Employee",
-          "RefEntity": "Employees",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "EmployeeId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        }
-      ],
       "DbSchema": "hr"
     },
     {
@@ -125,19 +99,6 @@
         }
       ],
       "RawSql": "PerformanceReviews",
-      "Relations": [
-        {
-          "Name": "Employee",
-          "RefEntity": "Employees",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "EmployeeId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        }
-      ],
       "DbSchema": "hr"
     },
     {
@@ -205,74 +166,6 @@
         }
       ],
       "RawSql": "Employees",
-      "Relations": [
-        {
-          "Name": "Manager",
-          "RefEntity": "Employees",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "ManagerId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        },
-        {
-          "Name": "Members",
-          "RefEntity": "Employees",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "ManagerId"
-            }
-          ]
-        },
-        {
-          "Name": "Location",
-          "RefEntity": "Locations",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "LocationId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        },
-        {
-          "Name": "LeaveRequests",
-          "RefEntity": "LeaveRequests",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "EmployeeId"
-            }
-          ]
-        },
-        {
-          "Name": "PerformanceReviews",
-          "RefEntity": "PerformanceReviews",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "EmployeeId"
-            }
-          ]
-        },
-        {
-          "Name": "Department",
-          "RefEntity": "Departments",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "DepartmentId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        }
-      ],
       "DbSchema": "main"
     },
     {
@@ -304,22 +197,71 @@
         }
       ],
       "RawSql": "Locations",
-      "Relations": [
-        {
-          "Name": "Employees",
-          "RefEntity": "Employees",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "LocationId"
-            }
-          ]
-        }
-      ],
       "DbSchema": "main"
     }
   ],
   "CanDelete": true,
-  "IsBuiltin": false
+  "IsBuiltin": false,
+  "Relations": [
+    {
+      "SourceEntity": "LeaveRequests",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "EmployeeId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "LeaveRequests",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "PerformanceReviews",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "EmployeeId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "PerformanceReviews",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Employees",
+      "SourceRelationName": "Manager",
+      "SourceFields": [
+        "ManagerId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "Manager",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Employees",
+      "SourceRelationName": "Location",
+      "SourceFields": [
+        "LocationId"
+      ],
+      "TargetEntity": "Locations",
+      "TargetRelationName": "Employees",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Employees",
+      "SourceRelationName": "Department",
+      "SourceFields": [
+        "DepartmentId"
+      ],
+      "TargetEntity": "Departments",
+      "TargetRelationName": "Department",
+      "TargetFields": [
+        "Id"
+      ]
+    }
+  ]
 }

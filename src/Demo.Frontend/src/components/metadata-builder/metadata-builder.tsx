@@ -8,11 +8,11 @@ import Icon from "../icon/icon";
 import PanelSplitter from "../panel-splitter/panel-splitter";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
 import { fetchDbSchema } from "../data-sources/database-slice";
-import { fetchQueryMetadata, MetadataEntity, invalidateQueryMetadata } from "../query-builder/query-design/query-builder-slice";
+import { fetchQueryMetadata, MetadataEntity, invalidateQueryMetadata, type DomainRelation } from "../query-builder/query-design/query-builder-slice";
 import EntityList from "./entity-definition/entity-list/entity-list";
 import EntityBuilder, { type DatabaseTableOption } from "./entity-definition/entity-builder/entity-builder";
 import EntityDiagram from "./entity-diagram/entity-diagram";
-import { EditableEntity, EditableRelation, emptyEntity, toAbstractDataType, toEditable } from "./types";
+import { EditableEntity, emptyEntity, findRelationProblem, removeEntityFromRelations, renameEntityInRelations, toAbstractDataType, toEditable, toEntityPayload, toRelationPayload } from "./types";
 import FunctionDefinitionsWorkspace from "../function-definition/function-definition";
 import OperatorDefinition from "./operator-definition/operator-definition";
 import DomainList from "./domain/domain-list";
@@ -41,6 +41,7 @@ type DomainSummary = {
   name: string;
   description: string;
   entities: MetadataEntity[];
+  relations: DomainRelation[];
   canDelete: boolean;
   isBuiltin: boolean;
 };
@@ -99,6 +100,7 @@ async function loadDomainSummaries(): Promise<DomainSummary[]> {
   return domains.map(domain => ({
     ...domain,
     entities: [],
+    relations: [],
     canDelete: domain.id !== "All",
     isBuiltin: domain.id === "All",
   }));
@@ -117,6 +119,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const dispatch = useDispatch();
   const databaseState = useSelector((state: RootState) => state.database);
   const entities = useSelector((state: RootState) => state.queryBuilder.metadata);
+  const metadataRelations = useSelector((state: RootState) => state.queryBuilder.metadataRelations);
   const showMessageBox = useMessageBox();
   const [searchParams, setSearchParams] = useSearchParams();
   const [functionNavigationGuard, setFunctionNavigationGuard] = useState<NavigationGuard | null>(null);
@@ -152,6 +155,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const [domainNames, setDomainNames] = useState<DomainName[]>([]);
   const [domainsExpanded, setDomainsExpanded] = useState(true);
   const [scopedEntities, setScopedEntities] = useState<MetadataEntity[] | null>(null);
+  const [scopedRelations, setScopedRelations] = useState<DomainRelation[] | null>(null);
   const [loadedScopeName, setLoadedScopeName] = useState<string | undefined>();
   const sectionNavigationRef = useRef<(section: MetadataSection) => void>(() => undefined);
   const [pendingToolbarSection, setPendingToolbarSection] = useState<MetadataSection | null>(null);
@@ -197,6 +201,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     return () => onSectionNavigationChange?.(null);
   }, [onSectionNavigationChange]);
   const displayedEntities = scopedEntities ?? entities;
+  const displayedRelations = scopedRelations ?? metadataRelations;
   const activeDomainIsBuiltin = !scopeName
     || domains.find((domain) => domain.id === scopeName)?.isBuiltin === true;
   const metadataBusy = status === "loading"
@@ -215,12 +220,13 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         if (result.meta.condition) return false;
         throw new Error(String(result.payload || "Unable to load metadata."));
       }
-      const payload = result.payload;
-      setScopedEntities(scopeName ? payload : null);
+      const { entities: loadedEntities, relations: loadedRelations } = result.payload;
+      setScopedEntities(scopeName ? loadedEntities : null);
+      setScopedRelations(scopeName ? loadedRelations : null);
       setLoadedScopeName(scopeName);
-      const preferred = payload.find((entity) => entity.name === preferredName);
+      const preferred = loadedEntities.find((entity) => entity.name === preferredName);
       if (selectFirst || !preferredName || !preferred) {
-        const next = selectFirst ? payload[0] : preferred;
+        const next = selectFirst ? loadedEntities[0] : preferred;
         setSelectedName(next?.name || "");
         setDraft(next ? toEditable(next) : null);
         const nextTable = next
@@ -259,6 +265,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
                   ...selectedDomain,
                   description: "",
                   entities: [],
+                  relations: [],
                   canDelete: selectedDomain.id !== "All",
                   isBuiltin: selectedDomain.id === "All",
                 }]
@@ -295,14 +302,14 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     return () => { cancelled = true; };
   }, [activeSection, entityOnly]);
   useEffect(() => {
-    if (!scopeName || !scopedEntities) return;
+    if (!scopeName || !scopedEntities || !scopedRelations) return;
     setDomains((current) => {
       const selected = current.find(domain => domain.id === scopeName);
-      if (!selected || selected.entities === scopedEntities) return current;
+      if (!selected || (selected.entities === scopedEntities && selected.relations === scopedRelations)) return current;
       return current.map((domain) =>
-        domain.id === scopeName ? { ...domain, entities: scopedEntities } : domain);
+        domain.id === scopeName ? { ...domain, entities: scopedEntities, relations: scopedRelations } : domain);
     });
-  }, [scopeName, scopedEntities, domains]);
+  }, [scopeName, scopedEntities, scopedRelations, domains]);
   useEffect(() => {
     if (databaseState.connectionStatus === "succeeded" && databaseState.schemaStatus === "idle") {
       dispatch(fetchDbSchema());
@@ -359,32 +366,33 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           dbColumn: field.dbColumn?.trim() || field.name.trim(),
           dataType: toAbstractDataType(field.dataType, field.name),
         })),
-        relations: draft.relations,
       } : null;
-      const invalidRelation = nextDraft?.relations.find(relation =>
-        !relation.refEntity.trim()
-        || !relation.refKeys.length
-        || relation.refKeys.some(key => !key.dbColumn.trim() || !key.refDbColumn.trim()));
-      if (invalidRelation) {
-        setStatus("ready");
-        setMessage("Every relation must have a reference entity and both From and To columns.");
-        return;
-      }
       const nextEntities = nextDraft
         ? selectedName
           ? displayedEntities.map((entity) => entity.name === selectedName ? nextDraft : entity)
           : [...displayedEntities, nextDraft]
         : displayedEntities;
+      const nextRelations = nextDraft && draft
+        ? renameEntityInRelations(displayedRelations, draft.name, nextDraft.name)
+        : displayedRelations;
+      const relationProblem = findRelationProblem(nextEntities, nextRelations);
+      if (relationProblem) {
+        setStatus("ready");
+        setMessage(relationProblem);
+        return;
+      }
       await request(apiUrls.metadata.domainById(scope.id), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: scope.name,
           description: scope.description,
-          entities: nextEntities,
+          entities: nextEntities.map(toEntityPayload),
+          relations: toRelationPayload(nextRelations),
         }),
       });
       setScopedEntities(nextEntities);
+      setScopedRelations(nextRelations);
       setDirty(false);
       dispatch(invalidateQueryMetadata());
       await loadEntities(false, nextDraft?.name || selectedName);
@@ -459,7 +467,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       return false;
     }
     const rawSql = draft.rawSql.trim();
-    const payload = {
+    const payload: MetadataEntity = {
       name: draft.name.trim(),
       schema: draft.schema.trim(),
       rawSql: rawSql || draft.name.trim(),
@@ -469,7 +477,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         dataType: fieldDataType(field),
         isRawSql: fieldIsRawSql(field),
       })),
-      relations: draft.relations.map(({ name, refEntity, type, refKeys }) => ({ name: name.trim(), refEntity: refEntity.trim(), type, refKeys })),
     };
     setStatus("saving");
     setMessage("");
@@ -478,13 +485,16 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         const scopeResult = await loadDomainSummaries();
         const scope = scopeResult.find((item) => item.name === scopeName);
         if (!scope) throw new Error(`Domain "${scopeName}" was not found.`);
+        const relationProblem = findRelationProblem(displayedEntities, displayedRelations);
+        if (relationProblem) throw new Error(relationProblem);
         await request(apiUrls.metadata.domainById(scope.id), {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: scope.name,
             description: scope.description,
-            entities: displayedEntities,
+            entities: displayedEntities.map(toEntityPayload),
+            relations: toRelationPayload(displayedRelations),
           }),
         });
         dispatch(invalidateQueryMetadata());
@@ -497,16 +507,21 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         const nextEntities = selectedName
           ? displayedEntities.map((entity) => entity.name === selectedName ? payload : entity)
           : [...displayedEntities, payload];
+        const nextRelations = renameEntityInRelations(displayedRelations, draft.name, payload.name);
+        const relationProblem = findRelationProblem(nextEntities, nextRelations);
+        if (relationProblem) throw new Error(relationProblem);
         await request(apiUrls.metadata.domainById(scope.id), {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: scope.name,
             description: scope.description,
-            entities: nextEntities,
+            entities: nextEntities.map(toEntityPayload),
+            relations: toRelationPayload(nextRelations),
           }),
         });
         setScopedEntities(nextEntities);
+        setScopedRelations(nextRelations);
       }
       dispatch(invalidateQueryMetadata());
       const saved = await loadEntities(false, payload.name);
@@ -566,21 +581,25 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
 
   const updateDraft = (update: (entity: EditableEntity) => EditableEntity) => {
     if (!draft) return;
-    setDraft(update(draft));
+    const nextDraft = update(draft);
+    setDraft(nextDraft);
+    if (nextDraft.name !== draft.name) {
+      setScopedRelations((current) => renameEntityInRelations(current ?? metadataRelations, draft.name, nextDraft.name));
+    }
+    setDirty(true);
+  };
+
+  const updateRelations = (update: (relations: DomainRelation[]) => DomainRelation[]) => {
+    setScopedRelations((current) => update(current ?? metadataRelations));
     setDirty(true);
   };
 
   const remove = async () => {
     const name = selectedNameRef.current;
     if (!name || activeDomainIsBuiltin) return;
-    const remaining = displayedEntities
-      .filter((entity) => entity.name !== name)
-      .map((entity) => ({
-        ...entity,
-        relations: (entity.relations || []).filter((relation) =>
-          relation.refEntity.toLowerCase() !== name.toLowerCase()),
-      }));
+    const remaining = displayedEntities.filter((entity) => entity.name !== name);
     setScopedEntities(remaining);
+    setScopedRelations(removeEntityFromRelations(displayedRelations, name));
     const next = remaining[0];
     setSelectedName(next?.name || "");
     setDraft(next ? toEditable(next) : null);
@@ -609,45 +628,49 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       setScopedEntities(entitiesWithCurrentDraft);
     }
     setSelectedTableKey(tableKey(table));
+    const existing = entitiesWithCurrentDraft.find((entity) =>
+      entity.name === table.name && (entity.schema || "dbo") === (table.schema || "dbo"),
+    );
+    const entityName = existing?.name
+      ?? (preserveEntityName && draft?.name.trim() ? draft.name : table.name);
     const discoveredRelations = (databaseState.schema.relationships as DatabaseRelationship[])
       .filter((relation) =>
         normalizeTablePart(relation.sourceSchema || "dbo") === normalizeTablePart(table.schema || "dbo")
         && normalizeTablePart(relation.sourceTable) === normalizeTablePart(table.name),
       )
-      .flatMap((relation) => {
+      .flatMap((relation): DomainRelation[] => {
         const relatedEntities = entitiesWithCurrentDraft.filter((entity) =>
           entityUsesTable(entity, { schema: relation.targetSchema, name: relation.targetTable })
           && !entityUsesTable(entity, table),
         );
-        return relatedEntities.map((entity): EditableRelation => ({
-          id: `schema_${relation.name}_${entity.name}`,
-          name: relation.targetTable,
-          refEntity: entity.name,
-          type: "Lookup",
-          refKeys: relation.sourceColumns.map((dbColumn, index) => ({
-            dbColumn,
-            refDbColumn: relation.targetColumns[index] || "",
-          })),
+        return relatedEntities.map((entity) => ({
+          sourceEntity: entityName,
+          sourceRelationName: relation.targetTable,
+          sourceFields: [...relation.sourceColumns],
+          targetEntity: entity.name,
+          targetRelationName: relation.targetTable,
+          targetFields: [...relation.targetColumns],
         }));
       });
-    const existing = entitiesWithCurrentDraft.find((entity) =>
-      entity.name === table.name && (entity.schema || "dbo") === (table.schema || "dbo"),
-    );
+    const sameRelation = (left: DomainRelation, right: DomainRelation) =>
+      left.sourceEntity === right.sourceEntity
+      && left.targetEntity === right.targetEntity
+      && left.sourceFields.join(",") === right.sourceFields.join(",")
+      && left.targetFields.join(",") === right.targetFields.join(",");
+    const newRelations = discoveredRelations.filter((relation) =>
+      !displayedRelations.some((existingRelation) => sameRelation(existingRelation, relation)));
+    if (newRelations.length) {
+      setScopedRelations((current) => [...(current ?? metadataRelations), ...newRelations]);
+    }
     if (existing) {
       setSelectedName(existing.name);
-      const nextDraft = toEditable(existing);
-      const existingRelationKeys = new Set(nextDraft.relations.map((relation) =>
-        `${relation.refEntity}|${relation.refKeys.map((key) => `${key.dbColumn}:${key.refDbColumn}`).join(",")}`,
-      ));
-      const relations = discoveredRelations.filter((relation) =>
-        !existingRelationKeys.has(`${relation.refEntity}|${relation.refKeys.map((key) => `${key.dbColumn}:${key.refDbColumn}`).join(",")}`),
-      );
-      setDraft({ ...nextDraft, rawSql: rawSqlOverride ?? nextDraft.rawSql, relations: [...nextDraft.relations, ...relations] });
-      setDirty(relations.length > 0);
+      const existingDraft = toEditable(existing);
+      setDraft({ ...existingDraft, rawSql: rawSqlOverride ?? existingDraft.rawSql });
+      setDirty(newRelations.length > 0);
     } else {
       setSelectedName("");
       setDraft({
-        name: preserveEntityName && draft?.name.trim() ? draft.name : table.name,
+        name: entityName,
         schema: table.schema,
         rawSql: rawSqlOverride ?? "",
         fields: table.columns.map((column) => ({
@@ -657,7 +680,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         dataType: toAbstractDataType(column.dataType, column.name),
           isRawSql: false,
         })),
-        relations: discoveredRelations,
       });
       setDirty(true);
     }
@@ -767,6 +789,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "diagram"}>
         <EntityDiagram
           entities={displayedEntities}
+          relations={displayedRelations}
           domains={domains}
           domainNames={domainNames}
           activeScopeName={scopeName}
@@ -775,6 +798,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           editingEntity={draft}
           editingEntityName={selectedName}
           onDraftChange={updateDraft}
+          onRelationsChange={updateRelations}
           onSelectDomain={selectDiagramDomain}
           onOpenEntity={(table) => openTableAsEntity(table, false)}
           entityEditorHeader={
@@ -800,7 +824,9 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
               message={message}
               messageKind={messageKind}
               allEntities={displayedEntities}
+              domainRelations={displayedRelations}
               onDraftChange={updateDraft}
+              onRelationsChange={updateRelations}
               databaseOptions={databaseOptions}
               databaseTables={databaseTables}
               selectedTable={selectedTable}
@@ -881,7 +907,9 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
               message={message}
               messageKind={messageKind}
               allEntities={displayedEntities}
+              domainRelations={displayedRelations}
               onDraftChange={updateDraft}
+              onRelationsChange={updateRelations}
               databaseOptions={databaseOptions}
               databaseTables={databaseTables}
               selectedTable={selectedTable}

@@ -243,13 +243,13 @@ export default function Home({
   onRequestConnection: () => void;
 }) {
   const dispatch = useDispatch();
-  const { metadata, metadataStatus, functionDefinitions, functionDefinitionsStatus } = useSelector((state: RootState) => state.queryBuilder);
+  const { metadata, metadataRelations, metadataStatus, functionDefinitions, functionDefinitionsStatus } = useSelector((state: RootState) => state.queryBuilder);
   const { providers } = useSelector((state: RootState) => state.database);
   const [activeExampleId, setActiveExampleId] = useState(HOME_EXAMPLES[0]!.id);
   const heroEditorRef = useRef<HTMLDivElement>(null);
   const activeExample = HOME_EXAMPLES.find((example) => example.id === activeExampleId) ?? HOME_EXAMPLES[0]!;
-  const suggestionData = getOQuerySuggestionData(metadata);
-  const relationCount = metadata.reduce((total, entity) => total + (entity.relations?.length ?? 0), 0);
+  const suggestionData = getOQuerySuggestionData(metadata, metadataRelations);
+  const relationCount = metadataRelations.length;
 
   useEffect(() => {
     if (metadataStatus === "idle") dispatch(fetchQueryMetadata());

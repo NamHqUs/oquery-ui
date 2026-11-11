@@ -67,19 +67,6 @@
         }
       ],
       "RawSql": "Claims",
-      "Relations": [
-        {
-          "Name": "Policy",
-          "RefEntity": "Policies",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "PolicyId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        }
-      ],
       "DbSchema": "in"
     },
     {
@@ -129,19 +116,6 @@
         }
       ],
       "RawSql": "InsurancePlans",
-      "Relations": [
-        {
-          "Name": "Policies",
-          "RefEntity": "Policies",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "PlanId"
-            }
-          ]
-        }
-      ],
       "DbSchema": "in"
     },
     {
@@ -191,63 +165,6 @@
         }
       ],
       "RawSql": "Policies",
-      "Relations": [
-        {
-          "Name": "Claims",
-          "RefEntity": "Claims",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "PolicyId"
-            }
-          ]
-        },
-        {
-          "Name": "InsurancePlan",
-          "RefEntity": "InsurancePlans",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "PlanId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        },
-        {
-          "Name": "PremiumPayments",
-          "RefEntity": "PremiumPayments",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "PolicyId"
-            }
-          ]
-        },
-        {
-          "Name": "Employee",
-          "RefEntity": "Employees",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "AgentId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        },
-        {
-          "Name": "User",
-          "RefEntity": "Patients",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "UserId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        }
-      ],
       "DbSchema": "in"
     },
     {
@@ -285,19 +202,6 @@
         }
       ],
       "RawSql": "PremiumPayments",
-      "Relations": [
-        {
-          "Name": "Policy",
-          "RefEntity": "Policies",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "PolicyId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        }
-      ],
       "DbSchema": "in"
     },
     {
@@ -365,41 +269,6 @@
         }
       ],
       "RawSql": "Employees",
-      "Relations": [
-        {
-          "Name": "Manager",
-          "RefEntity": "Employees",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "ManagerId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        },
-        {
-          "Name": "Members",
-          "RefEntity": "Employees",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "ManagerId"
-            }
-          ]
-        },
-        {
-          "Name": "Policies",
-          "RefEntity": "Policies",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "AgentId"
-            }
-          ]
-        }
-      ],
       "DbSchema": "main"
     },
     {
@@ -449,22 +318,83 @@
         }
       ],
       "RawSql": "Users",
-      "Relations": [
-        {
-          "Name": "Policies",
-          "RefEntity": "Policies",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "UserId"
-            }
-          ]
-        }
-      ],
       "DbSchema": "main"
     }
   ],
   "CanDelete": true,
-  "IsBuiltin": false
+  "IsBuiltin": false,
+  "Relations": [
+    {
+      "SourceEntity": "Claims",
+      "SourceRelationName": "Policy",
+      "SourceFields": [
+        "PolicyId"
+      ],
+      "TargetEntity": "Policies",
+      "TargetRelationName": "Claims",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Policies",
+      "SourceRelationName": "InsurancePlan",
+      "SourceFields": [
+        "PlanId"
+      ],
+      "TargetEntity": "InsurancePlans",
+      "TargetRelationName": "InsurancePlan",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Policies",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "AgentId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "Policies",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Policies",
+      "SourceRelationName": "User",
+      "SourceFields": [
+        "UserId"
+      ],
+      "TargetEntity": "Patients",
+      "TargetRelationName": "Policies",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "PremiumPayments",
+      "SourceRelationName": "Policy",
+      "SourceFields": [
+        "PolicyId"
+      ],
+      "TargetEntity": "Policies",
+      "TargetRelationName": "Policy",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Employees",
+      "SourceRelationName": "Manager",
+      "SourceFields": [
+        "ManagerId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "Manager",
+      "TargetFields": [
+        "Id"
+      ]
+    }
+  ]
 }

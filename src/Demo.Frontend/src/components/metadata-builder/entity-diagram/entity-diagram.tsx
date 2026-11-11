@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import type { MetadataEntity } from "../../query-builder/query-design/query-builder-slice";
+import type { DomainRelation, MetadataEntity } from "../../query-builder/query-design/query-builder-slice";
 import DiagramView, { diagramGroupTone, type DiagramRelationship } from "../../data-sources/diagram-view/diagram-view";
 import PanelSplitter from "../../panel-splitter/panel-splitter";
 import { useResizablePanel } from "../../../utils/use-resizable-panel";
@@ -8,6 +8,7 @@ import "./entity-diagram.css";
 
 type EntityDiagramProps = {
   entities: MetadataEntity[];
+  relations: DomainRelation[];
   domains?: { id: string; name: string; entities: MetadataEntity[] }[];
   domainNames?: { id: string; name: string }[];
   activeScopeName?: string;
@@ -16,6 +17,7 @@ type EntityDiagramProps = {
   editingEntity?: EditableEntity | null;
   editingEntityName?: string;
   onDraftChange?: (updater: (draft: EditableEntity) => EditableEntity) => void;
+  onRelationsChange?: (updater: (relations: DomainRelation[]) => DomainRelation[]) => void;
   onSelectDomain?: (name: string) => void;
   onOpenEntity: (table: { schema: string; name: string; columns: { name: string; dataType: string; isPrimaryKey: boolean }[] }) => void;
   entityEditorHeader: ReactNode;
@@ -24,6 +26,7 @@ type EntityDiagramProps = {
 
 export default function EntityDiagram({
   entities,
+  relations,
   domains,
   domainNames,
   activeScopeName,
@@ -32,6 +35,7 @@ export default function EntityDiagram({
   editingEntity,
   editingEntityName,
   onDraftChange,
+  onRelationsChange,
   onSelectDomain,
   onOpenEntity,
   entityEditorHeader,
@@ -71,25 +75,21 @@ export default function EntityDiagram({
       })),
     })),
   }));
-  const relationships = displayedEntities.flatMap((entity) =>
-    (entity.relations || []).map((relation, sourceRelationIndex) => {
-      const targetName = relation.refEntity === editingEntityName
-        ? editingEntity?.name || relation.refEntity
-        : relation.refEntity;
-      const target = displayedEntities.find((candidate) => candidate.name === targetName);
-      return {
-        name: relation.name || `${entity.name} to ${targetName}`,
-        sourceSchema: entity.schema || "dbo",
-        sourceTable: entity.name,
-        sourceColumns: (relation.refKeys || []).map((key) => key.dbColumn),
-        targetSchema: target?.schema || "dbo",
-        targetTable: targetName,
-        targetColumns: (relation.refKeys || []).map((key) => key.refDbColumn),
-        isUnique: false,
-        sourceRelationIndex,
-      };
-    }),
-  );
+  const relationships = relations.map((relation, sourceRelationIndex) => {
+    const source = displayedEntities.find((entity) => entity.name === relation.sourceEntity);
+    const target = displayedEntities.find((entity) => entity.name === relation.targetEntity);
+    return {
+      name: relation.sourceRelationName || `${relation.sourceEntity} to ${relation.targetEntity}`,
+      sourceSchema: source?.schema || "dbo",
+      sourceTable: relation.sourceEntity,
+      sourceColumns: [...relation.sourceFields],
+      targetSchema: target?.schema || "dbo",
+      targetTable: relation.targetEntity,
+      targetColumns: [...relation.targetFields],
+      isUnique: false,
+      sourceRelationIndex,
+    };
+  });
   const openRelationSource = (relation: DiagramRelationship & { from: string; to: string }) => {
     const source = displayedEntities.find((entity) => entity.name === relation.sourceTable);
     if (!source) return;
@@ -104,23 +104,20 @@ export default function EntityDiagram({
       })),
     });
   };
-  const selectedSource = selectedRelation
-    ? editingEntity?.name === selectedRelation.sourceTable ? editingEntity : undefined
+  const selectedRelationIndex = selectedRelation?.sourceRelationIndex;
+  const selectedRelationDraft = selectedRelationIndex !== undefined
+    ? relations[selectedRelationIndex]
     : undefined;
-  const selectedRelationDraft = selectedSource && selectedRelation?.sourceRelationIndex !== undefined
-    ? selectedSource.relations[selectedRelation.sourceRelationIndex]
+  const selectedSource = selectedRelationDraft
+    ? displayedEntities.find((entity) => entity.name === selectedRelationDraft.sourceEntity)
     : undefined;
   const selectedRelationTarget = selectedRelationDraft
-    ? displayedEntities.find((entity) => entity.name === selectedRelationDraft.refEntity)
+    ? displayedEntities.find((entity) => entity.name === selectedRelationDraft.targetEntity)
     : undefined;
-  const updateSelectedRelation = (update: (relation: NonNullable<typeof selectedRelationDraft>) => NonNullable<typeof selectedRelationDraft>) => {
-    if (!onDraftChange || !selectedRelation || selectedRelation.sourceRelationIndex === undefined) return;
-    onDraftChange((draft) => ({
-      ...draft,
-      relations: draft.relations.map((relation, index) =>
-        index === selectedRelation.sourceRelationIndex ? update(relation) : relation,
-      ),
-    }));
+  const updateSelectedRelation = (update: (relation: DomainRelation) => DomainRelation) => {
+    if (!onRelationsChange || selectedRelationIndex === undefined) return;
+    onRelationsChange((current) => current.map((relation, index) =>
+      index === selectedRelationIndex ? update(relation) : relation));
   };
 
   return (
@@ -152,7 +149,7 @@ export default function EntityDiagram({
           <aside className="metadata-relation-inspector" aria-label="Selected relation">
             <div>
               <span className="section-kicker">SELECTED RELATION</span>
-              <strong>{selectedRelationDraft?.name || selectedRelation.name || `${selectedRelation.from} to ${selectedRelation.to}`}</strong>
+              <strong>{selectedRelationDraft?.sourceRelationName || selectedRelation.name || `${selectedRelation.from} to ${selectedRelation.to}`}</strong>
               <span className="metadata-relation-path">
                 {selectedRelation.from} <span aria-hidden="true">→</span> {selectedRelation.to}
               </span>
@@ -163,15 +160,15 @@ export default function EntityDiagram({
                   Name
                   <input
                     spellCheck={false}
-                    value={selectedRelationDraft.name}
-                    onChange={(event) => updateSelectedRelation((relation) => ({ ...relation, name: event.target.value }))}
+                    value={selectedRelationDraft.sourceRelationName}
+                    onChange={(event) => updateSelectedRelation((relation) => ({ ...relation, sourceRelationName: event.target.value }))}
                   />
                 </label>
                 <label>
                   Target
                   <select
-                    value={selectedRelationDraft.refEntity}
-                    onChange={(event) => updateSelectedRelation((relation) => ({ ...relation, refEntity: event.target.value }))}
+                    value={selectedRelationDraft.targetEntity}
+                    onChange={(event) => updateSelectedRelation((relation) => ({ ...relation, targetEntity: event.target.value }))}
                   >
                     <option value="">Select entity</option>
                     {displayedEntities
@@ -179,15 +176,15 @@ export default function EntityDiagram({
                       .map((entity) => <option key={entity.name} value={entity.name}>{entity.name}</option>)}
                   </select>
                 </label>
-                {selectedRelationDraft.refKeys.map((key, index) => (
+                {selectedRelationDraft.sourceFields.map((sourceField, index) => (
                   <div className="metadata-relation-mapping" key={index}>
                     <select
-                      value={key.dbColumn}
+                      value={sourceField}
                       aria-label={`Source field mapping ${index + 1}`}
                       onChange={(event) => updateSelectedRelation((relation) => ({
                         ...relation,
-                        refKeys: relation.refKeys.map((mapping, mappingIndex) =>
-                          mappingIndex === index ? { ...mapping, dbColumn: event.target.value } : mapping),
+                        sourceFields: relation.sourceFields.map((field, fieldIndex) =>
+                          fieldIndex === index ? event.target.value : field),
                       }))}
                     >
                       <option value="">Source field</option>
@@ -195,12 +192,12 @@ export default function EntityDiagram({
                     </select>
                     <span aria-hidden="true">→</span>
                     <select
-                      value={key.refDbColumn}
+                      value={selectedRelationDraft.targetFields[index]}
                       aria-label={`Target field mapping ${index + 1}`}
                       onChange={(event) => updateSelectedRelation((relation) => ({
                         ...relation,
-                        refKeys: relation.refKeys.map((mapping, mappingIndex) =>
-                          mappingIndex === index ? { ...mapping, refDbColumn: event.target.value } : mapping),
+                        targetFields: relation.targetFields.map((field, fieldIndex) =>
+                          fieldIndex === index ? event.target.value : field),
                       }))}
                     >
                       <option value="">Target field</option>
@@ -212,11 +209,8 @@ export default function EntityDiagram({
                   type="button"
                   className="button secondary compact metadata-relation-remove"
                   onClick={() => {
-                    if (!onDraftChange || selectedRelation.sourceRelationIndex === undefined) return;
-                    onDraftChange((draft) => ({
-                      ...draft,
-                      relations: draft.relations.filter((_, index) => index !== selectedRelation.sourceRelationIndex),
-                    }));
+                    if (!onRelationsChange || selectedRelationIndex === undefined) return;
+                    onRelationsChange((current) => current.filter((_, index) => index !== selectedRelationIndex));
                     setSelectedRelation(null);
                   }}
                 >

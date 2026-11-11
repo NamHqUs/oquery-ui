@@ -5,7 +5,7 @@ namespace Demo.Contracts.Services;
 
 public interface IMetadataService
 {
-    IReadOnlyList<MetadataEntityDto> GetAll();
+    IReadOnlyList<EntityDto> GetAll();
     IReadOnlyList<Entity> Reset();
     IMetadataProvider GetMetaProvider();
     IFunctionProvider GetFunctionProvider(ISqlDialect dialect);

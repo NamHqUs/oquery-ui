@@ -43,74 +43,6 @@
         }
       ],
       "RawSql": "OrderItems",
-      "Relations": [
-        {
-          "Name": "Product",
-          "RefEntity": "Products",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "ProductId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        },
-        {
-          "Name": "Order",
-          "RefEntity": "Orders",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "OrderId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        },
-        {
-          "Name": "Product",
-          "RefEntity": "Products",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "ProductId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        },
-        {
-          "Name": "Order",
-          "RefEntity": "Orders",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "OrderId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        },
-        {
-          "Name": "Product",
-          "RefEntity": "Products",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "ProductId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        },
-        {
-          "Name": "Order",
-          "RefEntity": "Orders",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "OrderId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        }
-      ],
       "DbSchema": "sa"
     },
     {
@@ -154,96 +86,6 @@
         }
       ],
       "RawSql": "Orders",
-      "Relations": [
-        {
-          "Name": "OrderItems",
-          "RefEntity": "OrderItems",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "OrderId"
-            }
-          ]
-        },
-        {
-          "Name": "Employee",
-          "RefEntity": "Employees",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "SalesRepId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        },
-        {
-          "Name": "OrderItems",
-          "RefEntity": "OrderItems",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "OrderId"
-            }
-          ]
-        },
-        {
-          "Name": "Employee",
-          "RefEntity": "Employees",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "SalesRepId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        },
-        {
-          "Name": "User",
-          "RefEntity": "Users",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "UserId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        },
-        {
-          "Name": "OrderItems",
-          "RefEntity": "OrderItems",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "OrderId"
-            }
-          ]
-        },
-        {
-          "Name": "Employee",
-          "RefEntity": "Employees",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "SalesRepId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        },
-        {
-          "Name": "Customer",
-          "RefEntity": "Cusotmers",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "UserId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        }
-      ],
       "DbSchema": "sa"
     },
     {
@@ -281,41 +123,6 @@
         }
       ],
       "RawSql": "Products",
-      "Relations": [
-        {
-          "Name": "OrderItems",
-          "RefEntity": "OrderItems",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "ProductId"
-            }
-          ]
-        },
-        {
-          "Name": "OrderItems",
-          "RefEntity": "OrderItems",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "ProductId"
-            }
-          ]
-        },
-        {
-          "Name": "OrderItems",
-          "RefEntity": "OrderItems",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "ProductId"
-            }
-          ]
-        }
-      ],
       "DbSchema": "sa"
     },
     {
@@ -383,85 +190,6 @@
         }
       ],
       "RawSql": "Employees",
-      "Relations": [
-        {
-          "Name": "Employee",
-          "RefEntity": "Employees",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "ManagerId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        },
-        {
-          "Name": "Employees",
-          "RefEntity": "Employees",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "ManagerId"
-            }
-          ]
-        },
-        {
-          "Name": "Orders",
-          "RefEntity": "Orders",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "SalesRepId"
-            }
-          ]
-        },
-        {
-          "Name": "Employee",
-          "RefEntity": "Employees",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "ManagerId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        },
-        {
-          "Name": "Orders",
-          "RefEntity": "Orders",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "SalesRepId"
-            }
-          ]
-        },
-        {
-          "Name": "Employee",
-          "RefEntity": "Employees",
-          "Type": 0,
-          "RefKeys": [
-            {
-              "DbColumn": "ManagerId",
-              "RefDbColumn": "Id"
-            }
-          ]
-        },
-        {
-          "Name": "Orders",
-          "RefEntity": "Orders",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "SalesRepId"
-            }
-          ]
-        }
-      ],
       "DbSchema": "main"
     },
     {
@@ -511,22 +239,83 @@
         }
       ],
       "RawSql": "Users",
-      "Relations": [
-        {
-          "Name": "Orders",
-          "RefEntity": "Orders",
-          "Type": 1,
-          "RefKeys": [
-            {
-              "DbColumn": "Id",
-              "RefDbColumn": "UserId"
-            }
-          ]
-        }
-      ],
       "DbSchema": null
     }
   ],
   "CanDelete": true,
-  "IsBuiltin": false
+  "IsBuiltin": false,
+  "Relations": [
+    {
+      "SourceEntity": "OrderItems",
+      "SourceRelationName": "Product",
+      "SourceFields": [
+        "ProductId"
+      ],
+      "TargetEntity": "Products",
+      "TargetRelationName": "OrderItems",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "OrderItems",
+      "SourceRelationName": "Order",
+      "SourceFields": [
+        "OrderId"
+      ],
+      "TargetEntity": "Orders",
+      "TargetRelationName": "OrderItems",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Orders",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "SalesRepId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "Orders",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Orders",
+      "SourceRelationName": "User",
+      "SourceFields": [
+        "UserId"
+      ],
+      "TargetEntity": "Users",
+      "TargetRelationName": "User",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Orders",
+      "SourceRelationName": "Customer",
+      "SourceFields": [
+        "UserId"
+      ],
+      "TargetEntity": "Cusotmers",
+      "TargetRelationName": "Orders",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Employees",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "ManagerId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "Employee",
+      "TargetFields": [
+        "Id"
+      ]
+    }
+  ]
 }

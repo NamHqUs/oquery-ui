@@ -9,7 +9,7 @@ public sealed class DomainFileRepository(FilePathResolver filePathResolver)
 {
     public override IReadOnlyCollection<DomainDto> GetBuiltin() =>
     [
-        new DomainDto { Id = "All", Name = "All", Entities = [], IsBuiltin = true },
+        new DomainDto { Id = "All", Name = "All", Entities = [], Relations = [], IsBuiltin = true },
     ];
 
     public override IReadOnlyCollection<DomainDto> GetUserDefined(string userSectionId)

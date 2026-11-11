@@ -6,7 +6,8 @@ import Icon from "../icon/icon";
 import { useMessageBox } from "../message-box/message-box";
 import PanelSplitter from "../panel-splitter/panel-splitter";
 import ToastNotice from "../toast-notice/toast-notice";
-import { ApiQueryContextDefinition, clearQueryRequestError, clearQueryResult, createApiQuery, deleteQueryRequest, executeContextFromText, executeQuery, executeQueryFromText, fetchFilterOperators, fetchFunctionDefinitions, fetchQueryMetadata, fetchQueryRequests, fromApiQuery, fromApiQueryDefinition, getQueryRequestText, getSqlStatement, getSqlStatementFromText, IFieldDefinition, MetadataEntity, MetadataField, parseQueryRequestText, QueryDefinition, QueryFilterGroup, QueryFilterNode, saveQueryRequest, toQueryBuilderSavedView } from "./query-design/query-builder-slice";
+import { ApiQueryContextDefinition, clearQueryRequestError, clearQueryResult, createApiQuery, deleteQueryRequest, DomainRelation, EntityRelationView, executeContextFromText, executeQuery, executeQueryFromText, fetchFilterOperators, fetchFunctionDefinitions, fetchQueryMetadata, fetchQueryRequests, fromApiQuery, fromApiQueryDefinition, getQueryRequestText, getSqlStatement, getSqlStatementFromText, IFieldDefinition, MetadataEntity, MetadataField, parseQueryRequestText, QueryDefinition, QueryFilterGroup, QueryFilterNode, relationsForEntity, saveQueryRequest, toQueryBuilderSavedView } from "./query-design/query-builder-slice";
+import { MetadataRelationsContext } from "./query-design/metadata-relations-context";
 import QueryDesign from "./query-design/query-design";
 import QueryResult from "./query-result/query-result";
 import SavedQueryList from "./saved-query-list/saved-query-list";
@@ -428,33 +429,33 @@ function getOqueryExpressionSyntaxError(text: string, functionDefinitions: Funct
   return null;
 }
 
-function pruneFilters(group: QueryFilterGroup, entity: MetadataEntity, metadata: MetadataEntity[]): QueryFilterGroup {
+function pruneFilters(group: QueryFilterGroup, entity: MetadataEntity, metadata: MetadataEntity[], relations: DomainRelation[]): QueryFilterGroup {
   return {
     ...group,
     filters: group.filters.flatMap((node): QueryFilterNode[] => {
-      if ("filters" in node) return [pruneFilters(node, entity, metadata)];
-      return isProjectionColumnAvailable(node.field, entity, metadata)
-        && (!node.rightField || isProjectionColumnAvailable(node.rightField, entity, metadata))
+      if ("filters" in node) return [pruneFilters(node, entity, metadata, relations)];
+      return isProjectionColumnAvailable(node.field, entity, metadata, relations)
+        && (!node.rightField || isProjectionColumnAvailable(node.rightField, entity, metadata, relations))
         ? [node]
         : [];
     }),
   };
 }
 
-function resolveEntityPath(entity: MetadataEntity, metadata: MetadataEntity[], path: string[]): MetadataEntity | undefined {
+function resolveEntityPath(entity: MetadataEntity, metadata: MetadataEntity[], relations: DomainRelation[], path: string[]): MetadataEntity | undefined {
   let current: MetadataEntity | undefined = entity;
   for (const relationName of path) {
-    const relation = current?.relations?.find((item) => item.name === relationName);
+    const relation: EntityRelationView | undefined = current && relationsForEntity(current.name, relations).find((item) => item.name === relationName);
     current = relation && metadata.find((item) => item.name === relation.refEntity);
     if (!current) return undefined;
   }
   return current;
 }
 
-function isAvailableFieldPath(entity: MetadataEntity, metadata: MetadataEntity[], fieldPath: string): boolean {
+function isAvailableFieldPath(entity: MetadataEntity, metadata: MetadataEntity[], relations: DomainRelation[], fieldPath: string): boolean {
   const segments = fieldPath.split(".");
   const fieldName = segments.pop();
-  const owner = resolveEntityPath(entity, metadata, segments);
+  const owner = resolveEntityPath(entity, metadata, relations, segments);
   return Boolean(fieldName && owner?.fields.some((field) => field.name === fieldName));
 }
 
@@ -463,58 +464,59 @@ function isAvailableAggregateField(
   fieldName: string,
   entity: MetadataEntity,
   metadata: MetadataEntity[],
+  relations: DomainRelation[],
 ): boolean {
   const field = fieldName.trim();
   return (functionName.toLowerCase() === "count" && (!field || field === "*"))
-    || isAvailableFieldPath(entity, metadata, field);
+    || isAvailableFieldPath(entity, metadata, relations, field);
 }
 
-function isProjectionColumnAvailable(column: string, entity: MetadataEntity, metadata: MetadataEntity[]): boolean {
-  if (isAvailableFieldPath(entity, metadata, column)) return true;
+function isProjectionColumnAvailable(column: string, entity: MetadataEntity, metadata: MetadataEntity[], relations: DomainRelation[]): boolean {
+  if (isAvailableFieldPath(entity, metadata, relations, column)) return true;
 
   const wrappedAggregate = column.match(/^(COUNT|SUM|MAX|MIN|AVG)\(([^()]*)\)$/i);
   if (wrappedAggregate) {
-    return isAvailableAggregateField(wrappedAggregate[1], wrappedAggregate[2], entity, metadata);
+    return isAvailableAggregateField(wrappedAggregate[1], wrappedAggregate[2], entity, metadata, relations);
   }
 
   const pathAggregate = column.match(/^(.*)\.(COUNT|SUM|MAX|MIN|AVG)\(([^()]*)\)$/i);
   if (!pathAggregate) return false;
 
-  const aggregateOwner = resolveEntityPath(entity, metadata, pathAggregate[1].split("."));
+  const aggregateOwner = resolveEntityPath(entity, metadata, relations, pathAggregate[1].split("."));
   return Boolean(aggregateOwner
-    && isAvailableAggregateField(pathAggregate[2], pathAggregate[3], aggregateOwner, metadata));
+    && isAvailableAggregateField(pathAggregate[2], pathAggregate[3], aggregateOwner, metadata, relations));
 }
 
-function isExpressionAvailable(expression: IFieldDefinition, entity: MetadataEntity, metadata: MetadataEntity[]): boolean {
+function isExpressionAvailable(expression: IFieldDefinition, entity: MetadataEntity, metadata: MetadataEntity[], relations: DomainRelation[]): boolean {
   switch (expression.kind) {
     case "field":
-      return isAvailableFieldPath(entity, metadata, expression.field);
+      return isAvailableFieldPath(entity, metadata, relations, expression.field);
     case "value":
       return expression.value === null || typeof expression.value === "string" || typeof expression.value === "boolean"
         || (typeof expression.value === "number" && Number.isFinite(expression.value));
     case "group":
-      return expression.arguments.every((argument) => isExpressionAvailable(argument, entity, metadata));
+      return expression.arguments.every((argument) => isExpressionAvailable(argument, entity, metadata, relations));
     case "function":
       return expression.arguments.every((argument) =>
         argument.kind === "field" && argument.field === "*"
           ? expression.function.toLowerCase() === "count"
-          : isExpressionAvailable(argument, entity, metadata));
+          : isExpressionAvailable(argument, entity, metadata, relations));
     case "condition":
       return true;
   }
 }
 
 // Drops columns, sorts and filters that reference fields removed from the entity metadata.
-function reconcileDefinition(definition: QueryDefinition, entity: MetadataEntity, metadata: MetadataEntity[]): QueryDefinition {
+function reconcileDefinition(definition: QueryDefinition, entity: MetadataEntity, metadata: MetadataEntity[], relations: DomainRelation[]): QueryDefinition {
   const columns = definition.columns.filter((column) => column.expression
-    ? isExpressionAvailable(column.expression, entity, metadata)
-    : isProjectionColumnAvailable(column.field, entity, metadata));
+    ? isExpressionAvailable(column.expression, entity, metadata, relations)
+    : isProjectionColumnAvailable(column.field, entity, metadata, relations));
   const sorts = definition.sorts.filter((sort) => sort.expression
-    ? isExpressionAvailable(sort.expression, entity, metadata)
-    : isProjectionColumnAvailable(sort.field, entity, metadata)
-      || isAvailableFieldPath(entity, metadata, sort.field)
+    ? isExpressionAvailable(sort.expression, entity, metadata, relations)
+    : isProjectionColumnAvailable(sort.field, entity, metadata, relations)
+      || isAvailableFieldPath(entity, metadata, relations, sort.field)
       || columns.some((column) => column.alias === sort.field));
-  const filters = pruneFilters(definition.filters, entity, metadata);
+  const filters = pruneFilters(definition.filters, entity, metadata, relations);
   const filtersChanged = JSON.stringify(filters) !== JSON.stringify(definition.filters);
   const unchanged = columns.length === definition.columns.length
     && sorts.length === definition.sorts.length
@@ -532,7 +534,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   const showMessageBox = useMessageBox();
   const [searchParams, setSearchParams] = useSearchParams();
   const savedQueriesPanel = useResizablePanel("query-builder-saved-queries");
-  const { metadata, metadataStatus, metadataError, result, sqlStatement, resultView, queryStatus, queryError, functionDefinitions, functionDefinitionsStatus, functionDefinitionsError, filterOperators, filterOperatorsStatus, filterOperatorsError, queryRequests, queryRequestsStatus, queryRequestsError, debugUiEnabled } = useSelector((state: RootState) => state.queryBuilder);
+  const { metadata, metadataRelations, metadataStatus, metadataError, result, sqlStatement, resultView, queryStatus, queryError, functionDefinitions, functionDefinitionsStatus, functionDefinitionsError, filterOperators, filterOperatorsStatus, filterOperatorsError, queryRequests, queryRequestsStatus, queryRequestsError, debugUiEnabled } = useSelector((state: RootState) => state.queryBuilder);
   const { connectedProvider, connectionStatus } = useSelector((state: RootState) => state.database);
   const [definition, setDefinition] = useState<QueryDefinition>(loadDefinition);
   const [requestName, setRequestName] = useState("");
@@ -828,7 +830,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   useEffect(() => {
     const selectedEntity = entity;
     if (!selectedEntity || definition.contexts?.length) return;
-    const reconciled = reconcileDefinition(definition, selectedEntity, metadata);
+    const reconciled = reconcileDefinition(definition, selectedEntity, metadata, metadataRelations);
     if (!reconciled.columns.length) {
       updateDefinition({
         ...reconciled,
@@ -837,7 +839,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     } else if (reconciled !== definition) {
       updateDefinition(reconciled);
     }
-  }, [metadata, definition.entity, definition.contextCatalog, definition.contexts]);
+  }, [metadata, metadataRelations, definition.entity, definition.contextCatalog, definition.contexts]);
 
   const runQuery = async () => {
     const textToExecute = selectedOQueryTextRef.current.trim() || oqueryText;
@@ -1104,6 +1106,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
             />
             <PanelSplitter panel={savedQueriesPanel} label="saved queries panel" />
             <div className="query-design-area">
+              <MetadataRelationsContext.Provider value={metadataRelations}>
               <QueryDesign
                 key={`${selectedRequestName ?? "draft"}-${activeContextIndex ?? "request"}`}
                 metadata={metadata}
@@ -1143,6 +1146,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
                 onInsertOqueryTemplate={insertOqueryTemplate}
                 onApplyOquery={() => void applyOquery()}
               />
+              </MetadataRelationsContext.Provider>
             </div>
           </div>
         </section>
