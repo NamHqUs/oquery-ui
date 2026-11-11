@@ -1,4 +1,5 @@
 {
+  "Id": "33D45E23175047B9B05BC21C9C88DA59B992389671FC706126F8BB420A00B18F",
   "Name": "Unit Test",
   "Description": "",
   "Entities": [
@@ -48,8 +49,10 @@
           "IsRawSql": false
         }
       ],
+      "RawSql": "User",
       "DbTable": "User",
-      "DbSchema": null
+      "DbSchema": "dbo",
+      "IsRawSql": false
     },
     {
       "Name": "School",
@@ -73,11 +76,13 @@
           "IsRawSql": false
         }
       ],
+      "RawSql": "School",
       "DbTable": "School",
-      "DbSchema": "main"
+      "DbSchema": "main",
+      "IsRawSql": false
     },
     {
-      "Name": "RawUser",
+      "Name": "Teacher",
       "Fields": [
         {
           "Name": "Id",
@@ -92,18 +97,24 @@
           "IsRawSql": true
         },
         {
+          "Name": "SchoolId",
+          "DbColumn": "SchoolId",
+          "DataType": 1,
+          "IsRawSql": true
+        },
+        {
           "Name": "Name",
           "DbColumn": "Name",
           "DataType": 0,
           "IsRawSql": true
         }
       ],
+      "RawSql": "Select * From [User]",
       "DbTable": "Select * From [User]",
-      "DbSchema": null
+      "DbSchema": "dbo",
+      "IsRawSql": false
     }
   ],
-  "CanDelete": true,
-  "IsBuiltin": false,
   "Relations": [
     {
       "SourceEntity": "User",
@@ -112,22 +123,36 @@
         "SchoolId"
       ],
       "TargetEntity": "School",
-      "TargetRelationName": "School",
+      "TargetRelationName": "Students",
       "TargetFields": [
-        ""
+        "Id"
       ]
     },
     {
-      "SourceEntity": "RawUser",
+      "SourceEntity": "User",
       "SourceRelationName": "Manager",
       "SourceFields": [
-        "ManagerId"
+        "Id"
       ],
       "TargetEntity": "User",
-      "TargetRelationName": "Manager",
+      "TargetRelationName": "Members",
       "TargetFields": [
-        ""
+        "ManagerId"
+      ]
+    },
+    {
+      "SourceEntity": "Teacher",
+      "SourceRelationName": "School",
+      "SourceFields": [
+        "SchoolId"
+      ],
+      "TargetEntity": "School",
+      "TargetRelationName": "Teachers",
+      "TargetFields": [
+        "Id"
       ]
     }
-  ]
+  ],
+  "CanDelete": true,
+  "IsBuiltin": false
 }

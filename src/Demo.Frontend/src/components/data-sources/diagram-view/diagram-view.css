@@ -439,7 +439,7 @@
 
 .diagram-column-list li {
   display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) minmax(52px, 88px);
+  grid-template-columns: minmax(0, 1fr) 20px 20px;
   min-height: 21px;
   align-items: center;
   gap: 6px;
@@ -464,10 +464,10 @@
 }
 
 .diagram-column-type {
-  overflow: hidden;
+  display: grid;
+  place-items: center;
   color: #858fa1;
-  font: 11px "Cascadia Code", Consolas, monospace;
-  text-align: right;
+  cursor: help;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

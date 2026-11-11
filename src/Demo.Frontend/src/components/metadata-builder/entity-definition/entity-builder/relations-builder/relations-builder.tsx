@@ -213,7 +213,7 @@ export default function RelationsBuilder({
     );
   }
 
-  const otherEntities = allEntities.filter((entity) => entity.name !== currentEntity.name);
+  const availableEntities = allEntities;
   const thisLabel = currentEntity.name.trim() || "this entity";
 
   function togglePicker(index: number, trigger: HTMLButtonElement) {
@@ -240,7 +240,7 @@ export default function RelationsBuilder({
           : { top: openEntityPicker.anchorY + 4 }),
       }}
     >
-      {otherEntities.map((entity) => (
+      {availableEntities.map((entity) => (
         <button
           type="button"
           key={entity.name}
@@ -249,7 +249,7 @@ export default function RelationsBuilder({
           {entity.name}
         </button>
       ))}
-      {!otherEntities.length && <span className="relation-entity-picker-empty">No other entities available.</span>}
+      {!availableEntities.length && <span className="relation-entity-picker-empty">No entities available.</span>}
     </div>,
     document.body,
   );

@@ -53,6 +53,7 @@ export default function EntityDiagram({
   const tables = displayedEntities.map((entity) => ({
     schema: entity.schema || "dbo",
     name: entity.name,
+    dbTable: entity.dbTable,
     columns: entity.fields.map((field) => ({
       name: field.name,
       dataType: field.dataType || "String",
@@ -69,6 +70,7 @@ export default function EntityDiagram({
       .map(applyDraft).map((entity) => ({
       schema: entity.schema || "dbo",
       name: entity.name,
+      dbTable: entity.dbTable,
       columns: entity.fields.map((field) => ({
         name: field.name,
         dataType: field.dataType || "String",

@@ -54,6 +54,7 @@
 .metadata-relation-inspector-fields { display: grid !important; grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr); gap: 8px 12px !important; }
 .metadata-relation-inspector label { display: grid; gap: 5px; color: #9c91c5; font-size: 10px; font-weight: 600; text-transform: uppercase; }
 .metadata-relation-inspector input, .metadata-relation-inspector select { min-width: 0; padding: 7px 8px; color: #f0edfb; border: 1px solid #4a4162; border-radius: 5px; background: #171522; font-size: 11px; }
+.metadata-relation-inspector select { appearance: none; -webkit-appearance: none; padding-right: 25px; background-color: #171522; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath d='M1 1l3 3 3-3' fill='none' stroke='%239c91c5' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-position: right 9px center; background-repeat: no-repeat; }
 .metadata-relation-mapping { display: flex; grid-column: 1 / -1; align-items: center; gap: 7px; color: #c9c1df; font-size: 11px; }
 .metadata-relation-mapping select { flex: 1 1 0; }
 .metadata-relation-remove { justify-self: start; color: #f0a6ae; border-color: #8d4e5a; }

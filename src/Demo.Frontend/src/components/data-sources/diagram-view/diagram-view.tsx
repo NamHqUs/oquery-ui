@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Icon from "../../icon/icon";
+import Icon, { type IconName } from "../../icon/icon";
 import { fetchDbTableData, selectDbTable, setPreviewDbTable } from "../database-slice";
 import "./diagram-view.css";
 
 export type DiagramTable = {
   schema: string;
   name: string;
+  dbTable?: string | null;
   columns: { name: string; dataType: string; isPrimaryKey: boolean; isNullable?: boolean }[];
 };
 export type DiagramGroupTone = "revenue" | "customer" | "product" | "finance" | "custom";
@@ -23,6 +24,27 @@ export type DiagramRelationship = {
   sourceRelationIndex?: number;
 };
 export const DIAGRAM_GROUP_TONES: DiagramGroupTone[] = ["revenue", "customer", "product", "finance", "custom"];
+
+const dataTypeIcons: Record<string, IconName> = {
+  string: "type",
+  number: "type-number",
+  boolean: "type-boolean",
+  datetime: "type-datetime",
+};
+
+function getDataTypeIcon(dataType: string): IconName {
+  const normalized = dataType.trim().toLowerCase();
+  if (normalized === "number" || normalized === "numeric" || normalized === "int" || normalized === "integer" || normalized === "decimal" || normalized === "float") {
+    return dataTypeIcons.number;
+  }
+  if (normalized === "boolean" || normalized === "bool" || normalized === "bit") {
+    return dataTypeIcons.boolean;
+  }
+  if (normalized === "datetime" || normalized === "datetime2" || normalized === "date" || normalized === "time" || normalized === "timestamp") {
+    return dataTypeIcons.datetime;
+  }
+  return dataTypeIcons[normalized] || dataTypeIcons.string;
+}
 
 type DiagramViewProps = {
   tables?: DiagramTable[];
@@ -672,8 +694,9 @@ export default function DiagramView({
                 >
                   <Icon name="table" size={15} />
                   <span>{table.name}</span>
-                  <small>{table.columns.length}</small>
-                  <span className="diagram-table-schema">{table.schema}</span>
+                  {table.dbTable && table.dbTable !== table.name && (
+                    <span className="diagram-table-schema">{table.dbTable}</span>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -689,11 +712,13 @@ export default function DiagramView({
                   <ul className="diagram-column-list">
                     {table.columns.map((column) => (
                       <li key={column.name} title={`${column.name} — ${column.dataType || "unknown type"}`}>
+                        <span className={`diagram-column-name${column.isPrimaryKey ? " primary" : ""}`}>{column.name}</span>
                         <span className="diagram-column-key primary">
                           {column.isPrimaryKey && <Icon name="key" size={13} />}
                         </span>
-                        <span className={`diagram-column-name${column.isPrimaryKey ? " primary" : ""}`}>{column.name}</span>
-                        <span className="diagram-column-type" title="Nullable">{column.isNullable ? "YES" : "NO"}</span>
+                        <span className="diagram-column-type" title={column.dataType || "unknown type"} aria-label={`Data type: ${column.dataType || "unknown type"}`}>
+                          <Icon name={getDataTypeIcon(column.dataType || "String")} size={13} />
+                        </span>
                       </li>
                     ))}
                     {table.columns.length === 0 && <li className="diagram-no-columns">No columns</li>}
