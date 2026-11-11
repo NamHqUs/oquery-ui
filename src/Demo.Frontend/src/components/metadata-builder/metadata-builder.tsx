@@ -1049,10 +1049,10 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           </div>
         </section>
       </div>
-      {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "functions"}>
+      {!entityOnly && activeSection === "functions" && <div className="metadata-workspace-panel">
         <FunctionDefinitionsWorkspace onNavigationGuardChange={updateFunctionNavigationGuard} />
       </div>}
-      {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "operators"}>
+      {!entityOnly && activeSection === "operators" && <div className="metadata-workspace-panel">
         <OperatorDefinition onNavigationGuardChange={updateOperatorNavigationGuard} />
       </div>}
       {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "domains"}>

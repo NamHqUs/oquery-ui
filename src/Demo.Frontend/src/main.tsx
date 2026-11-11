@@ -6,7 +6,7 @@ import { createBrowserRouter, Navigate, Route, RouterProvider, Routes, useBlocke
 import Icon, { getDatabaseIconName } from "./components/icon/icon";
 import DataSources from "./components/data-sources/data-sources";
 import DatabaseConnection from "./components/data-sources/database-connection/database-connection";
-import { fetchDatabaseConnections, fetchDbProvider, fetchDbSchema, fetchDbTables } from "./components/data-sources/database-slice";
+import { fetchDbProvider } from "./components/data-sources/database-slice";
 import QueryBuilder from "./components/query-builder/query-builder";
 import MetadataBuilder from "./components/metadata-builder/metadata-builder";
 import FunctionDefinitionsWorkspace from "./components/function-definition/function-definition";
@@ -141,13 +141,7 @@ function App() {
   };
 
   useEffect(() => {
-    void store.dispatch(fetchDatabaseConnections());
-    void store.dispatch(fetchDbProvider()).then((result) => {
-      if (fetchDbProvider.fulfilled.match(result) && result.payload !== null) {
-        void store.dispatch(fetchDbTables());
-        void store.dispatch(fetchDbSchema());
-      }
-    });
+    void store.dispatch(fetchDbProvider());
   }, []);
 
   const blocker = useBlocker(({ currentLocation, nextLocation }) => {

@@ -1087,7 +1087,10 @@ export const fetchFunctionDefinitions = createAsyncThunk(
     }
   },
   {
-    condition: (_, { getState }) => getState().queryBuilder.functionDefinitionsStatus !== "loading",
+    condition: (_, { getState }) => {
+      const { functionDefinitionsStatus } = getState().queryBuilder;
+      return functionDefinitionsStatus !== "loading" && functionDefinitionsStatus !== "succeeded";
+    },
   },
 );
 

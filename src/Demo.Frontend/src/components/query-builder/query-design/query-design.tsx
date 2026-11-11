@@ -1,5 +1,5 @@
 import { createPortal } from "react-dom";
-import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
+import { useContext, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { ApiQueryContextDefinition, FilterOperatorDefinition, hasApiQueryCondition, MetadataEntity, QueryDefinition } from "./query-builder-slice";
 import { FunctionDefinition } from "../../function-definition/types";
 import Icon from "../../icon/icon";
@@ -9,7 +9,7 @@ import FilterBuilder from "./filter-builder/filter-builder";
 import JoinsBuilder from "./joins-builder/joins-builder";
 import OQueryEditor from "../../oquery-editor/oquery-editor";
 import { getOQuerySuggestionData } from "../../oquery-editor/oquery-suggestion-data";
-import { useMetadataRelations } from "./metadata-relations-context";
+import { MetadataRelationsContext } from "./metadata-relations-context";
 import "./query-design.css";
 
 type EntityMenuProps = {
@@ -244,7 +244,7 @@ export default function QueryDesign({
       fields: [...new Set(fields)].map((name) => ({ name, dbColumn: name })),
     };
   });
-  const metadataRelations = useMetadataRelations();
+  const metadataRelations = useContext(MetadataRelationsContext);
   const suggestionData = getOQuerySuggestionData(metadata, metadataRelations);
   const metadataWithContexts = [
     ...metadata,
