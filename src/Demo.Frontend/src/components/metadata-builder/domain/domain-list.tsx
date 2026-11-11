@@ -54,13 +54,24 @@ type Step = 1 | 2 | 3;
 type ViewMode = "list" | "wizard" | "detail";
 const CREATE_DOMAIN_PATH = "/metadata/domains/create";
 const EDIT_DOMAIN_PATH = "/metadata/domains/edit";
+const DESCRIPTION_PREVIEW_LENGTH = 20;
 
-function getDescriptionPreview(description: string) {
-  const plainText = description
+function getPlainDescription(description: string) {
+  return description
     .replace(/[`*_#>\[\]]/g, "")
     .replace(/\s+/g, " ")
     .trim();
-  return plainText.length > 100 ? `${plainText.slice(0, 100).trimEnd()}...` : plainText;
+}
+
+function getDescriptionPreview(description: string) {
+  const plainText = getPlainDescription(description);
+  return plainText.length > DESCRIPTION_PREVIEW_LENGTH
+    ? `${plainText.slice(0, DESCRIPTION_PREVIEW_LENGTH).trimEnd()}...`
+    : plainText;
+}
+
+function hasDescriptionPreviewOverflow(description: string) {
+  return getPlainDescription(description).length > DESCRIPTION_PREVIEW_LENGTH;
 }
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
@@ -769,13 +780,7 @@ export default function DomainList({
   };
   const hasWizardChanges = () => {
     if (!selected) return step > 1 || Boolean(draftName.trim()) || selectedTables.length > 0;
-    const initialTableKeys = selected.entities
-      .map(entity => schema.tables.find(table =>
-        table.name.toLowerCase() === entity.name.toLowerCase()
-        && (!entity.schema || entity.schema.toLowerCase() === table.schema.toLowerCase() || entity.schema.toLowerCase() === "dbo"),
-      ))
-      .filter((table): table is DatabaseTable => Boolean(table))
-      .map(tableKey);
+    const initialTableKeys = existingTableKeys(selected, schema.tables);
     const currentKeys = new Set(selectedTables);
     const tablesChanged = initialTableKeys.length !== currentKeys.size
       || initialTableKeys.some(key => !currentKeys.has(key));
@@ -833,6 +838,7 @@ export default function DomainList({
       });
       if (action !== "discard") return;
     }
+    setViewMode(selected ? "detail" : "list");
     if (location.key !== "default") {
       navigate(-1);
     } else {
@@ -946,14 +952,16 @@ export default function DomainList({
                       {getDescriptionPreview(domain.description)}
                     </p>
                   )}
-                  <button
-                    type="button"
-                    className="domain-summary-description-toggle"
-                    aria-expanded={Boolean(expandedDescriptions[domain.name])}
-                    onClick={() => toggleDescription(domain.name)}
-                  >
-                      {expandedDescriptions[domain.name] ? "Hide details" : "more..."}
-                  </button>
+                  {hasDescriptionPreviewOverflow(domain.description) && (
+                    <button
+                      type="button"
+                      className="domain-summary-description-toggle"
+                      aria-expanded={Boolean(expandedDescriptions[domain.name])}
+                      onClick={() => toggleDescription(domain.name)}
+                    >
+                        {expandedDescriptions[domain.name] ? "Hide details" : "more..."}
+                    </button>
+                  )}
                   {expandedDescriptions[domain.name] && (
                     <div className="domain-summary-description-panel">
                       <MarkdownDescription value={domain.description} />

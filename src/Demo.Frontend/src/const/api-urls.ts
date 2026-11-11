@@ -28,6 +28,7 @@ export const apiUrls = {
     generateDomain: `${backendApiUrl}/metadata/domains/generate`,
     domainById: (domainId: string) => `${backendApiUrl}/metadata/domains/${encodeURIComponent(domainId)}`,
     domainNames: `${backendApiUrl}/metadata/domains/names`,
+    domainNamesWithDescriptions: `${backendApiUrl}/metadata/domains/names-with-descriptions`,
   },
   dynamicQuery: {
     execute: `${backendApiUrl}/dynamic-query/query`,

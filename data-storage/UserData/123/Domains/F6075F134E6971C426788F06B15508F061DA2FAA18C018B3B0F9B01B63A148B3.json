@@ -1,7 +1,7 @@
 {
   "Id": "F6075F134E6971C426788F06B15508F061DA2FAA18C018B3B0F9B01B63A148B3",
   "Name": "Sales",
-  "Description": "",
+  "Description": "abc",
   "Entities": [
     {
       "Name": "OrderItems",

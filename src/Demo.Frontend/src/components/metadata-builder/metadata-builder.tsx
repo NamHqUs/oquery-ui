@@ -48,6 +48,7 @@ type DomainSummary = {
 type DomainOption = {
   id: string;
   name: string;
+  description: string;
 };
 type SavedDomainDto = {
   entities: DomainEntityDto[];
@@ -98,10 +99,9 @@ async function request<T = unknown>(url: string, options?: RequestInit): Promise
 }
 
 async function loadDomainSummaries(): Promise<DomainSummary[]> {
-  const domains = await request<DomainOption[]>(apiUrls.metadata.domainNames);
+  const domains = await request<DomainOption[]>(apiUrls.metadata.domainNamesWithDescriptions);
   return domains.map(domain => ({
     ...domain,
-    description: "",
     entities: [],
     relations: [],
     canDelete: domain.id !== "All",
@@ -177,7 +177,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     }
     dispatch(setQueryMetadata({ entities: domain.entities, relations: domain.relations }));
     setDomainOptions((current) => current.map((item) =>
-      item.id === domain.id ? { ...item, name: domain.name } : item));
+      item.id === domain.id ? { ...item, name: domain.name, description: domain.description } : item));
     setDomains((current) => current.some((item) => item.id === domain.id)
       ? current.map((item) => item.id === domain.id ? domain : item)
       : [...current, domain]);
@@ -320,7 +320,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   useEffect(() => {
     let cancelled = false;
     if (activeSection === "diagram") {
-      void request<DomainOption[]>(apiUrls.metadata.domainNames)
+      void request<DomainOption[]>(apiUrls.metadata.domainNamesWithDescriptions)
         .then((options) => {
           if (!cancelled) {
             setDomainOptions(options);
@@ -328,7 +328,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
             setDomains(selectedDomain
               ? [{
                   ...selectedDomain,
-                  description: "",
                   entities: [],
                   relations: [],
                   canDelete: selectedDomain.id !== "All",
@@ -362,7 +361,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       .then((result) => {
         if (!cancelled) {
           setDomains(result);
-          setDomainOptions(result.map(domain => ({ id: domain.id, name: domain.name })));
+          setDomainOptions(result.map(domain => ({ id: domain.id, name: domain.name, description: domain.description })));
         }
       })
       .catch((reason) => {
@@ -382,7 +381,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       if (existing) return current;
       return [{
         ...selectedDomain,
-        description: "",
         entities: [],
         relations: [],
         canDelete: selectedDomain.id !== "All",
