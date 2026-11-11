@@ -161,11 +161,19 @@ export default function EntityDiagram({
             {selectedRelationDraft && (
               <div className="metadata-relation-inspector-fields">
                 <label>
-                  Name
+                  Source name
                   <input
                     spellCheck={false}
                     value={selectedRelationDraft.sourceRelationName}
                     onChange={(event) => updateSelectedRelation((relation) => ({ ...relation, sourceRelationName: event.target.value }))}
+                  />
+                </label>
+                <label>
+                  Target name
+                  <input
+                    spellCheck={false}
+                    value={selectedRelationDraft.targetRelationName}
+                    onChange={(event) => updateSelectedRelation((relation) => ({ ...relation, targetRelationName: event.target.value }))}
                   />
                 </label>
                 <label>

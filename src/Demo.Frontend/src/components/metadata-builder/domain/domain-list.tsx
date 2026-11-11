@@ -113,14 +113,16 @@ const existingTableKeys = (domain: Domain, tables: DatabaseTable[]) =>
     .map(entity => tables.find(table => entityMatchesTable(entity, table)))
     .filter((table): table is DatabaseTable => Boolean(table))
     .map(tableKey);
-const entityNamesForTables = (domain: Domain, tables: DatabaseTable[], keys: string[]) =>
-  Object.fromEntries(keys.flatMap(key => {
-    const table = tables.find(candidate => tableKey(candidate) === key);
-    const entity = table && domain.entities.find(candidate => entityMatchesTable(candidate, table));
-    return table && entity ? [[key, entity.name]] : [];
-  }));
-const relationMatchesDatabaseRelation = (domain: Domain, relation: DatabaseRelationship) =>
-  domain.relations.some(existing => {
+const findEntityForTable = (domain: Domain, table: DatabaseTable) =>
+  domain.entities.find(entity => entityMatchesTable(entity, table));
+const relationFieldsMatch = (existing: DomainRelation, relation: DatabaseRelationship) => {
+  if (sameFields(existing.sourceFields, relation.sourceColumns) && sameFields(existing.targetFields, relation.targetColumns)) return true;
+  return existing.sourceEntity === existing.targetEntity
+    && sameFields(existing.sourceFields, relation.targetColumns)
+    && sameFields(existing.targetFields, relation.sourceColumns);
+};
+const findExistingRelation = (domain: Domain, relation: DatabaseRelationship) =>
+  domain.relations.find(existing => {
     const source = domain.entities.find(entity => entity.name === existing.sourceEntity);
     const target = domain.entities.find(entity => entity.name === existing.targetEntity);
     return Boolean(
@@ -128,10 +130,11 @@ const relationMatchesDatabaseRelation = (domain: Domain, relation: DatabaseRelat
       && target
       && entityMatchesTable(source, { schema: relation.sourceSchema, name: relation.sourceTable, columns: [] })
       && entityMatchesTable(target, { schema: relation.targetSchema, name: relation.targetTable, columns: [] })
-      && JSON.stringify(existing.sourceFields) === JSON.stringify(relation.sourceColumns)
-      && JSON.stringify(existing.targetFields) === JSON.stringify(relation.targetColumns),
+      && relationFieldsMatch(existing, relation),
     );
   });
+const relationMatchesDatabaseRelation = (domain: Domain, relation: DatabaseRelationship) =>
+  Boolean(findExistingRelation(domain, relation));
 const dataTypeIcons: Record<string, IconName> = {
   string: "type",
   number: "type-number",
@@ -264,6 +267,17 @@ export default function DomainList({
   }, [active, location.pathname, location.search]);
 
   const selected = domainItems.find(domain => domain.id === selectedName);
+  const entityNameFor = (table: DatabaseTable) => {
+    const key = tableKey(table);
+    return entityNames[key] ?? (selected && findEntityForTable(selected, table)?.name) ?? table.name;
+  };
+  const relationNameDefaults = (relation: DatabaseRelationship) => {
+    const existing = selected && findExistingRelation(selected, relation);
+    return {
+      lookup: existing ? existing.sourceRelationName : singularize(relation.targetTable),
+      collection: existing ? existing.targetRelationName : pluralize(relation.sourceTable),
+    };
+  };
   const load = async () => {
     setStatus("loading");
     setError("");
@@ -331,7 +345,6 @@ export default function DomainList({
       const table = schema.tables.find(candidate => tableKey(candidate) === key);
       return [key, table?.columns.map(column => column.name) || []];
     })));
-    setEntityNames(entityNamesForTables(selected, schema.tables, existingKeys));
     setSourceSelectionInitialized(true);
   }, [location.pathname, schema.tables, selected, sourceSelectionInitialized, wizardSource]);
 
@@ -421,7 +434,7 @@ export default function DomainList({
       const table = schema.tables.find(candidate => tableKey(candidate) === key);
       return [key, table?.columns.map(column => column.name) || []];
     })));
-    setEntityNames(entityNamesForTables(domain, schema.tables, existingKeys));
+    setEntityNames({});
     setSourceSelectionInitialized(schema.tables.length > 0);
     setStep(1);
     setError("");
@@ -583,8 +596,7 @@ export default function DomainList({
             const existing = currentRelations.find(item =>
               item.sourceEntity === source.name
               && item.targetEntity === target.name
-              && sameFields(item.sourceFields, relation.sourceColumns)
-              && sameFields(item.targetFields, relation.targetColumns));
+              && relationFieldsMatch(item, relation));
             const next: DomainRelation = {
               sourceEntity: source.name,
               sourceRelationName: names?.lookup || existing?.sourceRelationName || singularize(target.name),
@@ -1134,14 +1146,14 @@ export default function DomainList({
                 const orderedColumns = [...table.columns].sort((left, right) => Number(columns.includes(right.name)) - Number(columns.includes(left.name)));
                 const existing = selected?.entities.some(entity => entityMatchesTable(entity, table)) ?? false;
                 return <div key={key} className={`domain-entity-item ${existing ? "existing-source" : "append-source"}`}><button type="button" className="domain-collapse" onClick={() => setCollapsedEntities(current => ({ ...current, [key]: !collapsed }))} aria-expanded={!collapsed} aria-label={`${collapsed ? "Expand" : "Collapse"} ${table.name} entity`}><Icon name={collapsed ? "chevron-right" : "chevron-down"} size={15} /></button><section className="domain-preview-card">
-                  <div className="domain-preview-heading"><div className="domain-entity-heading-names"><input className="domain-entity-name" spellCheck={false} value={entityNames[key] ?? table.name} onChange={event => setEntityNames(current => ({ ...current, [key]: event.target.value }))} aria-label={`Entity name for ${table.name}`} /><small>{table.schema}.{table.name}</small></div><button type="button" className="domain-remove" onClick={() => setSelectedTables(current => current.filter(item => item !== key))} aria-label={`Remove ${table.name} table`} title="Remove table"><Icon name="trash" size={15} /></button></div>
+                  <div className="domain-preview-heading"><div className="domain-entity-heading-names"><input className="domain-entity-name" spellCheck={false} value={entityNameFor(table)} onChange={event => setEntityNames(current => ({ ...current, [key]: event.target.value }))} aria-label={`Entity name for ${table.name}`} /><small>{table.schema}.{table.name}</small></div><button type="button" className="domain-remove" onClick={() => setSelectedTables(current => current.filter(item => item !== key))} aria-label={`Remove ${table.name} table`} title="Remove table"><Icon name="trash" size={15} /></button></div>
                   {!collapsed && <div className="domain-column-grid">{orderedColumns.map(column => <label key={column.name}><input type="checkbox" checked={columns.includes(column.name)} onChange={() => setSelectedColumns(current => ({ ...current, [key]: columns.includes(column.name) ? columns.filter(name => name !== column.name) : [...columns, column.name] }))} /><input className="domain-field-name" spellCheck={false} value={fieldNames[key]?.[column.name] ?? column.name} disabled={!columns.includes(column.name)} onChange={event => setFieldNames(current => ({ ...current, [key]: { ...current[key], [column.name]: event.target.value } }))} aria-label={`Field name for ${column.name}`} /><small className="domain-data-type" title={column.dataType} aria-label={`Data type: ${column.dataType}`}><Icon name={getDataTypeIcon(column.dataType, column.name)} size={14} /></small></label>)}</div>}
                 </section></div>;
                 })}</div>
               </div>
               {selectedRelations.length > 0 && <div className="domain-step-section"><h4>Relations</h4><div className="domain-relation-preview"><div className="domain-relation-header"><strong>Relation</strong><strong>Lookup name</strong><strong>Collection name</strong></div>{selectedRelations.map(relation => {
                 const key = relationKey(relation);
-                const names = relationNames[key] || { lookup: singularize(relation.targetTable), collection: pluralize(relation.sourceTable) };
+                const names = relationNames[key] || relationNameDefaults(relation);
                 const existing = selected ? relationMatchesDatabaseRelation(selected, relation) : false;
                 return <div key={key} className={`domain-relation-row${selected ? (existing ? " existing-source" : " append-source") : ""}`}><span>{relation.sourceTable} → {relation.targetTable}</span><input spellCheck={false} value={names.lookup} aria-label={`Lookup relation for ${relation.name}`} onChange={event => setRelationNames(current => ({ ...current, [key]: { ...names, lookup: event.target.value } }))} /><input spellCheck={false} value={names.collection} aria-label={`Collection relation for ${relation.name}`} onChange={event => setRelationNames(current => ({ ...current, [key]: { ...names, collection: event.target.value } }))} /></div>;
               })}</div></div>}
