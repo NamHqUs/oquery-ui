@@ -138,6 +138,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const databaseState = useSelector((state: RootState) => state.database);
   const entities = useSelector((state: RootState) => state.queryBuilder.metadata);
   const metadataRelations = useSelector((state: RootState) => state.queryBuilder.metadataRelations);
+  const metadataStatus = useSelector((state: RootState) => state.queryBuilder.metadataStatus);
   const showMessageBox = useMessageBox();
   const [searchParams, setSearchParams] = useSearchParams();
   const [functionNavigationGuard, setFunctionNavigationGuard] = useState<NavigationGuard | null>(null);
@@ -205,6 +206,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const [domainEntities, setDomainEntities] = useState<MetadataEntity[] | null>(null);
   const [domainRelations, setDomainRelations] = useState<DomainRelation[] | null>(null);
   const [loadedDomainId, setLoadedDomainId] = useState<string | undefined>();
+  const metadataLoadDomainRef = useRef<string | undefined>(undefined);
   const skipNextMetadataLoadRef = useRef(false);
   const sectionNavigationRef = useRef<(section: MetadataSection) => void>(() => undefined);
   const [pendingToolbarSection, setPendingToolbarSection] = useState<MetadataSection | null>(null);
@@ -305,6 +307,9 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   useDefinitionUnsavedWarning(dirty);
 
   const loadEntities = async (selectFirst = false, preferredName = selectedName) => {
+    const requestDomainId = domainId || "All";
+    if (metadataLoadDomainRef.current === requestDomainId) return false;
+    metadataLoadDomainRef.current = requestDomainId;
     setStatus("loading");
     setMessage("");
     try {
@@ -338,6 +343,10 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       setStatus("failed");
       setMessage(error instanceof Error ? error.message : "Unable to load metadata.");
       return false;
+    } finally {
+      if (metadataLoadDomainRef.current === requestDomainId) {
+        metadataLoadDomainRef.current = undefined;
+      }
     }
   };
 
@@ -350,16 +359,26 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     void loadEntities(true);
   }, [activeSection, domainId]);
   useEffect(() => {
+    if (metadataStatus === "idle" || metadataStatus === "loading") return;
+    if (loadedDomainId === domainId || status !== "loading") return;
+    void loadEntities(true);
+  }, [metadataStatus]);
+  useEffect(() => {
     let cancelled = false;
     if (activeSection === "diagram") {
-      void request<DomainOption[]>(apiUrls.metadata.domainNamesWithDescriptions)
+      void request<Array<Pick<DomainOption, "id" | "name">>>(apiUrls.metadata.domainNames)
         .then((options) => {
           if (!cancelled) {
-            setDomainOptions(options);
+            const domainOptionsWithDefaults = options.map(option => ({
+              ...option,
+              description: "",
+            }));
+            setDomainOptions(domainOptionsWithDefaults);
             const selectedDomain = options.find(domain => domain.id === domainId);
             setDomains(selectedDomain
               ? [{
                   ...selectedDomain,
+                  description: "",
                   entities: [],
                   relations: [],
                   canDelete: selectedDomain.id !== "All",

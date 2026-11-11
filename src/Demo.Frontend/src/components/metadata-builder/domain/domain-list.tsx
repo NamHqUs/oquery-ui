@@ -160,11 +160,13 @@ function parseUploadedTables(text: string, fileName: string): DatabaseTable[] {
   const tables: DatabaseTable[] = [];
   let current: DatabaseTable | undefined;
   let readingFields = false;
+  const cleanYamlValue = (value: string) => value.trim().replace(/^['"]|['"]$/g, "");
   for (const line of text.split(/\r?\n/)) {
-    const entity = line.match(/^\s*-\s+name:\s*(.+)\s*$/);
-    if (entity && !readingFields) {
-      current = { schema: "dbo", name: entity[1].trim(), columns: [] };
+    const entity = line.match(/^-\s+name:\s*(.+)\s*$/);
+    if (entity) {
+      current = { schema: "dbo", name: cleanYamlValue(entity[1]), columns: [] };
       tables.push(current);
+      readingFields = false;
       continue;
     }
     if (!current) continue;
@@ -173,9 +175,19 @@ function parseUploadedTables(text: string, fileName: string): DatabaseTable[] {
     const fields = line.match(/^\s+fields:\s*$/);
     const field = line.match(/^\s+-\s+name:\s*(.+)\s*$/);
     if (schema) current.schema = schema[1].trim();
-    else if (table) current.name = table[1].trim();
+    else if (table) current.name = cleanYamlValue(table[1]);
     else if (fields) readingFields = true;
-    else if (field && readingFields) current.columns.push({ name: field[1].trim(), dataType: "String" });
+    else if (readingFields) {
+      const inlineField = line.match(/^\s+-\s*\{\s*name:\s*([^,}]+)(?:,\s*dataType:\s*([^}]+))?.*\}\s*$/);
+      if (inlineField) {
+        current.columns.push({
+          name: cleanYamlValue(inlineField[1]),
+          dataType: cleanYamlValue(inlineField[2] || "String"),
+        });
+      } else if (field) {
+        current.columns.push({ name: cleanYamlValue(field[1]), dataType: "String" });
+      }
+    }
   }
   return tables.filter(table => table.columns.length > 0);
 }

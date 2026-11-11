@@ -1,0 +1,1000 @@
+{
+  "Id": "uahHADsAa7",
+  "Name": "All Business Domains",
+  "Description": "Demo NorthStar Health Group, whose business combines health and wellness product sales, clinical care, health insurance, and human resources. It presents a realistic shared data environment where the same users, employees, locations, and organizational relationships connect multiple business areas.\n\n- **Combining information across related business entities**\n- **Calculating financial and operational measures**\n- **Comparing current and historical activity**\n- **Handling one-to-many relationships correctly**\n- **Preserving records when related information is missing**\n- **Producing ranked and top-ten reports**\n- **Comparing results across multiple database systems**",
+  "Entities": [
+    {
+      "Name": "Locations",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Name",
+          "DbColumn": "Name",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "City",
+          "DbColumn": "City",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "State",
+          "DbColumn": "State",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Employees",
+          "DbColumn": "Employees",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Visits",
+          "DbColumn": "Visits",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Locations",
+      "DbTable": "Locations",
+      "DbSchema": "Main",
+      "IsRawSql": false
+    },
+    {
+      "Name": "Users",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "FirstName",
+          "DbColumn": "FirstName",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "LastName",
+          "DbColumn": "LastName",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "BirthDate",
+          "DbColumn": "BirthDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Gender",
+          "DbColumn": "Gender",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "City",
+          "DbColumn": "City",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "State",
+          "DbColumn": "State",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Orders",
+          "DbColumn": "Orders",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "PatientVisits",
+          "DbColumn": "PatientVisits",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "MemberPolicies",
+          "DbColumn": "MemberPolicies",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Users",
+      "DbTable": "Users",
+      "DbSchema": "Main",
+      "IsRawSql": false
+    },
+    {
+      "Name": "Departments",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Name",
+          "DbColumn": "Name",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Employees",
+          "DbColumn": "Employees",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Departments",
+      "DbTable": "Departments",
+      "DbSchema": "hr",
+      "IsRawSql": false
+    },
+    {
+      "Name": "Employees",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "FirstName",
+          "DbColumn": "FirstName",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "LastName",
+          "DbColumn": "LastName",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "DepartmentId",
+          "DbColumn": "DepartmentId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "LocationId",
+          "DbColumn": "LocationId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ManagerId",
+          "DbColumn": "ManagerId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "JobTitle",
+          "DbColumn": "JobTitle",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "HireDate",
+          "DbColumn": "HireDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Salary",
+          "DbColumn": "Salary",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "EmploymentType",
+          "DbColumn": "EmploymentType",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Department",
+          "DbColumn": "Department",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Location",
+          "DbColumn": "Location",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Manager",
+          "DbColumn": "Manager",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Members",
+          "DbColumn": "Members",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "SalesOrders",
+          "DbColumn": "SalesOrders",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "PhysicianVisits",
+          "DbColumn": "PhysicianVisits",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "AgentPolicies",
+          "DbColumn": "AgentPolicies",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "PerformanceReviews",
+          "DbColumn": "PerformanceReviews",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "LeaveRequests",
+          "DbColumn": "LeaveRequests",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Employees",
+      "DbTable": "Employees",
+      "DbSchema": "Main",
+      "IsRawSql": false
+    },
+    {
+      "Name": "PerformanceReviews",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "EmployeeId",
+          "DbColumn": "EmployeeId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ReviewYear",
+          "DbColumn": "ReviewYear",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Rating",
+          "DbColumn": "Rating",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "BonusAmount",
+          "DbColumn": "BonusAmount",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Employee",
+          "DbColumn": "Employee",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "PerformanceReviews",
+      "DbTable": "PerformanceReviews",
+      "DbSchema": "hr",
+      "IsRawSql": false
+    },
+    {
+      "Name": "LeaveRequests",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "EmployeeId",
+          "DbColumn": "EmployeeId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "LeaveType",
+          "DbColumn": "LeaveType",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "StartDate",
+          "DbColumn": "StartDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Days",
+          "DbColumn": "Days",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Status",
+          "DbColumn": "Status",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Employee",
+          "DbColumn": "Employee",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "LeaveRequests",
+      "DbTable": "LeaveRequests",
+      "DbSchema": "hr",
+      "IsRawSql": false
+    },
+    {
+      "Name": "Products",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Name",
+          "DbColumn": "Name",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Category",
+          "DbColumn": "Category",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "UnitPrice",
+          "DbColumn": "UnitPrice",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "CostPrice",
+          "DbColumn": "CostPrice",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "OrderItems",
+          "DbColumn": "OrderItems",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Products",
+      "DbTable": "Products",
+      "DbSchema": "sa",
+      "IsRawSql": false
+    },
+    {
+      "Name": "Orders",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "UserId",
+          "DbColumn": "UserId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "SalesRepId",
+          "DbColumn": "SalesRepId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "OrderDate",
+          "DbColumn": "OrderDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Channel",
+          "DbColumn": "Channel",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Status",
+          "DbColumn": "Status",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "User",
+          "DbColumn": "User",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "SalesRep",
+          "DbColumn": "SalesRep",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Items",
+          "DbColumn": "Items",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Orders",
+      "DbTable": "Orders",
+      "DbSchema": "sa",
+      "IsRawSql": false
+    },
+    {
+      "Name": "OrderItems",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "OrderId",
+          "DbColumn": "OrderId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ProductId",
+          "DbColumn": "ProductId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Quantity",
+          "DbColumn": "Quantity",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "UnitPrice",
+          "DbColumn": "UnitPrice",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "DiscountAmount",
+          "DbColumn": "DiscountAmount",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Order",
+          "DbColumn": "Order",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Product",
+          "DbColumn": "Product",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "OrderItems",
+      "DbTable": "OrderItems",
+      "DbSchema": "sa",
+      "IsRawSql": false
+    },
+    {
+      "Name": "Diagnoses",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Code",
+          "DbColumn": "Code",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Name",
+          "DbColumn": "Name",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Category",
+          "DbColumn": "Category",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "IsChronic",
+          "DbColumn": "IsChronic",
+          "DataType": 3,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Visits",
+          "DbColumn": "Visits",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Diagnoses",
+      "DbTable": "Diagnoses",
+      "DbSchema": "he",
+      "IsRawSql": false
+    },
+    {
+      "Name": "Visits",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "UserId",
+          "DbColumn": "UserId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "DoctorId",
+          "DbColumn": "DoctorId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "LocationId",
+          "DbColumn": "LocationId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "VisitDate",
+          "DbColumn": "VisitDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "VisitType",
+          "DbColumn": "VisitType",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "DiagnosisId",
+          "DbColumn": "DiagnosisId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "DurationMinutes",
+          "DbColumn": "DurationMinutes",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Charge",
+          "DbColumn": "Charge",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Status",
+          "DbColumn": "Status",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Patient",
+          "DbColumn": "Patient",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Doctor",
+          "DbColumn": "Doctor",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Location",
+          "DbColumn": "Location",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Diagnosis",
+          "DbColumn": "Diagnosis",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "LabResults",
+          "DbColumn": "LabResults",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Claims",
+          "DbColumn": "Claims",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Visits",
+      "DbTable": "Visits",
+      "DbSchema": "he",
+      "IsRawSql": false
+    },
+    {
+      "Name": "LabResults",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "VisitId",
+          "DbColumn": "VisitId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "TestName",
+          "DbColumn": "TestName",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ResultValue",
+          "DbColumn": "ResultValue",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ReferenceMax",
+          "DbColumn": "ReferenceMax",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "IsAbnormal",
+          "DbColumn": "IsAbnormal",
+          "DataType": 3,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Visit",
+          "DbColumn": "Visit",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "LabResults",
+      "DbTable": "LabResults",
+      "DbSchema": "he",
+      "IsRawSql": false
+    },
+    {
+      "Name": "InsurancePlans",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Name",
+          "DbColumn": "Name",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Tier",
+          "DbColumn": "Tier",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "MonthlyPremium",
+          "DbColumn": "MonthlyPremium",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Deductible",
+          "DbColumn": "Deductible",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "OutOfPocketMax",
+          "DbColumn": "OutOfPocketMax",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "CoinsuranceRate",
+          "DbColumn": "CoinsuranceRate",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Policies",
+          "DbColumn": "Policies",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "InsurancePlans",
+      "DbTable": "InsurancePlans",
+      "DbSchema": "in",
+      "IsRawSql": false
+    },
+    {
+      "Name": "Policies",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "UserId",
+          "DbColumn": "UserId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "PlanId",
+          "DbColumn": "PlanId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "AgentId",
+          "DbColumn": "AgentId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "StartDate",
+          "DbColumn": "StartDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "EndDate",
+          "DbColumn": "EndDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Status",
+          "DbColumn": "Status",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "User",
+          "DbColumn": "User",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Plan",
+          "DbColumn": "Plan",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Agent",
+          "DbColumn": "Agent",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "PremiumPayments",
+          "DbColumn": "PremiumPayments",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Claims",
+          "DbColumn": "Claims",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Policies",
+      "DbTable": "Policies",
+      "DbSchema": "in",
+      "IsRawSql": false
+    },
+    {
+      "Name": "PremiumPayments",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "PolicyId",
+          "DbColumn": "PolicyId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "PaymentDate",
+          "DbColumn": "PaymentDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Amount",
+          "DbColumn": "Amount",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Status",
+          "DbColumn": "Status",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Policy",
+          "DbColumn": "Policy",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "PremiumPayments",
+      "DbTable": "PremiumPayments",
+      "DbSchema": "in",
+      "IsRawSql": false
+    },
+    {
+      "Name": "Claims",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "PolicyId",
+          "DbColumn": "PolicyId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "VisitId",
+          "DbColumn": "VisitId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ClaimDate",
+          "DbColumn": "ClaimDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "BilledAmount",
+          "DbColumn": "BilledAmount",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "AllowedAmount",
+          "DbColumn": "AllowedAmount",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "PaidAmount",
+          "DbColumn": "PaidAmount",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Status",
+          "DbColumn": "Status",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "DenialReason",
+          "DbColumn": "DenialReason",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ProcessedDate",
+          "DbColumn": "ProcessedDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Policy",
+          "DbColumn": "Policy",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Visit",
+          "DbColumn": "Visit",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Claims",
+      "DbTable": "Claims",
+      "DbSchema": "in",
+      "IsRawSql": false
+    }
+  ],
+  "Relations": [],
+  "CanDelete": true,
+  "IsBuiltin": false
+}
