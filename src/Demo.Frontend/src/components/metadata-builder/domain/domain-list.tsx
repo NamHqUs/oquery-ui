@@ -16,7 +16,7 @@ import type { RootState } from "../../../store/store";
 import { apiUrls } from "../../../const/api-urls";
 import { formatApiError } from "../../query-builder/query-design/api-error";
 import { useMessageBox } from "../../message-box/message-box";
-import MarkdownDescription from "./markdown-description";
+import MarkdownDescription, { decodeHtmlEntities } from "./markdown-description";
 import "./domain-list.css";
 
 export type Domain = {
@@ -59,7 +59,7 @@ const DIAGRAM_EDIT_PATH = "/metadata/diagrams/edit";
 const DESCRIPTION_PREVIEW_LENGTH = 240;
 
 function getPlainDescription(description: string) {
-  return description
+  return decodeHtmlEntities(description)
     .replace(/[`*_#>\[\]]/g, "")
     .replace(/\s+/g, " ")
     .trim();

@@ -1,7 +1,7 @@
 {
   "Id": "0834649CF2634DDE335A5E7FFFF5D8907934FE6721F9795E18A253E97FD12C74",
   "Name": "Healthcare",
-  "Description": "",
+  "Description": "The Health care scope represents NorthStar\u2019s clinic and patient-care operations. It focuses on the demand placed on clinics, the conditions being treated, physician workload, patient risk, laboratory outcomes, and the operational characteristics of visits.\n\nThis scope supports decisions about:\n\n- **Which diagnoses create the greatest clinic burden**\n- **How physicians and clinics are performing**\n- **Which patients require closer attention**\n- **Where abnormal laboratory results are concentrated**\n- **How visit types affect capacity and cost**\n- **How healthcare demand changes over time**\n\nThe Health care scope connects patients, visits, physicians, diagnoses, clinics, charges, and laboratory results to provide both clinical-operational and financial perspectives.",
   "Entities": [
     {
       "Name": "Doctors",

@@ -31,6 +31,7 @@
 .markdown-description p { margin: 0 0 6px; }
 .markdown-description ul { margin: 0 0 6px; padding-left: 17px; }
 .markdown-description li { margin: 2px 0; }
+.markdown-description blockquote { margin: 0 0 6px; padding-left: 10px; border-left: 3px solid #6f668d; color: #c9c1df; }
 .markdown-description strong { color: #eeeaff; }
 .markdown-description em { color: #c9c1df; }
 .markdown-description code { padding: 1px 4px; border-radius: 3px; color: #f0c877; background: #211d32; font-size: 10px; }
