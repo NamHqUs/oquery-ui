@@ -82,7 +82,7 @@ Home / Query Builder
      -> FunctionDefinitionService.getDefinitions()
      -> OperatorDefinitionService.getOperators()
 
-Query Builder saved-query panel
+Query Builder saved-query bar
   -> QueryService.getQueryRequests(domainId)
 
 Query Builder domain selector

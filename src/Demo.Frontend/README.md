@@ -107,6 +107,22 @@ To change it at runtime, dispatch `setExpressionDebugUiEnabled(false)` to turn t
 
 To change the default, edit `debugUiEnabled` in `src/components/query-builder/query-design/query-builder-slice.ts`. The persistent left borders on groups and field boxes are structural styling and remain visible.
 
+## Query Builder layout
+
+Query Builder keeps the saved-query library beside the design workspace below the
+domain bar. In **Plan text** mode, the design workspace is ordered top to bottom:
+
+1. **Entity diagram** - the active domain metadata graph is shown above the
+   OQuery editor. Its horizontal splitter resizes the diagram, and its toggle
+   collapses or expands the diagram without losing its saved height.
+2. **Query design** - the query name and OQuery editor. Validation feedback stays
+   above the editor in a fixed-height area.
+3. **Query result** - full width, with labeled **SQL** and **Run** actions and
+   pagination below the grid.
+
+The saved-query library uses the same `SavedQueryList` data and selection
+behavior as before. Only the Plan text diagram/editor arrangement changed.
+
 ## OQuery text editor
 
 The OQuery editor preserves leading spaces and aligns highlighted text with the

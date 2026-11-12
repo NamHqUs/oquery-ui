@@ -45,11 +45,18 @@ export async function listDomainNames(): Promise<DomainName[]> {
   return domainNamesRequest;
 }
 
+function publishDomainMetadata(details: DomainDetails) {
+  store.dispatch(setQueryMetadata({ entities: details.entities, relations: details.relations }));
+}
+
 export async function getDomain(domainId: string): Promise<DomainDetails> {
   const normalizedId = domainId.trim();
   if (!normalizedId) throw new Error("A domain ID is required.");
   const cached = domainDetailsCache.get(normalizedId);
-  if (cached) return cached;
+  if (cached) {
+    publishDomainMetadata(cached);
+    return cached;
+  }
   const pending = domainDetailsRequests.get(normalizedId);
   if (pending) return pending;
 
@@ -76,7 +83,7 @@ export async function getDomain(domainId: string): Promise<DomainDetails> {
       item.id === details.id
         ? { id: details.id, name: details.name, description: details.description }
         : item);
-    store.dispatch(setQueryMetadata({ entities: details.entities, relations: details.relations }));
+    publishDomainMetadata(details);
     return details;
   }).finally(() => {
     domainDetailsRequests.delete(normalizedId);

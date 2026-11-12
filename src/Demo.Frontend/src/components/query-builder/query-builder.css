@@ -21,9 +21,6 @@
 .query-builder-sections.oquery-layout.oquery-layout-resized .query-design-workspace { height: 100%; min-height: 0; }
 .query-builder-sections.oquery-layout.oquery-layout-resized .query-design-area { display: flex; min-height: 0; box-sizing: border-box; overflow: hidden; }
 .query-builder-sections.oquery-layout.oquery-layout-resized .query-design-area:has(.query-oquery-completions) { overflow: visible; }
-.query-builder-sections.oquery-layout.oquery-layout-resized .query-oquery-editor { flex: 1 1 auto; min-height: 0; grid-template-rows: auto minmax(0, 1fr); align-content: start; }
-.query-builder-sections.oquery-layout.oquery-layout-resized .query-oquery-code-editor { height: auto; min-height: 0; box-sizing: border-box; }
-.query-builder-sections.oquery-layout.oquery-layout-resized .query-builder-card { display: flex; height: 100%; min-height: 0; flex-direction: column; }
 .query-builder-sections.oquery-layout .query-result-section { height: clamp(320px, 60vh, 640px); box-sizing: border-box; margin-top: 0; overflow: auto; scrollbar-gutter: stable; }
 .query-section-splitter { position: relative; height: 18px; margin: 0 8px; cursor: row-resize; touch-action: none; }
 .query-section-splitter::before { position: absolute; top: 8px; right: 0; left: 0; height: 2px; border-radius: 2px; background: var(--line); content: ""; transition: background .15s ease, box-shadow .15s ease; }
@@ -40,8 +37,6 @@
 @media (max-width: 760px) {
   .query-builder-sections.oquery-layout .query-design-section { height: auto; max-height: none; overflow: visible; }
   .query-builder-sections.oquery-layout.oquery-layout-resized .query-design-section { height: auto; }
-  .query-builder-sections.oquery-layout.oquery-layout-resized .query-oquery-editor { height: auto; }
-  .query-builder-sections.oquery-layout.oquery-layout-resized .query-oquery-code-editor { height: auto; min-height: 420px; }
   .query-section-splitter { display: none; }
   .query-design-workspace { min-height: 0; grid-template-columns: 1fr; }
   .query-design-area { grid-column: 1; padding: 18px 14px; border-left: 0; }

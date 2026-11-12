@@ -545,7 +545,6 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   const [oqueryText, setOqueryText] = useState("");
   const [oqueryStatus, setOqueryStatus] = useState<"idle" | "loading" | "applying">("idle");
   const [oqueryError, setOqueryError] = useState("");
-  const [oqueryValidationMessage, setOqueryValidationMessage] = useState("");
   const selectedOQueryTextRef = useRef("");
   const oqueryLoadRequestRef = useRef(0);
   const updateSelectedOQueryText = (text: string) => {
@@ -628,7 +627,6 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
       updateSelectedOQueryText("");
       boundOqueryTextRef.current = "";
       setOqueryError("");
-      setOqueryValidationMessage("");
       setOqueryStatus("idle");
       return;
     }
@@ -640,7 +638,6 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
       setOqueryText(text);
       updateSelectedOQueryText("");
       boundOqueryTextRef.current = text;
-      setOqueryValidationMessage("");
     } catch (error) {
       if (requestId !== oqueryLoadRequestRef.current) return;
       setOqueryError(typeof error === "string" ? error : "Unable to load OQuery text.");
@@ -673,7 +670,6 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     if (!oqueryText.trim() || oqueryStatus !== "idle") return;
     setOqueryStatus("applying");
     setOqueryError("");
-    setOqueryValidationMessage("");
     try {
       const syntaxError = getOquerySyntaxError(oqueryText, functionDefinitions, filterOperators);
       if (syntaxError) {
@@ -683,7 +679,6 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
       const normalizedOqueryText = oqueryText;
       const parsed = await dispatch(parseQueryRequestText(normalizedOqueryText)).unwrap();
       updateDefinitionFromDesign(fromApiQueryDefinition(parsed));
-      setOqueryValidationMessage("Valid OQuery");
     } catch (error) {
       setOqueryError(typeof error === "string" ? error : "Unable to parse OQuery text.");
     } finally {
@@ -694,7 +689,6 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     if (!oqueryText.trim() || oqueryStatus !== "idle") return;
     setOqueryStatus("applying");
     setOqueryError("");
-    setOqueryValidationMessage("");
     try {
       const syntaxError = getOquerySyntaxError(oqueryText, functionDefinitions, filterOperators);
       if (syntaxError) {
@@ -715,7 +709,6 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   const insertOqueryTemplate = () => {
     const entityName = activeDefinition.entity.trim();
     setOqueryError("");
-    setOqueryValidationMessage("");
     updateSelectedOQueryText("");
     setOqueryText([
       `${entityName}: Id`,
@@ -965,7 +958,6 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     updateSelectedOQueryText("");
     boundOqueryTextRef.current = "";
     setOqueryError("");
-    setOqueryValidationMessage("");
     setOqueryStatus("idle");
     const nextDefinition = createDefinition("");
     boundModelRef.current = JSON.stringify({ definition: nextDefinition, requestName: "" });
@@ -1157,11 +1149,9 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
                 onOqueryTextChange={(text) => {
                   setOqueryText(text);
                   updateSelectedOQueryText("");
-                  setOqueryValidationMessage("");
                 }}
                 onOQuerySelectionChange={updateSelectedOQueryText}
                 onExecuteOQueryContext={runOQueryContext}
-                oqueryValidationMessage={oqueryValidationMessage}
                 onFormatOquery={() => void formatOquery()}
                 onInsertOqueryTemplate={insertOqueryTemplate}
                 onApplyOquery={() => void applyOquery()}

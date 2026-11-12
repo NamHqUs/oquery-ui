@@ -385,8 +385,8 @@
   min-width: 0;
   overflow: hidden;
   font: 600 11px "Manrope", sans-serif;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
 }
 
 .diagram-table-header small {

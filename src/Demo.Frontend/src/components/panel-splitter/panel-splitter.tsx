@@ -9,6 +9,7 @@ type PanelSplitterProps = {
   orientation?: "vertical" | "horizontal";
   collapsible?: boolean;
   horizontalAnchor?: "top" | "bottom";
+  verticalAnchor?: "left" | "right";
 };
 
 const keyboardStep = 16;
@@ -19,6 +20,7 @@ export default function PanelSplitter({
   orientation = "vertical",
   collapsible = true,
   horizontalAnchor = "bottom",
+  verticalAnchor = "left",
 }: PanelSplitterProps) {
   const { width, collapsed, min, max, setWidth, toggle } = panel;
   const horizontal = orientation === "horizontal";
@@ -29,7 +31,7 @@ export default function PanelSplitter({
     const bounds = container.getBoundingClientRect();
     setWidth(horizontal
       ? horizontalAnchor === "top" ? event.clientY - bounds.top : bounds.bottom - event.clientY
-      : event.clientX - bounds.left);
+      : verticalAnchor === "right" ? bounds.right - event.clientX : event.clientX - bounds.left);
   };
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -43,8 +45,8 @@ export default function PanelSplitter({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if ((!horizontal && event.key === "ArrowLeft") || (horizontal && event.key === "ArrowDown")) setWidth(width - keyboardStep);
-    else if ((!horizontal && event.key === "ArrowRight") || (horizontal && event.key === "ArrowUp")) setWidth(width + keyboardStep);
+    if ((!horizontal && (verticalAnchor === "left" ? event.key === "ArrowLeft" : event.key === "ArrowRight")) || (horizontal && event.key === "ArrowDown")) setWidth(width - keyboardStep);
+    else if ((!horizontal && (verticalAnchor === "left" ? event.key === "ArrowRight" : event.key === "ArrowLeft")) || (horizontal && event.key === "ArrowUp")) setWidth(width + keyboardStep);
     else if (event.key === "Home") setWidth(min);
     else if (event.key === "End") setWidth(max);
     else return;

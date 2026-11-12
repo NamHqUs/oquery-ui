@@ -10,6 +10,9 @@ import JoinsBuilder from "./joins-builder/joins-builder";
 import OQueryEditor from "../../oquery-editor/oquery-editor";
 import { getOQuerySuggestionData } from "../../oquery-editor/oquery-suggestion-data";
 import { MetadataRelationsContext } from "./metadata-relations-context";
+import DiagramView, { type DiagramRelationship, type DiagramTable } from "../../metadata-builder/entity-diagram/diagram-view";
+import PanelSplitter from "../../panel-splitter/panel-splitter";
+import { useResizablePanel } from "../../../utils/use-resizable-panel";
 import "./query-design.css";
 
 type EntityMenuProps = {
@@ -181,7 +184,6 @@ type QueryDesignProps = {
   oqueryText: string;
   oqueryStatus: "idle" | "loading" | "applying";
   oqueryError: string;
-  oqueryValidationMessage: string;
   onOqueryTextChange: (text: string) => void;
   onOQuerySelectionChange: (text: string) => void;
   onExecuteOQueryContext?: (contextName: string) => void;
@@ -189,6 +191,16 @@ type QueryDesignProps = {
   onInsertOqueryTemplate: () => void;
   onApplyOquery: () => void;
 };
+
+type OQueryDiagramLayout = "horizontal" | "vertical";
+
+const OQUERY_DIAGRAM_LAYOUT_STORAGE_KEY = "OQuery.query-builder.diagram-layout";
+
+function readOQueryDiagramLayout(): OQueryDiagramLayout {
+  return window.localStorage.getItem(OQUERY_DIAGRAM_LAYOUT_STORAGE_KEY) === "vertical"
+    ? "vertical"
+    : "horizontal";
+}
 
 export default function QueryDesign({
   domainId,
@@ -217,7 +229,6 @@ export default function QueryDesign({
   oqueryText,
   oqueryStatus,
   oqueryError,
-  oqueryValidationMessage,
   onOqueryTextChange,
   onOQuerySelectionChange,
   onExecuteOQueryContext,
@@ -227,6 +238,8 @@ export default function QueryDesign({
 }: QueryDesignProps) {
   const [draggedProjectionField, setDraggedProjectionField] = useState<string | null>(null);
   const [contextDialogOpen, setContextDialogOpen] = useState(false);
+  const entityDiagramPanel = useResizablePanel("query-builder-oquery-diagram-height", 360, 220, 720);
+  const [diagramLayout, setDiagramLayout] = useState<OQueryDiagramLayout>(readOQueryDiagramLayout);
   const [newContextName, setNewContextName] = useState("");
   const [contextNameError, setContextNameError] = useState("");
   const contextEntities = contextDefinitions.map((context) => {
@@ -248,6 +261,30 @@ export default function QueryDesign({
   });
   const metadataRelations = useContext(MetadataRelationsContext);
   const suggestionData = getOQuerySuggestionData(metadata, metadataRelations);
+  const diagramTables: DiagramTable[] = metadata.map((item) => ({
+    schema: item.schema || "dbo",
+    name: item.name,
+    dbTable: item.dbTable,
+    columns: item.fields.map((field) => ({
+      name: field.name,
+      dataType: field.dataType || "String",
+      isPrimaryKey: false,
+    })),
+  }));
+  const diagramRelationships: DiagramRelationship[] = metadataRelations.map((relation) => {
+    const source = metadata.find((item) => item.name === relation.sourceEntity);
+    const target = metadata.find((item) => item.name === relation.targetEntity);
+    return {
+      name: relation.sourceRelationName || `${relation.sourceEntity} to ${relation.targetEntity}`,
+      sourceSchema: source?.schema || "dbo",
+      sourceTable: relation.sourceEntity,
+      sourceColumns: relation.sourceFields,
+      targetSchema: target?.schema || "dbo",
+      targetTable: relation.targetEntity,
+      targetColumns: relation.targetFields,
+      isUnique: false,
+    };
+  });
   const metadataWithContexts = [
     ...metadata,
     ...contextEntities.filter((context) => !metadata.some((item) => item.name === context.name)),
@@ -341,39 +378,85 @@ export default function QueryDesign({
         </form>
       </div>}
       {editorMode === "oquery" ? (
-        <div className="query-oquery-editor" role="tabpanel" aria-label="OQuery text editor">
-          <div className="query-oquery-editor-header">
-            <div className="query-oquery-feedback" aria-label="OQuery validation feedback">
-              {oqueryStatus === "loading" && <p className="query-message" role="status">Loading OQuery…</p>}
-              {oqueryStatus === "applying" && <p className="query-message" role="status">Checking OQuery…</p>}
-              {oqueryValidationMessage && <p className="query-oquery-valid" role="status">{oqueryValidationMessage}</p>}
-              {oqueryError && <p className="query-message error" role="alert">{oqueryError}</p>}
-            </div>
-          </div>
-          <OQueryEditor
-            textOverride={oqueryText}
-            onTextChange={onOqueryTextChange}
-            oquery
-            domain={{ id: domainId, name: domainId, entities: metadata, relations: metadataRelations }}
-            functionDefinitions={functionDefinitions}
-            operators={filterOperators}
-            suggestionFields={suggestionData.fields}
-            suggestionEntities={[...new Set([
-              ...suggestionData.entities,
-              ...contextDefinitions.map((context) => context.name),
-            ])]}
-            suggestionEntityName={definition.entity}
-            suggestionEntitiesMetadata={suggestionData.entitiesMetadata}
-            onSelectionChange={onOQuerySelectionChange}
-            onExecuteContext={onExecuteOQueryContext}
-            onBlur={(event) => {
-              if (event.relatedTarget instanceof Element && event.relatedTarget.closest(".saved-query-item")) return;
-              onApplyOquery();
+        <>
+        <div className="query-oquery-layout-controls" role="group" aria-label="Diagram and editor layout">
+          <span>Layout</span>
+          <button
+            type="button"
+            className={diagramLayout === "horizontal" ? "active" : ""}
+            aria-pressed={diagramLayout === "horizontal"}
+            onClick={() => {
+              setDiagramLayout("horizontal");
+              window.localStorage.setItem(OQUERY_DIAGRAM_LAYOUT_STORAGE_KEY, "horizontal");
             }}
-            errorFunctionName={oqueryError.match(/:\s+([A-Za-z_][A-Za-z0-9_]*) requires at least/i)?.[1] ?? ""}
-            disabled={oqueryStatus !== "idle"}
-          />
+          >
+            Horizontal
+          </button>
+          <button
+            type="button"
+            className={diagramLayout === "vertical" ? "active" : ""}
+            aria-pressed={diagramLayout === "vertical"}
+            onClick={() => {
+              setDiagramLayout("vertical");
+              window.localStorage.setItem(OQUERY_DIAGRAM_LAYOUT_STORAGE_KEY, "vertical");
+            }}
+          >
+            Vertical
+          </button>
+          <button
+            type="button"
+            className="query-oquery-collapse-button"
+            aria-expanded={!entityDiagramPanel.collapsed}
+            onClick={entityDiagramPanel.toggle}
+          >
+            {entityDiagramPanel.collapsed ? "Show diagram" : "Hide diagram"}
+          </button>
         </div>
+        <div className={`query-oquery-workspace ${diagramLayout} split-workspace${entityDiagramPanel.collapsed ? " panel-collapsed" : ""}`} style={entityDiagramPanel.style}>
+          <div className="query-oquery-diagram-panel">
+            <DiagramView
+              tables={diagramTables}
+              groups={[{ id: domainId, name: domainId || "Current domain", tables: diagramTables, tone: "custom" }]}
+              initialGroup={domainId || "Current domain"}
+              selectedTableName={definition.entity}
+              loading={metadataStatus === "loading"}
+              relationships={diagramRelationships}
+            />
+          </div>
+          <PanelSplitter
+            panel={entityDiagramPanel}
+            label="entity diagram"
+            orientation={diagramLayout === "horizontal" ? "horizontal" : "vertical"}
+            horizontalAnchor="top"
+            verticalAnchor="right"
+          />
+          <div className="query-oquery-editor" role="tabpanel" aria-label="OQuery text editor">
+            <OQueryEditor
+              textOverride={oqueryText}
+              onTextChange={onOqueryTextChange}
+              oquery
+              domain={{ id: domainId, name: domainId, entities: metadata, relations: metadataRelations }}
+              functionDefinitions={functionDefinitions}
+              operators={filterOperators}
+              suggestionFields={suggestionData.fields}
+              suggestionEntities={[...new Set([
+                ...suggestionData.entities,
+                ...contextDefinitions.map((context) => context.name),
+              ])]}
+              suggestionEntityName={definition.entity}
+              suggestionEntitiesMetadata={suggestionData.entitiesMetadata}
+              onSelectionChange={onOQuerySelectionChange}
+              onExecuteContext={onExecuteOQueryContext}
+              onBlur={(event) => {
+                if (event.relatedTarget instanceof Element && event.relatedTarget.closest(".saved-query-item")) return;
+                onApplyOquery();
+              }}
+              errorFunctionName={oqueryError.match(/:\s+([A-Za-z_][A-Za-z0-9_]*) requires at least/i)?.[1] ?? ""}
+              disabled={oqueryStatus !== "idle"}
+            />
+          </div>
+        </div>
+        </>
       ) : <><div className="query-builder-toolbar">
         <div className="query-entity-field">
           <div className="query-entity-label-row">

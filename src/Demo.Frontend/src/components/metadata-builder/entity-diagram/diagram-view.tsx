@@ -59,8 +59,8 @@ type DiagramViewProps = {
   onOpenTable?: (table: DiagramTable) => void;
 };
 
-const CARD_WIDTH = 210;
-const CARD_HEIGHT = 112;
+const CARD_WIDTH = 180;
+const CARD_HEIGHT = 96;
 const COLLAPSED_CARD_HEIGHT = 42;
 const BOARD_MARGIN = 20;
 const ARROW_CLEARANCE = 8;
@@ -175,7 +175,9 @@ function createLayout(tables, relationships, boardWidth, boardHeight) {
     || byName(left, right));
   const cardWidth = Math.min(CARD_WIDTH, Math.max(140, boardWidth - 2 * BOARD_MARGIN));
   const expandedCardHeight = Math.min(CARD_HEIGHT, Math.max(80, boardHeight - 2 * BOARD_MARGIN));
-  const cardHeight = COLLAPSED_CARD_HEIGHT;
+  // Reserve the expanded footprint while arranging so edges do not cross a
+  // card when the user opens its columns.
+  const cardHeight = expandedCardHeight;
   const center = { x: boardWidth / 2, y: boardHeight / 2 };
   const maxRadiusX = Math.max(0, (boardWidth - cardWidth) / 2 - BOARD_MARGIN);
   const maxRadiusY = Math.max(0, (boardHeight - cardHeight) / 2 - BOARD_MARGIN);
