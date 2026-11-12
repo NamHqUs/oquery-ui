@@ -27,7 +27,7 @@ let cachedDefinition: QueryDefinition | null = null;
 const QUERY_DEFINITION_STORAGE_KEY = "OQuery-query-builder-definition";
 const OQUERY_DESIGN_HEIGHT_STORAGE_KEY = "OQuery.query-builder.oquery-design-height.v2";
 const OQUERY_DESIGN_HEIGHT_DEFAULT = 840;
-const OQUERY_DESIGN_HEIGHT_MIN = 440;
+const OQUERY_DESIGN_HEIGHT_MIN = 220;
 const OQUERY_DESIGN_HEIGHT_MAX = 1100;
 const EDITOR_MODE_SEARCH_PARAM = "mode";
 
@@ -181,18 +181,47 @@ function readOqueryDesignHeight() {
 }
 
 function QuerySectionSplitter({ height, onHeightChange }: { height: number; onHeightChange: (height: number) => void }) {
+  const getMinimumHeight = (splitter: HTMLDivElement) => {
+    const designSection = splitter.previousElementSibling;
+    if (!(designSection instanceof HTMLElement)) return OQUERY_DESIGN_HEIGHT_MIN;
+    const workspace = designSection.querySelector(".query-oquery-workspace");
+    if (!(workspace instanceof HTMLElement)) return OQUERY_DESIGN_HEIGHT_MIN;
+    const editor = workspace.querySelector(".query-oquery-code-editor");
+    const area = workspace.closest(".query-design-area");
+    const bottomPadding = area instanceof HTMLElement
+      ? Number.parseFloat(window.getComputedStyle(area).paddingBottom) || 0
+      : 0;
+    const editorMinimumHeight = editor instanceof HTMLElement
+      ? Number.parseFloat(window.getComputedStyle(editor).minHeight) || 0
+      : 0;
+    const gridRows = window.getComputedStyle(workspace).gridTemplateRows
+      .split(/\s+/)
+      .map((row) => Number.parseFloat(row))
+      .filter((row) => Number.isFinite(row));
+    const workspaceMinimumHeight = workspace.classList.contains("horizontal")
+      ? (gridRows[0] ?? 0) + (gridRows[1] ?? 0) + editorMinimumHeight
+      : editorMinimumHeight;
+    const requiredHeight = workspace.getBoundingClientRect().top
+      - designSection.getBoundingClientRect().top
+      + workspaceMinimumHeight
+      + bottomPadding;
+    return Math.max(OQUERY_DESIGN_HEIGHT_MIN, Math.ceil(requiredHeight));
+  };
+
   const resizeFromPointer = (event: PointerEvent<HTMLDivElement>) => {
     const designSection = event.currentTarget.previousElementSibling;
     if (!(designSection instanceof HTMLElement)) return;
-    const nextHeight = Math.min(OQUERY_DESIGN_HEIGHT_MAX, Math.max(OQUERY_DESIGN_HEIGHT_MIN, event.clientY - designSection.getBoundingClientRect().top));
+    const minimumHeight = getMinimumHeight(event.currentTarget);
+    const nextHeight = Math.min(OQUERY_DESIGN_HEIGHT_MAX, Math.max(minimumHeight, event.clientY - designSection.getBoundingClientRect().top));
     onHeightChange(nextHeight);
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const step = event.shiftKey ? 80 : 16;
-    if (event.key === "ArrowUp") onHeightChange(height - step);
+    const minimumHeight = getMinimumHeight(event.currentTarget);
+    if (event.key === "ArrowUp") onHeightChange(Math.max(minimumHeight, height - step));
     else if (event.key === "ArrowDown") onHeightChange(height + step);
-    else if (event.key === "Home") onHeightChange(OQUERY_DESIGN_HEIGHT_MIN);
+    else if (event.key === "Home") onHeightChange(minimumHeight);
     else if (event.key === "End") onHeightChange(OQUERY_DESIGN_HEIGHT_MAX);
     else return;
     event.preventDefault();

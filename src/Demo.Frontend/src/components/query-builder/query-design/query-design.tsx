@@ -15,6 +15,8 @@ import PanelSplitter from "../../panel-splitter/panel-splitter";
 import { useResizablePanel } from "../../../utils/use-resizable-panel";
 import "./query-design.css";
 
+const OQUERY_EDITOR_MIN_HEIGHT = 6 * 20.8 + 32;
+
 type EntityMenuProps = {
   entities: MetadataEntity[];
   value: string;
@@ -238,7 +240,7 @@ export default function QueryDesign({
 }: QueryDesignProps) {
   const [draggedProjectionField, setDraggedProjectionField] = useState<string | null>(null);
   const [contextDialogOpen, setContextDialogOpen] = useState(false);
-  const entityDiagramPanel = useResizablePanel("query-builder-oquery-diagram-height", 360, 5, 1200);
+  const entityDiagramPanel = useResizablePanel("query-builder-oquery-diagram-height", 360, OQUERY_EDITOR_MIN_HEIGHT, 1200);
   const [diagramLayout, setDiagramLayout] = useState<OQueryDiagramLayout>(readOQueryDiagramLayout);
   const [newContextName, setNewContextName] = useState("");
   const [contextNameError, setContextNameError] = useState("");
@@ -410,7 +412,7 @@ export default function QueryDesign({
             panel={entityDiagramPanel}
             label="entity diagram"
             orientation={diagramLayout === "horizontal" ? "horizontal" : "vertical"}
-            collapsible={diagramLayout !== "vertical"}
+            collapsible
             horizontalAnchor="top"
             verticalAnchor="right"
           />

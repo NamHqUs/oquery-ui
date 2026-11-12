@@ -2,7 +2,8 @@
 .query-builder-card:has(.query-oquery-completions) { overflow: visible; }
 .query-builder-card:has(.query-oquery-completions) { position: relative; z-index: 3000; }
 .query-editor-tabs { margin-left: 0; }
-.query-oquery-workspace { display: grid; min-width: 0; min-height: 0; overflow: visible; }
+.query-oquery-workspace { display: grid; min-width: 0; min-height: 0; box-sizing: border-box; overflow: auto; }
+.query-oquery-workspace > .query-oquery-editor { min-height: 0; }
 .query-oquery-workspace.horizontal { grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--panel-height, 360px) 4px auto; }
 .query-oquery-workspace.vertical { grid-template-columns: minmax(0, 1fr) 5px var(--panel-width, 360px); grid-template-rows: minmax(0, 1fr); }
 .query-oquery-workspace.horizontal.panel-collapsed { grid-template-rows: 0 24px auto; }
