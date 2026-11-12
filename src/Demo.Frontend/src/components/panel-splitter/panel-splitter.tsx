@@ -1,4 +1,4 @@
-import type { KeyboardEvent, PointerEvent } from "react";
+import { useRef, type KeyboardEvent, type PointerEvent } from "react";
 import type { ResizablePanel } from "../../utils/use-resizable-panel";
 import Icon from "../icon/icon";
 import "./panel-splitter.css";
@@ -24,6 +24,8 @@ export default function PanelSplitter({
 }: PanelSplitterProps) {
   const { width, collapsed, min, max, setWidth, toggle } = panel;
   const horizontal = orientation === "horizontal";
+  const collapsedDrag = useRef(false);
+  const atMinimum = !collapsed && width <= min;
 
   const resizeFromPointer = (event: PointerEvent<HTMLDivElement>) => {
     const container = event.currentTarget.closest(".split-workspace");
@@ -36,12 +38,25 @@ export default function PanelSplitter({
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
+    collapsedDrag.current = collapsed;
     event.currentTarget.setPointerCapture(event.pointerId);
-    resizeFromPointer(event);
+    if (!collapsed) resizeFromPointer(event);
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) resizeFromPointer(event);
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    if (collapsedDrag.current) {
+      collapsedDrag.current = false;
+      toggle();
+    }
+    resizeFromPointer(event);
+  };
+
+  const handlePointerEnd = (event: PointerEvent<HTMLDivElement>) => {
+    collapsedDrag.current = false;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -54,8 +69,8 @@ export default function PanelSplitter({
   };
 
   return (
-    <div className={`panel-splitter${horizontal ? ` horizontal ${horizontalAnchor}` : ""}${collapsed ? " collapsed" : ""}`}>
-      {!collapsed && (
+    <div className={`panel-splitter${horizontal ? ` horizontal ${horizontalAnchor}` : ""}${collapsed ? " collapsed" : ""}${atMinimum ? " at-minimum" : ""}`}>
+      {(!collapsed || !horizontal) && (
         <div
           className="panel-splitter-handle"
           role="separator"
@@ -67,6 +82,8 @@ export default function PanelSplitter({
           tabIndex={0}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerEnd}
+          onPointerCancel={handlePointerEnd}
           onKeyDown={handleKeyDown}
           onDoubleClick={toggle}
         />

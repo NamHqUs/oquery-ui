@@ -238,7 +238,7 @@ export default function QueryDesign({
 }: QueryDesignProps) {
   const [draggedProjectionField, setDraggedProjectionField] = useState<string | null>(null);
   const [contextDialogOpen, setContextDialogOpen] = useState(false);
-  const entityDiagramPanel = useResizablePanel("query-builder-oquery-diagram-height", 360, 220, 720);
+  const entityDiagramPanel = useResizablePanel("query-builder-oquery-diagram-height", 360, 5, 1200);
   const [diagramLayout, setDiagramLayout] = useState<OQueryDiagramLayout>(readOQueryDiagramLayout);
   const [newContextName, setNewContextName] = useState("");
   const [contextNameError, setContextNameError] = useState("");
@@ -379,39 +379,6 @@ export default function QueryDesign({
       </div>}
       {editorMode === "oquery" ? (
         <>
-        <div className="query-oquery-layout-controls" role="group" aria-label="Diagram and editor layout">
-          <span>Layout</span>
-          <button
-            type="button"
-            className={diagramLayout === "horizontal" ? "active" : ""}
-            aria-pressed={diagramLayout === "horizontal"}
-            onClick={() => {
-              setDiagramLayout("horizontal");
-              window.localStorage.setItem(OQUERY_DIAGRAM_LAYOUT_STORAGE_KEY, "horizontal");
-            }}
-          >
-            Horizontal
-          </button>
-          <button
-            type="button"
-            className={diagramLayout === "vertical" ? "active" : ""}
-            aria-pressed={diagramLayout === "vertical"}
-            onClick={() => {
-              setDiagramLayout("vertical");
-              window.localStorage.setItem(OQUERY_DIAGRAM_LAYOUT_STORAGE_KEY, "vertical");
-            }}
-          >
-            Vertical
-          </button>
-          <button
-            type="button"
-            className="query-oquery-collapse-button"
-            aria-expanded={!entityDiagramPanel.collapsed}
-            onClick={entityDiagramPanel.toggle}
-          >
-            {entityDiagramPanel.collapsed ? "Show diagram" : "Hide diagram"}
-          </button>
-        </div>
         <div className={`query-oquery-workspace ${diagramLayout} split-workspace${entityDiagramPanel.collapsed ? " panel-collapsed" : ""}`} style={entityDiagramPanel.style}>
           <div className="query-oquery-diagram-panel">
             <DiagramView
@@ -421,12 +388,29 @@ export default function QueryDesign({
               selectedTableName={definition.entity}
               loading={metadataStatus === "loading"}
               relationships={diagramRelationships}
+              hideActiveGroup
+              navigationActions={
+                <button
+                  type="button"
+                  className="diagram-navigation-icon-button"
+                  aria-label={`Switch to ${diagramLayout === "horizontal" ? "vertical" : "horizontal"} layout`}
+                  title={`Switch to ${diagramLayout === "horizontal" ? "vertical" : "horizontal"} layout`}
+                  onClick={() => {
+                    const nextLayout = diagramLayout === "horizontal" ? "vertical" : "horizontal";
+                    setDiagramLayout(nextLayout);
+                    window.localStorage.setItem(OQUERY_DIAGRAM_LAYOUT_STORAGE_KEY, nextLayout);
+                  }}
+                >
+                  <Icon name={diagramLayout === "horizontal" ? "layout-horizontal" : "layout-vertical"} size={15} />
+                </button>
+              }
             />
           </div>
           <PanelSplitter
             panel={entityDiagramPanel}
             label="entity diagram"
             orientation={diagramLayout === "horizontal" ? "horizontal" : "vertical"}
+            collapsible={diagramLayout !== "vertical"}
             horizontalAnchor="top"
             verticalAnchor="right"
           />

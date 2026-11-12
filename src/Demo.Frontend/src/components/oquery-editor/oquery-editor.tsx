@@ -405,7 +405,6 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
   const visibleLines = new Set(projection.visible.map(item => item.line));
   const folds = getOqueryFolds(text);
   const foldsByLine = new Map(folds.map(fold => [fold.start, fold]));
-  const allFoldsCollapsed = folds.length > 0 && folds.every(fold => collapsed.has(fold.start));
   const hasVisibleFoldControls = showFoldControls
     && projection.visible.some(({ line }) => foldsByLine.has(line));
   const contextAtLine = (line: string) =>
@@ -481,14 +480,6 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
   return (
     <>
     <div className={`query-oquery-code-editor${showGutter && hasGutterContent ? "" : " no-gutter"}${showLineNumbers ? "" : " no-line-numbers"}${showFoldControls ? "" : " no-fold-controls"}${showContextRunAlways ? " show-context-run-always" : ""}`} style={compact ? { height: `${compactHeight}px` } : undefined}>
-      {showFoldControls && <div className="query-oquery-fold-actions" role="toolbar" aria-label="OQuery folding">
-        <button type="button" disabled={disabled || !folds.length}
-          aria-label={`${allFoldsCollapsed ? "Expand" : "Collapse"} all OQuery sections`}
-          title={`${allFoldsCollapsed ? "Expand" : "Collapse"} all OQuery sections`}
-          onClick={() => setCollapsed(allFoldsCollapsed ? new Set() : new Set(folds.map(fold => fold.start)))}>
-          <Icon name={allFoldsCollapsed ? "chevron-right" : "chevron-down"} size={13} />
-        </button>
-      </div>}
       {showGutter && hasGutterContent && <div ref={lineNumbersRef} className="query-oquery-line-numbers">
         {projection.visible.map(({ line }) => {
           const fold = foldsByLine.get(line);

@@ -57,6 +57,8 @@ type DiagramViewProps = {
   onSelectRelation?: (relation: DiagramRelationship & { from: string; to: string }) => void;
   relationInspector?: ReactNode;
   onOpenTable?: (table: DiagramTable) => void;
+  navigationActions?: ReactNode;
+  hideActiveGroup?: boolean;
 };
 
 const CARD_WIDTH = 180;
@@ -404,6 +406,8 @@ export default function DiagramView({
   onSelectRelation,
   relationInspector,
   onOpenTable,
+  navigationActions,
+  hideActiveGroup = false,
 }: DiagramViewProps) {
   const dispatch = useDispatch();
   const { schema, schemaStatus, schemaError, debugUiEnabled } = useSelector((state) => state.database);
@@ -557,7 +561,7 @@ export default function DiagramView({
       </div>}
       {(!suppliedTables || suppliedGroups?.length) && <div className="diagram-group-toolbar">
         <nav className="diagram-group-switch" aria-label="Diagram table groups">
-          {groups.map((group) => (
+          {groups.filter((group) => !hideActiveGroup || group.name !== initialGroup).map((group) => (
             <button
               type="button"
               className={`diagram-group-button tone-${group.tone || domainTone(group.name)}${activeGroup?.name === group.name ? " active" : ""}`}
@@ -597,6 +601,7 @@ export default function DiagramView({
               <span className="diagram-group-count">{group.tables.length}</span>
             </button>
           ))}
+          {navigationActions}
         </nav>
         <div className="diagram-layout-controls">
           <label className="diagram-auto-range">

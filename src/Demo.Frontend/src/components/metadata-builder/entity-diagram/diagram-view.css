@@ -68,6 +68,28 @@
   gap: 8px;
 }
 
+.diagram-navigation-icon-button {
+  display: grid;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  margin-left: auto;
+  padding: 0;
+  color: #aeb7c5;
+  border: 1px solid #424958;
+  border-radius: 3px;
+  background: #171d28;
+  cursor: pointer;
+}
+
+.diagram-navigation-icon-button:hover,
+.diagram-navigation-icon-button:focus-visible {
+  color: #f0ecff;
+  border-color: #8068d1;
+  outline: 0;
+}
+
 .diagram-layout-controls {
   display: flex;
   flex: 0 0 auto;
