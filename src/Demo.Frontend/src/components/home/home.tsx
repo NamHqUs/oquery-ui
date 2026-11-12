@@ -63,6 +63,7 @@ function Playground({
   functionDefinitions,
   suggestionData,
   editorHostRef,
+  domainId,
 }: {
   initialQuery: string;
   label: string;
