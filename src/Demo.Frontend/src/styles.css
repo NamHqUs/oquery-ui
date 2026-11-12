@@ -27,7 +27,7 @@ button { cursor: pointer; }
 .app-subnav .hp-subnav-links a { font-family: "Manrope", sans-serif; }
 .app-subnav-actions { display: flex; align-items: center; margin-left: auto; }
 .app-subnav-actions-hidden { display: none; }
-.function-subnav-intro { display: flex; flex-direction: column; justify-content: center; gap: 1px; margin-left: 12px; padding-left: 12px; border-left: 1px solid #2b3140; }
+.function-subnav-intro { display: flex; flex-direction: column; justify-content: center; gap: 1px; margin-left: 12px; padding-left: 12px; }
 .function-subnav-intro strong { color: #dce1eb; font-size: 12px; font-weight: 600; }
 .function-subnav-intro span { color: var(--muted); font-size: 10px; }
 .page-content { min-width: 0; }

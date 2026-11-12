@@ -1,4 +1,5 @@
 import { type CSSProperties, type KeyboardEvent, type PointerEvent, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import type { FunctionDefinition } from "../function-definition/types";
@@ -559,6 +560,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   const [queryRequestNotice, setQueryRequestNotice] = useState("");
   const [requestNameError, setRequestNameError] = useState("");
   const [isSavingQuery, setIsSavingQuery] = useState(false);
+  const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
   const [oqueryDesignHeight, setOqueryDesignHeight] = useState(readOqueryDesignHeight);
   const [oqueryDesignResized, setOqueryDesignResized] = useState(() => Boolean(window.localStorage.getItem(OQUERY_DESIGN_HEIGHT_STORAGE_KEY)));
   const entity = useMemo(() => metadata.find((item) => item.name === definition.entity), [metadata, definition.entity]);
@@ -577,6 +579,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
       ),
     [metadata, activeDefinition, definition.contextCatalog],
   );
+  useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   const updateDefinition = (nextDefinition: QueryDefinition) => {
     setQueryBuilderDefinition(nextDefinition);
     setDefinition(nextDefinition);
@@ -1062,14 +1065,8 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
 
   return (
     <>
-      <section className="page-heading query-page-heading">
-        <div className="query-heading-main">
-          <span className="query-heading-mark"><Icon name="query" size={21} /></span>
-          <div className="query-heading-copy">
-            <span className="query-heading-eyebrow">QUERY WORKSPACE <i /> DESIGN Â· RUN Â· REFINE</span>
-          </div>
-        </div>
-        <div className="heading-actions">
+      {toolbarHost && createPortal(
+        <div className="query-toolbar-actions" role="toolbar" aria-label="Query actions">
           {onBackToHome && <button className="button secondary" onClick={onBackToHome}><Icon name="arrow-left" size={14} /> Back to home</button>}
           {!selectedRequestIsBuiltin && <>
             {selectedRequestName && <button type="button" className="button secondary query-icon-button query-delete-button" aria-label="Delete query" title="Delete query" onClick={() => void removeCurrentRequest()}>
@@ -1088,8 +1085,9 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
             isError={Boolean(queryRequestsError)}
             placement="anchor"
           />
-        </div>
-      </section>
+        </div>,
+        toolbarHost,
+      )}
 
       <div className={editorMode === "oquery" ? `query-builder-sections oquery-layout${oqueryDesignResized ? " oquery-layout-resized" : ""}` : "query-builder-sections"} style={editorMode === "oquery" ? { "--oquery-design-height": `${oqueryDesignHeight}px` } as CSSProperties : undefined}>
         <section className="query-section query-design-section" aria-label="Section 1: Design">

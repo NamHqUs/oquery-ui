@@ -130,7 +130,7 @@ function PageSubnav({
           </div>
         )}
       </div>
-      <div className={`app-subnav-actions${page === "metadata" || page === "functions" ? "" : " app-subnav-actions-hidden"}`} id="metadata-toolbar-actions">
+      <div className={`app-subnav-actions${page === "metadata" || page === "functions" || page === "builder" ? "" : " app-subnav-actions-hidden"}`} id="metadata-toolbar-actions">
       </div>
     </nav>
   );
@@ -143,8 +143,6 @@ function App() {
   const page = pageForPath(location.pathname);
   const [metadataVisited, setMetadataVisited] = useState(() => location.pathname === PAGE_PATHS.metadata || pageForPath(location.pathname) === "metadata");
   const [functionDefinitionsVisited, setFunctionDefinitionsVisited] = useState(() => location.pathname === PAGE_PATHS.functions);
-  const [queryBuilderVisited, setQueryBuilderVisited] = useState(() => location.pathname === PAGE_PATHS.builder);
-  const [queryBuilderInstance, setQueryBuilderInstance] = useState(0);
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
   const metadataNavigationGuard = useRef<NavigationGuard | null>(null);
   const metadataSectionNavigation = useRef<((section: MetadataSection) => void) | null>(null);
@@ -187,7 +185,6 @@ function App() {
   useEffect(() => {
     if (location.pathname === PAGE_PATHS.metadata || pageForPath(location.pathname) === "metadata") setMetadataVisited(true);
     if (location.pathname === PAGE_PATHS.functions) setFunctionDefinitionsVisited(true);
-    if (location.pathname === PAGE_PATHS.builder) setQueryBuilderVisited(true);
   }, [location.pathname]);
 
   const requestDatabaseConnection = useCallback(() => setConnectionDialogOpen(true), []);
@@ -211,7 +208,6 @@ function App() {
     const continueNavigation = () => {
       if (nextPage === "metadata") setMetadataVisited(true);
       if (nextPage === "functions") setFunctionDefinitionsVisited(true);
-      if (nextPage === "builder") setQueryBuilderVisited(true);
       approvedNavigation.current = destination;
       routerNavigate(destination);
     };
@@ -345,13 +341,12 @@ function App() {
         </div>,
         document.body,
       )}
-      {queryBuilderVisited && <div hidden={page !== "builder"} className={page === "builder" ? "page-transition page-transition-no-slide" : undefined}><QueryBuilder
-        key={queryBuilderInstance}
+      {page === "builder" && <QueryBuilder
         onRequestConnection={requestDatabaseConnection}
         onBackToHome={new URLSearchParams(location.search).get("from") === "home"
           ? () => navigateToPage("home")
           : undefined}
-      /></div>}
+      />}
       {metadataVisited && page === "metadata" && location.pathname !== DATABASE_EXPLORER_PATH && <div className="page-transition page-transition-no-slide"><MetadataBuilder onNavigationGuardChange={updateMetadataNavigationGuard} onSectionNavigationChange={updateMetadataSectionNavigation} /></div>}
       {metadataVisited && page === "metadata" && location.pathname === DATABASE_EXPLORER_PATH && <DataSources onRequestConnection={requestDatabaseConnection} />}
       {functionDefinitionsVisited && <div hidden={page !== "functions"} className={page === "functions" ? "page-transition page-transition-no-slide" : undefined}>
