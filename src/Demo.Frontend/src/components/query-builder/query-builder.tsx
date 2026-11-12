@@ -1075,6 +1075,27 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
               <Icon name="save" size={17} />
             </button>
           </>}
+          {editorMode === "oquery" && <>
+            <button type="button" className="button secondary query-icon-button" onClick={insertOqueryTemplate}
+              aria-label="Insert OQuery template" title="Insert OQuery template" disabled={oqueryStatus !== "idle"}>
+              <Icon name="file-plus" size={14} />
+            </button>
+            <button type="button" className="button secondary query-icon-button" onClick={() => void formatOquery()}
+              aria-label="Format OQuery" title="Format OQuery" disabled={oqueryStatus !== "idle" || !oqueryText.trim()}>
+              <Icon name="code" size={14} />
+            </button>
+            <button
+              type="button"
+              className="button primary query-icon-button"
+              onClick={() => void applyOquery()}
+              aria-busy={oqueryStatus === "applying"}
+              aria-label="Check OQuery"
+              title="Check OQuery"
+              disabled={oqueryStatus !== "idle" || !oqueryText.trim()}
+            >
+              <Icon name="check" size={15} />
+            </button>
+          </>}
           <button type="button" className="button secondary query-icon-button query-new-button" aria-label="New query" title="New query" onClick={startNewRequest}>
             <Icon name="file-plus" size={17} />
           </button>

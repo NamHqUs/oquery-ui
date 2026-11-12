@@ -296,10 +296,8 @@ export default function QueryDesign({
     <section className="query-builder-card">
       <div className="query-name-row">
         <div className="query-name-field">
-          <div className="query-name-label-row">
-            <span className="section-kicker">{selectedContextIndex === null ? "QUERY NAME" : "CONTEXT NAME"}</span>
-          </div>
           <input
+            className="query-name-input"
             type="text"
             value={selectedContextIndex === null ? requestName : contextDefinitions[selectedContextIndex]?.name ?? ""}
             onChange={(event) => selectedContextIndex === null
@@ -345,35 +343,11 @@ export default function QueryDesign({
       {editorMode === "oquery" ? (
         <div className="query-oquery-editor" role="tabpanel" aria-label="OQuery text editor">
           <div className="query-oquery-editor-header">
-            <div>
-              <span className="section-kicker">OQUERY TEXT</span>
-              <div className="query-oquery-feedback" aria-label="OQuery validation feedback">
-                {oqueryStatus === "loading" && <p className="query-message" role="status">Loading OQuery…</p>}
-                {oqueryStatus === "applying" && <p className="query-message" role="status">Checking OQuery…</p>}
-                {oqueryValidationMessage && <p className="query-oquery-valid" role="status">{oqueryValidationMessage}</p>}
-                {oqueryError && <p className="query-message error" role="alert">{oqueryError}</p>}
-              </div>
-            </div>
-            <div className="query-oquery-editor-actions">
-              <button type="button" className="button secondary" onClick={onInsertOqueryTemplate}
-                aria-label="Insert OQuery template" title="Insert OQuery template" disabled={oqueryStatus !== "idle"}>
-                <Icon name="file-plus" size={14} />
-              </button>
-              <button type="button" className="button secondary" onClick={onFormatOquery}
-                aria-label="Format OQuery" title="Format OQuery" disabled={oqueryStatus !== "idle" || !oqueryText.trim()}>
-                <Icon name="code" size={14} />
-              </button>
-              <button
-                type="button"
-                className="button primary"
-                onClick={onApplyOquery}
-                aria-busy={oqueryStatus === "applying"}
-                aria-label="Check OQuery"
-                title="Check OQuery"
-                disabled={oqueryStatus !== "idle" || !oqueryText.trim()}
-              >
-                <Icon name="check" size={15} />
-              </button>
+            <div className="query-oquery-feedback" aria-label="OQuery validation feedback">
+              {oqueryStatus === "loading" && <p className="query-message" role="status">Loading OQuery…</p>}
+              {oqueryStatus === "applying" && <p className="query-message" role="status">Checking OQuery…</p>}
+              {oqueryValidationMessage && <p className="query-oquery-valid" role="status">{oqueryValidationMessage}</p>}
+              {oqueryError && <p className="query-message error" role="alert">{oqueryError}</p>}
             </div>
           </div>
           <OQueryEditor
