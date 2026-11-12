@@ -423,7 +423,7 @@ export default function DiagramView({
     const updateSize = (width, height) => {
       if (width <= 0 || height <= 0) return;
       const nextWidth = Math.max(320, Math.floor(width));
-      const nextHeight = Math.max(220, Math.floor(height));
+      const nextHeight = Math.max(82, Math.floor(height));
       if (!hasInitialLayoutSize.current) {
         setLayoutSize({ width: nextWidth, height: nextHeight });
         hasInitialLayoutSize.current = true;
