@@ -174,7 +174,7 @@ export default function FieldsBuilder({
               {columnPickerOpen && createPortal(
                 <div
                   ref={schemaMenuRef}
-                  className="schema-column-menu"
+                  className="metadata-dropdown-menu schema-column-menu"
                   role="dialog"
                   aria-label="Select database columns"
                   style={{ top: columnMenuPosition.top, left: columnMenuPosition.left }}
@@ -354,10 +354,10 @@ export default function FieldsBuilder({
                     <Icon name="chevron-down" size={12} />
                   </button>
                   {openDataTypeIndex === index && (
-                    <div className="field-data-type-menu" role="listbox" aria-label="Data type">
+                    <div className="metadata-dropdown-menu field-data-type-menu" role="listbox" aria-label="Data type">
                       {dataTypes.map((dataType) => (
                         <button
-                          className="field-data-type-option"
+                          className="metadata-dropdown-item field-data-type-option"
                           type="button"
                           role="option"
                           aria-selected={field.dataType === dataType}

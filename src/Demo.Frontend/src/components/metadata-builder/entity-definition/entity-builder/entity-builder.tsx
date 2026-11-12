@@ -152,12 +152,11 @@ export default function EntityBuilder({
                     ? `${selectedTable.schema || "dbo"}.${selectedTable.name}`
                     : "Select a table"}
                 </span>
-                <Icon name="chevron" size={14} />
               </button>
             </label>
             {tablePickerOpen && (
               <div
-                className="metadata-table-picker-menu"
+                className="metadata-dropdown-menu metadata-table-picker-menu"
                 onKeyDown={(event) => {
                   if (event.key === "Escape") {
                     event.preventDefault();
@@ -168,7 +167,7 @@ export default function EntityBuilder({
                 {!selectedTable && (
                   <button
                     type="button"
-                    className="metadata-raw-sql-menu-item"
+                    className="metadata-dropdown-item metadata-raw-sql-menu-item"
                     onClick={() => {
                       setRawSqlMode(true);
                       onSelectRawSql?.();

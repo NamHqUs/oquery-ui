@@ -32,17 +32,16 @@
 .field-data-type-trigger svg:last-child { margin-left: auto; }
 .field-data-type-trigger svg { flex: 0 0 auto; color: #a78bfa; }
 .field-data-type-trigger svg:last-child { color: #858fa1; }
-.field-data-type-menu { position: absolute; z-index: 10; top: calc(100% + 2px); right: 0; display: grid; min-width: 100%; width: max-content; padding: 4px; border: 1px solid #3b3d52; border-radius: 3px; background: #171923; box-shadow: 0 8px 18px #00000055; }
-.field-data-type-option { display: flex; align-items: center; gap: 6px; padding: 5px 8px; color: #c0c5d1; font-size: 12px; text-align: left; white-space: nowrap; }
+.field-data-type-menu { position: absolute; z-index: 10; top: calc(100% + 2px); right: 0; display: grid; min-width: 100%; width: max-content; }
+.field-data-type-option { white-space: nowrap; }
 .field-data-type-option .icon { flex: 0 0 auto; color: #a78bfa; }
-.field-data-type-option:hover, .field-data-type-option[aria-selected="true"] { color: #fff; background: #211d32 !important; }
 .button.compact.add-field-button { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; margin-top: 16px; padding: 0; border: 1px solid #3b3d52; border-radius: 3px; color: #c9b8ff; background: #211d32; font: 12px "Manrope", sans-serif; }
 .editor-section-head .button.compact.add-field-button { margin-top: 0; }
 .button.compact.add-field-button:hover { border-color: #8064e8; color: #fff; background: #30264d; }
 .field-actions { display: flex; align-items: center; gap: 10px; }
 .schema-column-picker { position: relative; }
-.schema-column-menu { position: fixed; z-index: 1000; display: grid; width: min(320px, calc(100vw - 32px)); max-height: 340px; padding: 9px; border: 1px solid #3b3d52; border-radius: 3px; background: #171923; box-shadow: 0 12px 24px #00000055; }
-.schema-column-menu-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -9px -9px 8px; padding: 8px 9px; color: #dce1eb; border-bottom: 1px solid #3b3d52; background: #211d32; font-size: 12px; }
+.schema-column-menu { position: fixed; z-index: 1000; display: grid; width: min(320px, calc(100vw - 32px)); max-height: 340px; }
+.schema-column-menu-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -5px -5px 8px; padding: 8px 9px; color: #dce1eb; border-bottom: 1px solid #3b3d52; background: #211d32; font-size: 12px; }
 .schema-column-menu-head button { padding: 0; color: var(--purple); border: 0; background: transparent; font-size: 12px; }
 .schema-column-list { display: grid; max-height: 250px; overflow-y: auto; gap: 2px; }
 .schema-column-list label { display: grid; grid-template-columns: 14px 1fr auto; align-items: center; gap: 6px; padding: 5px 4px; color: #c0c5d1; font-size: 12px; font-weight: 400; }

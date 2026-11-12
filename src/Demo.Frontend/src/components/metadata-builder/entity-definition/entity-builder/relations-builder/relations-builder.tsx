@@ -19,6 +19,13 @@ type PickerState = {
   flipUp: boolean;
 };
 
+type ColumnPickerState = PickerState & {
+  keyIndex: number;
+  field: "dbColumn" | "refDbColumn";
+  options: string[];
+  value: string;
+};
+
 const pickerMenuMaxHeight = 240;
 
 type RelationsBuilderProps = {
@@ -40,8 +47,11 @@ export default function RelationsBuilder({
 }: RelationsBuilderProps) {
   const relations = relationsForEntity(currentEntity.name, domainRelations);
   const [openEntityPicker, setOpenEntityPicker] = useState<PickerState | null>(null);
+  const [openColumnPicker, setOpenColumnPicker] = useState<ColumnPickerState | null>(null);
   const pickerTriggerRefs = useRef<Record<number, HTMLButtonElement | null>>({});
   const pickerMenuRef = useRef<HTMLDivElement | null>(null);
+  const columnPickerTriggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const columnPickerMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!openEntityPicker) return;
@@ -69,6 +79,33 @@ export default function RelationsBuilder({
       window.removeEventListener("resize", closeOnResize);
     };
   }, [openEntityPicker]);
+
+  useEffect(() => {
+    if (!openColumnPicker) return;
+    const pickerKey = `${openColumnPicker.index}-${openColumnPicker.keyIndex}-${openColumnPicker.field}`;
+
+    function closeOnOutsidePointer(event: PointerEvent) {
+      const target = event.target as Node;
+      if (columnPickerMenuRef.current?.contains(target) || columnPickerTriggerRefs.current[pickerKey]?.contains(target)) return;
+      setOpenColumnPicker(null);
+    }
+    function closeOnScroll(event: Event) {
+      if (columnPickerMenuRef.current?.contains(event.target as Node)) return;
+      setOpenColumnPicker(null);
+    }
+    function closeOnResize() {
+      setOpenColumnPicker(null);
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    document.addEventListener("scroll", closeOnScroll, true);
+    window.addEventListener("resize", closeOnResize);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      document.removeEventListener("scroll", closeOnScroll, true);
+      window.removeEventListener("resize", closeOnResize);
+    };
+  }, [openColumnPicker]);
 
   function isRawSql(entity: MetadataEntity | EditableEntity) {
     return Boolean(entity.rawSql?.trim() && entity.rawSql.trim() !== entity.name.trim());
@@ -228,10 +265,36 @@ export default function RelationsBuilder({
     });
   }
 
+  function toggleColumnPicker(
+    index: number,
+    keyIndex: number,
+    field: "dbColumn" | "refDbColumn",
+    options: string[],
+    value: string,
+    trigger: HTMLButtonElement,
+  ) {
+    const rect = trigger.getBoundingClientRect();
+    const flipUp = rect.bottom + pickerMenuMaxHeight + 4 > window.innerHeight;
+    const next = {
+      index,
+      keyIndex,
+      field,
+      options,
+      value,
+      left: rect.left,
+      width: rect.width,
+      anchorY: flipUp ? rect.top : rect.bottom,
+      flipUp,
+    };
+    const pickerKey = `${index}-${keyIndex}-${field}`;
+    setOpenColumnPicker((current) =>
+      current && `${current.index}-${current.keyIndex}-${current.field}` === pickerKey ? null : next);
+  }
+
   const pickerMenu = openEntityPicker && createPortal(
     <div
       ref={pickerMenuRef}
-      className="relation-entity-picker-menu"
+      className="metadata-dropdown-menu relation-entity-picker-menu"
       style={{
         left: openEntityPicker.left,
         width: openEntityPicker.width,
@@ -242,6 +305,7 @@ export default function RelationsBuilder({
     >
       {availableEntities.map((entity) => (
         <button
+          className="metadata-dropdown-item"
           type="button"
           key={entity.name}
           onClick={() => selectReferenceEntity(openEntityPicker.index, entity.name)}
@@ -249,7 +313,40 @@ export default function RelationsBuilder({
           {entity.name}
         </button>
       ))}
-      {!availableEntities.length && <span className="relation-entity-picker-empty">No entities available.</span>}
+      {!availableEntities.length && <span className="metadata-dropdown-empty relation-entity-picker-empty">No entities available.</span>}
+    </div>,
+    document.body,
+  );
+
+  const columnPickerMenu = openColumnPicker && createPortal(
+    <div
+      ref={columnPickerMenuRef}
+      className="metadata-dropdown-menu relation-column-picker-menu"
+      style={{
+        left: openColumnPicker.left,
+        width: openColumnPicker.width,
+        ...(openColumnPicker.flipUp
+          ? { bottom: window.innerHeight - openColumnPicker.anchorY + 4 }
+          : { top: openColumnPicker.anchorY + 4 }),
+      }}
+      role="listbox"
+      aria-label="Select column"
+    >
+      {openColumnPicker.options.map((column) => (
+        <button
+          className="metadata-dropdown-item"
+          type="button"
+          role="option"
+          aria-selected={column === openColumnPicker.value}
+          key={column}
+          onClick={() => {
+            updateKeyPair(openColumnPicker.index, openColumnPicker.keyIndex, openColumnPicker.field, column);
+            setOpenColumnPicker(null);
+          }}
+        >
+          {column}
+        </button>
+      ))}
     </div>,
     document.body,
   );
@@ -272,6 +369,7 @@ export default function RelationsBuilder({
         </button>
       </div>
 
+      {columnPickerMenu}
       {!relations.length
         ? <div className="section-empty">No relations defined. Use + to link {thisLabel} to another entity.</div>
         : <div className="relation-table-scroll">
@@ -332,7 +430,6 @@ export default function RelationsBuilder({
                               aria-label="Related entity"
                             >
                               <span>{view.refEntity || "Select entity"}</span>
-                              <Icon name="chevron" size={13} />
                             </button>
                           </td>
                           <td rowSpan={pairs.length}>
@@ -347,29 +444,30 @@ export default function RelationsBuilder({
                           </td>
                         </>}
                         <td>
-                          <select
+                          <button
+                            ref={(element) => { columnPickerTriggerRefs.current[`${index}-${keyIndex}-dbColumn`] = element; }}
                             className="relation-field relation-column-picker"
-                            value={key.dbColumn}
-                            onChange={(event) => updateKeyPair(index, keyIndex, "dbColumn", event.target.value)}
+                            type="button"
+                            aria-expanded={openColumnPicker?.index === index && openColumnPicker.keyIndex === keyIndex && openColumnPicker.field === "dbColumn"}
                             aria-label={`${thisLabel} column, key ${keyIndex + 1}`}
+                            onClick={(event) => toggleColumnPicker(index, keyIndex, "dbColumn", currentColumns, key.dbColumn, event.currentTarget)}
                           >
-                            <option value="">Select column</option>
-                            {currentColumns.map((column) => <option key={column} value={column}>{column}</option>)}
-                          </select>
+                            {key.dbColumn || "Select column"}
+                          </button>
                         </td>
                         <td>
                           <div className="relation-select-wrapper">
-                            <select
-                            className="relation-field relation-column-picker"
-                              value={key.refDbColumn}
+                            <button
+                              ref={(element) => { columnPickerTriggerRefs.current[`${index}-${keyIndex}-refDbColumn`] = element; }}
+                              className="relation-field relation-column-picker"
+                              type="button"
                               disabled={!hasReference}
-                              onChange={(event) => updateKeyPair(index, keyIndex, "refDbColumn", event.target.value)}
                               aria-label={`Related column, key ${keyIndex + 1}`}
+                              aria-expanded={openColumnPicker?.index === index && openColumnPicker.keyIndex === keyIndex && openColumnPicker.field === "refDbColumn"}
+                              onClick={(event) => toggleColumnPicker(index, keyIndex, "refDbColumn", referenceColumns, key.refDbColumn, event.currentTarget)}
                             >
-                              <option value="">Select column</option>
-                              {referenceColumns.map((column) => <option key={column} value={column}>{column}</option>)}
-                            </select>
-                            <Icon name="chevron-down" size={13} />
+                              {key.refDbColumn || "Select column"}
+                            </button>
                           </div>
                         </td>
                         <td>

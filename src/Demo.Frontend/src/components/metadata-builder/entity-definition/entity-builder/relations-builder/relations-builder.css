@@ -8,21 +8,19 @@
 .relation-col-key { width: 56px; }
 .relation-col-remove { width: 36px; }
 .metadata-editor-content .relation-table .relation-field { box-sizing: border-box; width: 100%; height: 28px; min-width: 0; padding: 0 8px; color: #dce1eb; background: transparent; border: 0; border-radius: 2px; outline: 0; font-size: 12px; }
-.relation-table .relation-column-picker option { color: #dce1eb; background: #191e28; border: 1px solid #3b4352; }
 .relation-table .relation-field:focus { border: 0; }
 .relation-table .relation-field:disabled { opacity: .45; }
 .relation-select-wrapper { position: relative; }
-.relation-select-wrapper .relation-field { appearance: none; height: 28px; padding: 0 24px 0 8px; font-family: inherit; font-size: 12px; color: #dce1eb; background: transparent; }
+.relation-column-picker { display: flex; align-items: center; height: 28px; padding: 0 8px; color: #dce1eb; font-family: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.relation-column-picker:disabled { cursor: not-allowed; }
 .relation-entity-picker-trigger { font-family: inherit; }
 .relation-select-wrapper > svg { position: absolute; top: 50%; right: 8px; color: #858fa1; pointer-events: none; transform: translateY(-50%); }
 .relation-entity-picker-trigger { display: flex; box-sizing: border-box; align-items: center; justify-content: space-between; gap: 6px; width: 100%; height: 28px; padding: 0 8px; color: #dce1eb; background: transparent; border: 0; border-radius: 2px; font-size: 12px; text-align: left; cursor: pointer; }
 .relation-entity-picker-trigger:focus-visible, .relation-entity-picker-trigger.open { border: 0; outline: 0; }
 .relation-entity-picker-trigger span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.relation-entity-picker-trigger svg { flex: 0 0 auto; color: #858fa1; }
 .relation-key-actions { display: flex; align-items: center; justify-content: center; gap: 2px; }
 .relation-remove-cell { text-align: center; }
-.relation-entity-picker-menu { position: fixed; z-index: 1000; box-sizing: border-box; max-height: 240px; overflow-y: auto; padding: 5px; border: 1px solid #3b4352; border-radius: 3px; background: #191e28; box-shadow: 0 12px 25px #00000055; }
-.relation-entity-picker-menu button { display: block; width: 100%; padding: 8px 9px; color: #dce1eb; background: transparent; border: 0; border-radius: 2px; text-align: left; font-size: 12px; }
-.relation-entity-picker-menu button:hover { background: #29233d; color: #fff; }
-.relation-entity-picker-empty { display: block; padding: 8px 9px; color: #858fa1; font-size: 12px; }
+.relation-entity-picker-menu { position: fixed; z-index: 1000; max-height: 240px; overflow-y: auto; }
+.relation-column-picker-menu { position: fixed; z-index: 1000; min-width: 180px; max-height: 240px; overflow-y: auto; }
+.relation-entity-picker-empty { display: block; }
 .relation-add-button { align-self: flex-start; }
