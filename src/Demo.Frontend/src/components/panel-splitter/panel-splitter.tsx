@@ -80,7 +80,12 @@ export default function PanelSplitter({
           aria-label={collapsed ? `Expand ${label}` : `Collapse ${label}`}
           title={collapsed ? `Expand ${label}` : `Collapse ${label}`}
         >
-          <Icon name={collapsed ? "chevron-right" : "chevron-left"} size={12} />
+          <Icon
+            name={horizontal ? "chevron-down" : verticalAnchor === "right"
+              ? collapsed ? "chevron-left" : "chevron-right"
+              : collapsed ? "chevron-right" : "chevron-left"}
+            size={12}
+          />
         </button>
       )}
     </div>
