@@ -24,6 +24,7 @@
 .query-builder-sections.oquery-layout.oquery-layout-resized .query-design-area .query-builder-card { display: flex; flex-direction: column; }
 .query-builder-sections.oquery-layout.oquery-layout-resized .query-oquery-workspace { flex: 1 1 auto; height: auto; }
 .query-builder-sections.oquery-layout.oquery-layout-resized .query-oquery-workspace.horizontal { grid-template-rows: var(--panel-height, 360px) 4px minmax(0, 1fr); overflow: auto; }
+.query-builder-sections.oquery-layout.oquery-layout-resized .query-oquery-workspace.horizontal.panel-collapsed { grid-template-rows: 0 19px minmax(0, 1fr); }
 .query-builder-sections.oquery-layout.oquery-layout-resized .query-oquery-editor { min-height: 0; }
 .query-builder-sections.oquery-layout.oquery-layout-resized .query-oquery-code-editor { min-height: calc(6 * 20.8px + 32px); }
 .query-builder-sections.oquery-layout .query-result-section { height: clamp(320px, 60vh, 640px); box-sizing: border-box; margin-top: 0; overflow: auto; scrollbar-gutter: stable; }

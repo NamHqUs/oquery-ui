@@ -4,7 +4,7 @@
 .panel-splitter-handle::after { position: absolute; top: 0; bottom: 0; left: 3px; width: 1px; background: #29243f; content: ""; transition: background .15s ease; }
 .panel-splitter-handle:hover::after, .panel-splitter-handle:focus-visible::after { background: var(--purple); }
 .panel-splitter-handle:focus-visible { outline: 0; }
-.panel-splitter-toggle { position: absolute; top: 16px; left: -11px; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; color: #8993a5; border: 1px solid var(--line); border-radius: 50%; background: #171b24; cursor: pointer; }
+.panel-splitter-toggle { position: absolute; top: 16px; left: -11px; display: grid; place-items: center; width: 22px; height: 22px; margin: 0; padding: 0; color: #8993a5; border: 1px solid var(--line); border-radius: 50%; background: #171b24; cursor: pointer; }
 .panel-splitter-toggle:hover, .panel-splitter-toggle:focus-visible { color: #fff; border-color: var(--purple); outline: 0; }
 .panel-splitter.collapsed .panel-splitter-toggle { left: 6px; }
 
@@ -66,12 +66,12 @@
   transform: rotate(180deg);
 }
 .panel-splitter.horizontal .panel-splitter-toggle {
-  top: -11px;
+  top: -30px;
   left: 50%;
   transform: translateX(-50%);
 }
 .panel-splitter.horizontal.collapsed .panel-splitter-toggle {
-  top: 6px;
+  top: 8px;
   left: 50%;
 }
 .panel-splitter.horizontal.collapsed {
