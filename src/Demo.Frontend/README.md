@@ -68,6 +68,9 @@ The frontend may render `name` in domain bars, selectors, and headings, but it
 must resolve that display value back to the canonical `id` before retrieving
 metadata or navigating. This keeps domain names renameable without breaking
 domain identity or loading the wrong domain.
+Diagram loads the built-in `All` domain when no domain is selected. Switching
+from Entity definitions to Diagram retains the selected domain ID in the
+Diagram URL so its metadata can be loaded.
 
 After connecting, the Data View groups tables by schema, displays column and relationship metadata, and previews up to 10 rows. Schema and relationship metadata come from `GET /db/schema`; preview data comes from `GET /db/data/{tableName}` with `schema` and `limit=10` query parameters. The schema Diagram remains available as the metadata-builder view.
 

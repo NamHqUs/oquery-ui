@@ -251,6 +251,9 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const activeSection: MetadataSection = entityOnly ? "entities" : requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "domains" || requestedSection === "functions" || requestedSection === "operators"
     ? requestedSection
     : "diagram";
+  const entityLoadDomainId = activeSection === "diagram" && location.pathname !== "/metadata" && !isEntityWizardRoute
+    ? domainId || "All"
+    : domainId;
   useEffect(() => {
     if (entityOnly || requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "domains" || requestedSection === "functions" || requestedSection === "operators") return;
     if (location.pathname === "/metadata") {
@@ -280,7 +283,11 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       return;
     }
     if (section === "diagram") {
-      navigate(DIAGRAMS_PATH);
+      const nextSearchParams = new URLSearchParams(searchParams);
+      nextSearchParams.delete("section");
+      if (domainId) nextSearchParams.set("domain", domainId);
+      const query = nextSearchParams.toString();
+      navigate(query ? `${DIAGRAMS_PATH}?${query}` : DIAGRAMS_PATH);
       return;
     }
     if (section === "entities") {
@@ -336,15 +343,19 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   };
   useDefinitionUnsavedWarning(dirty);
 
-  const loadEntities = async (selectFirst = false, preferredName = selectedName) => {
-    if (!domainId) return false;
-    const requestDomainId = domainId;
+  const loadEntities = async (
+    selectFirst = false,
+    preferredName = selectedName,
+    requestedDomainId = entityLoadDomainId,
+  ) => {
+    if (!requestedDomainId) return false;
+    const requestDomainId = requestedDomainId;
     if (metadataLoadDomainRef.current === requestDomainId) return false;
     metadataLoadDomainRef.current = requestDomainId;
     setStatus("loading");
     setMessage("");
     try {
-      const result = await dispatch(fetchQueryMetadata(domainId));
+      const result = await dispatch(fetchQueryMetadata(requestDomainId));
       if (!fetchQueryMetadata.fulfilled.match(result)) {
         if (result.meta.condition) return false;
         throw new Error(String(result.payload || "Unable to load metadata."));
@@ -352,7 +363,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       const { entities: loadedEntities, relations: loadedRelations } = result.payload;
       setDomainEntities(loadedEntities);
       setDomainRelations(loadedRelations);
-      setLoadedDomainId(domainId);
+      setLoadedDomainId(requestDomainId);
       const preferred = loadedEntities.find((entity) => entity.name === preferredName);
       if (selectFirst || !preferredName || !preferred) {
         const next = selectFirst ? loadedEntities[0] : preferred;
@@ -370,7 +381,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       setStatus("succeeded");
       return true;
     } catch (error) {
-      setLoadedDomainId(domainId);
+      setLoadedDomainId(requestDomainId);
       setStatus("failed");
       setMessage(error instanceof Error ? error.message : "Unable to load metadata.");
       return false;
@@ -383,17 +394,17 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
 
   useEffect(() => {
     if (activeSection !== "diagram" && activeSection !== "entities") return;
-    if (skipNextMetadataLoadRef.current && domainId) {
+    if (skipNextMetadataLoadRef.current && entityLoadDomainId) {
       skipNextMetadataLoadRef.current = false;
       return;
     }
-    void loadEntities(true);
-  }, [activeSection, domainId]);
+    void loadEntities(true, selectedName, entityLoadDomainId);
+  }, [activeSection, entityLoadDomainId]);
   useEffect(() => {
     if (metadataStatus === "idle" || metadataStatus === "loading") return;
-    if (loadedDomainId === domainId || status !== "loading") return;
-    void loadEntities(true);
-  }, [metadataStatus]);
+    if (loadedDomainId === entityLoadDomainId || status !== "loading") return;
+    void loadEntities(true, selectedName, entityLoadDomainId);
+  }, [metadataStatus, entityLoadDomainId, loadedDomainId, status]);
   useEffect(() => {
     let cancelled = false;
     if (activeSection === "diagram") {
