@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Icon, { type IconName } from "../../icon/icon";
 import PanelSplitter from "../../panel-splitter/panel-splitter";
 import DomainWizard, { type WizardSource } from "./domain-wizard";
+import { createDomainPath, editDomainPath, parseWizardRoute } from "../metadata-routes";
 import { useResizablePanel } from "../../../utils/use-resizable-panel";
 import MetadataSidebar, { type MetadataSidebarGroup } from "../metadata-sidebar/metadata-sidebar";
 import EntityBuilder, { type DatabaseTableOption } from "../entity-definition/entity-builder/entity-builder";
@@ -53,8 +54,6 @@ type Step = 1 | 2 | 3;
 type ViewMode = "list" | "wizard" | "detail";
 const DOMAINS_PATH = "/metadata/domains";
 const DIAGRAMS_PATH = "/metadata/diagrams";
-const ENTITY_CREATE_PATH = "/metadata/entities/create";
-const ENTITY_EDIT_PATH = "/metadata/entities/edit";
 const ENTITIES_PATH = "/metadata/entities";
 const DESCRIPTION_PREVIEW_LENGTH = 240;
 type DomainNavigationState = {
@@ -274,9 +273,9 @@ export default function DomainList({
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const editRouteMatch = location.pathname.match(/^\/metadata\/entities\/edit\/([^/]+)$/);
-  const editRouteDomainId = editRouteMatch?.[1];
-  const isCreateRoute = location.pathname === ENTITY_CREATE_PATH;
+  const wizardRoute = parseWizardRoute(location.pathname);
+  const editRouteDomainId = wizardRoute?.mode === "edit" ? wizardRoute.domainId : undefined;
+  const isCreateRoute = wizardRoute?.mode === "create";
   const isEditRoute = Boolean(editRouteDomainId) || Boolean(new URLSearchParams(location.search).get("edit"));
   const returnTo = (location.state as DomainNavigationState | null)?.returnTo;
   const { schema, schemaStatus, connectionStatus } = useSelector((state: RootState) => state.database);
@@ -424,8 +423,8 @@ export default function DomainList({
     void load();
   }, [active, location.pathname, location.search, domains, editRouteDomainId, isCreateRoute]);
   useEffect(() => {
-    if (schemaStatus === "idle") void dispatch(fetchDbSchema());
-  }, [dispatch, schemaStatus]);
+    if (viewMode === "wizard" && schemaStatus === "idle") void dispatch(fetchDbSchema());
+  }, [dispatch, schemaStatus, viewMode]);
   useEffect(() => {
     if (!isEditRoute
       || wizardSource !== "database"
@@ -489,7 +488,7 @@ export default function DomainList({
     setEntityDirty(false);
   }, [active, location.pathname, location.search, domainItems, selectedName, status, editRouteDomainId, isCreateRoute]);
   const createDomain = (source: WizardSource = "database") => {
-    navigate(ENTITY_CREATE_PATH, {
+    navigate(createDomainPath("domains"), {
       state: {
         returnTo: `${location.pathname}${location.search}${location.hash}`,
       },
@@ -518,7 +517,7 @@ export default function DomainList({
   };
   const editDomain = (domain: Domain) => {
     if (domain.isBuiltin) return;
-    navigate(`${ENTITY_EDIT_PATH}/${encodeURIComponent(domain.id)}`);
+    navigate(editDomainPath("domains", domain.id));
     setViewMode("wizard");
     setSelectedName(domain.id);
     setDraftName(domain.name);

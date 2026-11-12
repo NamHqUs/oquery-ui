@@ -27,7 +27,16 @@ button { cursor: pointer; }
 .app-subnav .hp-subnav-links a { font-family: "Manrope", sans-serif; }
 .app-subnav-actions { display: flex; align-items: center; margin-left: auto; }
 .app-subnav-actions-hidden { display: none; }
+.query-builder-subnav-item { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; color: #626b7d; font: 600 12px "Manrope", sans-serif; white-space: nowrap; }
+.query-builder-subnav-item small { padding: 2px 6px; border: 1px solid #3b4050; border-radius: 999px; color: #8d96a8; background: #171b24; font: 600 9px "Manrope", sans-serif; letter-spacing: .3px; text-transform: uppercase; }
+.query-builder-subnav-item:last-child small { color: #c7b5ff; border-color: #51446e; background: #211b32; }
+.query-builder-domain-bar { margin: 0; padding: 8px 20px; border-right: 1px solid #29243f; border-left: 1px solid #29243f; }
+.query-builder-domain-bar p { margin: 6px 0 0; }
+.query-builder-domain-list { flex-wrap: wrap; justify-content: flex-end; }
+.query-builder-domain-list .diagram-group-button { font-family: "Manrope", sans-serif; }
 .function-subnav-intro { display: flex; flex-direction: column; justify-content: center; gap: 1px; margin-left: 12px; padding-left: 12px; }
+.query-builder-domain-bar { flex-wrap: wrap; }
+.query-builder-domain-list { min-width: 0; }
 .function-subnav-intro strong { color: #dce1eb; font-size: 12px; font-weight: 600; }
 .function-subnav-intro span { color: var(--muted); font-size: 10px; }
 .page-content { min-width: 0; }

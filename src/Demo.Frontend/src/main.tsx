@@ -9,6 +9,7 @@ import DatabaseConnection from "./components/data-sources/database-connection/da
 import { fetchDbProvider } from "./components/data-sources/database-slice";
 import QueryBuilder from "./components/query-builder/query-builder";
 import MetadataBuilder from "./components/metadata-builder/metadata-builder";
+import { parseWizardRoute, WIZARD_ROUTE_PATHS } from "./components/metadata-builder/metadata-routes";
 import FunctionDefinitionsWorkspace from "./components/function-definition/function-definition";
 import Home from "./components/home/home";
 import Documentation from "./components/documentation/documentation";
@@ -30,8 +31,6 @@ const PAGE_PATHS = {
 const LEGACY_FUNCTIONS_PATH = "/functions";
 const DOMAINS_PATH = "/metadata/domains";
 const DIAGRAMS_PATH = "/metadata/diagrams";
-const ENTITY_CREATE_PATH = "/metadata/entities/create";
-const ENTITY_EDIT_PATH = "/metadata/entities/edit";
 const ENTITIES_PATH = "/metadata/entities";
 const DATABASE_EXPLORER_PATH = "/metadata/explorer";
 const METADATA_LAST_ROUTE_STORAGE_KEY = "oquery.metadata.last-route";
@@ -49,17 +48,18 @@ const HOME_SUBMENU = [
 ] as const;
 
 const PAGE_SUBMENUS: Record<Exclude<Page, "home">, readonly string[]> = {
-  builder: ["Design query", "Results"],
+  builder: [],
   sources: ["Connections", "Tables", "Schema"],
   metadata: ["Domains", "Diagram", "Entity definitions", "Explore database"],
   functions: [],
   documentation: ["Overview", "Query syntax", "Security", "Next steps"],
 };
+const QUERY_DOMAIN_TONES = ["revenue", "customer", "product", "finance", "custom"] as const;
 
 function pageForPath(path: string): Page | null {
-  if (path === DOMAINS_PATH || path === DIAGRAMS_PATH || path === ENTITY_CREATE_PATH
-    || path === ENTITIES_PATH || path.startsWith(`${ENTITY_EDIT_PATH}/`)
-    || path.startsWith(`${ENTITIES_PATH}/`) || path === DATABASE_EXPLORER_PATH) return "metadata";
+  if (path === DOMAINS_PATH || path === DIAGRAMS_PATH || parseWizardRoute(path)
+    || path === ENTITIES_PATH || path.startsWith(`${ENTITIES_PATH}/`)
+    || path === DATABASE_EXPLORER_PATH) return "metadata";
   return (Object.keys(PAGE_PATHS) as Page[]).find((page) => PAGE_PATHS[page] === path) ?? null;
 }
 
@@ -99,18 +99,17 @@ function PageSubnav({
       active = false;
     };
   }, [location.search, onBuilderDomainSelect, page]);
-  const metadataSection = location.pathname === DOMAINS_PATH
+  const wizardRoute = parseWizardRoute(location.pathname);
+  const metadataSection = wizardRoute
+    ? wizardRoute.section
+    : location.pathname === DOMAINS_PATH
     ? "domains"
-    : location.pathname === ENTITY_CREATE_PATH
-      || location.pathname.startsWith(`${ENTITY_EDIT_PATH}/`)
-      || location.pathname === ENTITIES_PATH
+    : location.pathname === ENTITIES_PATH
       || location.pathname.startsWith(`${ENTITIES_PATH}/`)
       ? "entities"
     : location.pathname === DATABASE_EXPLORER_PATH
       ? "explorer"
     : location.pathname === DIAGRAMS_PATH
-      || location.pathname === ENTITY_CREATE_PATH
-      || location.pathname.startsWith(`${ENTITY_EDIT_PATH}/`)
       ? "diagram"
       : new URLSearchParams(location.search).get("section") ?? "diagram";
   if (!page) return null;
@@ -130,42 +129,63 @@ function PageSubnav({
   }
 
   return (
-    <nav className="hp-subnav app-subnav" aria-label={`${page} sections`}>
-      <span className="hp-subnav-brand">{page === "builder" ? "QUERY BUILDER" : page.replace("-", " ").toUpperCase()}</span>
-      <div className="hp-subnav-links">
-        {page === "builder" ? queryDomains.map((domain) => {
-          const isActive = new URLSearchParams(location.search).get("domain") === domain.id;
-          return <button
-            key={domain.id}
-            type="button"
-            className={isActive ? "active" : undefined}
-            aria-current={isActive ? "page" : undefined}
-            onClick={() => onBuilderDomainSelect(domain.id)}
-          >{domain.name}</button>;
-        }) : PAGE_SUBMENUS[page].map((item) => {
-          const itemSection = item === "Diagram" ? "diagram" : item === "Entity definitions" ? "entities" : item === "Domains" ? "domains" : undefined;
-          const metadataItemSection = itemSection ?? (item === "Explore database" ? "explorer" : undefined);
-          const isActive = page === "metadata" && metadataItemSection === metadataSection;
-          return <button
-            key={item}
-            type="button"
-            className={isActive ? "active" : undefined}
-            aria-current={isActive ? "page" : undefined}
-            onClick={page === "metadata" && metadataItemSection
-              ? () => onMetadataSectionSelect(metadataItemSection)
-              : undefined}
-          >{item}</button>;
-        })}
-        {page === "functions" && (
-          <div className="function-subnav-intro">
-            <strong>Custom functions</strong>
-            <span>Extend the OQuery vocabulary with reusable business logic.</span>
-          </div>
-        )}
-      </div>
-      <div className={`app-subnav-actions${page === "metadata" || page === "functions" || page === "builder" ? "" : " app-subnav-actions-hidden"}`} id="metadata-toolbar-actions">
-      </div>
-    </nav>
+    <>
+      <nav className="hp-subnav app-subnav" aria-label={`${page} sections`}>
+        <span className="hp-subnav-brand">{page === "builder" ? "QUERY BUILDER" : page.replace("-", " ").toUpperCase()}</span>
+        <div className={`hp-subnav-links${page === "builder" ? " query-builder-subnav-links" : ""}`}>
+          {page === "builder" ? <>
+            <button type="button" className="active" aria-current="page">Plan text</button>
+            <span className="query-builder-subnav-item" aria-disabled="true">Query Builder <small>Hide</small></span>
+            <span className="query-builder-subnav-item" aria-disabled="true">AI Assistant <small>Roadmap</small></span>
+          </> : <>
+            {PAGE_SUBMENUS[page].map((item) => {
+            const itemSection = item === "Diagram" ? "diagram" : item === "Entity definitions" ? "entities" : item === "Domains" ? "domains" : undefined;
+            const metadataItemSection = itemSection ?? (item === "Explore database" ? "explorer" : undefined);
+            const isActive = page === "metadata" && metadataItemSection === metadataSection;
+            return <button
+              key={item}
+              type="button"
+              className={isActive ? "active" : undefined}
+              aria-current={isActive ? "page" : undefined}
+              onClick={page === "metadata" && metadataItemSection
+                ? () => onMetadataSectionSelect(metadataItemSection)
+                : undefined}
+            >{item}</button>;
+            })}
+            {page === "functions" && (
+              <div className="function-subnav-intro">
+                <strong>Custom functions</strong>
+                <span>Extend the OQuery vocabulary with reusable business logic.</span>
+              </div>
+            )}
+          </>}
+        </div>
+        <div className={`app-subnav-actions${page === "metadata" || page === "functions" || page === "builder" ? "" : " app-subnav-actions-hidden"}`} id="metadata-toolbar-actions">
+        </div>
+      </nav>
+      {page === "builder" && <div className="query-builder-domain-bar diagram-toolbar">
+        <div>
+          <span className="section-kicker">QUERY DOMAINS</span>
+          <p>Choose a domain to plan a query against its metadata.</p>
+        </div>
+        <nav className="diagram-group-switch query-builder-domain-list" aria-label="Query domains">
+          {queryDomains.map((domain, index) => {
+            const isActive = new URLSearchParams(location.search).get("domain") === domain.id;
+            return <button
+              key={domain.id}
+              type="button"
+              className={`diagram-group-button tone-${QUERY_DOMAIN_TONES[index % QUERY_DOMAIN_TONES.length]}${isActive ? " active" : ""}`}
+              aria-pressed={isActive}
+              aria-current={isActive ? "page" : undefined}
+              onClick={() => onBuilderDomainSelect(domain.id)}
+            >
+              <span className="diagram-group-mark" aria-hidden="true" />
+              <strong>{domain.name}</strong>
+            </button>;
+          })}
+        </nav>
+      </div>}
+    </>
   );
 }
 
@@ -222,8 +242,7 @@ function App() {
   useEffect(() => {
     if (page !== "metadata"
       || location.pathname === PAGE_PATHS.metadata
-      || location.pathname === ENTITY_CREATE_PATH
-      || location.pathname.startsWith(`${ENTITY_EDIT_PATH}/`)) return;
+      || parseWizardRoute(location.pathname)) return;
     window.sessionStorage.setItem(
       METADATA_LAST_ROUTE_STORAGE_KEY,
       `${location.pathname}${location.search}${location.hash}`,
@@ -297,7 +316,7 @@ function App() {
         </div>
         <div className="topnav-wrap">
           <span className="topnav-label">WORKSPACE</span>
-          <nav className="topnav" aria-label="Primary navigation"><button className={page === "metadata" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("metadata")}><Icon name="schema" /> Metadata</button><button className={page === "builder" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("builder")}><Icon name="query" /> Query builder</button><button className={page === "functions" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("functions")}><Icon name="function" /> Function definitions</button><button className={page === "documentation" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("documentation")}><Icon name="file-text" /> Docs</button></nav>
+          <nav className="topnav" aria-label="Primary navigation"><button className={page === "metadata" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("metadata")}><Icon name="schema" /> Metadata</button><button className={page === "builder" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("builder")}><Icon name="query" /> Playground</button><button className={page === "functions" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("functions")}><Icon name="function" /> Function definitions</button><button className={page === "documentation" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("documentation")}><Icon name="file-text" /> Docs</button></nav>
         </div>
         <div className="top-actions">
           {database.providerCheckStatus === "loading" ? (
@@ -360,8 +379,7 @@ function App() {
           <Route path={PAGE_PATHS.metadata} element={null} />
           <Route path={DOMAINS_PATH} element={null} />
           <Route path={DIAGRAMS_PATH} element={null} />
-          <Route path={ENTITY_CREATE_PATH} element={null} />
-          <Route path={`${ENTITY_EDIT_PATH}/:domainId`} element={null} />
+          {WIZARD_ROUTE_PATHS.map((path) => <Route key={path} path={path} element={null} />)}
           <Route path={ENTITIES_PATH} element={null} />
           <Route path={`${ENTITIES_PATH}/:domainId`} element={null} />
           <Route path={DATABASE_EXPLORER_PATH} element={null} />

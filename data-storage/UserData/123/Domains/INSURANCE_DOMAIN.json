@@ -1,5 +1,5 @@
 {
-  "Id": "9F6CF8F73358AFCBD4A160EFEEE20454270359BFB857EF9AB331161773C3FF0E",
+  "Id": "INSURANCE_DOMAIN",
   "Name": "Insurance",
   "Description": "The Insurance scope represents NorthStar\u2019s health-plan business. It focuses on insurance plans, policies, members, premiums, claims, denials, agents, and the relationship between collected premiums and healthcare costs.\n\nThis scope supports decisions about:\n\n- **Why claims are denied**\n- **Which plans generate revenue or claims exposure**\n- **How effectively agents manage their policy portfolios**\n- **How claims are processed**\n- **How much care members use compared with the premiums collected**\n- **Whether insurance plans appear financially favorable or unfavorable**\nThe Insurance scope emphasizes accurate financial analysis. Premiums, claims, policies, and installments are treated carefully so that related records do not incorrectly multiply totals during reporting.",
   "Entities": [

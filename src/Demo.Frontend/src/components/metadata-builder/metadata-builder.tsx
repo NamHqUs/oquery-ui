@@ -12,6 +12,7 @@ import { metadataEntityFromDto, MetadataEntity, setQueryMetadata, type DomainEnt
 import EntityList from "./entity-definition/entity-list/entity-list";
 import EntityBuilder, { type DatabaseTableOption } from "./entity-definition/entity-builder/entity-builder";
 import EntityDiagram from "./entity-diagram/entity-diagram";
+import { createDomainPath, editDomainPath, parseWizardRoute } from "./metadata-routes";
 import { EditableEntity, emptyEntity, findEntityNameProblem, findRelationProblem, pluralize, removeEntityFromRelations, renameEntitiesInRelations, renameEntityInRelations, singularize, toAbstractDataType, toEditable, toEntityPayload, toRelationPayload } from "./types";
 import FunctionDefinitionsWorkspace from "../function-definition/function-definition";
 import OperatorDefinition from "./operator-definition/operator-definition";
@@ -54,22 +55,11 @@ type SavedDomainDto = {
   entities: DomainEntityDto[];
   relations: DomainRelation[];
 };
-let domainSummaryCache: DomainSummary[] | null = null;
-let domainSummaryRequest: Promise<DomainSummary[]> | null = null;
-let domainOptionCache: DomainOption[] | null = null;
-let domainOptionRequest: Promise<DomainOption[]> | null = null;
 const DOMAINS_PATH = "/metadata/domains";
 const DIAGRAMS_PATH = "/metadata/diagrams";
-const ENTITY_CREATE_PATH = "/metadata/entities/create";
-const ENTITY_EDIT_PATH = "/metadata/entities/edit";
 const ENTITIES_PATH = "/metadata/entities";
 const DATABASE_EXPLORER_PATH = "/metadata/explorer";
 const DIAGRAM_DOMAIN_STORAGE_KEY = "oquery.metadata.last-diagram-domain-id";
-
-function entityEditDomainId(pathname: string) {
-  const match = pathname.match(/^\/metadata\/entities\/edit\/([^/]+)$/);
-  return match?.[1];
-}
 
 function entityDomainId(pathname: string) {
   const match = pathname.match(/^\/metadata\/entities\/([^/]+)$/);
@@ -110,37 +100,19 @@ function findEntityTable(entity: MetadataEntity, tables: DatabaseTableOption[]) 
 }
 
 async function loadDomainSummaries(): Promise<DomainSummary[]> {
-  if (domainSummaryCache) return domainSummaryCache;
-  if (domainSummaryRequest) return domainSummaryRequest;
-  domainSummaryRequest = domainService.listDomainNames()
-    .then((domains) => {
-      domainSummaryCache = domains.map(domain => ({
-        ...domain,
-        entities: [],
-        relations: [],
-        canDelete: domain.id !== "All",
-        isBuiltin: domain.id === "All",
-      }));
-      return domainSummaryCache;
-    })
-    .finally(() => {
-      domainSummaryRequest = null;
-    });
-  return domainSummaryRequest;
+  const domains = await domainService.listDomainNames();
+  return domains.map(domain => ({
+    ...domain,
+    entities: [],
+    relations: [],
+    canDelete: domain.id !== "All",
+    isBuiltin: domain.id === "All",
+  }));
 }
 
 async function loadDomainOptions(): Promise<DomainOption[]> {
-  if (domainOptionCache) return domainOptionCache;
-  if (domainOptionRequest) return domainOptionRequest;
-  domainOptionRequest = domainService.listDomainNames()
-    .then((domains) => {
-      domainOptionCache = domains.map(domain => ({ ...domain, description: "" }));
-      return domainOptionCache;
-    })
-    .finally(() => {
-      domainOptionRequest = null;
-    });
-  return domainOptionRequest;
+  const domains = await domainService.listDomainNames();
+  return domains.map(domain => ({ ...domain, description: "" }));
 }
 
 type MetadataBuilderProps = {
@@ -203,8 +175,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     const isNewDomain = !domainOptions.some((item) => item.id === domain.id);
     if (isNewDomain) {
       const options = await domainService.listDomainNames();
-      domainOptionCache = options.map((option) => ({ ...option, description: "" }));
-      setDomainOptions(domainOptionCache);
+      setDomainOptions(options.map((option) => ({ ...option, description: "" })));
     }
     setDomainEntities(domain.entities);
     setDomainRelations(domain.relations);
@@ -222,16 +193,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     setDomains((current) => current.some((item) => item.id === domain.id)
       ? current.map((item) => item.id === domain.id ? domain : item)
       : [...current, domain]);
-    if (domainSummaryCache) {
-      domainSummaryCache = domainSummaryCache.some((item) => item.id === domain.id)
-        ? domainSummaryCache.map((item) => item.id === domain.id ? domain : item)
-        : [...domainSummaryCache, domain];
-    }
-    if (domainOptionCache) {
-      domainOptionCache = domainOptionCache.some((item) => item.id === domain.id)
-        ? domainOptionCache.map((item) => item.id === domain.id ? { ...item, name: domain.name } : item)
-        : [...domainOptionCache, { id: domain.id, name: domain.name, description: "" }];
-    }
     skipNextMetadataLoadRef.current = true;
   };
   const [dirty, setDirty] = useState(false);
@@ -251,19 +212,19 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
   useEffect(() => { selectedNameRef.current = selectedName; }, [selectedName]);
   useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
-  const isEntityWizardRoute = location.pathname === ENTITY_CREATE_PATH
-    || Boolean(entityEditDomainId(location.pathname));
-  const entityRouteDomainId = entityDomainId(location.pathname);
+  const wizardRoute = parseWizardRoute(location.pathname);
+  const isEntityWizardRoute = Boolean(wizardRoute);
+  const entityRouteDomainId = wizardRoute ? undefined : entityDomainId(location.pathname);
   const requestedSection = location.pathname === DOMAINS_PATH
     ? "domains"
     : location.pathname === DIAGRAMS_PATH
       ? "diagram"
-      : isEntityWizardRoute
-      ? "diagram"
+      : wizardRoute
+      ? wizardRoute.section
       : location.pathname === ENTITIES_PATH || entityRouteDomainId
         ? "entities"
       : searchParams.get("section");
-  const domainId = entityEditDomainId(location.pathname) || entityRouteDomainId || searchParams.get("domain") || undefined;
+  const domainId = (wizardRoute?.mode === "edit" ? wizardRoute.domainId : undefined) || entityRouteDomainId || searchParams.get("domain") || undefined;
   const activeSection: MetadataSection = entityOnly ? "entities" : requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "domains" || requestedSection === "functions" || requestedSection === "operators"
     ? requestedSection
     : "diagram";
@@ -346,7 +307,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         fields: draft.fields.map(field => ({ ...field })),
       } : entity)
       : displayedEntities;
-    navigate(`${ENTITY_EDIT_PATH}/${encodeURIComponent(domainId)}`, {
+    navigate(editDomainPath(activeSection === "entities" ? "entities" : "diagram", domainId), {
       state: {
         domain: cloneDomain({
           ...domain,
@@ -512,10 +473,11 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     });
   }, [domainId, domainEntities, domainRelations, domains]);
   useEffect(() => {
-    if (databaseState.connectionStatus === "succeeded" && databaseState.schemaStatus === "idle") {
+    const onDomainsList = activeSection === "domains" && !isEntityWizardRoute;
+    if (databaseState.connectionStatus === "succeeded" && databaseState.schemaStatus === "idle" && !onDomainsList) {
       dispatch(fetchDbSchema());
     }
-  }, [databaseState.connectionStatus, databaseState.schemaStatus, dispatch]);
+  }, [activeSection, databaseState.connectionStatus, databaseState.schemaStatus, dispatch, isEntityWizardRoute]);
 
   const discardChanges = () => {
     if (domainId) {
@@ -533,7 +495,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   };
 
   const createDiagramDomain = () => {
-    navigate(ENTITY_CREATE_PATH, {
+    navigate(createDomainPath(activeSection === "entities" ? "entities" : "diagram"), {
       state: {
         returnTo: `${location.pathname}${location.search}${location.hash}`,
       },
@@ -652,7 +614,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       const nextDomain = domainOptions[deletedIndex + 1] || domainOptions[deletedIndex - 1];
       setDomainOptions((current) => current.filter((domain) => domain.id !== domainId));
       setDomains((current) => current.filter((domain) => domain.id !== domainId));
-      if (domainSummaryCache) domainSummaryCache = domainSummaryCache.filter((domain) => domain.id !== domainId);
       navigate(nextDomain
         ? `${DIAGRAMS_PATH}?domain=${encodeURIComponent(nextDomain.id)}`
         : DIAGRAMS_PATH);
@@ -1020,7 +981,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
 
   return (
     <>
-      {activeSection === "entities" && toolbarHost && createPortal(toolbarActions, toolbarHost)}
+      {activeSection === "entities" && !isEntityWizardRoute && toolbarHost && createPortal(toolbarActions, toolbarHost)}
       {!entityOnly && activeSection === "diagram" && !isEntityWizardRoute && <div className="metadata-workspace-panel">
         <EntityDiagram
           entities={displayedEntities}
@@ -1073,7 +1034,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           }
         />
       </div>}
-      <div className="metadata-workspace-panel" hidden={activeSection !== "entities"}>
+      <div className="metadata-workspace-panel" hidden={activeSection !== "entities" || isEntityWizardRoute}>
         <section className={`metadata-workspace split-workspace${panel.collapsed ? " panel-collapsed" : ""}`} style={panel.style}>
           <div className="metadata-entity-navigation">
             {domains.length > 0 && (
@@ -1170,12 +1131,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
           onDomainDeleted={(deletedDomainId) => {
             setDomains((current) => current.filter((domain) => domain.id !== deletedDomainId));
             setDomainOptions((current) => current.filter((domain) => domain.id !== deletedDomainId));
-            if (domainSummaryCache) {
-              domainSummaryCache = domainSummaryCache.filter((domain) => domain.id !== deletedDomainId);
-            }
-             if (domainOptionCache) {
-               domainOptionCache = domainOptionCache.filter((domain) => domain.id !== deletedDomainId);
-             }
           }}
         />
       </div>}
