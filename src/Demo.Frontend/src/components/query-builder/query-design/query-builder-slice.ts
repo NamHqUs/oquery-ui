@@ -31,6 +31,7 @@ type StoredQueryContextPayload = {
 type StoredQueryRequestPayload = {
   id: string;
   name: string;
+  domainId: string;
   entity: string;
   projections: ApiProjectionDefinition[];
   filter?: ApiQueryFilterGroup | null;
@@ -256,6 +257,7 @@ type ApiQueryContextDto = {
 export type ApiQueryDto = {
   id: string;
   name: string;
+  domainId: string;
   entity: string;
   projection: ApiProjectionDefinition[];
   filter?: ApiQueryFilterGroup | null;
@@ -277,6 +279,7 @@ export type SavedQueryRequestDto = ApiQueryDto;
 type ApiSavedQueryRequestDto = {
   id: string;
   name: string;
+  domainId: string;
   entity: string;
   projection: ApiProjectionDefinition[];
   filter?: ApiQueryFilterGroup | null;
@@ -414,6 +417,7 @@ function normalizeQueryRequestProjection(item: Record<string, unknown>): Record<
       : null;
   return {
     ...item,
+    domainId: item.domainId,
     projection: Array.isArray(item.projection) ? item.projection : item.projections,
     page: item.page ?? (typeof skip === "number" && typeof take === "number" && take > 0
       ? Math.floor(skip / take) + 1
@@ -953,7 +957,7 @@ function getSavedProjectionRows(definition: QueryDefinition): string[][] {
   return rows.filter((row) => row.length).map((row) => [...row]);
 }
 
-function toApiSavedRequest(request: { name: string; definition: QueryDefinition; id?: string }): StoredQueryRequestPayload {
+function toApiSavedRequest(request: { name: string; domainId: string; definition: QueryDefinition; id?: string }): StoredQueryRequestPayload {
   const apiQuery = createApiQuery(request.definition);
   const rows = getSavedProjectionRows(request.definition);
   const projection = rows.flatMap((row, rowIndex) => [
@@ -1026,6 +1030,7 @@ function toApiSavedRequest(request: { name: string; definition: QueryDefinition;
   return {
     id: request.id ?? "",
     name: request.name,
+    domainId: request.domainId,
     entity: apiQuery.entity,
     projections: projection,
     filter: apiQuery.filter,
@@ -1044,7 +1049,8 @@ export const fetchQueryMetadata = createAsyncThunk(
   "queryBuilder/fetchMetadata",
   async (domainId: string | undefined = undefined, { rejectWithValue }) => {
     try {
-      const requestedDomainId = domainId?.trim() || "All";
+      const requestedDomainId = domainId?.trim();
+      if (!requestedDomainId) return rejectWithValue("A domain is required to load query metadata.");
       const cached = queryMetadataCache.get(requestedDomainId);
       if (cached) return cached;
       const payload = await requestJson(apiUrls.metadata.domainById(requestedDomainId));
@@ -1133,9 +1139,9 @@ export const fetchFilterOperators = createAsyncThunk(
 
 export const executeQuery = createAsyncThunk(
   "queryBuilder/execute",
-  async (definition: QueryDefinition, { rejectWithValue }) => {
+  async ({ definition, domainId }: { definition: QueryDefinition; domainId: string }, { rejectWithValue }) => {
     try {
-      const payload = await requestJson(apiUrls.dynamicQuery.execute, {
+      const payload = await requestJson(`${apiUrls.dynamicQuery.execute}?domainId=${encodeURIComponent(domainId)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(toBackendApiQuery(createApiQuery(definition))),
@@ -1159,8 +1165,8 @@ export const executeQuery = createAsyncThunk(
 );
 
 /** Executes OQuery text without touching query-builder state. */
-export async function requestQueryResultFromText(text: string): Promise<QueryResult> {
-  const payload = await requestJson(apiUrls.dynamicQuery.executeText, {
+export async function requestQueryResultFromText(text: string, domainId: string): Promise<QueryResult> {
+  const payload = await requestJson(`${apiUrls.dynamicQuery.executeText}?domainId=${encodeURIComponent(domainId)}`, {
     method: "POST",
     headers: { "Content-Type": "text/plain" },
     body: text,
@@ -1180,8 +1186,8 @@ export async function requestQueryResultFromText(text: string): Promise<QueryRes
 }
 
 /** Returns the engine-generated SQL for OQuery text without touching query-builder state. */
-export function requestSqlStatementFromText(text: string): Promise<string> {
-  return requestText(apiUrls.dynamicQuery.toStringText, {
+export function requestSqlStatementFromText(text: string, domainId: string): Promise<string> {
+  return requestText(`${apiUrls.dynamicQuery.toStringText}?domainId=${encodeURIComponent(domainId)}`, {
     method: "POST",
     headers: { "Content-Type": "text/plain" },
     body: text,
@@ -1190,9 +1196,9 @@ export function requestSqlStatementFromText(text: string): Promise<string> {
 
 export const executeQueryFromText = createAsyncThunk(
   "queryBuilder/executeFromText",
-  async (text: string, { rejectWithValue }) => {
+  async ({ text, domainId }: { text: string; domainId: string }, { rejectWithValue }) => {
     try {
-      return await requestQueryResultFromText(text);
+      return await requestQueryResultFromText(text, domainId);
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : "Unable to execute query.");
     }
@@ -1201,9 +1207,9 @@ export const executeQueryFromText = createAsyncThunk(
 
 export const executeContextFromText = createAsyncThunk(
   "queryBuilder/executeContextFromText",
-  async ({ text, context }: { text: string; context: string }, { rejectWithValue }) => {
+  async ({ text, context, domainId }: { text: string; context: string; domainId: string }, { rejectWithValue }) => {
     try {
-      const payload = await requestJson(apiUrls.dynamicQuery.executeContextText(context), {
+      const payload = await requestJson(`${apiUrls.dynamicQuery.executeContextText(context)}?domainId=${encodeURIComponent(domainId)}`, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
         body: text,
@@ -1229,9 +1235,9 @@ export const executeContextFromText = createAsyncThunk(
 
 export const getSqlStatement = createAsyncThunk(
   "queryBuilder/getSqlStatement",
-  async (definition: QueryDefinition, { rejectWithValue }) => {
+  async ({ definition, domainId }: { definition: QueryDefinition; domainId: string }, { rejectWithValue }) => {
     try {
-      const payload = await requestText(apiUrls.dynamicQuery.toString, {
+      const payload = await requestText(`${apiUrls.dynamicQuery.toString}?domainId=${encodeURIComponent(domainId)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(toBackendApiQuery(createApiQuery(definition))),
@@ -1248,9 +1254,9 @@ export const getSqlStatement = createAsyncThunk(
 
 export const getSqlStatementFromText = createAsyncThunk(
   "queryBuilder/getSqlStatementFromText",
-  async (text: string, { rejectWithValue }) => {
+  async ({ text, domainId }: { text: string; domainId: string }, { rejectWithValue }) => {
     try {
-      return await requestSqlStatementFromText(text);
+      return await requestSqlStatementFromText(text, domainId);
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : "Unable to generate SQL statement.");
     }
@@ -1296,9 +1302,9 @@ export const parseQueryRequestText = createAsyncThunk(
 
 export const fetchQueryRequests = createAsyncThunk(
   "queryBuilder/fetchQueryRequests",
-  async (_, { rejectWithValue }) => {
+  async (domainId: string, { rejectWithValue }) => {
     try {
-      const payload = await requestJson(apiUrls.queryRequests.list);
+      const payload = await requestJson(`${apiUrls.queryRequests.list}?domainId=${encodeURIComponent(domainId)}`);
       const normalizedPayload = Array.isArray(payload)
         ? payload.map((item) => item && typeof item === "object" && !Array.isArray(item)
           ? normalizeQueryRequestProjection(item as Record<string, unknown>)
@@ -1308,6 +1314,7 @@ export const fetchQueryRequests = createAsyncThunk(
         || typeof item.isBuiltin !== "boolean"
         || typeof item.id !== "string"
         || typeof item.name !== "string"
+        || typeof item.domainId !== "string"
         || typeof item.entity !== "string"
         || !Array.isArray(item.projection)
         || (item.contexts !== undefined && item.contexts !== null
@@ -1323,12 +1330,12 @@ export const fetchQueryRequests = createAsyncThunk(
 
 export const saveQueryRequest = createAsyncThunk(
   "queryBuilder/saveQueryRequest",
-  async ({ name, definition, id }: { name: string; definition: QueryDefinition; id?: string }, { rejectWithValue }) => {
+  async ({ name, domainId, definition, id }: { name: string; domainId: string; definition: QueryDefinition; id?: string }, { rejectWithValue }) => {
     try {
       const response = await requestJson(id ? apiUrls.queryRequests.byId(id) : apiUrls.queryRequests.create, {
         method: id ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(toApiSavedRequest({ name, definition, id })),
+        body: JSON.stringify(toApiSavedRequest({ name, domainId, definition, id })),
       });
       const saved = response && typeof response === "object" && !Array.isArray(response)
         ? normalizeQueryRequestProjection(response as Record<string, unknown>)
@@ -1336,6 +1343,7 @@ export const saveQueryRequest = createAsyncThunk(
       if (!saved
         || typeof saved.id !== "string"
         || typeof saved.name !== "string"
+        || typeof saved.domainId !== "string"
         || typeof saved.entity !== "string"
         || !Array.isArray(saved.projection)
         || (saved.contexts !== undefined && saved.contexts !== null

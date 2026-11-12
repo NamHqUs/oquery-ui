@@ -337,7 +337,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   useDefinitionUnsavedWarning(dirty);
 
   const loadEntities = async (selectFirst = false, preferredName = selectedName) => {
-    const requestDomainId = domainId || "All";
+    if (!domainId) return false;
+    const requestDomainId = domainId;
     if (metadataLoadDomainRef.current === requestDomainId) return false;
     metadataLoadDomainRef.current = requestDomainId;
     setStatus("loading");
@@ -349,8 +350,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         throw new Error(String(result.payload || "Unable to load metadata."));
       }
       const { entities: loadedEntities, relations: loadedRelations } = result.payload;
-      setDomainEntities(domainId ? loadedEntities : null);
-      setDomainRelations(domainId ? loadedRelations : null);
+      setDomainEntities(loadedEntities);
+      setDomainRelations(loadedRelations);
       setLoadedDomainId(domainId);
       const preferred = loadedEntities.find((entity) => entity.name === preferredName);
       if (selectFirst || !preferredName || !preferred) {

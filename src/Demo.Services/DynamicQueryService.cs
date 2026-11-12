@@ -21,13 +21,13 @@ public sealed class DynamicQueryService(
         return QueryDefinitionOQueryParser.Parse(text);
     }
 
-    public string GetSqlQueryString(QueryDefinition query, string? scopeName)
+    public string GetSqlQueryString(QueryDefinition query, string domainId)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(domainId);
         using var connection = dbConnectionService.CreateConnection();
         var dialect = SqlDialect.ForProvider(dbConnectionService.GetCurrentProvider(), connection);
-        var metadataProvider = new MetadataProvider(domainService.GetById(scopeName ?? "All")
-            .ToEntities()
-            .ToArray());
+        var metadataProvider = CreateMetadataProvider(domainId, dbConnectionService.GetCurrentProvider());
+        ValidateQueryEntities(query, metadataProvider, domainId);
         using var context = new OQueryEngine(
             connection,
             metadataProvider,
@@ -39,7 +39,7 @@ public sealed class DynamicQueryService(
 
     public async Task<TableDataDto> ExecuteQueryAsync(
         QueryDefinition query,
-        string? scopeName,
+        string domainId,
         CancellationToken cancellationToken = default)
     {
 
@@ -47,9 +47,8 @@ public sealed class DynamicQueryService(
 
         using var connection = dbConnectionService.CreateConnection();
         var dialect = SqlDialect.ForProvider(dbConnectionService.GetCurrentProvider(), connection);
-        var metadataProvider = new MetadataProvider(domainService.GetById(scopeName ?? "All")
-            .ToEntities()
-            .ToArray());
+        var metadataProvider = CreateMetadataProvider(domainId, dbConnectionService.GetCurrentProvider());
+        ValidateQueryEntities(query, metadataProvider, domainId);
         using var context = new OQueryEngine(
             connection,
             metadataProvider,
@@ -78,11 +77,11 @@ public sealed class DynamicQueryService(
     public Task<TableDataDto> ExecuteContextQueryAsync(
         string text,
         string contextName,
-        string? scopeName,
+        string domainId,
         CancellationToken cancellationToken = default)
     {
         var definition = QueryDefinitionOQueryParser.Parse(text, contextName);
-        return ExecuteQueryAsync(definition, scopeName, cancellationToken);
+        return ExecuteQueryAsync(definition, domainId, cancellationToken);
     }
 
     private static QueryDefinition EnsureDefaultProjection(
@@ -97,6 +96,49 @@ public sealed class DynamicQueryService(
             .Select(field => new ProjectionDefinition(field.Name))
             .ToList();
         return query with { Projections = projection };
+    }
+
+    private MetadataProvider CreateMetadataProvider(string domainId, string? provider)
+    {
+        var entities = domainService.GetById(domainId).ToEntities();
+        if (!string.Equals(provider, "Sqlite", StringComparison.OrdinalIgnoreCase))
+            return new MetadataProvider(entities);
+
+        return new MetadataProvider(entities
+            .Select(entity => string.Equals(entity.DbSchema, "dbo", StringComparison.OrdinalIgnoreCase)
+                ? entity with { DbSchema = null }
+                : entity)
+            .ToArray());
+    }
+
+    private static void ValidateQueryEntities(
+        QueryDefinition query,
+        MetadataProvider metadataProvider,
+        string domainId)
+    {
+        var entities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var pending = new Queue<QueryDefinitionBase>([query]);
+        while (pending.Count > 0)
+        {
+            var current = pending.Dequeue();
+            if (!entities.Add(current.Entity))
+                continue;
+
+            try
+            {
+                metadataProvider.GetEntity(current.Entity);
+            }
+            catch (EntityNotFoundException)
+            {
+                throw new ArgumentException(
+                    $"Entity [{current.Entity}] does not exist in domain [{domainId}].",
+                    nameof(query));
+            }
+
+            if (current is QueryDefinition { Contexts: { } contexts })
+                foreach (var context in contexts.Values)
+                    pending.Enqueue(context);
+        }
     }
 
     private QueryDefinition PrepareQuery(QueryDefinition query, ISqlDialect dialect)

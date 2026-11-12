@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using OQuery;
 using System.Data.Common;
 using System.Text.Json;
 
@@ -16,6 +17,8 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
         {
             DbException =>
                 (StatusCodes.Status503ServiceUnavailable, "Database operation failed"),
+            MetadataNotFoundException =>
+                (StatusCodes.Status400BadRequest, "Invalid query metadata"),
             KeyNotFoundException => (StatusCodes.Status404NotFound, "Not Found"),
             ArgumentException or FormatException or JsonException =>
                 (StatusCodes.Status400BadRequest, "Bad Request"),

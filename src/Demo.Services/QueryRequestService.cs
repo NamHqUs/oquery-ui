@@ -10,8 +10,9 @@ public sealed class QueryRequestService(
     IQueryRequestRepository repository,
     IUserSectionManager userSectionManager) : IQueryRequestService
 {
-    public IReadOnlyList<QueryDto> List()
+    public IReadOnlyList<QueryDto> List(string domainId)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(domainId);
         var sectionId = userSectionManager.GetSectionId();
         var builtin = repository.GetBuiltin();
         var builtinNames = builtin.Select(query => query.Name)
@@ -22,7 +23,9 @@ public sealed class QueryRequestService(
             throw new InvalidDataException(
                 $"Custom query request '{conflict.Name}' cannot replace a built-in request.");
 
-        return builtin.Concat(custom).ToArray();
+        return builtin.Concat(custom)
+            .Where(query => string.Equals(query.DomainId, domainId, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
     }
 
     public QueryDto? Get(string id)
@@ -93,6 +96,7 @@ public sealed class QueryRequestService(
         ArgumentNullException.ThrowIfNull(query);
         ArgumentException.ThrowIfNullOrWhiteSpace(query.Name);
         ArgumentException.ThrowIfNullOrWhiteSpace(query.Entity);
+        ArgumentException.ThrowIfNullOrWhiteSpace(query.DomainId);
         ArgumentNullException.ThrowIfNull(query.Projections);
         QueryDefinitionJsonParser.ValidateContextReferences(query);
     }

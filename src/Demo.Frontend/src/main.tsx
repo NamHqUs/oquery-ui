@@ -14,6 +14,7 @@ import Home from "./components/home/home";
 import Documentation from "./components/documentation/documentation";
 import { GITHUB_URL, PRODUCT_NAME } from "./components/home/home-content";
 import { MessageBoxProvider } from "./components/message-box/message-box";
+import { apiUrls } from "./const/api-urls";
 import { store, type RootState } from "./store/store";
 import "./styles.css";
 
@@ -68,13 +69,39 @@ function scrollToSection(id: string) {
 function PageSubnav({
   page,
   onNavigateToPage,
+  onBuilderDomainSelect,
   onMetadataSectionSelect,
 }: {
   page: Page | null;
   onNavigateToPage: (nextPage: Page) => void;
+  onBuilderDomainSelect: (domainId: string) => void;
   onMetadataSectionSelect: (section: MetadataSection) => void;
 }) {
   const location = useLocation();
+  const [queryDomains, setQueryDomains] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    if (page !== "builder") return;
+    let active = true;
+    fetch(apiUrls.metadata.domainNamesWithDescriptions)
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Unable to load query domains (${response.status}).`);
+        return response.json() as Promise<{ id: string; name: string }[]>;
+      })
+      .then((domains) => {
+        if (active) {
+          setQueryDomains(domains);
+          if (!new URLSearchParams(location.search).get("domain") && domains[0]) {
+            onBuilderDomainSelect(domains[0].id);
+          }
+        }
+      })
+      .catch((error: unknown) => {
+        if (active) console.error(error instanceof Error ? error.message : "Unable to load query domains.");
+      });
+    return () => {
+      active = false;
+    };
+  }, [location.search, onBuilderDomainSelect, page]);
   const metadataSection = location.pathname === DOMAINS_PATH
     ? "domains"
     : location.pathname === ENTITY_CREATE_PATH
@@ -109,7 +136,16 @@ function PageSubnav({
     <nav className="hp-subnav app-subnav" aria-label={`${page} sections`}>
       <span className="hp-subnav-brand">{page === "builder" ? "QUERY BUILDER" : page.replace("-", " ").toUpperCase()}</span>
       <div className="hp-subnav-links">
-        {PAGE_SUBMENUS[page].map((item) => {
+        {page === "builder" ? queryDomains.map((domain) => {
+          const isActive = new URLSearchParams(location.search).get("domain") === domain.id;
+          return <button
+            key={domain.id}
+            type="button"
+            className={isActive ? "active" : undefined}
+            aria-current={isActive ? "page" : undefined}
+            onClick={() => onBuilderDomainSelect(domain.id)}
+          >{domain.name}</button>;
+        }) : PAGE_SUBMENUS[page].map((item) => {
           const itemSection = item === "Diagram" ? "diagram" : item === "Entity definitions" ? "entities" : item === "Domains" ? "domains" : undefined;
           const metadataItemSection = itemSection ?? (item === "Explore database" ? "explorer" : undefined);
           const isActive = page === "metadata" && metadataItemSection === metadataSection;
@@ -188,6 +224,10 @@ function App() {
   }, [location.pathname]);
 
   const requestDatabaseConnection = useCallback(() => setConnectionDialogOpen(true), []);
+  const navigateToBuilderDomain = useCallback(
+    (domainId: string) => routerNavigate(`${PAGE_PATHS.builder}?domain=${encodeURIComponent(domainId)}`),
+    [routerNavigate],
+  );
 
   useEffect(() => {
     if (!connectionDialogOpen) return;
@@ -288,6 +328,7 @@ function App() {
       <PageSubnav
         page={page}
         onNavigateToPage={navigateToPage}
+        onBuilderDomainSelect={navigateToBuilderDomain}
         onMetadataSectionSelect={(section) => {
           if (section === "explorer") {
           if (metadataSectionNavigation.current) metadataSectionNavigation.current(section);
@@ -342,6 +383,7 @@ function App() {
         document.body,
       )}
       {page === "builder" && <QueryBuilder
+        key={new URLSearchParams(location.search).get("domain") || "query-builder"}
         onRequestConnection={requestDatabaseConnection}
         onBackToHome={new URLSearchParams(location.search).get("from") === "home"
           ? () => navigateToPage("home")

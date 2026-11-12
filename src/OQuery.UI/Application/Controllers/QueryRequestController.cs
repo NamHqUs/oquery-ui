@@ -9,8 +9,8 @@ namespace OQuery.UI.Application.Controllers;
 public sealed class QueryRequestController(IQueryRequestService queryRequestService) : ControllerBase
 {
     [HttpGet]
-    public ActionResult<IReadOnlyList<QueryDto>> List()
-        => Ok(queryRequestService.List());
+    public ActionResult<IReadOnlyList<QueryDto>> List([FromQuery] string domainId = "All")
+        => Ok(queryRequestService.List(domainId));
 
     [HttpGet("{id}")]
     public ActionResult<QueryDto> GetById([FromRoute] string id)

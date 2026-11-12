@@ -8,7 +8,6 @@ namespace Demo.Services;
 
 public sealed class DomainService(
     IDomainRepository repository,
-    IMetadataRepository metadataRepository,
     IUserSectionManager userSectionManager,
     IDatabaseService databaseService) : IDomainService
 {
@@ -48,38 +47,8 @@ public sealed class DomainService(
         var domain = repository.Get(sectionId, requestedId)
             ?? repository.GetUserDefined(sectionId)
                 .FirstOrDefault(scope => scope.Id.Equals(requestedId, StringComparison.OrdinalIgnoreCase));
-        domain ??= requestedId.Equals("All", StringComparison.OrdinalIgnoreCase)
-            ? repository.GetBuiltin().FirstOrDefault()
-            : null;
         if (domain is null)
             throw new KeyNotFoundException($"Domain '{requestedId}' was not found.");
-        if (requestedId.Equals("All", StringComparison.OrdinalIgnoreCase))
-        {
-            var builtinEntities = metadataRepository.GetBuiltin().ToArray();
-            domain.Entities = builtinEntities.Select(EntityDto.FromEntity).ToList();
-            domain.Relations = builtinEntities
-                .SelectMany(entity => (entity.Relations ?? []).Select(relation => (Source: entity, Relation: relation)))
-                .Where(item => builtinEntities.Any(target => target.Name.Equals(item.Relation.RefEntity, StringComparison.OrdinalIgnoreCase)))
-                .Where(item => item.Relation.Type == RelationType.Lookup)
-                .Select(item =>
-                {
-                    var relation = item.Relation;
-                    var target = builtinEntities.Single(entity => entity.Name.Equals(relation.RefEntity, StringComparison.OrdinalIgnoreCase));
-                    var reverse = target.Relations?.FirstOrDefault(candidate =>
-                        candidate.RefEntity.Equals(item.Source.Name, StringComparison.OrdinalIgnoreCase)
-                        && candidate.Type == RelationType.Collection);
-                    return new RelationDto
-                    {
-                        SourceEntity = item.Source.Name,
-                        SourceRelationName = relation.Name,
-                        SourceFields = relation.RefKeys.Select(key => key.DbColumn).ToArray(),
-                        TargetEntity = relation.RefEntity,
-                        TargetRelationName = reverse?.Name ?? relation.Name,
-                        TargetFields = relation.RefKeys.Select(key => key.RefDbColumn).ToArray(),
-                    };
-                })
-                .ToList();
-        }
         return domain;
     }
 

@@ -7,10 +7,7 @@ namespace Demo.Repositories.FileStorage;
 public sealed class DomainFileRepository(FilePathResolver filePathResolver)
     : FileRepositoryBase<DomainDto>(filePathResolver, "Domains"), IDomainRepository
 {
-    public override IReadOnlyCollection<DomainDto> GetBuiltin() =>
-    [
-        new DomainDto { Id = "All", Name = "All", Entities = [], Relations = [], IsBuiltin = true },
-    ];
+    public override IReadOnlyCollection<DomainDto> GetBuiltin() => [];
 
     public override IReadOnlyCollection<DomainDto> GetUserDefined(string userSectionId)
     {
@@ -39,9 +36,7 @@ public sealed class DomainFileRepository(FilePathResolver filePathResolver)
     }
 
     public override DomainDto? Get(string userSectionId, string id)
-        => string.Equals(id, "All", StringComparison.OrdinalIgnoreCase)
-            ? GetBuiltin().Single()
-            : ReadDomainFile(userSectionId, id);
+        => ReadDomainFile(userSectionId, id);
 
     public override void Save(string userSectionId, DomainDto scope)
     {

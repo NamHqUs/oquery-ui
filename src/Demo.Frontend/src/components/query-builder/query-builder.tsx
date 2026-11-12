@@ -534,6 +534,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   const dispatch = useDispatch<AppDispatch>();
   const showMessageBox = useMessageBox();
   const [searchParams, setSearchParams] = useSearchParams();
+  const domainId = searchParams.get("domain")?.trim() || "";
   const savedQueriesPanel = useResizablePanel("query-builder-saved-queries");
   const { metadata, metadataRelations, metadataStatus, metadataError, result, sqlStatement, resultView, queryStatus, queryError, functionDefinitions, functionDefinitionsStatus, functionDefinitionsError, filterOperators, filterOperatorsStatus, filterOperatorsError, queryRequests, queryRequestsStatus, queryRequestsError, debugUiEnabled } = useSelector((state: RootState) => state.queryBuilder);
   const { connectedProvider, connectionStatus } = useSelector((state: RootState) => state.database);
@@ -821,14 +822,16 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     setSearchParams(nextSearchParams);
   };
   useEffect(() => {
-    dispatch(fetchQueryMetadata());
+    if (!domainId) return;
+    dispatch(fetchQueryMetadata(domainId));
     dispatch(fetchFunctionDefinitions());
     dispatch(fetchFilterOperators());
-  }, [dispatch]);
+  }, [dispatch, domainId]);
 
   useEffect(() => {
-    if (queryRequestsStatus === "idle") dispatch(fetchQueryRequests());
-  }, [dispatch, queryRequestsStatus]);
+    if (!domainId) return;
+    dispatch(fetchQueryRequests(domainId));
+  }, [dispatch, domainId]);
 
   useEffect(() => {
     const selectedEntity = entity;
@@ -845,6 +848,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   }, [metadata, metadataRelations, definition.entity, definition.contextCatalog, definition.contexts]);
 
   const runQuery = async () => {
+    if (!domainId) return;
     const textToExecute = selectedOQueryTextRef.current.trim() || oqueryText;
     if (editorMode === "oquery" ? textToExecute.trim() : activeDefinition.entity.trim() && activeDefinition.columns.length) {
       if (!connectedProvider || connectionStatus !== "succeeded") {
@@ -855,14 +859,12 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
       if (activeContextIndex !== null) {
         updateDefinition(updateContextDefinition(activeContextIndex, activeDefinition));
       }
-      if (editorMode === "oquery") dispatch(executeQueryFromText(textToExecute));
-      else dispatch(executeQuery({
-          ...activeDefinition,
-          filters: activeDefinition.filters,
-        }));
+      if (editorMode === "oquery") dispatch(executeQueryFromText({ text: textToExecute, domainId }));
+      else dispatch(executeQuery({ definition: activeDefinition, domainId }));
     }
   };
   const runOQueryContext = (contextName: string) => {
+    if (!domainId) return;
     const text = oqueryText;
     if (!text.trim()) return;
     if (!connectedProvider || connectionStatus !== "succeeded") {
@@ -870,10 +872,11 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
       return;
     }
     setOqueryError("");
-    dispatch(executeContextFromText({ text, context: contextName }));
+    dispatch(executeContextFromText({ text, context: contextName, domainId }));
   };
 
   const changePage = (page: number) => {
+    if (!domainId) return;
     if (!activeDefinition.entity.trim() || !activeDefinition.columns.length) return;
     if (!connectedProvider || connectionStatus !== "succeeded") {
       onRequestConnection();
@@ -884,25 +887,24 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
       ? nextActiveDefinition
       : updateContextDefinition(activeContextIndex, nextActiveDefinition);
     updateDefinition(nextDefinition);
-    dispatch(executeQuery(nextActiveDefinition));
+    dispatch(executeQuery({ definition: nextActiveDefinition, domainId }));
   };
 
   const getSql = () => {
+    if (!domainId) return;
     const textToExecute = selectedOQueryTextRef.current.trim() || oqueryText;
     if (editorMode === "oquery" ? textToExecute.trim() : activeDefinition.entity.trim() && activeDefinition.columns.length) {
       if (!connectedProvider || connectionStatus !== "succeeded") {
         onRequestConnection();
         return;
       }
-      if (editorMode === "oquery") dispatch(getSqlStatementFromText(textToExecute));
-      else dispatch(getSqlStatement({
-          ...activeDefinition,
-          filters: activeDefinition.filters,
-        }));
+      if (editorMode === "oquery") dispatch(getSqlStatementFromText({ text: textToExecute, domainId }));
+      else dispatch(getSqlStatement({ definition: activeDefinition, domainId }));
     }
   };
 
   const persistCurrentRequest = async (currentDefinition: QueryDefinition) => {
+    if (!domainId) return false;
     const name = requestName.trim();
     if (!name) {
       setRequestNameError("Enter a query name before saving.");
@@ -914,6 +916,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     try {
       const resultAction = await dispatch(saveQueryRequest({
         name,
+        domainId,
         definition: currentDefinition,
         id: selectedRequestIsBuiltin ? undefined : selectedRequestId ?? undefined,
       }));
@@ -1099,7 +1102,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
               error={queryRequestsError}
               onSelectRequest={selectSavedRequest}
               onRetry={() => {
-                void dispatch(fetchQueryRequests());
+                void dispatch(fetchQueryRequests(domainId));
               }}
             />
             <PanelSplitter panel={savedQueriesPanel} label="saved queries panel" />

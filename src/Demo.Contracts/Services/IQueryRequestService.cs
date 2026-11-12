@@ -4,7 +4,7 @@ namespace Demo.Contracts.Services;
 
 public interface IQueryRequestService
 {
-    IReadOnlyList<QueryDto> List();
+    IReadOnlyList<QueryDto> List(string domainId);
     QueryDto? Get(string id);
     QueryDto Create(QueryDto query);
     QueryDto? Update(string id, QueryDto query);

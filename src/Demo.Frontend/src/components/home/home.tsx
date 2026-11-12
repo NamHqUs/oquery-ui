@@ -12,6 +12,7 @@ import {
   type QueryResult,
 } from "../query-builder/query-design/query-builder-slice";
 import type { RootState } from "../../store/store";
+import { apiUrls } from "../../const/api-urls";
 import {
   DEVELOPER_CARDS,
   EXTENSION_CARDS,
@@ -68,6 +69,7 @@ function Playground({
   functionDefinitions: FunctionDefinition[];
   suggestionData: SuggestionData;
   editorHostRef?: RefObject<HTMLDivElement | null>;
+  domainId: string;
 }) {
   const [query, setQuery] = useState(initialQuery);
   const [result, setResult] = useState<QueryResult | null>(null);
@@ -83,11 +85,12 @@ function Playground({
   const sqlIdRef = useRef(0);
 
   const loadSql = async (text: string) => {
+    if (!domainId) return;
     const id = ++sqlIdRef.current;
     setSqlLoading(true);
     setSqlError("");
     try {
-      const statement = await requestSqlStatementFromText(text);
+      const statement = await requestSqlStatementFromText(text, domainId);
       if (id === sqlIdRef.current) setSql({ query: text, text: statement });
     } catch (reason) {
       if (id === sqlIdRef.current) setSqlError(reason instanceof Error ? reason.message : "Unable to generate SQL.");
@@ -105,7 +108,8 @@ function Playground({
     setError("");
     if (sqlOpen) void loadSql(trimmed);
     try {
-      const next = await requestQueryResultFromText(trimmed);
+      if (!domainId) return;
+      const next = await requestQueryResultFromText(trimmed, domainId);
       if (id === runIdRef.current) setResult(next);
     } catch (reason) {
       if (id === runIdRef.current) {
@@ -120,8 +124,8 @@ function Playground({
   const runCurrent = () => void run(selectionRef.current.trim() || query);
 
   useEffect(() => {
-    void run(initialQuery);
-  }, [initialQuery]);
+    if (domainId) void run(initialQuery);
+  }, [domainId, initialQuery]);
 
   const toggleSql = () => {
     const next = !sqlOpen;
@@ -245,6 +249,7 @@ export default function Home({
   const dispatch = useDispatch();
   const { metadata, metadataRelations, metadataStatus, functionDefinitions, functionDefinitionsStatus } = useSelector((state: RootState) => state.queryBuilder);
   const { providers } = useSelector((state: RootState) => state.database);
+  const [domainId, setDomainId] = useState("");
   const [activeExampleId, setActiveExampleId] = useState(HOME_EXAMPLES[0]!.id);
   const heroEditorRef = useRef<HTMLDivElement>(null);
   const activeExample = HOME_EXAMPLES.find((example) => example.id === activeExampleId) ?? HOME_EXAMPLES[0]!;
@@ -252,9 +257,21 @@ export default function Home({
   const relationCount = metadataRelations.length;
 
   useEffect(() => {
-    if (metadataStatus === "idle") dispatch(fetchQueryMetadata());
+    if (domainId && metadataStatus === "idle") dispatch(fetchQueryMetadata(domainId));
     if (functionDefinitionsStatus === "idle") dispatch(fetchFunctionDefinitions());
-  }, [dispatch, functionDefinitionsStatus, metadataStatus]);
+  }, [dispatch, domainId, functionDefinitionsStatus, metadataStatus]);
+  useEffect(() => {
+    let active = true;
+    fetch(apiUrls.metadata.domainNames)
+      .then((response) => response.ok ? response.json() as Promise<{ id: string }[]> : Promise.reject(new Error(`Unable to load domains (${response.status}).`)))
+      .then((domains) => {
+        if (active && domains[0]) setDomainId(domains[0].id);
+      })
+      .catch((error: unknown) => console.error(error instanceof Error ? error.message : "Unable to load domains."));
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const showExample = (id: string) => {
     setActiveExampleId(id);
@@ -281,6 +298,7 @@ export default function Home({
             functionDefinitions={functionDefinitions}
             suggestionData={suggestionData}
             editorHostRef={heroEditorRef}
+            domainId={domainId}
           />
         </div>
       </section>
@@ -315,6 +333,7 @@ export default function Home({
               label={`Example ${activeExample.letter} · ${activeExample.title}`}
               functionDefinitions={functionDefinitions}
               suggestionData={suggestionData}
+              domainId={domainId}
             />
           </div>
         </div>
