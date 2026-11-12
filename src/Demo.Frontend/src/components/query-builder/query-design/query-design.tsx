@@ -391,6 +391,7 @@ export default function QueryDesign({
               loading={metadataStatus === "loading"}
               relationships={diagramRelationships}
               hideActiveGroup
+              compactCards
               navigationActions={
                 <button
                   type="button"

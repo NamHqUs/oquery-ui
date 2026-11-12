@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import ELK from "elkjs/lib/elk.bundled.js";
+import type { ElkEdgeSection, ElkNode } from "elkjs/lib/elk-api";
 import Icon, { type IconName } from "../../icon/icon";
 import { fetchDbTableData, selectDbTable, setPreviewDbTable } from "../../data-sources/database-slice";
 import "./diagram-view.css";
@@ -59,11 +61,17 @@ type DiagramViewProps = {
   onOpenTable?: (table: DiagramTable) => void;
   navigationActions?: ReactNode;
   hideActiveGroup?: boolean;
+  compactCards?: boolean;
 };
 
 const CARD_WIDTH = 180;
 const CARD_HEIGHT = 96;
 const COLLAPSED_CARD_HEIGHT = 42;
+const COMPACT_CARD_HEIGHT = 30;
+const FIELD_ROW_HEIGHT = 21;
+const FIELD_LIST_PADDING = 4;
+const MIN_FIELD_ROWS = 5;
+const DEFAULT_VISIBLE_FIELD_ROWS = 8;
 const BOARD_MARGIN = 20;
 const ARROW_CLEARANCE = 8;
 const TABLE_DOMAINS = {
@@ -95,6 +103,32 @@ const DOMAIN_TONES = {
 
 function tableKey(schema, name) {
   return `${schema}.${name}`;
+}
+
+function compactCardWidth(name, columns = [], expanded = false) {
+  const longestText = expanded
+    ? Math.max(name.length, ...columns.map((column) => column.name.length))
+    : name.length;
+  return Math.max(60, longestText * 7 + 41);
+}
+
+// Field popup default height shows up to 8 rows; the list scrolls beyond that.
+function compactPopupDefaultHeight(columns = []) {
+  return Math.min(Math.max(MIN_FIELD_ROWS, columns.length), DEFAULT_VISIBLE_FIELD_ROWS) * FIELD_ROW_HEIGHT + FIELD_LIST_PADDING;
+}
+
+// Popup height where every field is visible; resizing stops here so the list never scrolls.
+function compactPopupMaxHeight(columns = []) {
+  return Math.max(MIN_FIELD_ROWS, columns.length) * FIELD_ROW_HEIGHT + FIELD_LIST_PADDING;
+}
+
+function compactPopupMinHeight() {
+  return FIELD_ROW_HEIGHT + FIELD_LIST_PADDING;
+}
+
+function translateEdgePath(path, offset) {
+  return path.replace(/([ML])\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/g, (_, command, x, y) =>
+    `${command} ${Number(x) + offset.x} ${Number(y) + offset.y}`);
 }
 
 export function diagramGroupTone(index: number): DiagramGroupTone {
@@ -145,17 +179,17 @@ function segmentIntersectsRectangle(start, end, rectangle) {
     || segmentsCross(start, end, bottomLeft, topLeft);
 }
 
-function relationGeometry(from, to, cardWidth, fromHeight, toHeight = fromHeight) {
-  const start = { x: from.x + cardWidth / 2, y: from.y + fromHeight / 2 };
-  const end = { x: to.x + cardWidth / 2, y: to.y + toHeight / 2 };
+function relationGeometry(from, to, fromWidth, fromHeight, toWidth = fromWidth, toHeight = fromHeight) {
+  const start = { x: from.x + fromWidth / 2, y: from.y + fromHeight / 2 };
+  const end = { x: to.x + toWidth / 2, y: to.y + toHeight / 2 };
   const distance = Math.hypot(end.x - start.x, end.y - start.y);
   if (distance === 0) return null;
   const unitX = (end.x - start.x) / distance;
   const unitY = (end.y - start.y) / distance;
-  const cardExtent = cardWidth * Math.abs(unitX) + ((fromHeight + toHeight) / 2) * Math.abs(unitY);
+  const cardExtent = ((fromWidth + toWidth) / 2) * Math.abs(unitX) + ((fromHeight + toHeight) / 2) * Math.abs(unitY);
   const requiredDistance = cardExtent + 20 + ARROW_CLEARANCE;
-  const fromOffset = (cardWidth / 2) * Math.abs(unitX) + (fromHeight / 2) * Math.abs(unitY);
-  const toOffset = (cardWidth / 2) * Math.abs(unitX) + (toHeight / 2) * Math.abs(unitY);
+  const fromOffset = (fromWidth / 2) * Math.abs(unitX) + (fromHeight / 2) * Math.abs(unitY);
+  const toOffset = (toWidth / 2) * Math.abs(unitX) + (toHeight / 2) * Math.abs(unitY);
   return {
     start: { x: start.x + unitX * fromOffset, y: start.y + unitY * fromOffset },
     end: { x: end.x - unitX * toOffset, y: end.y - unitY * toOffset },
@@ -165,7 +199,70 @@ function relationGeometry(from, to, cardWidth, fromHeight, toHeight = fromHeight
   };
 }
 
-function createLayout(tables, relationships, boardWidth, boardHeight) {
+type CompactLayout = {
+  positions: Record<string, { x: number; y: number }>;
+  edgePaths: Record<string, string>;
+  width: number;
+  height: number;
+};
+
+const elk = new ELK();
+
+async function createCompactLayout(tables, relationships, boardWidth, boardHeight): Promise<CompactLayout> {
+  const graph: ElkNode = {
+    id: "diagram",
+    layoutOptions: {
+      "elk.algorithm": "layered",
+      "elk.direction": boardWidth > boardHeight * 1.15 ? "RIGHT" : "DOWN",
+      "elk.edgeRouting": "ORTHOGONAL",
+      "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
+      "elk.layered.spacing.nodeNodeBetweenLayers": "24",
+      "elk.spacing.nodeNode": "16",
+    },
+    children: tables.map((table) => ({
+      id: tableKey(table.schema, table.name),
+      width: compactCardWidth(table.name),
+      height: COMPACT_CARD_HEIGHT,
+    })),
+    edges: relationships.map((relation, index) => ({
+      id: `edge-${index}`,
+      sources: [relation.from],
+      targets: [relation.to],
+    })),
+  };
+  const result = await elk.layout(graph);
+  const children = result.children || [];
+  const minX = Math.min(...children.map((child) => child.x || 0), 0);
+  const minY = Math.min(...children.map((child) => child.y || 0), 0);
+  const maxX = Math.max(...children.map((child) => (child.x || 0) + (child.width || 0)), 0);
+  const maxY = Math.max(...children.map((child) => (child.y || 0) + (child.height || 0)), 0);
+  const offsetX = Math.max(BOARD_MARGIN, (boardWidth - (maxX - minX)) / 2) - minX;
+  const offsetY = Math.max(BOARD_MARGIN, (boardHeight - (maxY - minY)) / 2) - minY;
+  const positions = Object.fromEntries(children.map((child) => [
+    child.id,
+    { x: (child.x || 0) + offsetX, y: (child.y || 0) + offsetY },
+  ]));
+  const edgePaths = Object.fromEntries((result.edges || []).flatMap((edge) =>
+    (edge.sections || []).map((section: ElkEdgeSection) => {
+      const points = [
+        section.startPoint,
+        ...(section.bendPoints || []),
+        section.endPoint,
+      ];
+      const path = points.map((point, index) =>
+        `${index === 0 ? "M" : "L"} ${point.x + offsetX} ${point.y + offsetY}`).join(" ");
+      return [edge.id, path];
+    }),
+  ));
+  return {
+    positions,
+    edgePaths,
+    width: Math.max(boardWidth, maxX - minX + BOARD_MARGIN * 2),
+    height: Math.max(boardHeight, maxY - minY + BOARD_MARGIN * 2),
+  };
+}
+
+function createLayout(tables, relationships, boardWidth, boardHeight, compact = false) {
   const degree = new Map(tables.map((table) => [tableKey(table.schema, table.name), 0]));
   relationships.forEach((relation) => {
     degree.set(relation.from, (degree.get(relation.from) || 0) + 1);
@@ -175,9 +272,12 @@ function createLayout(tables, relationships, boardWidth, boardHeight) {
   const orderedTables = [...tables].sort((left, right) =>
     degree.get(tableKey(right.schema, right.name)) - degree.get(tableKey(left.schema, left.name))
     || byName(left, right));
-  const cardWidth = Math.min(CARD_WIDTH, Math.max(140, boardWidth - 2 * BOARD_MARGIN));
+  const cardWidth = compact
+    ? Math.min(128, Math.max(100, boardWidth - 2 * BOARD_MARGIN))
+    : Math.min(CARD_WIDTH, Math.max(140, boardWidth - 2 * BOARD_MARGIN));
   const expandedCardHeight = Math.min(CARD_HEIGHT, Math.max(80, boardHeight - 2 * BOARD_MARGIN));
-  const cardHeight = COLLAPSED_CARD_HEIGHT;
+  const cardHeight = compact ? COMPACT_CARD_HEIGHT : COLLAPSED_CARD_HEIGHT;
+  const horizontalGap = compact ? 8 : 24;
   const center = { x: boardWidth / 2, y: boardHeight / 2 };
   const maxRadiusX = Math.max(0, (boardWidth - cardWidth) / 2 - BOARD_MARGIN);
   const maxRadiusY = Math.max(0, (boardHeight - cardHeight) / 2 - BOARD_MARGIN);
@@ -243,19 +343,23 @@ function createLayout(tables, relationships, boardWidth, boardHeight) {
   const goldenAngle = Math.PI * (3 - Math.sqrt(5));
   orderedTables.forEach((table, index) => {
     const key = tableKey(table.schema, table.name);
-    if (index === 0 && (degree.get(key) || 0) > 0) {
+    if (compact && index === 0) {
+      positions.set(key, { x: center.x - cardWidth / 2, y: center.y - cardHeight / 2 });
+      return;
+    }
+    if (!compact && index === 0 && (degree.get(key) || 0) > 0) {
       positions.set(key, { x: center.x - cardWidth / 2, y: center.y - cardHeight / 2 });
       return;
     }
 
     if ((degree.get(key) || 0) === 0) {
       let isolatedPosition = null;
-      const columnCount = Math.max(1, Math.floor((boardWidth - BOARD_MARGIN * 2) / (cardWidth + 24)));
+      const columnCount = Math.max(1, Math.floor((boardWidth - BOARD_MARGIN * 2) / (cardWidth + horizontalGap)));
       const rowCount = Math.max(1, Math.ceil(orderedTables.length / columnCount));
       for (let row = 0; row < rowCount && !isolatedPosition; row += 1) {
         for (let column = 0; column < columnCount; column += 1) {
           const candidate = {
-            x: BOARD_MARGIN + column * (cardWidth + 24),
+            x: BOARD_MARGIN + column * (cardWidth + horizontalGap),
             y: BOARD_MARGIN + row * (cardHeight + 24),
           };
           const candidateRect = rectangleFor(candidate, cardWidth, cardHeight, 12);
@@ -273,7 +377,7 @@ function createLayout(tables, relationships, boardWidth, boardHeight) {
 
     let bestPosition = null;
     let bestScore = Number.POSITIVE_INFINITY;
-    const ringCount = 8;
+    const ringCount = compact ? 6 : 8;
     const angleCount = Math.max(24, orderedTables.length * 8);
     for (let ring = 1; ring <= ringCount; ring += 1) {
       const radius = ring / ringCount;
@@ -283,6 +387,9 @@ function createLayout(tables, relationships, boardWidth, boardHeight) {
           x: center.x + Math.cos(angle) * maxRadiusX * radius - cardWidth / 2,
           y: center.y + Math.sin(angle) * maxRadiusY * radius - cardHeight / 2,
         };
+        const candidateRect = rectangleFor(candidate, cardWidth, cardHeight, compact ? 4 : 12);
+        if ([...positions.values()].some((position) =>
+          rectanglesOverlap(candidateRect, rectangleFor(position, cardWidth, cardHeight, compact ? 4 : 12)))) continue;
         const score = candidateScore(key, candidate);
         if (score < bestScore) {
           bestScore = score;
@@ -326,7 +433,7 @@ function createLayout(tables, relationships, boardWidth, boardHeight) {
   });
   const graphCenterX = (bounds.left + bounds.right) / 2;
   const graphCenterY = (bounds.top + bounds.bottom) / 2;
-  const graphLeft = BOARD_MARGIN + (isolatedKeys.size > 0 ? cardWidth + 24 : 0);
+  const graphLeft = BOARD_MARGIN + (isolatedKeys.size > 0 ? cardWidth + horizontalGap : 0);
   const offsetX = Math.max(
     graphLeft - bounds.left,
     Math.min(boardWidth - BOARD_MARGIN - bounds.right, center.x - graphCenterX),
@@ -408,17 +515,23 @@ export default function DiagramView({
   onOpenTable,
   navigationActions,
   hideActiveGroup = false,
+  compactCards = false,
 }: DiagramViewProps) {
   const dispatch = useDispatch();
   const { schema, schemaStatus, schemaError, debugUiEnabled } = useSelector((state) => state.database);
   const diagramTables = suppliedTables || schema.tables;
   const [positions, setPositions] = useState({});
   const [expandedTables, setExpandedTables] = useState({});
+  const [popupSizes, setPopupSizes] = useState({});
+  const [graphPan, setGraphPan] = useState({ x: 0, y: 0 });
   const [selectedGroup, setSelectedGroup] = useState("");
   const [boardSize, setBoardSize] = useState({ width: 720, height: 360 });
   const [layoutSize, setLayoutSize] = useState({ width: 720, height: 360 });
   const [autoRange, setAutoRange] = useState(true);
+  const [compactLayout, setCompactLayout] = useState<CompactLayout | null>(null);
   const drag = useRef(null);
+  const graphDrag = useRef(null);
+  const resizeDrag = useRef(null);
   const hasInitialLayoutSize = useRef(false);
   const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null);
 
@@ -438,7 +551,6 @@ export default function DiagramView({
             ? current
             : { width: nextWidth, height: nextHeight },
         );
-        setPositions((current) => Object.keys(current).length === 0 ? current : {});
       }
       setBoardSize((current) => current.width === nextWidth && current.height === nextHeight
         ? current
@@ -494,27 +606,61 @@ export default function DiagramView({
     () => getDiagramRelationships(renderedGroup, suppliedRelationships || schema.relationships),
     [renderedGroup, schema.relationships, suppliedRelationships],
   );
+  const layoutWidth = autoRange ? boardSize.width : layoutSize.width;
+  const layoutHeight = autoRange ? boardSize.height : layoutSize.height;
+
+  useEffect(() => {
+    if (!compactCards || !renderedGroup?.tables?.length) {
+      setCompactLayout(null);
+      return undefined;
+    }
+    let cancelled = false;
+    createCompactLayout(renderedGroup.tables, relationships, layoutWidth, layoutHeight)
+      .then((nextLayout) => {
+        if (!cancelled) {
+          setCompactLayout(nextLayout);
+        }
+      })
+      .catch((error) => {
+        console.error("Unable to calculate compact diagram layout.", error);
+        if (!cancelled) setCompactLayout(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [autoRange, compactCards, layoutHeight, layoutWidth, relationships, renderedGroup]);
 
   const layout = useMemo(() => {
-    const next = createLayout(renderedGroup?.tables || [], relationships, layoutSize.width, layoutSize.height);
+    const next = createLayout(renderedGroup?.tables || [], relationships, layoutSize.width, layoutSize.height, compactCards);
     return {
       cardWidth: next.cardWidth,
       cardHeight: next.cardHeight,
-      positions: Object.fromEntries(next.positions),
+      positions: {
+        ...Object.fromEntries(next.positions),
+        ...(compactLayout?.positions || {}),
+      },
     };
-  }, [autoRange, layoutSize, relationships, renderedGroup]);
-  const tablePositions = { ...layout.positions, ...positions };
+  }, [autoRange, compactCards, compactLayout, layoutSize, relationships, renderedGroup]);
+  const basePositions = { ...layout.positions, ...positions };
+  const tablePositions = Object.fromEntries(Object.entries(basePositions).map(([key, position]) => [
+    key,
+    { x: position.x + graphPan.x, y: position.y + graphPan.y },
+  ]));
+  const renderedBoardSize = {
+    width: Math.max(boardSize.width, compactLayout?.width || 0),
+    height: Math.max(boardSize.height, compactLayout?.height || 0),
+  };
 
   function startDrag(event, key) {
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    setPositions(tablePositions);
+    setPositions((current) => ({ ...current, [key]: basePositions[key] }));
     drag.current = {
       key,
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
-      origin: tablePositions[key],
+      origin: basePositions[key],
     };
   }
 
@@ -532,6 +678,89 @@ export default function DiagramView({
 
   function endDrag(event) {
     if (drag.current?.pointerId === event.pointerId) drag.current = null;
+  }
+
+  function startGraphDrag(event) {
+    const target = event.target;
+    if (target instanceof Element && (target.closest(".diagram-table-card") || target.closest(".diagram-edge"))) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    graphDrag.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      basePan: graphPan,
+    };
+  }
+
+  function moveGraphDrag(event) {
+    if (!graphDrag.current || graphDrag.current.pointerId !== event.pointerId) return;
+    const currentDrag = graphDrag.current;
+    setGraphPan({
+      x: currentDrag.basePan.x + event.clientX - currentDrag.startX,
+      y: currentDrag.basePan.y + event.clientY - currentDrag.startY,
+    });
+  }
+
+  function endGraphDrag(event) {
+    if (graphDrag.current?.pointerId === event.pointerId) graphDrag.current = null;
+  }
+
+  function renderFieldList(table) {
+    return (
+      <ul className="diagram-column-list">
+        {table.columns.map((column) => (
+          <li key={column.name} title={`${column.name} — ${column.dataType || "unknown type"}`}>
+            <span className={`diagram-column-name${column.isPrimaryKey ? " primary" : ""}`}>{column.name}</span>
+            <span className="diagram-column-key primary">
+              {column.isPrimaryKey && <Icon name="key" size={13} />}
+            </span>
+            <span className="diagram-column-type" title={column.dataType || "unknown type"} aria-label={`Data type: ${column.dataType || "unknown type"}`}>
+              <Icon name={getDataTypeIcon(column.dataType || "String")} size={13} />
+            </span>
+          </li>
+        ))}
+        {table.columns.length === 0 && <li className="diagram-no-columns">No columns</li>}
+      </ul>
+    );
+  }
+
+  function startResize(event, key, width, height) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    resizeDrag.current = {
+      key,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originWidth: width,
+      originHeight: height,
+    };
+  }
+
+  function moveResize(event) {
+    if (!resizeDrag.current || resizeDrag.current.pointerId !== event.pointerId) return;
+    const currentResize = resizeDrag.current;
+    const table = renderedGroup?.tables.find((item) => tableKey(item.schema, item.name) === currentResize.key);
+    if (!table) return;
+    setPopupSizes((current) => ({
+      ...current,
+      [currentResize.key]: {
+        width: Math.max(
+          compactCardWidth(table.name, table.columns, true),
+          currentResize.originWidth + event.clientX - currentResize.startX,
+        ),
+        height: Math.min(
+          compactPopupMaxHeight(table.columns),
+          Math.max(compactPopupMinHeight(), currentResize.originHeight + event.clientY - currentResize.startY),
+        ),
+      },
+    }));
+  }
+
+  function endResize(event) {
+    if (resizeDrag.current?.pointerId === event.pointerId) resizeDrag.current = null;
   }
 
   function previewTable(table) {
@@ -594,6 +823,7 @@ export default function DiagramView({
                 onSelectGroup?.(group.id ?? group.name);
                 setLayoutSize(boardSize);
                 setPositions({});
+                setGraphPan({ x: 0, y: 0 });
               }}
             >
               <span className="diagram-group-mark" aria-hidden="true" />
@@ -614,6 +844,7 @@ export default function DiagramView({
                 if (enabled) {
                   setLayoutSize(boardSize);
                   setPositions({});
+                  setGraphPan({ x: 0, y: 0 });
                 }
               }}
             />
@@ -625,6 +856,7 @@ export default function DiagramView({
             onClick={() => {
               setLayoutSize(boardSize);
               setPositions({});
+              setGraphPan({ x: 0, y: 0 });
             }}
           >
             <Icon name="reset" size={14} /> Arrange
@@ -634,21 +866,47 @@ export default function DiagramView({
       <div className="diagram-content">
         {relationInspector}
         <div className="diagram-scroll" ref={setScrollElement}>
-        <div className="diagram-board" style={boardSize}>
-          <svg className="diagram-relations" width={boardSize.width} height={boardSize.height} aria-label="Table relationships">
+        <div
+          className="diagram-board"
+          style={renderedBoardSize}
+          onPointerDown={startGraphDrag}
+          onPointerMove={moveGraphDrag}
+          onPointerUp={endGraphDrag}
+          onPointerCancel={endGraphDrag}
+        >
+          <svg className="diagram-relations" width={renderedBoardSize.width} height={renderedBoardSize.height} aria-label="Table relationships">
             <defs>
-              <marker id="diagram-relation-arrow" markerWidth="7" markerHeight="7" refX="7" refY="3.5" orient="auto">
-                <path d="M0,0 L7,3.5 L0,7 Z" />
+              <marker id="diagram-relation-arrow" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
+                <path d="M0,0 L5,2.5 L0,5 Z" />
               </marker>
             </defs>
             {relationships.map((relation, index) => {
               const from = tablePositions[relation.from];
               const to = tablePositions[relation.to];
               if (!from || !to) return null;
-              const fromHeight = expandedTables[relation.from] ? layout.cardHeight : 42;
-              const toHeight = expandedTables[relation.to] ? layout.cardHeight : 42;
-              const geometry = relationGeometry(from, to, layout.cardWidth, fromHeight, toHeight);
-              if (!geometry) return null;
+              const fromTable = renderedGroup?.tables.find((table) => tableKey(table.schema, table.name) === relation.from);
+              const toTable = renderedGroup?.tables.find((table) => tableKey(table.schema, table.name) === relation.to);
+              const fromWidth = compactCards && fromTable
+                ? compactCardWidth(fromTable.name)
+                : layout.cardWidth;
+              const toWidth = compactCards && toTable
+                ? compactCardWidth(toTable.name)
+                : layout.cardWidth;
+              const fromHeight = compactCards && fromTable
+                ? COMPACT_CARD_HEIGHT
+                : expandedTables[relation.from] ? layout.cardHeight : COLLAPSED_CARD_HEIGHT;
+              const toHeight = compactCards && toTable
+                ? COMPACT_CARD_HEIGHT
+                : expandedTables[relation.to] ? layout.cardHeight : COLLAPSED_CARD_HEIGHT;
+              const geometry = relationGeometry(from, to, fromWidth, fromHeight, toWidth, toHeight);
+              const routedPath = compactLayout?.edgePaths[`edge-${index}`];
+              const edgePath = routedPath && Object.keys(positions).length === 0
+                ? translateEdgePath(routedPath, graphPan)
+                : undefined;
+              if (!geometry && !edgePath) return null;
+              const path = edgePath || (geometry
+                ? `M ${geometry.start.x} ${geometry.start.y} L ${geometry.end.x} ${geometry.end.y}`
+                : "");
               return (
                         <g
                           className={`diagram-edge${relation.isManyToMany ? " many-to-many" : ""}`}
@@ -665,7 +923,7 @@ export default function DiagramView({
                           }}
                         >
                           <path
-                            d={`M ${geometry.start.x} ${geometry.start.y} L ${geometry.end.x} ${geometry.end.y}`}
+                          d={path}
                             markerEnd="url(#diagram-relation-arrow)"
                           />
                           </g>
@@ -675,12 +933,24 @@ export default function DiagramView({
           {(renderedGroup?.tables || []).map((table) => {
             const key = tableKey(table.schema, table.name);
             const position = tablePositions[key];
+            if (!position) return null;
             const expanded = Boolean(expandedTables[key]);
+            const width = compactCards
+              ? compactCardWidth(table.name)
+              : layout.cardWidth;
+            const height = expanded && !compactCards
+              ? layout.cardHeight
+              : compactCards ? COMPACT_CARD_HEIGHT : COLLAPSED_CARD_HEIGHT;
             return (
               <article
-                className={`diagram-table-card${expanded ? " expanded" : ""}${selectedTableName === table.name ? " selected" : ""}`}
+                className={`diagram-table-card${compactCards ? " compact" : ""}${expanded ? " expanded" : ""}${selectedTableName === table.name ? " selected" : ""}`}
                 key={key}
-                style={{ left: position.x, top: position.y, width: layout.cardWidth, height: expanded ? layout.cardHeight : 42 }}
+                style={{
+                  left: position.x,
+                  top: position.y,
+                  width,
+                  height,
+                }}
                 aria-label={`${table.name}${selectedTableName === table.name ? " (selected)" : ""}`}
               >
                 <button
@@ -697,9 +967,9 @@ export default function DiagramView({
                   onPointerCancel={endDrag}
                   title={`Double-click to preview ${table.name}`}
                 >
-                  <Icon name="table" size={15} />
+                  {!compactCards && <Icon name="table" size={15} />}
                   <span>{table.name}</span>
-                  {table.dbTable && table.dbTable !== table.name && (
+                  {!compactCards && table.dbTable && table.dbTable !== table.name && (
                     <span className="diagram-table-schema">{table.dbTable}</span>
                   )}
                 </button>
@@ -713,23 +983,52 @@ export default function DiagramView({
                 >
                   <Icon name={expanded ? "chevron-down" : "chevron-right"} size={13} />
                 </button>
-                {expanded && (
-                  <ul className="diagram-column-list">
-                    {table.columns.map((column) => (
-                      <li key={column.name} title={`${column.name} — ${column.dataType || "unknown type"}`}>
-                        <span className={`diagram-column-name${column.isPrimaryKey ? " primary" : ""}`}>{column.name}</span>
-                        <span className="diagram-column-key primary">
-                          {column.isPrimaryKey && <Icon name="key" size={13} />}
-                        </span>
-                        <span className="diagram-column-type" title={column.dataType || "unknown type"} aria-label={`Data type: ${column.dataType || "unknown type"}`}>
-                          <Icon name={getDataTypeIcon(column.dataType || "String")} size={13} />
-                        </span>
-                      </li>
-                    ))}
-                    {table.columns.length === 0 && <li className="diagram-no-columns">No columns</li>}
-                  </ul>
+                {expanded && !compactCards && renderFieldList(table)}
+                {expanded && !compactCards && (
+                  <button
+                    type="button"
+                    className="diagram-card-resize-handle"
+                    aria-label={`Resize ${table.name} fields`}
+                    onPointerDown={(event) => startResize(event, key, width, height)}
+                    onPointerMove={moveResize}
+                    onPointerUp={endResize}
+                    onPointerCancel={endResize}
+                  />
                 )}
               </article>
+            );
+          })}
+          {compactCards && (renderedGroup?.tables || []).map((table) => {
+            const key = tableKey(table.schema, table.name);
+            const position = tablePositions[key];
+            if (!position || !expandedTables[key]) return null;
+            const size = popupSizes[key];
+            const width = size?.width || compactCardWidth(table.name, table.columns, true);
+            const height = size?.height || compactPopupDefaultHeight(table.columns);
+            return (
+              <div
+                className="diagram-field-popup"
+                key={`${key}-fields`}
+                style={{
+                  left: position.x,
+                  top: position.y + COMPACT_CARD_HEIGHT,
+                  width,
+                  height,
+                }}
+                aria-label={`${table.name} fields`}
+                onPointerDown={(event) => event.stopPropagation()}
+              >
+                {renderFieldList(table)}
+                <button
+                  type="button"
+                  className="diagram-card-resize-handle"
+                  aria-label={`Resize ${table.name} fields`}
+                  onPointerDown={(event) => startResize(event, key, width, height)}
+                  onPointerMove={moveResize}
+                  onPointerUp={endResize}
+                  onPointerCancel={endResize}
+                />
+              </div>
             );
           })}
             </div>
