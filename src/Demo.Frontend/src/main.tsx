@@ -14,7 +14,7 @@ import Home from "./components/home/home";
 import Documentation from "./components/documentation/documentation";
 import { GITHUB_URL, PRODUCT_NAME } from "./components/home/home-content";
 import { MessageBoxProvider } from "./components/message-box/message-box";
-import { apiUrls } from "./const/api-urls";
+import * as domainService from "./services/domain-service";
 import { store, type RootState } from "./store/store";
 import "./styles.css";
 
@@ -83,11 +83,7 @@ function PageSubnav({
   useEffect(() => {
     if (page !== "builder") return;
     let active = true;
-    fetch(apiUrls.metadata.domainNamesWithDescriptions)
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Unable to load query domains (${response.status}).`);
-        return response.json() as Promise<{ id: string; name: string }[]>;
-      })
+    domainService.listDomainNames()
       .then((domains) => {
         if (active) {
           setQueryDomains(domains);

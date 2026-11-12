@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { apiUrls } from "../../../const/api-urls";
+import * as operatorDefinitionService from "../../../services/operator-definition-service";
+import type { OperatorDefinitionData } from "../../../services/operator-definition-service";
 import Icon from "../../icon/icon";
 import PanelSplitter from "../../panel-splitter/panel-splitter";
 import { useMessageBox } from "../../message-box/message-box";
@@ -13,19 +14,6 @@ import type { DefinitionActionAdapter } from "../definition-actions/definition-a
 import MetadataSidebar, { type MetadataSidebarGroup } from "../metadata-sidebar/metadata-sidebar";
 import "./operator-definition.css";
 import type { RootState } from "../../../store/store";
-
-type OperatorDefinitionData = {
-  id: string;
-  name: string;
-  symbol: string;
-  description: string;
-  leftOperandType: string;
-  rightOperandType: string;
-  supportedDataTypes: string[];
-  sqlTemplates: Record<string, string>;
-  isBuiltin: boolean;
-  canDelete: boolean;
-};
 
 type OperatorDraft = Omit<OperatorDefinitionData, "id"> & { id: string | null };
 
@@ -51,20 +39,6 @@ function emptyOperator(providers: string[]): OperatorDraft {
   };
 }
 
-async function request<T = unknown>(url: string, options?: RequestInit): Promise<T | null> {
-  let response: Response;
-  try {
-    response = await fetch(url, options);
-  } catch (error) {
-    throw new Error(`Could not reach the metadata API: ${error instanceof Error ? error.message : "network error"}`);
-  }
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(detail || `Operator definition request failed (${response.status}).`);
-  }
-  return response.status === 204 ? null : response.json() as Promise<T>;
-}
-
 export default function OperatorDefinition({ onNavigationGuardChange }: OperatorDefinitionProps) {
   const providers = useSelector((state: RootState) => state.database.providers);
   const showMessageBox = useMessageBox();
@@ -86,13 +60,7 @@ export default function OperatorDefinition({ onNavigationGuardChange }: Operator
     setStatus("loading");
     setMessage("");
     try {
-      const payload = await request<OperatorDefinitionData[]>(apiUrls.metadata.operators);
-      const definitions = Array.isArray(payload)
-        ? payload
-        : payload && typeof payload === "object" && Array.isArray((payload as { value?: unknown }).value)
-          ? (payload as { value: OperatorDefinitionData[] }).value
-          : null;
-      if (!definitions) throw new Error("Operator definition API must return an array.");
+      const definitions = await operatorDefinitionService.getOperators();
       setDefinitions(definitions);
       const preferred = definitions.find((definition) => definition.id === preferredId);
       const next = selectFirst ? definitions[0] : preferred;
@@ -162,15 +130,7 @@ export default function OperatorDefinition({ onNavigationGuardChange }: Operator
           draft.sqlTemplates[provider].trim(),
         ])),
       };
-      const saved = await request<OperatorDefinitionData>(
-        draft.id ? apiUrls.metadata.operatorById(draft.id) : apiUrls.metadata.operators,
-        {
-          method: draft.id ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        },
-      );
-      if (!saved) throw new Error("Operator definition API did not return the saved definition.");
+      const saved = await operatorDefinitionService.saveOperator(draft.id, payload);
       setDefinitions((current) => {
         const updated = current.filter((definition) => definition.id !== draft.id && definition.id !== saved.id);
         updated.push(saved);
@@ -206,7 +166,7 @@ export default function OperatorDefinition({ onNavigationGuardChange }: Operator
     setSaving(true);
     setStatus("saving");
     try {
-      await request(apiUrls.metadata.operatorById(selectedId), { method: "DELETE" });
+      await operatorDefinitionService.deleteOperator(selectedId);
       setSelectedId("");
       setDraft(null);
       setDirty(false);

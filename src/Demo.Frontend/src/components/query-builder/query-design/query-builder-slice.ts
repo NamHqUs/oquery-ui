@@ -1,7 +1,9 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import { apiUrls } from "../../../const/api-urls";
 import type { FunctionDefinition } from "../../function-definition/types";
-import { formatApiError } from "./api-error";
+import * as functionDefinitionService from "../../../services/function-definition-service";
+import * as operatorDefinitionService from "../../../services/operator-definition-service";
+import * as queryService from "../../../services/query-service";
+import * as dynamicQueryService from "../../../services/dynamic-query-service";
 
 export type MetadataField = {
   name: string;
@@ -59,11 +61,6 @@ export type DomainRelation = {
   targetRelationName: string;
   targetFields: string[];
 };
-
-const queryMetadataCache = new Map<string, {
-  entities: MetadataEntity[];
-  relations: DomainRelation[];
-}>();
 
 export type DomainEntityDto = {
   name: string;
@@ -316,28 +313,7 @@ export type QueryResult = {
   totalRecords: number;
 };
 
-async function getApiError(response: Response, fallback: string): Promise<Error> {
-  const body = await response.text();
-  return new Error(formatApiError(body, fallback));
-}
 
-async function requestJson(url: string, options?: RequestInit) {
-  let response: Response;
-  try {
-    response = await fetch(url, options);
-  } catch (error) {
-    throw new Error(`Could not reach the query API: ${error instanceof Error ? error.message : "network error"}`);
-  }
-  if (!response.ok) {
-    throw await getApiError(response, `Query request failed (${response.status}).`);
-  }
-  if (response.status === 204) return null;
-  try {
-    return await response.json();
-  } catch {
-    throw new Error("Query API returned invalid JSON.");
-  }
-}
 
 function toApiProjectionNode(expression: IFieldDefinition): ApiProjectionNode {
   switch (expression.kind) {
@@ -428,18 +404,6 @@ function normalizeQueryRequestProjection(item: Record<string, unknown>): Record<
   };
 }
 
-async function requestText(url: string, options?: RequestInit) {
-  let response: Response;
-  try {
-    response = await fetch(url, options);
-  } catch (error) {
-    throw new Error(`Could not reach the query API: ${error instanceof Error ? error.message : "network error"}`);
-  }
-  if (!response.ok) {
-    throw await getApiError(response, `Query request failed (${response.status}).`);
-  }
-  return response.text();
-}
 
 export function createApiQuery(definition: QueryDefinition) {
   const { filters, sorts, columns, contextCatalog: _contextCatalog, ...query } = definition;
@@ -1045,58 +1009,12 @@ function toApiSavedRequest(request: { name: string; domainId: string; definition
   };
 }
 
-export const fetchQueryMetadata = createAsyncThunk(
-  "queryBuilder/fetchMetadata",
-  async (domainId: string | undefined = undefined, { rejectWithValue }) => {
-    try {
-      const requestedDomainId = domainId?.trim();
-      if (!requestedDomainId) return rejectWithValue("A domain is required to load query metadata.");
-      const cached = queryMetadataCache.get(requestedDomainId);
-      if (cached) return cached;
-      const payload = await requestJson(apiUrls.metadata.domainById(requestedDomainId));
-      const entities = typeof payload === "object" && payload !== null && "entities" in payload
-        ? payload.entities
-        : null;
-      const relations = typeof payload === "object" && payload !== null && "relations" in payload
-        ? payload.relations
-        : null;
-      if (!Array.isArray(entities) || !Array.isArray(relations) || entities.some((entity) => !entity
-        || typeof entity.name !== "string"
-        || !Array.isArray(entity.fields))) {
-        return rejectWithValue("Domain API must return entities with fields and relations.");
-      }
-      const result = {
-        entities: (entities as DomainEntityDto[]).map(metadataEntityFromDto),
-        relations: relations as DomainRelation[],
-      };
-      queryMetadataCache.set(requestedDomainId, result);
-      return result;
-    } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : "Unable to load query metadata.");
-    }
-  },
-  {
-    condition: (_, { getState }) => getState().queryBuilder.metadataStatus !== "loading",
-  },
-);
 
 export const fetchFunctionDefinitions = createAsyncThunk(
   "queryBuilder/fetchFunctionDefinitions",
   async (_, { rejectWithValue }) => {
     try {
-      const payload = await requestJson(apiUrls.metadata.functions);
-      if (!Array.isArray(payload) || payload.some((definition) =>
-        !definition
-        || typeof definition.name !== "string"
-        || !definition.name.trim()
-        || !Array.isArray(definition.arguments)
-        || definition.arguments.some((argument: unknown) => !argument
-          || typeof argument !== "object"
-          || typeof (argument as { name?: unknown }).name !== "string"
-          || typeof (argument as { dataType?: unknown }).dataType !== "string"))) {
-        return rejectWithValue("Function metadata API must return function definitions with names and arguments.");
-      }
-      return payload as FunctionDefinition[];
+      return await functionDefinitionService.getDefinitions();
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : "Unable to load function metadata.");
     }
@@ -1113,21 +1031,7 @@ export const fetchFilterOperators = createAsyncThunk(
   "queryBuilder/fetchFilterOperators",
   async (_, { rejectWithValue }) => {
     try {
-      const payload = await requestJson(apiUrls.metadata.operators);
-      const definitions = Array.isArray(payload)
-        ? payload
-        : payload && typeof payload === "object" && Array.isArray((payload as { value?: unknown }).value)
-          ? (payload as { value: unknown[] }).value
-          : null;
-      if (!definitions || definitions.some((operator) =>
-        !operator
-        || typeof operator.id !== "string"
-        || typeof operator.name !== "string"
-        || typeof operator.symbol !== "string"
-        || !Array.isArray(operator.supportedDataTypes))) {
-        return rejectWithValue("Operator metadata API must return operators with data types.");
-      }
-      return definitions as FilterOperatorDefinition[];
+      return await operatorDefinitionService.getOperators();
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : "Unable to load filter operators.");
     }
@@ -1141,11 +1045,7 @@ export const executeQuery = createAsyncThunk(
   "queryBuilder/execute",
   async ({ definition, domainId }: { definition: QueryDefinition; domainId: string }, { rejectWithValue }) => {
     try {
-      const payload = await requestJson(`${apiUrls.dynamicQuery.execute}?domainId=${encodeURIComponent(domainId)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(toBackendApiQuery(createApiQuery(definition))),
-      });
+      const payload = await dynamicQueryService.executeDefinition(toBackendApiQuery(createApiQuery(definition)), domainId);
       if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows) || payload.rows.some((row) => typeof row !== "string") || typeof payload.totalRecords !== "number" || !Number.isFinite(payload.totalRecords) || payload.totalRecords < -1) {
         return rejectWithValue("Query API must return a name, an array of row strings, and a valid total record count.");
       }
@@ -1166,11 +1066,7 @@ export const executeQuery = createAsyncThunk(
 
 /** Executes OQuery text without touching query-builder state. */
 export async function requestQueryResultFromText(text: string, domainId: string): Promise<QueryResult> {
-  const payload = await requestJson(`${apiUrls.dynamicQuery.executeText}?domainId=${encodeURIComponent(domainId)}`, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain" },
-    body: text,
-  });
+  const payload = await dynamicQueryService.executeOQueryText(text, domainId);
   if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows) || payload.rows.some((row: unknown) => typeof row !== "string") || typeof payload.totalRecords !== "number" || !Number.isFinite(payload.totalRecords) || payload.totalRecords < -1) {
     throw new Error("Query API must return a name, an array of row strings, and a valid total record count.");
   }
@@ -1187,11 +1083,7 @@ export async function requestQueryResultFromText(text: string, domainId: string)
 
 /** Returns the engine-generated SQL for OQuery text without touching query-builder state. */
 export function requestSqlStatementFromText(text: string, domainId: string): Promise<string> {
-  return requestText(`${apiUrls.dynamicQuery.toStringText}?domainId=${encodeURIComponent(domainId)}`, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain" },
-    body: text,
-  });
+  return dynamicQueryService.oqueryTextToSql(text, domainId);
 }
 
 export const executeQueryFromText = createAsyncThunk(
@@ -1209,11 +1101,7 @@ export const executeContextFromText = createAsyncThunk(
   "queryBuilder/executeContextFromText",
   async ({ text, context, domainId }: { text: string; context: string; domainId: string }, { rejectWithValue }) => {
     try {
-      const payload = await requestJson(`${apiUrls.dynamicQuery.executeContextText(context)}?domainId=${encodeURIComponent(domainId)}`, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain" },
-        body: text,
-      });
+      const payload = await dynamicQueryService.executeOQueryContext(text, context, domainId);
       if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows)
         || typeof payload.totalRecords !== "number") {
         return rejectWithValue("Query API returned an invalid context result.");
@@ -1237,11 +1125,7 @@ export const getSqlStatement = createAsyncThunk(
   "queryBuilder/getSqlStatement",
   async ({ definition, domainId }: { definition: QueryDefinition; domainId: string }, { rejectWithValue }) => {
     try {
-      const payload = await requestText(`${apiUrls.dynamicQuery.toString}?domainId=${encodeURIComponent(domainId)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(toBackendApiQuery(createApiQuery(definition))),
-      });
+      const payload = await dynamicQueryService.definitionToSql(toBackendApiQuery(createApiQuery(definition)), domainId);
       if (typeof payload !== "string") {
         return rejectWithValue("Query API must return a SQL statement string.");
       }
@@ -1267,11 +1151,7 @@ export const getQueryRequestText = createAsyncThunk(
   "queryBuilder/getQueryRequestText",
   async (definition: QueryDefinition, { rejectWithValue }) => {
     try {
-      const payload = await requestText(apiUrls.dynamicQuery.toOQuery, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(toBackendApiQuery(createApiQuery(definition))),
-      });
+      const payload = await dynamicQueryService.definitionToOQuery(toBackendApiQuery(createApiQuery(definition)));
       if (!payload.trim()) return rejectWithValue("Query API returned an empty OQuery request.");
       return payload;
     } catch (error) {
@@ -1284,11 +1164,7 @@ export const parseQueryRequestText = createAsyncThunk(
   "queryBuilder/parseQueryRequestText",
   async (text: string, { rejectWithValue }) => {
     try {
-      const payload = await requestJson(apiUrls.dynamicQuery.fromOQuery, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
+      const payload = await dynamicQueryService.parseOQuery(text);
       if (!payload || typeof payload !== "object" || typeof (payload as { entity?: unknown }).entity !== "string"
         || !Array.isArray((payload as { projection?: unknown }).projection)) {
         return rejectWithValue("Query API returned an invalid OQuery query.");
@@ -1304,7 +1180,7 @@ export const fetchQueryRequests = createAsyncThunk(
   "queryBuilder/fetchQueryRequests",
   async (domainId: string, { rejectWithValue }) => {
     try {
-      const payload = await requestJson(`${apiUrls.queryRequests.list}?domainId=${encodeURIComponent(domainId)}`);
+      const payload = await queryService.fetchQueryRequestPayload(domainId);
       const normalizedPayload = Array.isArray(payload)
         ? payload.map((item) => item && typeof item === "object" && !Array.isArray(item)
           ? normalizeQueryRequestProjection(item as Record<string, unknown>)
@@ -1332,11 +1208,7 @@ export const saveQueryRequest = createAsyncThunk(
   "queryBuilder/saveQueryRequest",
   async ({ name, domainId, definition, id }: { name: string; domainId: string; definition: QueryDefinition; id?: string }, { rejectWithValue }) => {
     try {
-      const response = await requestJson(id ? apiUrls.queryRequests.byId(id) : apiUrls.queryRequests.create, {
-        method: id ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(toApiSavedRequest({ name, domainId, definition, id })),
-      });
+      const response = await queryService.saveQueryPayload(domainId, toApiSavedRequest({ name, domainId, definition, id }), id);
       const saved = response && typeof response === "object" && !Array.isArray(response)
         ? normalizeQueryRequestProjection(response as Record<string, unknown>)
         : response;
@@ -1359,9 +1231,9 @@ export const saveQueryRequest = createAsyncThunk(
 
 export const deleteQueryRequest = createAsyncThunk(
   "queryBuilder/deleteQueryRequest",
-  async ({ id }: { id: string }, { rejectWithValue }) => {
+  async ({ id, domainId }: { id: string; domainId: string }, { rejectWithValue }) => {
     try {
-      await requestJson(apiUrls.queryRequests.byId(id), { method: "DELETE" });
+      await queryService.deleteQueryRequestById(id, domainId);
       return id;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : "Unable to delete query.");
@@ -1403,7 +1275,6 @@ const queryBuilderSlice = createSlice({
       state.queryRequestsError = "";
     },
     invalidateQueryMetadata(state) {
-      queryMetadataCache.clear();
       state.metadata = [];
       state.metadataRelations = [];
       state.metadataStatus = "idle";
@@ -1426,19 +1297,6 @@ const queryBuilderSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchQueryMetadata.pending, (state) => {
-        state.metadataStatus = "loading";
-        state.metadataError = "";
-      })
-      .addCase(fetchQueryMetadata.fulfilled, (state, action) => {
-        state.metadata = action.payload.entities;
-        state.metadataRelations = action.payload.relations;
-        state.metadataStatus = "succeeded";
-      })
-      .addCase(fetchQueryMetadata.rejected, (state, action) => {
-        state.metadataStatus = "failed";
-        state.metadataError = String(action.payload || action.error.message || "Unable to load query metadata.");
-      })
       .addCase(fetchFunctionDefinitions.pending, (state) => {
         state.functionDefinitionsStatus = "loading";
         state.functionDefinitionsError = "";

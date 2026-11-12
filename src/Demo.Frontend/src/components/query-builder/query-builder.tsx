@@ -7,13 +7,15 @@ import Icon from "../icon/icon";
 import { useMessageBox } from "../message-box/message-box";
 import PanelSplitter from "../panel-splitter/panel-splitter";
 import ToastNotice from "../toast-notice/toast-notice";
-import { ApiQueryContextDefinition, clearQueryRequestError, clearQueryResult, createApiQuery, deleteQueryRequest, DomainRelation, EntityRelationView, executeContextFromText, executeQuery, executeQueryFromText, fetchFilterOperators, fetchFunctionDefinitions, fetchQueryMetadata, fetchQueryRequests, fromApiQuery, fromApiQueryDefinition, getQueryRequestText, getSqlStatement, getSqlStatementFromText, IFieldDefinition, MetadataEntity, MetadataField, parseQueryRequestText, QueryDefinition, QueryFilterGroup, QueryFilterNode, relationsForEntity, saveQueryRequest, toQueryBuilderSavedView } from "./query-design/query-builder-slice";
+import { ApiQueryContextDefinition, clearQueryRequestError, clearQueryResult, createApiQuery, deleteQueryRequest, DomainRelation, EntityRelationView, executeContextFromText, executeQuery, executeQueryFromText, fetchQueryRequests, fromApiQuery, fromApiQueryDefinition, getQueryRequestText, getSqlStatement, getSqlStatementFromText, IFieldDefinition, MetadataEntity, MetadataField, parseQueryRequestText, QueryDefinition, QueryFilterGroup, QueryFilterNode, relationsForEntity, saveQueryRequest, toQueryBuilderSavedView } from "./query-design/query-builder-slice";
 import { MetadataRelationsContext } from "./query-design/metadata-relations-context";
 import QueryDesign from "./query-design/query-design";
 import QueryResult from "./query-result/query-result";
 import SavedQueryList from "./saved-query-list/saved-query-list";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
 import type { AppDispatch, RootState } from "../../store/store";
+import * as oQueryEditorService from "../../services/oquery-editor-service";
+import * as queryService from "../../services/query-service";
 import "./query-builder.css";
 
 type QueryBuilderProps = {
@@ -823,15 +825,8 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   };
   useEffect(() => {
     if (!domainId) return;
-    dispatch(fetchQueryMetadata(domainId));
-    dispatch(fetchFunctionDefinitions());
-    dispatch(fetchFilterOperators());
-  }, [dispatch, domainId]);
-
-  useEffect(() => {
-    if (!domainId) return;
-    dispatch(fetchQueryRequests(domainId));
-  }, [dispatch, domainId]);
+    oQueryEditorService.load(domainId, { includeQueryRequests: true }).catch((error: unknown) => console.error(error));
+  }, [domainId]);
 
   useEffect(() => {
     const selectedEntity = entity;
@@ -921,15 +916,16 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
         id: selectedRequestIsBuiltin ? undefined : selectedRequestId ?? undefined,
       }));
       if (saveQueryRequest.fulfilled.match(resultAction)) {
-        setSelectedRequestId(resultAction.payload.id);
-        setSelectedRequestName(resultAction.payload.name);
+        const saved = resultAction.payload;
+        setSelectedRequestId(saved.id);
+        setSelectedRequestName(saved.name);
         setSelectedRequestIsBuiltin(false);
-        setRequestName(resultAction.payload.name);
-        updateRequestRoute(resultAction.payload.name);
+        setRequestName(saved.name);
+        updateRequestRoute(saved.name);
         setQueryRequestNotice("Query saved.");
         boundModelRef.current = JSON.stringify({
           definition: currentDefinition,
-          requestName: resultAction.payload.name,
+          requestName: saved.name,
         });
         return true;
       }
@@ -1047,7 +1043,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
       ],
     });
     if (action !== "delete") return;
-    const resultAction = await dispatch(deleteQueryRequest({ id: selectedRequestId }));
+    const resultAction = await dispatch(deleteQueryRequest({ id: selectedRequestId, domainId }));
     if (deleteQueryRequest.fulfilled.match(resultAction)) {
       updateRequestRoute(null);
       setSelectedRequestName(null);
@@ -1102,7 +1098,8 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
               error={queryRequestsError}
               onSelectRequest={selectSavedRequest}
               onRetry={() => {
-                void dispatch(fetchQueryRequests(domainId));
+                queryService.invalidate(domainId);
+                dispatch(fetchQueryRequests(domainId));
               }}
             />
             <PanelSplitter panel={savedQueriesPanel} label="saved queries panel" />
@@ -1110,6 +1107,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
               <MetadataRelationsContext.Provider value={metadataRelations}>
               <QueryDesign
                 key={`${selectedRequestName ?? "draft"}-${activeContextIndex ?? "request"}`}
+                domainId={domainId}
                 metadata={metadata}
                 metadataStatus={metadataStatus}
                 metadataError={metadataError}

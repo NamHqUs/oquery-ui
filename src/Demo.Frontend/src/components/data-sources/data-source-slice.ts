@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { apiUrls } from "../../const/api-urls";
+import { loadDataSource } from "../../services/data-source-service";
 
 const seedRows = [
   { id: 1042, customer: "Northwind Traders", segment: "Enterprise", region: "North America", revenue: 128400, orders: 42, status: "Active", updated: "Oct 08, 2026" },
@@ -13,21 +13,11 @@ const seedRows = [
 ];
 
 export const fetchDataSource = createAsyncThunk("dataSource/fetch", async (url, { rejectWithValue }) => {
-  const sourceUrl = url || apiUrls.dataSource;
-  if (!sourceUrl) return rejectWithValue("Set VITE_DATA_SOURCE_URL to load a datasource from an API.");
-
-  const response = await fetch(sourceUrl);
-  if (!response.ok) {
-    return rejectWithValue(`Datasource request failed (${response.status}).`);
+  try {
+    return await loadDataSource(url);
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : "Unable to load the datasource.");
   }
-
-  const payload = await response.json();
-  const rows = Array.isArray(payload) ? payload : payload?.rows;
-  if (!Array.isArray(rows) || rows.some((row) => !row || typeof row !== "object" || Array.isArray(row))) {
-    return rejectWithValue("Datasource API must return an array of objects or an object with a rows array.");
-  }
-
-  return { rows, name: Array.isArray(payload) ? undefined : payload.name };
 });
 
 const dataSourceSlice = createSlice({

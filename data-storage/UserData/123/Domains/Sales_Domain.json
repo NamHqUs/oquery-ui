@@ -1,5 +1,5 @@
 {
-  "Id": "F6075F134E6971C426788F06B15508F061DA2FAA18C018B3B0F9B01B63A148B3",
+  "Id": "Sales_Domain",
   "Name": "Sales",
   "Description": "The Sales scope represents NorthStar\u2019s commercial product business. It focuses on how the company sells health and wellness products, how much revenue and profit those products generate, which customers and representatives contribute the most value, and how sales performance changes over time.\n\nThis scope supports decisions about:\n\n- **Product and category profitability**\n- **Sales-channel performance**\n- **Customer value and repeat purchasing**\n- **Sales representative effectiveness**\n- **Product demand and margin**\n- **Monthly revenue momentum**\n\nThe Sales scope provides a view of both customer behavior and internal sales performance, connecting orders, products, representatives, departments, locations, and financial outcomes.",
   "Entities": [

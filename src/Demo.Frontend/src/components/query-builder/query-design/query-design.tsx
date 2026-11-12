@@ -155,6 +155,7 @@ function EntityMenu({ entities, value, disabled, onChange }: EntityMenuProps) {
 }
 
 type QueryDesignProps = {
+  domainId: string;
   metadata: MetadataEntity[];
   metadataStatus: string;
   metadataError: string;
@@ -190,6 +191,7 @@ type QueryDesignProps = {
 };
 
 export default function QueryDesign({
+  domainId,
   metadata,
   metadataStatus,
   metadataError,
@@ -378,7 +380,9 @@ export default function QueryDesign({
             textOverride={oqueryText}
             onTextChange={onOqueryTextChange}
             oquery
+            domain={{ id: domainId, name: domainId, entities: metadata, relations: metadataRelations }}
             functionDefinitions={functionDefinitions}
+            operators={filterOperators}
             suggestionFields={suggestionData.fields}
             suggestionEntities={[...new Set([
               ...suggestionData.entities,

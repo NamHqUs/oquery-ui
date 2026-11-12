@@ -2,13 +2,13 @@ import { createPortal, flushSync } from "react-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { apiUrls } from "../../const/api-urls";
 import { useMessageBox } from "../message-box/message-box";
 import Icon from "../icon/icon";
 import PanelSplitter from "../panel-splitter/panel-splitter";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
 import { fetchDbSchema } from "../data-sources/database-slice";
-import { fetchQueryMetadata, metadataEntityFromDto, MetadataEntity, setQueryMetadata, type DomainEntityDto, type DomainRelation } from "../query-builder/query-design/query-builder-slice";
+import * as domainService from "../../services/domain-service";
+import { metadataEntityFromDto, MetadataEntity, setQueryMetadata, type DomainEntityDto, type DomainRelation } from "../query-builder/query-design/query-builder-slice";
 import EntityList from "./entity-definition/entity-list/entity-list";
 import EntityBuilder, { type DatabaseTableOption } from "./entity-definition/entity-builder/entity-builder";
 import EntityDiagram from "./entity-diagram/entity-diagram";
@@ -109,20 +109,10 @@ function findEntityTable(entity: MetadataEntity, tables: DatabaseTableOption[]) 
   );
 }
 
-async function request<T = unknown>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, options);
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(detail || `Metadata request failed (${response.status}).`);
-  }
-
-  return response.status === 204 ? null as T : response.json() as Promise<T>;
-}
-
 async function loadDomainSummaries(): Promise<DomainSummary[]> {
   if (domainSummaryCache) return domainSummaryCache;
   if (domainSummaryRequest) return domainSummaryRequest;
-  domainSummaryRequest = request<DomainOption[]>(apiUrls.metadata.domainNamesWithDescriptions)
+  domainSummaryRequest = domainService.listDomainNames()
     .then((domains) => {
       domainSummaryCache = domains.map(domain => ({
         ...domain,
@@ -142,7 +132,7 @@ async function loadDomainSummaries(): Promise<DomainSummary[]> {
 async function loadDomainOptions(): Promise<DomainOption[]> {
   if (domainOptionCache) return domainOptionCache;
   if (domainOptionRequest) return domainOptionRequest;
-  domainOptionRequest = request<Array<Pick<DomainOption, "id" | "name">>>(apiUrls.metadata.domainNames)
+  domainOptionRequest = domainService.listDomainNames()
     .then((domains) => {
       domainOptionCache = domains.map(domain => ({ ...domain, description: "" }));
       return domainOptionCache;
@@ -212,7 +202,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const handleDomainChanged = async (domain: Domain, pendingSave = false) => {
     const isNewDomain = !domainOptions.some((item) => item.id === domain.id);
     if (isNewDomain) {
-      const options = await request<Array<Pick<DomainOption, "id" | "name">>>(apiUrls.metadata.domainNames);
+      const options = await domainService.listDomainNames();
       domainOptionCache = options.map((option) => ({ ...option, description: "" }));
       setDomainOptions(domainOptionCache);
     }
@@ -380,12 +370,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     setStatus("loading");
     setMessage("");
     try {
-      const result = await dispatch(fetchQueryMetadata(requestDomainId));
-      if (!fetchQueryMetadata.fulfilled.match(result)) {
-        if (result.meta.condition) return false;
-        throw new Error(String(result.payload || "Unable to load metadata."));
-      }
-      const { entities: loadedEntities, relations: loadedRelations } = result.payload;
+      const { entities: loadedEntities, relations: loadedRelations } = await domainService.getDomain(requestDomainId);
       setDomainEntities(loadedEntities);
       setDomainRelations(loadedRelations);
       setLoadedDomainId(requestDomainId);
@@ -446,7 +431,13 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
               ? result.find(domain => domain.id === requestedDiagramDomainId)
               : undefined;
             const resolvedDomain = selectedDomain || result[0];
-            setDomains(resolvedDomain ? [resolvedDomain] : []);
+            setDomains(resolvedDomain ? [{
+              ...resolvedDomain,
+              entities: [],
+              relations: [],
+              canDelete: resolvedDomain.id !== "All",
+              isBuiltin: resolvedDomain.id === "All",
+            }] : []);
             if (resolvedDomain) {
               lastDiagramDomainIdRef.current = resolvedDomain.id;
               window.sessionStorage.setItem(DIAGRAM_DOMAIN_STORAGE_KEY, resolvedDomain.id);
@@ -616,15 +607,11 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         setMessage(relationProblem);
         return;
       }
-      const saved = await request<SavedDomainDto>(apiUrls.metadata.domainById(domain.id), {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: domain.name,
-          description: domain.description,
-          entities: nextEntities.map(toEntityPayload),
-          relations: toRelationPayload(nextRelations),
-        }),
+      const saved: SavedDomainDto = await domainService.updateDomain(domain.id, {
+        name: domain.name,
+        description: domain.description,
+        entities: nextEntities.map(toEntityPayload),
+        relations: toRelationPayload(nextRelations),
       });
       applySavedDomain(saved, nextDraft?.name || selectedName);
       setSuccessMessage(`Domain "${domain.name}" saved successfully.`);
@@ -660,7 +647,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     setStatus("saving");
     setMessage("");
     try {
-      await request(apiUrls.metadata.domainById(domainId), { method: "DELETE" });
+      await domainService.deleteDomain(domainId);
       const deletedIndex = domainOptions.findIndex((domain) => domain.id === domainId);
       const nextDomain = domainOptions[deletedIndex + 1] || domainOptions[deletedIndex - 1];
       setDomainOptions((current) => current.filter((domain) => domain.id !== domainId));
@@ -729,15 +716,11 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         if (entityNameProblem) throw new Error(entityNameProblem);
         const relationProblem = findRelationProblem(displayedEntities, displayedRelations);
         if (relationProblem) throw new Error(relationProblem);
-        const saved = await request<SavedDomainDto>(apiUrls.metadata.domainById(domain.id), {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: domain.name,
-            description: domain.description,
-            entities: displayedEntities.map(toEntityPayload),
-            relations: toRelationPayload(displayedRelations),
-          }),
+        const saved: SavedDomainDto = await domainService.updateDomain(domain.id, {
+          name: domain.name,
+          description: domain.description,
+          entities: displayedEntities.map(toEntityPayload),
+          relations: toRelationPayload(displayedRelations),
         });
         applySavedDomain(saved, selectedName);
         return true;
@@ -768,15 +751,11 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         if (entityNameProblem) throw new Error(entityNameProblem);
         const relationProblem = findRelationProblem(nextEntities, nextRelations);
         if (relationProblem) throw new Error(relationProblem);
-        const saved = await request<SavedDomainDto>(apiUrls.metadata.domainById(domain.id), {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: domain.name,
-            description: domain.description,
-            entities: nextEntities.map(toEntityPayload),
-            relations: toRelationPayload(nextRelations),
-          }),
+        const saved: SavedDomainDto = await domainService.updateDomain(domain.id, {
+          name: domain.name,
+          description: domain.description,
+          entities: nextEntities.map(toEntityPayload),
+          relations: toRelationPayload(nextRelations),
         });
         applySavedDomain(saved, payload.name);
       }

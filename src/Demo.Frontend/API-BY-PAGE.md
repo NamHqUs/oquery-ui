@@ -1,163 +1,222 @@
 # Frontend API calls by page
 
-This document describes which backend API requests the frontend can make for
-each route. Requests marked **conditional** are sent only after a user action,
-when a database connection is available, or when the relevant state is not
-already cached.
+This is the maintained API and data-ownership contract for `Demo.Frontend`.
+Update it whenever an endpoint, service boundary, cache rule, or page request
+changes. The API base URL is `VITE_BACKEND_API_URL`.
 
-The base URL is configured by `VITE_BACKEND_API_URL`. The endpoint names below
-are relative to that base URL.
+Implementation references:
 
-## Requests shared by the application shell
+- [`src/main.tsx`](./src/main.tsx) — routes and application shell.
+- [`src/const/api-urls.ts`](./src/const/api-urls.ts) — endpoint definitions.
+- [`src/components/data-sources/database-slice.ts`](./src/components/data-sources/database-slice.ts)
+  — connection, schema, and table data.
+- [`src/components/query-builder/query-design/query-builder-slice.ts`](./src/components/query-builder/query-design/query-builder-slice.ts)
+  — query, metadata, and saved-query requests.
+- [`src/components/metadata-builder/metadata-builder.tsx`](./src/components/metadata-builder/metadata-builder.tsx)
+  — metadata routes and domain UI.
 
-These requests are not owned by one page:
+## Service ownership
 
-| Request | When it is called | Purpose |
+Every backend call made by the frontend's data layer is performed by a service
+in `src/services`. Each service owns its URL, response validation, cache and
+in-flight request sharing. Redux thunks are thin adapters: they call the
+service and store the result in Redux. Components dispatch thunks or call
+services; they never call APIs directly.
+
+Shared transport: `src/services/api-client.ts` (`requestJson`).
+
+| Service | Owns (fetch + validate + cache) | Invalidation |
 | --- | --- | --- |
-| `GET /db/connections/provider` | Once when the application starts | Checks whether a database connection already exists and identifies the connected provider. |
-| `POST /db/connect` | When the connection dialog is submitted | Connects using a configured profile or a direct provider and connection string. |
-| `POST /db/disconnect` | When the user disconnects | Clears the active database connection. |
+| `DomainService` | `DomainName` list, full `DomainDetails`, domain CRUD | Details cached by ID; list reconciled with details. |
+| `DbSchemaService` | Database schema and table previews | `invalidateSchema()` on connect/disconnect. |
+| `FunctionDefinitionService` | Function definitions and create/update/delete | Cache cleared on every save/delete. |
+| `OperatorDefinitionService` | Operator definitions and create/update/delete | Cache cleared on every save/delete. |
+| `QueryService` | Saved-query requests per `domainId` (fetch, save, delete) | Per-domain entry cleared on save/delete. |
+| `OQueryEditorService` | Orchestration only: dispatches the domain, function, operator and saved-query adapters for the editor | None (delegates to the services above). |
+| `DatabaseConnectionService` | Connection options, provider check, connect and disconnect (validated) | Schema cache is invalidated on connect and disconnect. |
+| `DynamicQueryService` | Query execution, OQuery text execution, SQL and OQuery conversion | None (results are not cached). |
+| `DataSourceService` | External datasource loading (`VITE_DATA_SOURCE_URL`) | None. |
 
-The connection dialog additionally calls:
+Duplicate protection (same for every service): a cached value is returned if
+present; a pending request is shared by all callers; a failed request clears
+the pending entry so the next call can retry.
 
-| Request | When it is called | Purpose |
+### Domain data
+
+Domain details are global application data and are loaded by ID on demand.
+`DomainService.listDomainNames()` supplies the lightweight selector list;
+`DomainService.getDomain(id)` supplies the source-of-truth detail.
+
+Metadata pages produce domain data through `DomainService`. Home and Query
+Builder consume it through `OQueryEditorService`. A component must not
+implement a second domain cache or resolve list/detail conflicts itself.
+
+### Database schema
+
+`DbSchema` is not global domain data. It is shared infrastructure for metadata
+authoring and Database Explorer, owned by `DbSchemaService`. Metadata pages
+must call `DbSchemaService.getSchema()` for table mapping and relation
+selection. A database connection change invalidates the old schema before it
+is used again.
+
+### OQuery editor contract
+
+Every OQuery editor host must provide all editor data explicitly:
+
+```ts
+type OQueryEditorInput = {
+  domain: DomainDetails;
+  functionDefinitions: FunctionDefinition[];
+  operators: OperatorDefinition[];
+};
+```
+
+Home, Query Builder, and future editor hosts must use
+`OQueryEditorService`. The editor must not fetch missing domain, function, or
+operator data.
+
+```text
+Home / Query Builder
+  -> OQueryEditorService
+     -> DomainService.getDomain(domainId)
+     -> FunctionDefinitionService.getDefinitions()
+     -> OperatorDefinitionService.getOperators()
+
+Query Builder saved-query panel
+  -> QueryService.getQueryRequests(domainId)
+
+Query Builder domain selector
+  -> DomainService.listDomainNames()
+
+Metadata > Diagram / Entity Definition
+  -> DomainService.listDomainNames()
+  -> DomainService.getDomain(domainId)
+  -> DbSchemaService.getSchema()
+     // relation selection and database-table mapping
+  -> DomainService.create/update/delete(...)
+
+Metadata > Domains
+  -> DomainService.listDomainNames()
+
+Metadata > Database Explorer
+  -> DbSchemaService.getSchema()
+  -> schema cache or GET /db/schema
+```
+
+## Global application-shell requests
+
+These requests are outside page ownership:
+
+| Request | Trigger | Purpose |
 | --- | --- | --- |
-| `GET /db/connections` | When the connection dialog opens | Loads available providers, profiles, and whether direct connections are enabled. |
+| `GET /db/connections/provider` | Application startup | Detects the current database provider. |
+| `GET /db/connections` | Connection dialog opens | Loads providers, profiles, and direct-connection capability. |
+| `POST /db/connect` | Connection submitted | Creates a database connection. |
+| `POST /db/disconnect` | User disconnects | Clears the database connection and schema state. |
 
-## Home page (`/`)
+Redux holds the state read by components. Thunks are adapters that call a
+service and store its result; they must not contain `fetch` calls.
 
-| Request | When it is called | Purpose |
+## Page API contract
+
+### Home (`/`)
+
+Home does not load a domain-name list and does not call domain or function
+APIs directly. It uses `HomePage:DomainId` from `appsettings.json` (for
+example, `Sales_Domain`) through `OQueryEditorService`.
+
+| Service call | Trigger | Purpose |
 | --- | --- | --- |
-| `GET /metadata/domains/names` | On page load | Selects the first available domain for the home playground. |
-| `GET /metadata/domains/{domainId}` | After a domain is selected | Loads entity and relation metadata for the home playground. |
-| `GET /metadata/functions` | On page load | Loads function definitions used by query suggestions and the playground. |
+| `OQueryEditorService` with configured domain ID | Page load | Provides the domain, functions, and operators required by the editor. |
 
-The global provider check also runs on this page.
+### Query Builder (`/query-builder`)
 
-## Query builder (`/query-builder`)
-
-### Startup and domain selection
-
-| Request | When it is called | Purpose |
+| Service call or API action | Trigger | Purpose |
 | --- | --- | --- |
-| `GET /metadata/domains/names-with-descriptions` | When the query-builder sub-navigation loads | Populates the domain selector. The query builder currently uses this endpoint even though it only consumes `id` and `name`. |
-| `GET /metadata/domains/{domainId}` | When the selected domain changes | Loads the selected domain's entities and relations. |
-| `GET /metadata/functions` | When the selected domain is initialized | Loads available function definitions. |
-| `GET /metadata/operators` | When the selected domain is initialized | Loads filter and expression operators. |
-| `GET /query-request?domainId={domainId}` | When the selected domain is initialized | Loads saved query requests for the domain. |
+| `DomainService.listDomainNames()` | Domain selector load | Provides selector options. |
+| `OQueryEditorService` | Domain selection | Provides domain, functions, and operators. |
+| `QueryService` via `OQueryEditorService` (saved queries) | Saved-query panel load/revisit | Provides cached saved queries for the selected domain. |
+| `POST /dynamic-query/query?domainId={domainId}` | Structured query execution | Executes the current definition. |
+| `POST /dynamic-query/query/from-text?domainId={domainId}` | OQuery execution | Parses and executes text. |
+| `POST /dynamic-query/query/from-text/{context}?domainId={domainId}` | Context execution | Executes text for a selected context. |
+| `POST /dynamic-query/query/to-string` | SQL preview | Converts a definition to SQL. |
+| `POST /dynamic-query/query/to-string-from-text?domainId={domainId}` | Text SQL preview | Converts OQuery text to SQL. |
+| `POST /dynamic-query/query/to-oquery` | OQuery conversion | Converts a definition to OQuery text. |
+| `POST /dynamic-query/query/from-oquery` | OQuery loading | Converts OQuery text to a definition. |
+| `QueryService.fetch/save/delete(...)` | Saved-query load and mutation | Fetches, saves and deletes through the service; per-domain cache updated on save/delete. |
 
-### Query actions
+`QueryService` owns the underlying `/query-request*` API and caches requests
+by domain. Query Builder must not directly call
+`GET /query-request?domainId={domainId}`.
 
-| Request | When it is called | Purpose |
+### Metadata: Diagram (`/metadata/diagrams`)
+
+| Service call | Trigger | Purpose |
 | --- | --- | --- |
-| `POST /dynamic-query/query?domainId={domainId}` | Running a structured query | Executes the current query-builder definition. |
-| `POST /dynamic-query/query/from-text?domainId={domainId}` | Running OQuery text | Parses and executes a text query. |
-| `POST /dynamic-query/query/from-text/{context}?domainId={domainId}` | Running text for a selected context | Parses and executes text scoped to a context. |
-| `POST /dynamic-query/query/to-string` | Previewing or converting a structured query | Converts a query definition to SQL text. |
-| `POST /dynamic-query/query/to-string-from-text?domainId={domainId}` | Converting OQuery text to SQL | Converts text input to SQL. |
-| `POST /dynamic-query/query/to-oquery` | Converting a structured query | Converts a query definition to OQuery text. |
-| `POST /dynamic-query/query/from-oquery` | Loading or parsing OQuery text | Converts OQuery text to a query definition. |
+| `DomainService.listDomainNames()` | Page load | Provides domain selector/group names. |
+| `DomainService.getDomain(domainId)` | Domain resolved/changed | Loads the selected domain detail. |
+| `DbSchemaService.getSchema()` | Schema or relation logic needed | Provides tables and relationships. |
+| `DomainService.create/update/delete(...)` | Metadata mutation | Persists changes and reconciles domain caches. |
 
-### Saved query actions
+### Metadata: Entity Definition
 
-| Request | When it is called | Purpose |
-| --- | --- | --- |
-| `POST /query-request` | Saving a new query request | Creates a saved query request. |
-| `PUT /query-request/{id}` | Updating an existing query request | Saves changes to an existing request. |
-| `DELETE /query-request/{id}` | Deleting a saved query request | Removes the request. |
-
-## Metadata diagram (`/metadata/diagrams`)
-
-| Request | When it is called | Purpose |
-| --- | --- | --- |
-| `GET /metadata/domains/names` | When the diagram loads | Loads only domain IDs and names for the diagram domain selector and group labels. |
-| `GET /metadata/domains/{domainId}` | After the diagram domain is resolved | Loads entities and relations for the selected domain. |
-| `GET /db/schema` | When database schema is needed and a connection is available | Supplies database tables and relationships used by the diagram/entity editor. |
-
-The diagram must use `/metadata/domains/names`, not
-`/metadata/domains/names-with-descriptions`, because descriptions are not
-rendered by the diagram.
-
-## Domains page (`/metadata/domains`)
-
-| Request | When it is called | Purpose |
-| --- | --- | --- |
-| `GET /metadata/domains/names-with-descriptions` | When the page loads | Loads domain names and descriptions for the domain list. |
-| `GET /metadata/domains/{domainId}` | When a domain is selected or edited | Loads the complete domain definition. |
-| `GET /db/schema` | When database-backed domain editing is available | Loads tables and relationships for entity selection. |
-| `POST /metadata/domains` | When a new domain is saved | Creates a domain. |
-| `POST /metadata/domains/generate` | When a domain is generated from database metadata | Generates and creates a domain. |
-| `PUT /metadata/domains/{domainId}` | When an existing domain is saved | Updates the domain definition. |
-| `DELETE /metadata/domains/{domainId}` | When a domain is deleted | Deletes the domain. |
-
-## Entity definitions
-
-The entity list and entity create/edit routes are rendered by the metadata
-workspace:
+Routes:
 
 - `/metadata/entities`
 - `/metadata/entities/{domainId}`
 - `/metadata/entities/create`
 - `/metadata/entities/edit/{domainId}`
 
-These routes use the same domain and schema requests as the Domains page:
+Uses `DomainService.listDomainNames()`, `DomainService.getDomain(id)`,
+`DbSchemaService.getSchema()` for table/relation selection, and
+`DomainService.create/update(...)` for persistence.
 
-| Request | When it is called | Purpose |
+### Metadata: Domains (`/metadata/domains`)
+
+The initial list requires only `DomainService.listDomainNames()`. Detail and
+schema data are loaded only for an explicit detail/edit workflow.
+
+| Service call | Trigger | Purpose |
 | --- | --- | --- |
-| `GET /metadata/domains/names-with-descriptions` | When the entity workspace needs the domain list | Resolves the domain selector and domain context. |
-| `GET /metadata/domains/{domainId}` | When a domain is selected or an edit route is opened | Loads entities and relations for that domain. |
-| `GET /db/schema` | When database-backed entity creation/editing is used | Loads available database tables and columns. |
-| `POST /metadata/domains` | When an entity create operation saves a new domain | Persists the containing domain. |
-| `PUT /metadata/domains/{domainId}` | When an entity edit operation saves changes | Persists the containing domain. |
+| `DomainService.listDomainNames()` | Page load | Lists domain IDs, names, and descriptions. |
+| `DomainService.getDomain(id)` | Detail/edit workflow | Loads full domain details. |
+| `DbSchemaService.getSchema()` | Database-backed editing | Provides tables and relationships. |
+| `DomainService.create/generate/update/delete(...)` | Domain mutation | Persists changes and reconciles caches. |
 
-## Database explorer (`/metadata/explorer`)
+### Metadata: Database Explorer (`/metadata/explorer`)
 
-| Request | When it is called | Purpose |
+| Service call | Trigger | Purpose |
 | --- | --- | --- |
-| `GET /db/schema` | After a database connection is available | Loads schemas, tables, columns, and relationships. |
-| `GET /db/data/{tableName}?schema={schema}&limit=10` | When the table Data tab is opened | Loads a bounded preview of table rows. |
+| `DbSchemaService.getSchema()` | Connected explorer load | Loads tables, columns, and relationships. |
+| `GET /db/data/{tableName}?schema={schema}&limit=10` | Table Data tab | Loads a maximum of 10 preview rows. |
 
-The table preview is limited to 10 rows by the frontend.
+### Function Definitions (`/function-definitions`)
 
-## Function definitions (`/function-definitions`)
+Uses `FunctionDefinitionService.getDefinitions()`, `saveDefinition()` and
+`deleteDefinition()`. The page produces global function data; Home and Query Builder consume it through`OQueryEditorService`.
 
-| Request | When it is called | Purpose |
-| --- | --- | --- |
-| `GET /metadata/functions` | When the page is first visited | Loads built-in and user-defined function definitions. |
-| `GET /metadata/functions/{functionName}` | When a function is selected for editing | Loads the selected function. |
-| `POST /metadata/functions` | When a new function is saved | Creates a function definition. |
-| `PUT /metadata/functions/{functionName}` | When an existing function is saved | Updates a function definition. |
-| `DELETE /metadata/functions/{functionName}` | When a function is deleted | Deletes the function definition. |
+### Operator Definitions
 
-## Operator definitions
+Uses `OperatorDefinitionService.getOperators()`, `saveOperator()` and
+`deleteOperator()`. Query
+Builder consumes operators through `OQueryEditorService`.
 
-Operator definitions are managed inside the metadata workspace.
+### Documentation (`/documentation`)
 
-| Request | When it is called | Purpose |
-| --- | --- | --- |
-| `GET /metadata/operators` | When the operator section is first opened | Loads built-in and user-defined operator definitions. |
-| `POST /metadata/operators` | When a new operator is saved | Creates an operator definition. |
-| `PUT /metadata/operators/{operatorId}` | When an existing operator is saved | Updates an operator definition. |
-| `DELETE /metadata/operators/{operatorId}` | When an operator is deleted | Deletes the operator definition. |
-
-## Documentation (`/documentation`)
-
-The documentation page does not make a page-specific API request. The global
-provider check still runs because it belongs to the application shell.
+No page-specific API request. The global provider check still runs.
 
 ## API ownership summary
 
-| API group | Main frontend owner |
+| API group | Service/owner |
 | --- | --- |
-| `/db/connections*`, `/db/connect`, `/db/disconnect` | Database connection dialog and application shell |
-| `/db/schema`, `/db/data/*` | Database explorer and metadata entity/domain editors |
-| `/metadata/domains*` | Home, query builder, diagram, domains, and entity definitions |
-| `/metadata/functions*` | Query builder, home, and function definitions |
-| `/metadata/operators*` | Query builder and operator definitions |
-| `/dynamic-query/*` | Query builder |
-| `/query-request*` | Query builder |
+| `/db/connections*`, `/db/connect`, `/db/disconnect` | Database connection flow and application shell |
+| `/db/schema`, `/db/data/*` | `DbSchemaService` |
+| `/metadata/domains*` | `DomainService` |
+| `/metadata/functions*` | `FunctionDefinitionService` |
+| `/metadata/operators*` | `OperatorDefinitionService` |
+| `/dynamic-query/*` | `OQueryEditorService` |
+| `/query-request*` | `QueryService` |
 
-When investigating a browser request, first identify whether it is a global
-request, a page startup request, or an action-triggered request. A request
-appearing while a page is visible may belong to a component retained by the
-application shell rather than to the visible page itself.
+When investigating a Network request, first classify it as a global shell
+request, a service-owned page request, or an action-triggered request. The
+visible page can contain mounted components retained by the application shell.

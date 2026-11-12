@@ -3,7 +3,7 @@ import Icon, { type IconName } from "../icon/icon";
 import type { FunctionDefinition } from "../function-definition/types";
 import OQueryEditor from "../oquery-editor/oquery-editor";
 import { getOQuerySuggestionData } from "../oquery-editor/oquery-suggestion-data";
-import type { DomainRelation, MetadataEntity, QueryResult } from "../query-builder/query-design/query-builder-slice";
+import type { DomainRelation, FilterOperatorDefinition, MetadataEntity, QueryResult } from "../query-builder/query-design/query-builder-slice";
 import BarChart from "../charts/bar-chart/bar-chart";
 import type { SimpleChartData } from "../charts/chart-types";
 import type { DemoExampleKey } from "./home-demo-examples";
@@ -143,6 +143,8 @@ type HomePageProps = {
   metadataError: string | null;
   metadata: MetadataEntity[];
   metadataRelations: DomainRelation[];
+  functionDefinitions: FunctionDefinition[];
+  filterOperators: FilterOperatorDefinition[];
   demoResults: Partial<Record<DemoExampleKey, QueryResult>>;
   demoLoading: Partial<Record<DemoExampleKey, boolean>>;
   demoErrors: Partial<Record<DemoExampleKey, string>>;
@@ -152,7 +154,7 @@ type HomePageProps = {
 
 export default function HomePage({
   onNavigateToPage,
-  metadataStatus, metadataError, metadata, metadataRelations, functionDefinitions,
+  metadataStatus, metadataError, metadata, metadataRelations, functionDefinitions, filterOperators,
   demoResults, demoLoading, demoErrors, onRunDemo, onCloseDemo,
 }: HomePageProps) {
   const [demoRepresentations, setDemoRepresentations] = useState<Partial<Record<DemoExampleKey, DemoRepresentation>>>({});
@@ -426,7 +428,9 @@ export default function HomePage({
         showFoldControls={false}
         rows={Math.max(1, query.split("\n").length)}
         initialText={query}
+        domain={{ id: "home", name: "Home", entities: metadata, relations: metadataRelations }}
         functionDefinitions={functionDefinitions}
+        operators={filterOperators}
         suggestionFields={suggestionData.fields}
         suggestionEntities={suggestionData.entities}
         suggestionEntitiesMetadata={suggestionData.entitiesMetadata}

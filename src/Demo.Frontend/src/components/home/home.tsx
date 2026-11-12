@@ -5,14 +5,12 @@ import OQueryEditor from "../oquery-editor/oquery-editor";
 import { getOQuerySuggestionData } from "../oquery-editor/oquery-suggestion-data";
 import type { FunctionDefinition } from "../function-definition/types";
 import {
-  fetchFunctionDefinitions,
-  fetchQueryMetadata,
   requestQueryResultFromText,
   requestSqlStatementFromText,
   type QueryResult,
 } from "../query-builder/query-design/query-builder-slice";
 import type { RootState } from "../../store/store";
-import { apiUrls } from "../../const/api-urls";
+import * as oQueryEditorService from "../../services/oquery-editor-service";
 import {
   DEVELOPER_CARDS,
   EXTENSION_CARDS,
@@ -31,6 +29,7 @@ type HomeDestination = "builder" | "metadata" | "sources" | "functions" | "docum
 type SuggestionData = ReturnType<typeof getOQuerySuggestionData>;
 
 const PREVIEW_ROWS = 12;
+const HOME_DOMAIN_ID = import.meta.env.VITE_HOME_DOMAIN_ID || "Sales_Domain";
 const SQL_KEYWORDS = new Set([
   "WITH", "RECURSIVE", "SELECT", "FROM", "WHERE", "GROUP", "BY", "HAVING", "ORDER", "LIMIT", "OFFSET", "ASC", "DESC",
   "AS", "AND", "OR", "NOT", "IN", "IS", "NULL", "LIKE", "JOIN", "LEFT", "RIGHT", "INNER", "OUTER", "ON", "DISTINCT",
@@ -61,6 +60,8 @@ function Playground({
   initialQuery,
   label,
   functionDefinitions,
+  operators,
+  domain,
   suggestionData,
   editorHostRef,
   domainId,
@@ -68,6 +69,13 @@ function Playground({
   initialQuery: string;
   label: string;
   functionDefinitions: FunctionDefinition[];
+  operators: RootState["queryBuilder"]["filterOperators"];
+  domain: {
+    id: string;
+    name: string;
+    entities: RootState["queryBuilder"]["metadata"];
+    relations: RootState["queryBuilder"]["metadataRelations"];
+  };
   suggestionData: SuggestionData;
   editorHostRef?: RefObject<HTMLDivElement | null>;
   domainId: string;
@@ -159,7 +167,9 @@ function Playground({
           showFoldControls={false}
           rows={Math.max(1, initialQuery.split("\n").length)}
           initialText={initialQuery}
+          domain={domain}
           functionDefinitions={functionDefinitions}
+          operators={operators}
           suggestionFields={suggestionData.fields}
           suggestionEntities={suggestionData.entities}
           suggestionEntitiesMetadata={suggestionData.entitiesMetadata}
@@ -248,9 +258,9 @@ export default function Home({
   onRequestConnection: () => void;
 }) {
   const dispatch = useDispatch();
-  const { metadata, metadataRelations, metadataStatus, functionDefinitions, functionDefinitionsStatus } = useSelector((state: RootState) => state.queryBuilder);
+  const { metadata, metadataRelations, metadataStatus, functionDefinitions, filterOperators } = useSelector((state: RootState) => state.queryBuilder);
   const { providers } = useSelector((state: RootState) => state.database);
-  const [domainId, setDomainId] = useState("");
+  const [domainId] = useState(HOME_DOMAIN_ID);
   const [activeExampleId, setActiveExampleId] = useState(HOME_EXAMPLES[0]!.id);
   const heroEditorRef = useRef<HTMLDivElement>(null);
   const activeExample = HOME_EXAMPLES.find((example) => example.id === activeExampleId) ?? HOME_EXAMPLES[0]!;
@@ -258,22 +268,8 @@ export default function Home({
   const relationCount = metadataRelations.length;
 
   useEffect(() => {
-    if (domainId && metadataStatus === "idle") dispatch(fetchQueryMetadata(domainId));
-    if (functionDefinitionsStatus === "idle") dispatch(fetchFunctionDefinitions());
-  }, [dispatch, domainId, functionDefinitionsStatus, metadataStatus]);
-  useEffect(() => {
-    let active = true;
-    fetch(apiUrls.metadata.domainNames)
-      .then((response) => response.ok ? response.json() as Promise<{ id: string }[]> : Promise.reject(new Error(`Unable to load domains (${response.status}).`)))
-      .then((domains) => {
-        if (active && domains[0]) setDomainId(domains[0].id);
-      })
-      .catch((error: unknown) => console.error(error instanceof Error ? error.message : "Unable to load domains."));
-    return () => {
-      active = false;
-    };
-  }, []);
-
+    if (domainId) oQueryEditorService.load(domainId).catch((error: unknown) => console.error(error));
+  }, [domainId]);
   const showExample = (id: string) => {
     setActiveExampleId(id);
     scrollToSection("hp-examples");
@@ -300,6 +296,8 @@ export default function Home({
             suggestionData={suggestionData}
             editorHostRef={heroEditorRef}
             domainId={domainId}
+            operators={filterOperators}
+            domain={{ id: domainId, name: domainId, entities: metadata, relations: metadataRelations }}
           />
         </div>
       </section>
@@ -333,6 +331,8 @@ export default function Home({
               initialQuery={activeExample.query}
               label={`Example ${activeExample.letter} · ${activeExample.title}`}
               functionDefinitions={functionDefinitions}
+              operators={filterOperators}
+              domain={{ id: domainId, name: domainId, entities: metadata, relations: metadataRelations }}
               suggestionData={suggestionData}
               domainId={domainId}
             />

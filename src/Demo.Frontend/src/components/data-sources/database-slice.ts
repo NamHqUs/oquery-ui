@@ -1,67 +1,20 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import { apiUrls } from "../../const/api-urls";
-
-const MAX_TABLE_DATA_ROWS = 10;
+import * as databaseConnectionService from "../../services/database-connection-service";
+import * as dbSchemaService from "../../services/db-schema-service";
+import { MAX_TABLE_DATA_ROWS } from "../../services/db-schema-service";
 
 export type DatabaseConnectRequest =
   | { profile: string }
   | { provider: string; connectionString: string };
 
-type DatabaseConnectionOptionsDto = {
-  providers: string[];
-  profiles: string[];
-  directConnectionsEnabled: boolean;
-};
-
-type DatabaseConnectionResponseDto = {
-  provider: string;
-  profileName: string | null;
-};
-
-async function getJson(url, init = {}, allowNoContent = false) {
-  let response;
-  try {
-    response = await fetch(url, init);
-  } catch (error) {
-    throw new Error(`Could not reach the database API: ${error.message}`);
-  }
-
-  if (!response.ok) {
-    let detail = `Database request failed (${response.status}).`;
-    try {
-      const problem = await response.json();
-      if (typeof problem?.detail === "string") detail = problem.detail;
-    } catch {
-      // Keep the HTTP status message when the server does not return a problem document.
-    }
-    throw new Error(detail);
-  }
-
-  if (allowNoContent && response.status === 204) return null;
-
-  try {
-    return await response.json();
-  } catch {
-    throw new Error("Database API returned invalid JSON.");
-  }
-}
-
 export const fetchDatabaseConnections = createAsyncThunk(
   "database/fetchConnections",
   async (_, { rejectWithValue }) => {
-    let payload: DatabaseConnectionOptionsDto;
     try {
-      payload = await getJson(apiUrls.database.connections);
+      return await databaseConnectionService.getConnectionOptions();
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error instanceof Error ? error.message : "Unable to load connection options.");
     }
-    if (!payload || !Array.isArray(payload.providers) || !Array.isArray(payload.profiles)
-      || typeof payload.directConnectionsEnabled !== "boolean"
-      || payload.providers.some((provider) => typeof provider !== "string")
-      || payload.profiles.some((profile) => typeof profile !== "string")) {
-      return rejectWithValue("Database connection API returned invalid provider or profile data.");
-    }
-    return payload;
   },
   {
     condition: (_, { getState }) => {
@@ -74,48 +27,22 @@ export const fetchDatabaseConnections = createAsyncThunk(
 export const fetchDbProvider = createAsyncThunk(
   "database/fetchProvider",
   async (_, { rejectWithValue }) => {
-    let payload: unknown;
     try {
-      payload = await getJson(apiUrls.database.provider, {}, true);
+      return await databaseConnectionService.getProvider();
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error instanceof Error ? error.message : "Unable to check database connection status.");
     }
-    if (payload !== null && typeof payload !== "string") {
-      return rejectWithValue("Database provider API returned an invalid provider.");
-    }
-    return payload;
   },
 );
 
 export const connectDatabase = createAsyncThunk(
   "database/connect",
   async (request: DatabaseConnectRequest, { rejectWithValue }) => {
-    let payload: DatabaseConnectionResponseDto;
     try {
-      const response = await fetch(apiUrls.database.connect, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request),
-      });
-      if (!response.ok) {
-        let detail = `Database connection failed (${response.status}).`;
-        try {
-          const problem = await response.json();
-          if (typeof problem.detail === "string") detail = problem.detail;
-        } catch {
-          // Keep the HTTP status message when the server does not return a problem document.
-        }
-        throw new Error(detail);
-      }
-      payload = await response.json();
+      return await databaseConnectionService.connect(request);
     } catch (error) {
-      return rejectWithValue(error.message || "Could not connect to the database.");
+      return rejectWithValue(error instanceof Error ? error.message : "Could not connect to the database.");
     }
-    if (!payload || typeof payload.provider !== "string"
-      || (payload.profileName !== null && typeof payload.profileName !== "string")) {
-      return rejectWithValue("Database connection API returned an invalid connection result.");
-    }
-    return payload;
   },
 );
 
@@ -123,13 +50,10 @@ export const disconnectDatabase = createAsyncThunk(
   "database/disconnect",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch(apiUrls.database.disconnect, {
-        method: "POST",
-      });
-      if (!response.ok) throw new Error(`Database disconnect failed (${response.status}).`);
+      await databaseConnectionService.disconnect();
       return true;
     } catch (error) {
-      return rejectWithValue(error.message || "Could not disconnect from the database.");
+      return rejectWithValue(error instanceof Error ? error.message : "Could not disconnect from the database.");
     }
   },
 );
@@ -137,31 +61,11 @@ export const disconnectDatabase = createAsyncThunk(
 export const fetchDbSchema = createAsyncThunk(
   "database/fetchSchema",
   async (_, { rejectWithValue }) => {
-    let payload;
     try {
-      payload = await getJson(apiUrls.database.schema);
+      return await dbSchemaService.getSchema();
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error instanceof Error ? error.message : "Unable to load database schema.");
     }
-    if (!payload || !Array.isArray(payload.tables) || !Array.isArray(payload.relationships)
-      || payload.tables.some((table) => typeof table.schema !== "string"
-        || typeof table.name !== "string"
-        || !Array.isArray(table.columns)
-        || table.columns.some((column) => typeof column.name !== "string"
-          || typeof column.dataType !== "string"
-          || typeof column.isPrimaryKey !== "boolean"
-          || typeof column.isNullable !== "boolean"))
-      || payload.relationships.some((relation) => typeof relation.name !== "string"
-        || typeof relation.sourceSchema !== "string"
-        || typeof relation.sourceTable !== "string"
-        || !Array.isArray(relation.sourceColumns)
-        || typeof relation.targetSchema !== "string"
-        || typeof relation.targetTable !== "string"
-        || !Array.isArray(relation.targetColumns)
-        || typeof relation.isUnique !== "boolean")) {
-      return rejectWithValue("Database schema API returned invalid table or relationship metadata.");
-    }
-    return payload;
   },
   {
     condition: (_, { getState }) => {
@@ -181,25 +85,18 @@ export const fetchDbTableData = createAsyncThunk(
   async (request, { rejectWithValue }) => {
     const { tableName, schema = "", limit = MAX_TABLE_DATA_ROWS } = typeof request === "string" ? { tableName: request } : request;
     const rowLimit = Math.min(limit, MAX_TABLE_DATA_ROWS);
-    let payload;
     try {
-      payload = await getJson(apiUrls.database.tableData(tableName, schema, rowLimit));
+      const preview = await dbSchemaService.getTablePreview(tableName, schema, rowLimit);
+      return {
+        key: tableDataKey(tableName, schema),
+        name: preview.name,
+        columns: preview.columns,
+        rows: preview.rows,
+        limit: rowLimit,
+      };
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error instanceof Error ? error.message : "Unable to load table data.");
     }
-    if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.columns)
-      || payload.columns.some((column) => typeof column !== "string")
-      || !Array.isArray(payload.rows)
-      || payload.rows.some((row) => !Array.isArray(row) || row.some((value) => typeof value !== "string"))) {
-      return rejectWithValue("Database table API must return a table name, column names, and rows of string values.");
-    }
-    return {
-      key: tableDataKey(tableName, schema),
-      name: payload.name,
-      columns: payload.columns,
-      rows: payload.rows.slice(0, MAX_TABLE_DATA_ROWS),
-      limit: rowLimit,
-    };
   },
   {
     condition: (request, { getState }) => {

@@ -13,8 +13,7 @@ import { emptyEntity, findRelationProblem, pluralize, removeEntityFromRelations,
 import { invalidateQueryMetadata, metadataEntityFromDto, relationsForEntity, type DomainEntityDto, type DomainRelation, type MetadataEntity } from "../../query-builder/query-design/query-builder-slice";
 import { fetchDbSchema } from "../../data-sources/database-slice";
 import type { RootState } from "../../../store/store";
-import { apiUrls } from "../../../const/api-urls";
-import { formatApiError } from "../../query-builder/query-design/api-error";
+import * as domainService from "../../../services/domain-service";
 import { useMessageBox } from "../../message-box/message-box";
 import MarkdownDescription, { decodeHtmlEntities } from "./markdown-description";
 import "./domain-list.css";
@@ -78,27 +77,6 @@ function getDescriptionPreview(description: string) {
 
 function hasDescriptionPreviewOverflow(description: string) {
   return getPlainDescription(description).length > DESCRIPTION_PREVIEW_LENGTH;
-}
-
-async function request<T>(url: string, options?: RequestInit): Promise<T> {
-  let response: Response;
-  try {
-    response = await fetch(url, { headers: { "Content-Type": "application/json" }, ...options });
-  } catch (reason) {
-    throw new Error(`Could not reach the domain API: ${reason instanceof Error ? reason.message : "network error"}`);
-  }
-  if (!response.ok) {
-    throw new Error(formatApiError(
-      await response.text(),
-      `Domain request failed (${response.status}).`,
-    ));
-  }
-  if (response.status === 204) return undefined as T;
-  try {
-    return await response.json() as T;
-  } catch {
-    throw new Error("Domain API returned invalid JSON.");
-  }
 }
 
 const tableKey = (table: Pick<DatabaseTable, "schema" | "name">) => `${table.schema}.${table.name}`;
@@ -418,7 +396,7 @@ export default function DomainList({
         if (shouldRefreshEditDomain) editDomainRequestRef.current = requestedDomain;
         setDomainItems(domainResult);
         const refreshed = summary && isEditRoute
-          ? toDomain(await request<DomainDto>(apiUrls.metadata.domainById(summary.id)))
+          ? await domainService.getDomain(summary.id)
           : summary;
         if (refreshed) {
           const domain = refreshed;
@@ -759,14 +737,11 @@ export default function DomainList({
           entities: saveTarget.entities,
           relations: saveTarget.relations,
         };
-        const savedDto = await request<DomainDto>(apiUrls.metadata.domainById(applied.id), {
-          method: "PUT",
-          body: JSON.stringify({
-            name: applied.name,
-            description: applied.description,
-            entities: applied.entities.map(toEntityPayload),
-            relations: toRelationPayload(applied.relations),
-          }),
+        const savedDto: DomainDto = await domainService.updateDomain(applied.id, {
+          name: applied.name,
+          description: applied.description,
+          entities: applied.entities.map(toEntityPayload),
+          relations: toRelationPayload(applied.relations),
         });
         const saved = toDomain(savedDto);
         await onDomainChanged?.(saved);
@@ -782,9 +757,7 @@ export default function DomainList({
         return true;
       }
       const savedDto = wizardSource === "file"
-          ? await request<DomainDto>(apiUrls.metadata.createDomain, {
-            method: "POST",
-            body: JSON.stringify({
+          ? await domainService.createDomain({
               name: draftName.trim(),
               description: draftDescription.trim(),
               entities: selectedTableDetails.map(table => {
@@ -820,11 +793,8 @@ export default function DomainList({
                   targetFields: [...relation.targetColumns],
                 };
               }),
-            }),
-          })
-          : await request<DomainDto>(apiUrls.metadata.generateDomain, {
-            method: "POST",
-            body: JSON.stringify({
+            })
+          : await domainService.generateDomain({
               name: draftName.trim(),
               description: draftDescription.trim(),
               tables: selectedTables.map(key => {
@@ -849,8 +819,7 @@ export default function DomainList({
                   collectionName: names?.collection || pluralize(relation.sourceTable),
                 };
               }),
-            }),
-          });
+            });
       const saved = toDomain(savedDto);
       await onDomainChanged?.(saved);
       setDomainItems(current => selected
@@ -891,7 +860,7 @@ export default function DomainList({
     setStatus("saving");
     setError("");
     try {
-      await request<void>(apiUrls.metadata.domainById(domain.id), { method: "DELETE" });
+      await domainService.deleteDomain(domain.id);
       dispatch(invalidateQueryMetadata());
       onDomainDeleted?.(domain.id);
       setDomainItems(current => current.filter(item => item.id !== domain.id));

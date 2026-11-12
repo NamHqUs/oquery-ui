@@ -1,8 +1,8 @@
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { apiUrls } from "../../const/api-urls";
 import { fetchFunctionDefinitions, invalidateFunctionDefinitions } from "../query-builder/query-design/query-builder-slice";
+import * as functionDefinitionService from "../../services/function-definition-service";
 import type { RootState } from "../../store/store";
 import PanelSplitter from "../panel-splitter/panel-splitter";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
@@ -22,15 +22,6 @@ import {
   toEditableFunction,
 } from "./types";
 import "./function-definition.css";
-
-async function request<T = unknown>(url: string, options?: RequestInit): Promise<T | null> {
-  const response = await fetch(url, options);
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(detail || `Function definition request failed (${response.status}).`);
-  }
-  return response.status === 204 ? null : response.json() as Promise<T>;
-}
 
 type FunctionDefinitionWorkspaceProps = {
   onNavigationGuardChange?: (guard: ((continueNavigation: () => void, cancelNavigation?: () => void) => void) | null) => void;
@@ -175,17 +166,7 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
     setStatus("saving");
     setMessage("");
     try {
-      const savedDefinition = await request<FunctionDefinition>(
-        selectedName ? apiUrls.metadata.functionByName(selectedName) : apiUrls.metadata.functions,
-        {
-          method: selectedName ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        },
-      );
-      if (!savedDefinition) {
-        throw new Error("Function definition API did not return the saved definition.");
-      }
+      const savedDefinition = await functionDefinitionService.saveDefinition(selectedName || undefined, payload);
       dispatch(invalidateFunctionDefinitions());
       await loadDefinitions(false, savedDefinition.name);
       setSelectedName(savedDefinition.name);
@@ -243,7 +224,7 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
     setStatus("saving");
     setMessage("");
     try {
-      await request(apiUrls.metadata.functionByName(selectedName), { method: "DELETE" });
+      await functionDefinitionService.deleteDefinition(selectedName);
       setSelectedName("");
       dispatch(invalidateFunctionDefinitions());
       await loadDefinitions(true);

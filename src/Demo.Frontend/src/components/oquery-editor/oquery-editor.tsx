@@ -1,6 +1,7 @@
 import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, useState, type ChangeEvent, type ReactNode, type TextareaHTMLAttributes } from "react";
 import Icon, { type IconName } from "../icon/icon";
 import type { FunctionDefinition } from "../function-definition/types";
+import type { DomainRelation, FilterOperatorDefinition, MetadataEntity } from "../query-builder/query-design/query-builder-slice";
 import { getOQueryContextKeys } from "../query-builder/query-design/oquery-context-colors";
 import { applyFoldedOqueryEdit, getFoldedOquery, getOqueryFolds } from "../query-builder/query-design/oquery-folding";
 import { toggleOqueryComments } from "./oquery-comments";
@@ -13,9 +14,17 @@ type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onCh
   initialText?: string;
   textOverride?: string;
   onTextChange: (text: string) => void;
+  domain: {
+    id: string;
+    name: string;
+    description?: string;
+    entities: MetadataEntity[];
+    relations: DomainRelation[];
+  };
   highlight?: (text: string) => ReactNode;
   oquery?: boolean;
-  functionDefinitions?: FunctionDefinition[];
+  functionDefinitions: FunctionDefinition[];
+  operators: FilterOperatorDefinition[];
   suggestionFields?: string[];
   suggestionEntities?: string[];
   suggestionEntityName?: string;
@@ -346,7 +355,9 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
   disabled,
   onTextChange,
   onBlur,
-  functionDefinitions = [],
+  domain,
+  functionDefinitions,
+  operators,
   errorFunctionName = "",
   compact = false,
   showGutter = true,
@@ -434,7 +445,7 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
   };
   const completionResult = completionPosition === null
     ? null
-    : getOQueryCompletions(projection.text, completionPosition, suggestionFields, [], suggestionEntities, functionDefinitions, suggestionEntityName, suggestionEntitiesMetadata);
+    : getOQueryCompletions(projection.text, completionPosition, suggestionFields, operators, suggestionEntities, functionDefinitions, suggestionEntityName, suggestionEntitiesMetadata);
   const completions = completionResult?.items ?? [];
   const completionQuery = completionResult
     ? projection.text.slice(completionResult.replaceStart, completionResult.replaceEnd)
@@ -723,7 +734,7 @@ const OQueryEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((props, r
   if (props.oquery) return <OqueryTextEditor {...props} ref={ref} />;
   const {
     onTextChange, highlight, value, onSelectionChange, onExecuteSelectedText,
-    oquery, functionDefinitions, errorFunctionName, compact, showGutter, showFoldControls, ...textareaProps
+    oquery, domain, operators, functionDefinitions, errorFunctionName, compact, showGutter, showFoldControls, ...textareaProps
   } = props;
   const selectionText = (textarea: HTMLTextAreaElement) => textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
   return (
