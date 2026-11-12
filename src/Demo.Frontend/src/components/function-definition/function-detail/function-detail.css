@@ -1,3 +1,4 @@
+.function-detail-heading { margin: 21px 27px 0; }
 .function-form { min-width: 0; margin: 0; border: 0; padding: 22px 28px 35px; }
 .function-form label { display: grid; gap: 8px; color: #aeb6c5; font-size: 12px; font-weight: 600; }
 .function-form input, .function-form select { width: 100%; min-width: 0; color: #dce1eb; background: #191e28; border: 1px solid #323947; border-radius: 3px; outline: 0; padding: 9px 10px; font: 12px "Manrope", sans-serif; }

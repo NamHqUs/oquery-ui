@@ -1,6 +1,5 @@
 .function-list { display: flex; min-height: 0; flex-direction: column; overflow: hidden; background: #0e1117; border-right: 1px solid var(--line); padding: 22px 12px; }
 .function-list .metadata-sidebar-scroll { min-height: 0; flex: 1 1 0; overflow-y: auto; scrollbar-gutter: stable; }
-
 @media (max-width: 760px) {
   .function-list { border-right: 0; border-bottom: 1px solid var(--line); }
 }

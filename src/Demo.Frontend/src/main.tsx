@@ -50,7 +50,7 @@ const PAGE_SUBMENUS: Record<Exclude<Page, "home">, readonly string[]> = {
   builder: ["Design query", "Results"],
   sources: ["Connections", "Tables", "Schema"],
   metadata: ["Domains", "Diagram", "Entity definitions", "Explore database"],
-  functions: ["Definitions", "Arguments", "SQL templates"],
+  functions: [],
   documentation: ["Overview", "Query syntax", "Security", "Next steps"],
 };
 
@@ -123,8 +123,14 @@ function PageSubnav({
               : undefined}
           >{item}</button>;
         })}
+        {page === "functions" && (
+          <div className="function-subnav-intro">
+            <strong>Custom functions</strong>
+            <span>Extend the OQuery vocabulary with reusable business logic.</span>
+          </div>
+        )}
       </div>
-      <div className={`app-subnav-actions${page === "metadata" ? "" : " app-subnav-actions-hidden"}`} id="metadata-toolbar-actions">
+      <div className={`app-subnav-actions${page === "metadata" || page === "functions" ? "" : " app-subnav-actions-hidden"}`} id="metadata-toolbar-actions">
       </div>
     </nav>
   );
@@ -349,14 +355,6 @@ function App() {
       {metadataVisited && page === "metadata" && location.pathname !== DATABASE_EXPLORER_PATH && <div className="page-transition page-transition-no-slide"><MetadataBuilder onNavigationGuardChange={updateMetadataNavigationGuard} onSectionNavigationChange={updateMetadataSectionNavigation} /></div>}
       {metadataVisited && page === "metadata" && location.pathname === DATABASE_EXPLORER_PATH && <DataSources onRequestConnection={requestDatabaseConnection} />}
       {functionDefinitionsVisited && <div hidden={page !== "functions"} className={page === "functions" ? "page-transition page-transition-no-slide" : undefined}>
-        <section className="page-heading metadata-page-heading function-page-heading">
-          <div className="metadata-heading-main">
-            <span className="metadata-heading-mark" aria-hidden="true"><Icon name="function" size={21} /></span>
-            <div className="metadata-heading-copy">
-              <span className="metadata-heading-eyebrow">QUERY METADATA <i /> FUNCTIONS · ARGUMENTS · SQL TEMPLATES</span>
-            </div>
-          </div>
-        </section>
         <FunctionDefinitionsWorkspace onNavigationGuardChange={updateFunctionNavigationGuard} />
       </div>}
       </div>

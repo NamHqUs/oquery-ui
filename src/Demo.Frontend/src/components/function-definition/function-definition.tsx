@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { apiUrls } from "../../const/api-urls";
@@ -8,6 +9,7 @@ import { useResizablePanel } from "../../utils/use-resizable-panel";
 import { useMessageBox } from "../message-box/message-box";
 import FunctionDetail from "./function-detail/function-detail";
 import FunctionList from "./function-list/function-list";
+import DefinitionActions from "../metadata-builder/definition-actions/definition-actions";
 import {
   resolveDefinitionChanges,
   useDefinitionUnsavedWarning,
@@ -102,11 +104,13 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
   const [dirty, setDirty] = useState(false);
+  const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
   const selectedDefinition = definitions.find((definition) => definition.name === selectedName);
   const selectedIsBuiltin = selectedDefinition?.isBuiltin === true
     || selectedDefinition?.canDelete === false;
 
   useDefinitionUnsavedWarning(dirty);
+  useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
 
   const loadDefinitions = async (selectFirst = false, preferredName = selectedName) => {
     setStatus("loading");
@@ -273,6 +277,8 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
   };
 
   return (
+    <>
+      {toolbarHost && createPortal(<DefinitionActions adapter={actionAdapter} />, toolbarHost)}
       <section
         className={`function-workspace split-workspace${panel.collapsed ? " panel-collapsed" : ""}`}
         style={panel.style}
@@ -290,8 +296,8 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
           canEdit={canEditSelectedDefinition}
           message={message}
           onDraftChange={updateDraft}
-          actionAdapter={actionAdapter}
         />
       </section>
+    </>
   );
 }

@@ -12,8 +12,6 @@ import {
   FunctionResultDataType,
 } from "../types";
 import type { RootState } from "../../../store/store";
-import DefinitionActions from "../../metadata-builder/definition-actions/definition-actions";
-import type { DefinitionActionAdapter } from "../../metadata-builder/definition-actions/definition-actions";
 import "./function-detail.css";
 
 type FunctionDetailProps = {
@@ -21,7 +19,6 @@ type FunctionDetailProps = {
   selectedName: string;
   canEdit: boolean;
   message: string;
-  actionAdapter: DefinitionActionAdapter;
   onDraftChange: (update: (current: EditableFunctionDefinition) => EditableFunctionDefinition) => void;
 };
 
@@ -30,7 +27,6 @@ export default function FunctionDetail({
   selectedName,
   canEdit,
   message,
-  actionAdapter,
   onDraftChange,
 }: FunctionDetailProps) {
   const providers = useSelector((state: RootState) => state.database.providers);
@@ -69,12 +65,17 @@ export default function FunctionDetail({
 
   return (
     <div className="metadata-editor">
-      <div className="table-details-heading metadata-editor-heading">
+      <div className="table-details-heading function-detail-heading" aria-label="Function definition details">
         <div className="table-details-title">
           <span className="section-kicker">FUNCTION DEFINITION</span>
           <h3>{selectedName || (draft ? "New Function…" : "Select a function")}</h3>
         </div>
-        <DefinitionActions adapter={actionAdapter} />
+        {draft && (
+          <div className="table-details-summary">
+            <span>{draft.arguments.length} arguments</span>
+            <span>{draft.sqlTemplateRows.length} SQL templates</span>
+          </div>
+        )}
       </div>
       {!draft
         ? <div className="metadata-empty">
