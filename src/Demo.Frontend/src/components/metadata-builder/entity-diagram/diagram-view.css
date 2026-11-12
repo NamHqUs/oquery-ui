@@ -383,10 +383,9 @@
 
 .diagram-table-header > span {
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
   font: 600 11px "Manrope", sans-serif;
-  overflow-wrap: anywhere;
-  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .diagram-table-header small {
@@ -405,6 +404,7 @@
   background: #263d4a;
   font-size: 11px;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .diagram-column-toggle {
