@@ -29,8 +29,8 @@ const PAGE_PATHS = {
 const LEGACY_FUNCTIONS_PATH = "/functions";
 const DOMAINS_PATH = "/metadata/domains";
 const DIAGRAMS_PATH = "/metadata/diagrams";
-const DIAGRAM_CREATE_PATH = "/metadata/diagrams/create";
-const DIAGRAM_EDIT_PATH = "/metadata/diagrams/edit";
+const ENTITY_CREATE_PATH = "/metadata/entities/create";
+const ENTITY_EDIT_PATH = "/metadata/entities/edit";
 const ENTITIES_PATH = "/metadata/entities";
 const DATABASE_EXPLORER_PATH = "/metadata/explorer";
 
@@ -55,8 +55,8 @@ const PAGE_SUBMENUS: Record<Exclude<Page, "home">, readonly string[]> = {
 };
 
 function pageForPath(path: string): Page | null {
-  if (path === DOMAINS_PATH || path === DIAGRAMS_PATH || path === DIAGRAM_CREATE_PATH
-    || path === ENTITIES_PATH || path.startsWith(`${DIAGRAM_EDIT_PATH}/`)
+  if (path === DOMAINS_PATH || path === DIAGRAMS_PATH || path === ENTITY_CREATE_PATH
+    || path === ENTITIES_PATH || path.startsWith(`${ENTITY_EDIT_PATH}/`)
     || path.startsWith(`${ENTITIES_PATH}/`) || path === DATABASE_EXPLORER_PATH) return "metadata";
   return (Object.keys(PAGE_PATHS) as Page[]).find((page) => PAGE_PATHS[page] === path) ?? null;
 }
@@ -77,13 +77,16 @@ function PageSubnav({
   const location = useLocation();
   const metadataSection = location.pathname === DOMAINS_PATH
     ? "domains"
-    : location.pathname === ENTITIES_PATH || location.pathname.startsWith(`${ENTITIES_PATH}/`)
+    : location.pathname === ENTITY_CREATE_PATH
+      || location.pathname.startsWith(`${ENTITY_EDIT_PATH}/`)
+      || location.pathname === ENTITIES_PATH
+      || location.pathname.startsWith(`${ENTITIES_PATH}/`)
       ? "entities"
     : location.pathname === DATABASE_EXPLORER_PATH
       ? "explorer"
     : location.pathname === DIAGRAMS_PATH
-      || location.pathname === DIAGRAM_CREATE_PATH
-      || location.pathname.startsWith(`${DIAGRAM_EDIT_PATH}/`)
+      || location.pathname === ENTITY_CREATE_PATH
+      || location.pathname.startsWith(`${ENTITY_EDIT_PATH}/`)
       ? "diagram"
       : new URLSearchParams(location.search).get("section") ?? "diagram";
   if (!page) return null;
@@ -304,8 +307,8 @@ function App() {
           <Route path={PAGE_PATHS.metadata} element={null} />
           <Route path={DOMAINS_PATH} element={null} />
           <Route path={DIAGRAMS_PATH} element={null} />
-          <Route path={DIAGRAM_CREATE_PATH} element={null} />
-          <Route path={`${DIAGRAM_EDIT_PATH}/:domainId`} element={null} />
+          <Route path={ENTITY_CREATE_PATH} element={null} />
+          <Route path={`${ENTITY_EDIT_PATH}/:domainId`} element={null} />
           <Route path={ENTITIES_PATH} element={null} />
           <Route path={`${ENTITIES_PATH}/:domainId`} element={null} />
           <Route path={DATABASE_EXPLORER_PATH} element={null} />

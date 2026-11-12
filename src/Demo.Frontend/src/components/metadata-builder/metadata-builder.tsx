@@ -1,4 +1,4 @@
-import { flushSync } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -58,13 +58,13 @@ let domainSummaryCache: DomainSummary[] | null = null;
 let domainSummaryRequest: Promise<DomainSummary[]> | null = null;
 const DOMAINS_PATH = "/metadata/domains";
 const DIAGRAMS_PATH = "/metadata/diagrams";
-const DIAGRAM_CREATE_PATH = "/metadata/diagrams/create";
-const DIAGRAM_EDIT_PATH = "/metadata/diagrams/edit";
+const ENTITY_CREATE_PATH = "/metadata/entities/create";
+const ENTITY_EDIT_PATH = "/metadata/entities/edit";
 const ENTITIES_PATH = "/metadata/entities";
 const DATABASE_EXPLORER_PATH = "/metadata/explorer";
 
-function diagramEditDomainId(pathname: string) {
-  const match = pathname.match(/^\/metadata\/diagrams\/edit\/([^/]+)$/);
+function entityEditDomainId(pathname: string) {
+  const match = pathname.match(/^\/metadata\/entities\/edit\/([^/]+)$/);
   return match?.[1];
 }
 
@@ -232,18 +232,22 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const skipNextMetadataLoadRef = useRef(false);
   const sectionNavigationRef = useRef<(section: MetadataSection) => void>(() => undefined);
   const [pendingToolbarSection, setPendingToolbarSection] = useState<MetadataSection | null>(null);
+  const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
   useEffect(() => { selectedNameRef.current = selectedName; }, [selectedName]);
-  const isDiagramWizardRoute = location.pathname === DIAGRAM_CREATE_PATH
-    || Boolean(diagramEditDomainId(location.pathname));
+  useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
+  const isEntityWizardRoute = location.pathname === ENTITY_CREATE_PATH
+    || Boolean(entityEditDomainId(location.pathname));
   const entityRouteDomainId = entityDomainId(location.pathname);
   const requestedSection = location.pathname === DOMAINS_PATH
     ? "domains"
-    : location.pathname === DIAGRAMS_PATH || isDiagramWizardRoute
+    : location.pathname === DIAGRAMS_PATH
+      ? "diagram"
+      : isEntityWizardRoute
       ? "diagram"
       : location.pathname === ENTITIES_PATH || entityRouteDomainId
         ? "entities"
       : searchParams.get("section");
-  const domainId = diagramEditDomainId(location.pathname) || entityRouteDomainId || searchParams.get("domain") || undefined;
+  const domainId = entityEditDomainId(location.pathname) || entityRouteDomainId || searchParams.get("domain") || undefined;
   const activeSection: MetadataSection = entityOnly ? "entities" : requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "domains" || requestedSection === "functions" || requestedSection === "operators"
     ? requestedSection
     : "diagram";
@@ -260,7 +264,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const selectSection = async (section: MetadataSection) => {
     if ((section === activeSection
       && !(section === "domains"
-        && (isDiagramWizardRoute || searchParams.has("domain"))))
+        && (isEntityWizardRoute || searchParams.has("domain"))))
       ) return;
     flushSync(() => setPendingToolbarSection(section));
     if (!(await resolveAllDirtyChanges(activeSection))) {
@@ -320,7 +324,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         fields: draft.fields.map(field => ({ ...field })),
       } : entity)
       : displayedEntities;
-    navigate(`${DIAGRAM_EDIT_PATH}/${encodeURIComponent(domainId)}`, {
+    navigate(`${ENTITY_EDIT_PATH}/${encodeURIComponent(domainId)}`, {
       state: {
         domain: cloneDomain({
           ...domain,
@@ -418,7 +422,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     }
 
     const routedDomain = (location.state as { domain?: DomainSummary } | null)?.domain;
-    if (isDiagramWizardRoute
+    if (isEntityWizardRoute
       && domainId
       && routedDomain?.id === domainId) {
       return () => { cancelled = true; };
@@ -491,7 +495,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   };
 
   const createDiagramDomain = () => {
-    navigate(DIAGRAM_CREATE_PATH);
+    navigate(ENTITY_CREATE_PATH);
   };
 
   const saveDiagramDomain = async () => {
@@ -918,8 +922,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       }}
     />
   );
-  const toolbarActions = activeSection === "diagram"
-    ? <div className="editor-actions" role="toolbar" aria-label="Diagram domain actions">
+  const toolbarActions = activeSection === "diagram" || activeSection === "entities"
+    ? <div className="editor-actions" role="toolbar" aria-label="Metadata domain actions">
       {domainId && activeDomainIsBuiltin && <span className="metadata-editor-heading-status readonly">Built-in - Read Only</span>}
       {canManageCurrentDomain && <button className="icon-button definition-action-button primary" type="button" title="Save domain" aria-label="Save domain" onClick={() => void saveDiagramDomain()} disabled={metadataBusy || !canSaveCurrentDomain}>
         <Icon name="save" size={17} />
@@ -986,7 +990,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
 
   return (
     <>
-      {!entityOnly && activeSection === "diagram" && !isDiagramWizardRoute && <div className="metadata-workspace-panel">
+      {activeSection === "entities" && toolbarHost && createPortal(toolbarActions, toolbarHost)}
+      {!entityOnly && activeSection === "diagram" && !isEntityWizardRoute && <div className="metadata-workspace-panel">
         <EntityDiagram
           entities={displayedEntities}
           relations={displayedRelations}
@@ -1127,9 +1132,9 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       {!entityOnly && activeSection === "operators" && <div className="metadata-workspace-panel">
         <OperatorDefinition onNavigationGuardChange={updateOperatorNavigationGuard} />
       </div>}
-      {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "domains" && !isDiagramWizardRoute}>
+      {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "domains" && !isEntityWizardRoute}>
         <DomainList
-          active={activeSection === "domains" || isDiagramWizardRoute}
+          active={activeSection === "domains" || isEntityWizardRoute}
           domains={domains}
           onDomainChanged={handleDomainChanged}
           onDomainDeleted={(deletedDomainId) => {

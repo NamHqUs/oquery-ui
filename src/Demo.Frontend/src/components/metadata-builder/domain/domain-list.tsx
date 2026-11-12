@@ -54,8 +54,9 @@ type Step = 1 | 2 | 3;
 type ViewMode = "list" | "wizard" | "detail";
 const DOMAINS_PATH = "/metadata/domains";
 const DIAGRAMS_PATH = "/metadata/diagrams";
-const DIAGRAM_CREATE_PATH = "/metadata/diagrams/create";
-const DIAGRAM_EDIT_PATH = "/metadata/diagrams/edit";
+const ENTITY_CREATE_PATH = "/metadata/entities/create";
+const ENTITY_EDIT_PATH = "/metadata/entities/edit";
+const ENTITIES_PATH = "/metadata/entities";
 const DESCRIPTION_PREVIEW_LENGTH = 240;
 
 function getPlainDescription(description: string) {
@@ -292,9 +293,9 @@ export default function DomainList({
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const editRouteMatch = location.pathname.match(/^\/metadata\/diagrams\/edit\/([^/]+)$/);
+  const editRouteMatch = location.pathname.match(/^\/metadata\/entities\/edit\/([^/]+)$/);
   const editRouteDomainId = editRouteMatch?.[1];
-  const isCreateRoute = location.pathname === DIAGRAM_CREATE_PATH;
+  const isCreateRoute = location.pathname === ENTITY_CREATE_PATH;
   const isEditRoute = Boolean(editRouteDomainId) || Boolean(new URLSearchParams(location.search).get("edit"));
   const { schema, schemaStatus, connectionStatus } = useSelector((state: RootState) => state.database);
   const [selectedName, setSelectedName] = useState("");
@@ -506,7 +507,7 @@ export default function DomainList({
     setEntityDirty(false);
   }, [active, location.pathname, location.search, domainItems, selectedName, status, editRouteDomainId, isCreateRoute]);
   const createDomain = (source: WizardSource = "database") => {
-    navigate(DIAGRAM_CREATE_PATH);
+    navigate(ENTITY_CREATE_PATH);
     setViewMode("wizard");
     setWizardSource(source);
     setSelectedName("");
@@ -531,7 +532,7 @@ export default function DomainList({
   };
   const editDomain = (domain: Domain) => {
     if (domain.isBuiltin) return;
-    navigate(`${DIAGRAM_EDIT_PATH}/${encodeURIComponent(domain.id)}`);
+    navigate(`${ENTITY_EDIT_PATH}/${encodeURIComponent(domain.id)}`);
     setViewMode("wizard");
     setSelectedName(domain.id);
     setDraftName(domain.name);
@@ -764,7 +765,7 @@ export default function DomainList({
         setDomainItems(current => current.map(domain => domain.id === saved.id ? saved : domain));
         setEntityDirty(false);
         setRemovedEntityNames([]);
-        navigate(`${DIAGRAMS_PATH}?domain=${encodeURIComponent(saved.id)}`);
+        navigate(`${ENTITIES_PATH}/${encodeURIComponent(saved.id)}`);
         setSelectedName(saved.id);
         setDraftName(saved.name);
         setStep(3);
@@ -850,7 +851,7 @@ export default function DomainList({
       setEntityDirty(false);
       setRemovedEntityNames([]);
       dispatch(invalidateQueryMetadata());
-      navigate(`${DIAGRAMS_PATH}?domain=${encodeURIComponent(saved.id)}`);
+      navigate(`${ENTITIES_PATH}/${encodeURIComponent(saved.id)}`);
       setSelectedName(saved.id);
       setDraftName(saved.name);
       setStep(3);

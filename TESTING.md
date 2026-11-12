@@ -19,6 +19,8 @@
 - Ctrl+X deletes the current row when there is no selection; with selected text it deletes only the selected text.
 - Query Builder completion suggestions are raised above the result panel.
 - The Home OrgChart can be panned by dragging its chart surface while node expansion/collapse remains clickable.
+- Entity Definition now exposes the same domain save, delete, reload, edit, and create actions as Diagram.
+- Domain creation and editing now use `/metadata/entities/create` and `/metadata/entities/edit/{domainId}`.
 
 ## Home
 
