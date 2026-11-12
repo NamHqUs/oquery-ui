@@ -58,6 +58,9 @@ const ENTITY_CREATE_PATH = "/metadata/entities/create";
 const ENTITY_EDIT_PATH = "/metadata/entities/edit";
 const ENTITIES_PATH = "/metadata/entities";
 const DESCRIPTION_PREVIEW_LENGTH = 240;
+type DomainNavigationState = {
+  returnTo?: string;
+};
 
 function getPlainDescription(description: string) {
   return decodeHtmlEntities(description)
@@ -297,6 +300,7 @@ export default function DomainList({
   const editRouteDomainId = editRouteMatch?.[1];
   const isCreateRoute = location.pathname === ENTITY_CREATE_PATH;
   const isEditRoute = Boolean(editRouteDomainId) || Boolean(new URLSearchParams(location.search).get("edit"));
+  const returnTo = (location.state as DomainNavigationState | null)?.returnTo;
   const { schema, schemaStatus, connectionStatus } = useSelector((state: RootState) => state.database);
   const [selectedName, setSelectedName] = useState("");
   const [draftName, setDraftName] = useState("");
@@ -507,7 +511,11 @@ export default function DomainList({
     setEntityDirty(false);
   }, [active, location.pathname, location.search, domainItems, selectedName, status, editRouteDomainId, isCreateRoute]);
   const createDomain = (source: WizardSource = "database") => {
-    navigate(ENTITY_CREATE_PATH);
+    navigate(ENTITY_CREATE_PATH, {
+      state: {
+        returnTo: `${location.pathname}${location.search}${location.hash}`,
+      },
+    });
     setViewMode("wizard");
     setWizardSource(source);
     setSelectedName("");
@@ -851,7 +859,7 @@ export default function DomainList({
       setEntityDirty(false);
       setRemovedEntityNames([]);
       dispatch(invalidateQueryMetadata());
-      navigate(`${ENTITIES_PATH}/${encodeURIComponent(saved.id)}`);
+      navigate(returnTo || DOMAINS_PATH);
       setSelectedName(saved.id);
       setDraftName(saved.name);
       setStep(3);

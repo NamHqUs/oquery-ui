@@ -68,9 +68,16 @@ The frontend may render `name` in domain bars, selectors, and headings, but it
 must resolve that display value back to the canonical `id` before retrieving
 metadata or navigating. This keeps domain names renameable without breaking
 domain identity or loading the wrong domain.
-Diagram loads the built-in `All` domain when no domain is selected. Switching
-from Entity definitions to Diagram retains the selected domain ID in the
-Diagram URL so its metadata can be loaded.
+Diagram first loads the domain names. If no domain is selected, or the current
+ID no longer exists, it selects the first returned domain before loading its
+graph. The last valid Diagram domain ID is retained in session storage and
+restored when returning to Diagram. Switching from Entity definitions to
+Diagram also retains the selected domain ID in the Diagram URL.
+The create-domain wizard does not resolve or load a Diagram domain.
+After creation, it returns to the page that opened the wizard; direct wizard
+navigation falls back to the Domains page.
+The main Metadata navigation remembers the last stable Metadata submenu route,
+including the selected Diagram domain, when returning from another main page.
 
 After connecting, the Data View groups tables by schema, displays column and relationship metadata, and previews up to 10 rows. Schema and relationship metadata come from `GET /db/schema`; preview data comes from `GET /db/data/{tableName}` with `schema` and `limit=10` query parameters. The schema Diagram remains available as the metadata-builder view.
 

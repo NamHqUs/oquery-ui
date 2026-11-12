@@ -1,0 +1,92 @@
+{
+  "Id": "zqTkeDJOb7",
+  "Name": "test",
+  "Description": "",
+  "Entities": [
+    {
+      "Name": "Employees",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "FirstName",
+          "DbColumn": "FirstName",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "LastName",
+          "DbColumn": "LastName",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "DepartmentId",
+          "DbColumn": "DepartmentId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "LocationId",
+          "DbColumn": "LocationId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "ManagerId",
+          "DbColumn": "ManagerId",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "JobTitle",
+          "DbColumn": "JobTitle",
+          "DataType": 0,
+          "IsRawSql": false
+        },
+        {
+          "Name": "HireDate",
+          "DbColumn": "HireDate",
+          "DataType": 2,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Salary",
+          "DbColumn": "Salary",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "EmploymentType",
+          "DbColumn": "EmploymentType",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Employees",
+      "DbTable": "Employees",
+      "DbSchema": "main",
+      "IsRawSql": false
+    }
+  ],
+  "Relations": [
+    {
+      "SourceEntity": "Employees",
+      "SourceRelationName": "Employee",
+      "SourceFields": [
+        "ManagerId"
+      ],
+      "TargetEntity": "Employees",
+      "TargetRelationName": "Employees",
+      "TargetFields": [
+        "Id"
+      ]
+    }
+  ],
+  "CanDelete": true,
+  "IsBuiltin": false
+}

@@ -56,12 +56,15 @@ type SavedDomainDto = {
 };
 let domainSummaryCache: DomainSummary[] | null = null;
 let domainSummaryRequest: Promise<DomainSummary[]> | null = null;
+let domainOptionCache: DomainOption[] | null = null;
+let domainOptionRequest: Promise<DomainOption[]> | null = null;
 const DOMAINS_PATH = "/metadata/domains";
 const DIAGRAMS_PATH = "/metadata/diagrams";
 const ENTITY_CREATE_PATH = "/metadata/entities/create";
 const ENTITY_EDIT_PATH = "/metadata/entities/edit";
 const ENTITIES_PATH = "/metadata/entities";
 const DATABASE_EXPLORER_PATH = "/metadata/explorer";
+const DIAGRAM_DOMAIN_STORAGE_KEY = "oquery.metadata.last-diagram-domain-id";
 
 function entityEditDomainId(pathname: string) {
   const match = pathname.match(/^\/metadata\/entities\/edit\/([^/]+)$/);
@@ -136,6 +139,20 @@ async function loadDomainSummaries(): Promise<DomainSummary[]> {
   return domainSummaryRequest;
 }
 
+async function loadDomainOptions(): Promise<DomainOption[]> {
+  if (domainOptionCache) return domainOptionCache;
+  if (domainOptionRequest) return domainOptionRequest;
+  domainOptionRequest = request<Array<Pick<DomainOption, "id" | "name">>>(apiUrls.metadata.domainNames)
+    .then((domains) => {
+      domainOptionCache = domains.map(domain => ({ ...domain, description: "" }));
+      return domainOptionCache;
+    })
+    .finally(() => {
+      domainOptionRequest = null;
+    });
+  return domainOptionRequest;
+}
+
 type MetadataBuilderProps = {
   onNavigationGuardChange?: (guard: ((continueNavigation: () => void, cancelNavigation?: () => void) => void) | null) => void;
   onSectionNavigationChange?: (handler: ((section: MetadataSection) => void) | null) => void;
@@ -196,7 +213,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     const isNewDomain = !domainOptions.some((item) => item.id === domain.id);
     if (isNewDomain) {
       const options = await request<Array<Pick<DomainOption, "id" | "name">>>(apiUrls.metadata.domainNames);
-      setDomainOptions(options.map((option) => ({ ...option, description: "" })));
+      domainOptionCache = options.map((option) => ({ ...option, description: "" }));
+      setDomainOptions(domainOptionCache);
     }
     setDomainEntities(domain.entities);
     setDomainRelations(domain.relations);
@@ -219,6 +237,11 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         ? domainSummaryCache.map((item) => item.id === domain.id ? domain : item)
         : [...domainSummaryCache, domain];
     }
+    if (domainOptionCache) {
+      domainOptionCache = domainOptionCache.some((item) => item.id === domain.id)
+        ? domainOptionCache.map((item) => item.id === domain.id ? { ...item, name: domain.name } : item)
+        : [...domainOptionCache, { id: domain.id, name: domain.name, description: "" }];
+    }
     skipNextMetadataLoadRef.current = true;
   };
   const [dirty, setDirty] = useState(false);
@@ -229,6 +252,9 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const [domainRelations, setDomainRelations] = useState<DomainRelation[] | null>(null);
   const [loadedDomainId, setLoadedDomainId] = useState<string | undefined>();
   const metadataLoadDomainRef = useRef<string | undefined>(undefined);
+  const lastDiagramDomainIdRef = useRef<string | undefined>(
+    window.sessionStorage.getItem(DIAGRAM_DOMAIN_STORAGE_KEY) || undefined,
+  );
   const skipNextMetadataLoadRef = useRef(false);
   const sectionNavigationRef = useRef<(section: MetadataSection) => void>(() => undefined);
   const [pendingToolbarSection, setPendingToolbarSection] = useState<MetadataSection | null>(null);
@@ -251,9 +277,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const activeSection: MetadataSection = entityOnly ? "entities" : requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "domains" || requestedSection === "functions" || requestedSection === "operators"
     ? requestedSection
     : "diagram";
-  const entityLoadDomainId = activeSection === "diagram" && location.pathname !== "/metadata" && !isEntityWizardRoute
-    ? domainId || "All"
-    : domainId;
+  const entityLoadDomainId = domainId;
   useEffect(() => {
     if (entityOnly || requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "domains" || requestedSection === "functions" || requestedSection === "operators") return;
     if (location.pathname === "/metadata") {
@@ -285,7 +309,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     if (section === "diagram") {
       const nextSearchParams = new URLSearchParams(searchParams);
       nextSearchParams.delete("section");
-      if (domainId) nextSearchParams.set("domain", domainId);
+      const diagramDomainId = domainId || lastDiagramDomainIdRef.current;
+      if (diagramDomainId) nextSearchParams.set("domain", diagramDomainId);
       const query = nextSearchParams.toString();
       navigate(query ? `${DIAGRAMS_PATH}?${query}` : DIAGRAMS_PATH);
       return;
@@ -394,34 +419,44 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
 
   useEffect(() => {
     if (activeSection !== "diagram" && activeSection !== "entities") return;
+    if (activeSection === "diagram"
+      && (!domainId || !domainOptions.some((domain) => domain.id === domainId))) return;
     if (skipNextMetadataLoadRef.current && entityLoadDomainId) {
       skipNextMetadataLoadRef.current = false;
       return;
     }
     void loadEntities(true, selectedName, entityLoadDomainId);
-  }, [activeSection, entityLoadDomainId]);
+  }, [activeSection, domainId, domainOptions, entityLoadDomainId]);
   useEffect(() => {
     if (metadataStatus === "idle" || metadataStatus === "loading") return;
+    if (activeSection === "diagram"
+      && (!domainId || !domainOptions.some((domain) => domain.id === domainId))) return;
     if (loadedDomainId === entityLoadDomainId || status !== "loading") return;
     void loadEntities(true, selectedName, entityLoadDomainId);
-  }, [metadataStatus, entityLoadDomainId, loadedDomainId, status]);
+  }, [activeSection, domainId, domainOptions, metadataStatus, entityLoadDomainId, loadedDomainId, status]);
   useEffect(() => {
     let cancelled = false;
-    if (activeSection === "diagram") {
-      void loadDomainSummaries()
+    if (activeSection === "diagram" && !isEntityWizardRoute) {
+      void loadDomainOptions()
         .then((result) => {
           if (!cancelled) {
-            setDomainOptions(result.map(domain => ({
-              id: domain.id,
-              name: domain.name,
-              description: domain.description,
-            })));
-            const selectedDomain = result.find(domain => domain.id === domainId);
-            setDomains(selectedDomain
-              ? [{
-                  ...selectedDomain,
-                }]
-              : result);
+            setDomainOptions(result);
+            const requestedDiagramDomainId = domainId || lastDiagramDomainIdRef.current;
+            const selectedDomain = requestedDiagramDomainId
+              ? result.find(domain => domain.id === requestedDiagramDomainId)
+              : undefined;
+            const resolvedDomain = selectedDomain || result[0];
+            setDomains(resolvedDomain ? [resolvedDomain] : []);
+            if (resolvedDomain) {
+              lastDiagramDomainIdRef.current = resolvedDomain.id;
+              window.sessionStorage.setItem(DIAGRAM_DOMAIN_STORAGE_KEY, resolvedDomain.id);
+            }
+            if (resolvedDomain && resolvedDomain.id !== domainId) {
+              const nextSearchParams = new URLSearchParams(searchParams);
+              nextSearchParams.delete("section");
+              nextSearchParams.set("domain", resolvedDomain.id);
+              navigate(`${DIAGRAMS_PATH}?${nextSearchParams.toString()}`, { replace: true });
+            }
           }
         })
         .catch((reason) => {
@@ -459,7 +494,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         }
       });
     return () => { cancelled = true; };
-  }, [activeSection, entityOnly]);
+  }, [activeSection, domainId, entityOnly, isEntityWizardRoute, navigate, searchParams]);
   useEffect(() => {
     if (activeSection !== "diagram" || !domainId) return;
     const selectedDomain = domainOptions.find(domain => domain.id === domainId);
@@ -507,7 +542,11 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   };
 
   const createDiagramDomain = () => {
-    navigate(ENTITY_CREATE_PATH);
+    navigate(ENTITY_CREATE_PATH, {
+      state: {
+        returnTo: `${location.pathname}${location.search}${location.hash}`,
+      },
+    });
   };
 
   const saveDiagramDomain = async () => {
@@ -1155,6 +1194,9 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
             if (domainSummaryCache) {
               domainSummaryCache = domainSummaryCache.filter((domain) => domain.id !== deletedDomainId);
             }
+             if (domainOptionCache) {
+               domainOptionCache = domainOptionCache.filter((domain) => domain.id !== deletedDomainId);
+             }
           }}
         />
       </div>}

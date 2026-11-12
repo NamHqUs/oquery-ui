@@ -34,6 +34,7 @@ const ENTITY_CREATE_PATH = "/metadata/entities/create";
 const ENTITY_EDIT_PATH = "/metadata/entities/edit";
 const ENTITIES_PATH = "/metadata/entities";
 const DATABASE_EXPLORER_PATH = "/metadata/explorer";
+const METADATA_LAST_ROUTE_STORAGE_KEY = "oquery.metadata.last-route";
 
 type Page = keyof typeof PAGE_PATHS;
 type NavigationGuard = (continueNavigation: () => void, cancelNavigation?: () => void) => void;
@@ -222,6 +223,16 @@ function App() {
     if (location.pathname === PAGE_PATHS.metadata || pageForPath(location.pathname) === "metadata") setMetadataVisited(true);
     if (location.pathname === PAGE_PATHS.functions) setFunctionDefinitionsVisited(true);
   }, [location.pathname]);
+  useEffect(() => {
+    if (page !== "metadata"
+      || location.pathname === PAGE_PATHS.metadata
+      || location.pathname === ENTITY_CREATE_PATH
+      || location.pathname.startsWith(`${ENTITY_EDIT_PATH}/`)) return;
+    window.sessionStorage.setItem(
+      METADATA_LAST_ROUTE_STORAGE_KEY,
+      `${location.pathname}${location.search}${location.hash}`,
+    );
+  }, [location.hash, location.pathname, location.search, page]);
 
   const requestDatabaseConnection = useCallback(() => setConnectionDialogOpen(true), []);
   const navigateToBuilderDomain = useCallback(
@@ -240,10 +251,13 @@ function App() {
 
   const navigateToPage = (nextPage: Page, fromHome = false) => {
     if (nextPage === page && !(nextPage === "builder" && fromHome)) return;
+    const rememberedMetadataRoute = window.sessionStorage.getItem(METADATA_LAST_ROUTE_STORAGE_KEY);
     const destination = nextPage === "builder" && fromHome
       ? `${PAGE_PATHS.builder}?from=home`
       : nextPage === "metadata"
-        ? DOMAINS_PATH
+        ? rememberedMetadataRoute?.startsWith(`${PAGE_PATHS.metadata}/`)
+          ? rememberedMetadataRoute
+          : DOMAINS_PATH
       : PAGE_PATHS[nextPage];
     const continueNavigation = () => {
       if (nextPage === "metadata") setMetadataVisited(true);
