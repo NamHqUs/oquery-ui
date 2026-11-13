@@ -2,7 +2,6 @@ import { type CSSProperties, type KeyboardEvent, type PointerEvent, useEffect, u
 import { createPortal } from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
-import type { FunctionDefinition } from "../function-definition/types";
 import Icon from "../icon/icon";
 import { useMessageBox } from "../message-box/message-box";
 import PanelSplitter from "../panel-splitter/panel-splitter";
@@ -12,6 +11,7 @@ import { MetadataRelationsContext } from "./query-design/metadata-relations-cont
 import QueryDesign from "./query-design/query-design";
 import QueryResult from "./query-result/query-result";
 import SavedQueryList from "./saved-query-list/saved-query-list";
+import { getOquerySyntaxError } from "../oquery-editor/oquery-validation";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
 import type { AppDispatch, RootState } from "../../store/store";
 import * as oQueryEditorService from "../../services/oquery-editor-service";
@@ -295,170 +295,6 @@ function preserveOqueryKeys(formatted: string, source: string): string {
     && sourceKeys.findIndex((sourceKey) => sourceKey.toLowerCase() === key.toLowerCase()) === index);
   if (!missingKeys.length) return formatted;
   return `${formatted.trimEnd()}\n${missingKeys.map((key) => `${key}:`).join("\n")}\n`;
-}
-
-function getOquerySyntaxError(
-  text: string,
-  functionDefinitions: FunctionDefinition[],
-  filterOperators: FilterOperatorDefinition[],
-): string | null {
-  const firstLine = text.split(/\r?\n/).find((line) => line.trim() && !line.trimStart().startsWith("#") && !/^\s/.test(line));
-  if (!firstLine || !/^([A-Za-z_][A-Za-z0-9_]*)(?:\s+is\s+[A-Za-z_][A-Za-z0-9_]*)?\s*:/i.test(firstLine)) {
-    return "Invalid OQuery: expected a query header such as \"Users: Id, Name\".";
-  }
-  return getOqueryFilterSyntaxError(text, filterOperators) ?? getOqueryExpressionSyntaxError(text, functionDefinitions);
-}
-
-function getOqueryFilterSyntaxError(text: string, filterOperators: FilterOperatorDefinition[]): string | null {
-  const operatorTokens = filterOperators
-    .flatMap((operator) => [operator.symbol, operator.name])
-    .filter((token) => token.trim())
-    .map((token) => token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  const operatorPattern = operatorTokens.length
-    ? new RegExp(`(?:${operatorTokens.join("|")})`, "i")
-    : /[=<>!]|\b(?:IS|IN|LIKE|BETWEEN|CONTAINS|NULL)\b/i;
-
-  for (const [index, line] of text.split(/\r?\n/).entries()) {
-    const match = /^(\s*)(?:Filter\s*:\s*|where\s+)(.*)$/i.exec(line);
-    const expression = match?.[2]?.trim();
-    if (!match || !expression || operatorPattern.test(expression)) continue;
-    const column = line.indexOf(expression) + 1;
-    return `Line ${index + 1}, column ${column}: where expression must include an operator. Try "where UserId = <value>".`;
-  }
-
-  return null;
-}
-
-function getOqueryExpressionSyntaxError(text: string, functionDefinitions: FunctionDefinition[]): string | null {
-  const openings: Array<{ line: number; column: number }> = [];
-  let quote: "'" | "\"" | null = null;
-  let escaped = false;
-  let line = 1;
-  let column = 0;
-
-  for (let index = 0; index < text.length; index++) {
-    const character = text[index]!;
-    column += 1;
-    if (character === "\n") {
-      line += 1;
-      column = 0;
-      escaped = false;
-      continue;
-    }
-    if (character === "#" && !quote) {
-      while (index < text.length && text[index] !== "\n") index++;
-      continue;
-    }
-    if (quote) {
-      if (escaped) {
-        escaped = false;
-      } else if (character === "\\") {
-        escaped = true;
-      } else if (character === quote) {
-        quote = null;
-      }
-      continue;
-    }
-    if (character === "'" || character === "\"") {
-      quote = character;
-      continue;
-    }
-    if (character === "(") {
-      openings.push({ line, column });
-      continue;
-    }
-    if (character !== ")") continue;
-    if (!openings.pop()) return `Line ${line}, column ${column}: Unexpected closing ")" in expression.`;
-  }
-
-  const opening = openings[openings.length - 1];
-  if (opening) return `Line ${opening.line}, column ${opening.column}: Function expression is missing a closing ")".`;
-
-  const functionSignatures = new Map(
-    functionDefinitions.map((definition) => [
-      definition.name.toLocaleLowerCase(),
-      {
-        name: definition.name,
-        requiredArguments: definition.arguments.filter((argument) =>
-          argument.defaultValue === null || argument.defaultValue === undefined).length,
-        totalArguments: definition.arguments.length,
-      },
-    ]),
-  );
-  let functionQuote: "'" | "\"" | null = null;
-  let functionEscaped = false;
-  for (let index = 0; index < text.length; index += 1) {
-    const character = text[index]!;
-    if (functionQuote) {
-      if (functionEscaped) functionEscaped = false;
-      else if (character === "\\") functionEscaped = true;
-      else if (character === functionQuote) functionQuote = null;
-      continue;
-    }
-    if (character === "'" || character === "\"") {
-      functionQuote = character;
-      continue;
-    }
-    if (!/[A-Za-z_]/.test(character)) continue;
-    const nameStart = index;
-    let nameEnd = index + 1;
-    while (nameEnd < text.length && /[A-Za-z0-9_]/.test(text[nameEnd]!)) nameEnd += 1;
-    const signature = functionSignatures.get(text.slice(nameStart, nameEnd).toLocaleLowerCase());
-    if (!signature) {
-      index = nameEnd - 1;
-      continue;
-    }
-    let openingIndex = nameEnd;
-    while (openingIndex < text.length && /\s/.test(text[openingIndex]!)) openingIndex += 1;
-    if (text[openingIndex] !== "(") {
-      index = nameEnd - 1;
-      continue;
-    }
-
-    let depth = 1;
-    let argumentCount = 0;
-    let hasArgument = false;
-    let argumentQuote: "'" | "\"" | null = null;
-    let argumentEscaped = false;
-    for (let argumentIndex = openingIndex + 1; argumentIndex < text.length; argumentIndex += 1) {
-      const argumentCharacter = text[argumentIndex]!;
-      if (argumentQuote) {
-        if (argumentEscaped) argumentEscaped = false;
-        else if (argumentCharacter === "\\") argumentEscaped = true;
-        else if (argumentCharacter === argumentQuote) argumentQuote = null;
-        continue;
-      }
-      if (argumentCharacter === "'" || argumentCharacter === "\"") {
-        argumentQuote = argumentCharacter;
-      } else if (argumentCharacter === "(") {
-        depth += 1;
-        hasArgument = true;
-      } else if (argumentCharacter === ")") {
-        depth -= 1;
-        if (depth === 0) {
-          if (hasArgument) argumentCount += 1;
-          break;
-        }
-      } else if (depth === 1 && argumentCharacter === ",") {
-        argumentCount += 1;
-      } else if (depth === 1 && !/\s/.test(argumentCharacter)) {
-        hasArgument = true;
-      }
-    }
-
-    const line = text.slice(0, nameStart).split(/\r?\n/).length;
-    const lastLineBreak = text.lastIndexOf("\n", nameStart - 1);
-    const column = nameStart - lastLineBreak;
-    if (argumentCount < signature.requiredArguments) {
-      return `Line ${line}, column ${column}: ${signature.name} requires at least ${signature.requiredArguments} argument(s), but ${argumentCount} provided.`;
-    }
-    if (argumentCount > signature.totalArguments) {
-      return `Line ${line}, column ${column}: ${signature.name} accepts at most ${signature.totalArguments} argument(s), but ${argumentCount} provided.`;
-    }
-    index = nameEnd - 1;
-  }
-
-  return null;
 }
 
 function pruneFilters(group: QueryFilterGroup, entity: MetadataEntity, metadata: MetadataEntity[], relations: DomainRelation[]): QueryFilterGroup {

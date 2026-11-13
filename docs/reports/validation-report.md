@@ -85,6 +85,20 @@ The previously reported completion HTTP 400 was not reproduced from the
 current frontend/backend request path, so no speculative fallback or silent
 error handling was added for it.
 
+## Fluent function validation
+
+OQuery syntax validation now lives in
+`src\Demo.Frontend\src\components\oquery-editor\oquery-validation.ts`.
+Fluent calls such as `SUM(Amount).ROUND(<2>)` count the expression before the
+dot as the function's implicit first argument, matching the existing
+`ROUND(SUM(Amount), <2>)` form. This rule is applied to every known function,
+not only `ROUND`. The syntax guide documents both forms.
+
+| Check | Result |
+|---|---|
+| `npm run build` from `src\Demo.Frontend` | Passed |
+| `git diff --check` | Passed |
+
 ## Monaco editor remediation
 
 The editor-only follow-up pass added:
