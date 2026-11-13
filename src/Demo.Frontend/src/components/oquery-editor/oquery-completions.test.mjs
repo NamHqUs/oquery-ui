@@ -71,6 +71,13 @@ test("does not inherit an incomplete aggregate context from a previous projectio
   assert.deepEqual(fieldLabels(text), ["BonusAmount", "Rating", "ReviewYear", "Score"]);
 });
 
+test("keeps the active entity context after an expression operator", () => {
+  assert.deepEqual(
+    fieldLabels(["Employees:", "    FirstName + "].join("\n")),
+    ["Id", "Manager", "PerformanceReviews"],
+  );
+});
+
 test("does not show completions after a comment marker", () => {
   const result = getOQueryCompletions(
     "Departments: # Employees.",

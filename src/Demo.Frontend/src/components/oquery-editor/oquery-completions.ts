@@ -248,6 +248,7 @@ function isProjectionAliasPosition(lineBeforeCursor: string) {
   const currentItem = projection.slice(projection.lastIndexOf(",") + 1);
   let parenthesisDepth = 0;
   let hasExpression = false;
+  let aliasWhitespace = false;
 
   for (const character of currentItem) {
     if (character === "(") {
@@ -255,10 +256,14 @@ function isProjectionAliasPosition(lineBeforeCursor: string) {
       hasExpression = true;
     } else if (character === ")") {
       parenthesisDepth = Math.max(0, parenthesisDepth - 1);
+    } else if (parenthesisDepth === 0 && "+-*/%&|=<>!".includes(character)) {
+      return false;
+    } else if (aliasWhitespace && /\S/.test(character)) {
+      return true;
     } else if (/\S/.test(character)) {
       hasExpression = true;
     } else if (hasExpression && parenthesisDepth === 0) {
-      return true;
+      aliasWhitespace = true;
     }
   }
 

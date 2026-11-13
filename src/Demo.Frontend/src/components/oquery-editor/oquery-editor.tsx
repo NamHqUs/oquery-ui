@@ -119,7 +119,11 @@ function highlightSelectedOccurrences(html: string, selection: string): string {
     .replaceAll(">", "&gt;")
     .replaceAll("\"", "&quot;")
     .replaceAll("'", "&#39;");
-  return html.split(escapedSelection).join(`<mark class="query-oquery-match">${escapedSelection}</mark>`);
+  return html.split(/(<[^>]*>)/g).map((part) =>
+    part.startsWith("<")
+      ? part
+      : part.split(escapedSelection).join(`<mark class="query-oquery-match">${escapedSelection}</mark>`),
+  ).join("");
 }
 
 function findCommentStart(text: string): number {

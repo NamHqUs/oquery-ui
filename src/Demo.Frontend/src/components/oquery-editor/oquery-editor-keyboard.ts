@@ -8,7 +8,8 @@ const oqueryListSections = new Set(["Projection", "Sorts", "Contexts"]);
 function getOqueryLineContext(value: string, position: number) {
   const beforeCursor = value.slice(0, position);
   const lineStart = beforeCursor.lastIndexOf("\n") + 1;
-  const currentLine = value.slice(lineStart);
+  const lineEnd = value.indexOf("\n", lineStart);
+  const currentLine = value.slice(lineStart, lineEnd < 0 ? value.length : lineEnd);
   const lines = value.slice(0, lineStart).split(/\r?\n/);
   const currentIndentation = currentLine.match(/^\s*/)?.[0] ?? "";
   const keyHeaders = lines.flatMap((line) => {

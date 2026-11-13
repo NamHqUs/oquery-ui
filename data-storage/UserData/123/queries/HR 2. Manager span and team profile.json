@@ -1,14 +1,63 @@
 {
-  "DomainId": "HR_Domain",
-  "Name": "HR 2. Manager span and team profile",
-  "Entity": "Employees",
-  "Projections": [
+  "domainId": "HR_Domain",
+  "name": "HR 2. Manager span and team profile",
+  "rawText": "# Use a self-join to build manager teams and report span of control, \n# average salary, high performers, and location coverage.\n\nReviewSummary is PerformanceReviews: \n    Employee.ManagerId ManagerId, \n    AVG(Rating) AverageTeamRating\n  Where ReviewYear = \u003C2025\u003E\n  \nEmployees: Id ManagerId,\n    Concat(FirstName, \u003C \u003E, LastName) Manager,\n    Department.Name Department,\n    CountDistinct(Members.Id) DirectReports,\n    CountDistinct(Members.LocationId) TeamLocations,\n    ROUND(AVG(Members.Salary), \u003C2\u003E) AverageTeamSalary,\n    ROUND(ReviewSummary.AverageTeamRating, \u003C2\u003E) AverageTeamRating,\n    ROUND(SUM(Members.Salary), \u003C2\u003E) TeamPayroll\n  Where Members.Id IS NOT NULL\n  Order DirectReports ASC, TeamPayroll ASC\n  Left Join ReviewSummary On Id = ReviewSummary.ManagerId\n",
+  "id": "HR 2. Manager span and team profile",
+  "isBuiltin": false,
+  "contexts": {
+    "ReviewSummary": {
+      "entity": "PerformanceReviews",
+      "projection": [
+        {
+          "field": {
+            "kind": "field",
+            "field": "Employee.ManagerId"
+          },
+          "alias": "ManagerId"
+        },
+        {
+          "field": {
+            "kind": "function",
+            "function": "AVG",
+            "arguments": [
+              {
+                "kind": "field",
+                "field": "Rating"
+              }
+            ]
+          },
+          "alias": "AverageTeamRating"
+        }
+      ],
+      "filter": {
+        "logicalOperation": 0,
+        "filters": [
+          {
+            "logicalOperator": 0,
+            "left": {
+              "kind": "field",
+              "field": "ReviewYear"
+            },
+            "operation": 0,
+            "right": {
+              "kind": "value",
+              "value": 2025
+            },
+            "parameterized": true
+          }
+        ]
+      },
+      "sorts": []
+    }
+  },
+  "entity": "Employees",
+  "projections": [
     {
       "field": {
         "kind": "field",
         "field": "Id"
       },
-      "Alias": "ManagerId"
+      "alias": "ManagerId"
     },
     {
       "field": {
@@ -29,14 +78,14 @@
           }
         ]
       },
-      "Alias": "Manager"
+      "alias": "Manager"
     },
     {
       "field": {
         "kind": "field",
         "field": "Department.Name"
       },
-      "Alias": "Department"
+      "alias": "Department"
     },
     {
       "field": {
@@ -49,7 +98,7 @@
           }
         ]
       },
-      "Alias": "DirectReports"
+      "alias": "DirectReports"
     },
     {
       "field": {
@@ -62,7 +111,7 @@
           }
         ]
       },
-      "Alias": "TeamLocations"
+      "alias": "TeamLocations"
     },
     {
       "field": {
@@ -85,7 +134,7 @@
           }
         ]
       },
-      "Alias": "AverageTeamSalary"
+      "alias": "AverageTeamSalary"
     },
     {
       "field": {
@@ -102,7 +151,7 @@
           }
         ]
       },
-      "Alias": "AverageTeamRating"
+      "alias": "AverageTeamRating"
     },
     {
       "field": {
@@ -125,10 +174,10 @@
           }
         ]
       },
-      "Alias": "TeamPayroll"
+      "alias": "TeamPayroll"
     }
   ],
-  "Filter": {
+  "filter": {
     "logicalOperation": 0,
     "filters": [
       {
@@ -138,33 +187,37 @@
           "field": "Members.Id"
         },
         "operation": 13,
-        "right": null,
+        "right": {
+          "kind": "value",
+          "value": ""
+        },
         "parameterized": true
       }
     ]
   },
-  "Sorts": [
+  "sorts": [
     {
-      "Field": {
+      "field": {
         "kind": "field",
         "field": "DirectReports"
       },
-      "Direction": "Descending"
+      "direction": "Ascending"
     },
     {
-      "Field": {
+      "field": {
         "kind": "field",
         "field": "TeamPayroll"
       },
-      "Direction": "Descending"
+      "direction": "Ascending"
     }
   ],
-  "Take": 10,
-  "Skip": 0,
-  "Joins": [
+  "take": 10,
+  "skip": 0,
+  "joins": [
     {
-      "Alias": "ReviewSummary",
-      "Condition": {
+      "refContext": "ReviewSummary",
+      "alias": "ReviewSummary",
+      "condition": {
         "logicalOperation": 0,
         "filters": [
           {
@@ -182,59 +235,7 @@
           }
         ]
       },
-      "JoinType": "Left",
-      "RefContext": "ReviewSummary"
+      "joinType": "Left"
     }
-  ],
-  "Id": "HR 2. Manager span and team profile",
-  "Contexts": {
-    "ReviewSummary": {
-      "Entity": "PerformanceReviews",
-      "Projections": [
-        {
-          "field": {
-            "kind": "field",
-            "field": "Employee.ManagerId"
-          },
-          "Alias": "ManagerId"
-        },
-        {
-          "field": {
-            "kind": "function",
-            "function": "AVG",
-            "arguments": [
-              {
-                "kind": "field",
-                "field": "Rating"
-              }
-            ]
-          },
-          "Alias": "AverageTeamRating"
-        }
-      ],
-      "Filter": {
-        "logicalOperation": 0,
-        "filters": [
-          {
-            "logicalOperator": 0,
-            "left": {
-              "kind": "field",
-              "field": "ReviewYear"
-            },
-            "operation": 0,
-            "right": {
-              "kind": "value",
-              "value": 2025
-            },
-            "parameterized": true
-          }
-        ]
-      },
-      "Sorts": null,
-      "Take": null,
-      "Skip": null,
-      "Joins": null
-    }
-  },
-  "IsBuiltin": false
+  ]
 }
