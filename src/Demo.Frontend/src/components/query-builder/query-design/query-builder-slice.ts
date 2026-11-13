@@ -34,6 +34,7 @@ type StoredQueryRequestPayload = {
   id: string;
   name: string;
   domainId: string;
+  rawText?: string | null;
   entity: string;
   projections: ApiProjectionDefinition[];
   filter?: ApiQueryFilterGroup | null;
@@ -255,6 +256,7 @@ export type ApiQueryDto = {
   id: string;
   name: string;
   domainId: string;
+  rawText?: string | null;
   entity: string;
   projection: ApiProjectionDefinition[];
   filter?: ApiQueryFilterGroup | null;
@@ -277,6 +279,7 @@ type ApiSavedQueryRequestDto = {
   id: string;
   name: string;
   domainId: string;
+  rawText?: string | null;
   entity: string;
   projection: ApiProjectionDefinition[];
   filter?: ApiQueryFilterGroup | null;
@@ -921,7 +924,7 @@ function getSavedProjectionRows(definition: QueryDefinition): string[][] {
   return rows.filter((row) => row.length).map((row) => [...row]);
 }
 
-function toApiSavedRequest(request: { name: string; domainId: string; definition: QueryDefinition; id?: string }): StoredQueryRequestPayload {
+function toApiSavedRequest(request: { name: string; domainId: string; rawText?: string | null; definition: QueryDefinition; id?: string }): StoredQueryRequestPayload {
   const apiQuery = createApiQuery(request.definition);
   const rows = getSavedProjectionRows(request.definition);
   const projection = rows.flatMap((row, rowIndex) => [
@@ -931,12 +934,10 @@ function toApiSavedRequest(request: { name: string; domainId: string; definition
     ...row.map((field) => {
       const index = request.definition.columns.findIndex((candidate) => candidate.field === field);
       const projectionDefinition = apiQuery.projection[index];
-      return projectionDefinition && "fields" in projectionDefinition
-        ? projectionDefinition
-        : {
-          fields: [projectionDefinition?.field ?? { kind: "field" as const, field }],
-          alias: projectionDefinition?.alias ?? null,
-        };
+      return {
+        field: projectionDefinition?.field ?? { kind: "field" as const, field },
+        alias: projectionDefinition?.alias ?? null,
+      };
     }),
   ]);
 
@@ -995,6 +996,7 @@ function toApiSavedRequest(request: { name: string; domainId: string; definition
     id: request.id ?? "",
     name: request.name,
     domainId: request.domainId,
+    rawText: request.rawText ?? null,
     entity: apiQuery.entity,
     projections: projection,
     filter: apiQuery.filter,
@@ -1192,6 +1194,7 @@ export const fetchQueryRequests = createAsyncThunk(
         || typeof item.name !== "string"
         || typeof item.domainId !== "string"
         || typeof item.entity !== "string"
+        || (item.rawText !== undefined && item.rawText !== null && typeof item.rawText !== "string")
         || !Array.isArray(item.projection)
         || (item.contexts !== undefined && item.contexts !== null
           && (typeof item.contexts !== "object" || Array.isArray(item.contexts))))) {
@@ -1206,9 +1209,9 @@ export const fetchQueryRequests = createAsyncThunk(
 
 export const saveQueryRequest = createAsyncThunk(
   "queryBuilder/saveQueryRequest",
-  async ({ name, domainId, definition, id }: { name: string; domainId: string; definition: QueryDefinition; id?: string }, { rejectWithValue }) => {
+  async ({ name, domainId, rawText, definition, id }: { name: string; domainId: string; rawText?: string | null; definition: QueryDefinition; id?: string }, { rejectWithValue }) => {
     try {
-      const response = await queryService.saveQueryPayload(domainId, toApiSavedRequest({ name, domainId, definition, id }), id);
+      const response = await queryService.saveQueryPayload(domainId, toApiSavedRequest({ name, domainId, rawText, definition, id }), id);
       const saved = response && typeof response === "object" && !Array.isArray(response)
         ? normalizeQueryRequestProjection(response as Record<string, unknown>)
         : response;
@@ -1217,6 +1220,7 @@ export const saveQueryRequest = createAsyncThunk(
         || typeof saved.name !== "string"
         || typeof saved.domainId !== "string"
         || typeof saved.entity !== "string"
+        || (saved.rawText !== undefined && saved.rawText !== null && typeof saved.rawText !== "string")
         || !Array.isArray(saved.projection)
         || (saved.contexts !== undefined && saved.contexts !== null
           && (typeof saved.contexts !== "object" || Array.isArray(saved.contexts)))) {

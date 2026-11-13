@@ -71,12 +71,7 @@ export default function SavedQueryList({
                   onClick={() => onSelectRequest(item)}
                   aria-current={selectedRequestName === item.name ? "page" : undefined}
                 >
-                  <span className="saved-query-item-copy">
-                    <span className="saved-query-item-name">{item.name}</span>
-                    <span className="saved-query-item-description">
-                      {item.isBuiltin ? "Ready-to-use query" : "Your saved query"}
-                    </span>
-                  </span>
+                <span className="saved-query-item-name">{item.name}</span>
                 </button>
               </li>
             ))}

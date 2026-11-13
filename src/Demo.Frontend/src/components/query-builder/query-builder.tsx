@@ -579,14 +579,13 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   const updateSelectedOQueryText = (text: string) => {
     selectedOQueryTextRef.current = text;
   };
-  const boundModelRef = useRef(JSON.stringify({ definition, requestName }));
   const boundOqueryTextRef = useRef("");
   const [editorMode, setEditorMode] = useState<EditorMode>(() => getEditorMode(searchParams));
-  const hasUnsavedChanges = JSON.stringify({ definition, requestName }) !== boundModelRef.current
-    || (editorMode === "oquery" && oqueryText !== boundOqueryTextRef.current);
+  const hasUnsavedChanges = editorMode === "oquery" && oqueryText !== boundOqueryTextRef.current;
   const [selectedContextIndex, setSelectedContextIndex] = useState<number | null>(null);
   const [selectedRequestName, setSelectedRequestName] = useState<string | null>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [selectedRequestRawText, setSelectedRequestRawText] = useState<string | null>(null);
   const [selectedRequestIsBuiltin, setSelectedRequestIsBuiltin] = useState(false);
   const [queryRequestNotice, setQueryRequestNotice] = useState("");
   const [requestNameError, setRequestNameError] = useState("");
@@ -649,8 +648,16 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     }
     updateDefinition(updateContextDefinition(activeContextIndex, nextDefinition));
   };
-  const loadOquery = async (definitionToSerialize: QueryDefinition) => {
+  const loadOquery = async (definitionToSerialize: QueryDefinition, rawText?: string | null) => {
     const requestId = ++oqueryLoadRequestRef.current;
+    if (rawText?.trim()) {
+      setOqueryText(rawText);
+      updateSelectedOQueryText("");
+      boundOqueryTextRef.current = rawText;
+      setOqueryError("");
+      setOqueryStatus("idle");
+      return;
+    }
     if (!definitionToSerialize.entity.trim()) {
       setOqueryText("");
       updateSelectedOQueryText("");
@@ -693,8 +700,8 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   };
   useEffect(() => {
     if (editorMode !== "oquery") return;
-    void loadOquery(activeDefinition);
-  }, [editorMode, selectedRequestName, activeContextIndex]);
+    void loadOquery(activeDefinition, selectedRequestRawText);
+  }, [editorMode, selectedRequestName, activeContextIndex, selectedRequestRawText]);
   const applyOquery = async () => {
     if (!oqueryText.trim() || oqueryStatus !== "idle") return;
     setOqueryStatus("applying");
@@ -934,6 +941,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
       const resultAction = await dispatch(saveQueryRequest({
         name,
         domainId,
+        rawText: editorMode === "oquery" ? oqueryText : null,
         definition: currentDefinition,
         id: selectedRequestIsBuiltin ? undefined : selectedRequestId ?? undefined,
       }));
@@ -941,14 +949,12 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
         const saved = resultAction.payload;
         setSelectedRequestId(saved.id);
         setSelectedRequestName(saved.name);
+        setSelectedRequestRawText(saved.rawText ?? null);
         setSelectedRequestIsBuiltin(false);
         setRequestName(saved.name);
         updateRequestRoute(saved.name);
         setQueryRequestNotice("Query saved.");
-        boundModelRef.current = JSON.stringify({
-          definition: currentDefinition,
-          requestName: saved.name,
-        });
+        if (editorMode === "oquery") boundOqueryTextRef.current = oqueryText;
         return true;
       }
       return false;
@@ -978,6 +984,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     updateRequestRoute(null);
     setSelectedRequestName(null);
     setSelectedRequestId(null);
+    setSelectedRequestRawText(null);
     setSelectedContextIndex(null);
     setSelectedRequestIsBuiltin(false);
     setRequestName("");
@@ -989,7 +996,6 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     setOqueryError("");
     setOqueryStatus("idle");
     const nextDefinition = createDefinition("");
-    boundModelRef.current = JSON.stringify({ definition: nextDefinition, requestName: "" });
     updateDefinition(nextDefinition);
   };
   const selectSavedRequest = async (
@@ -1005,15 +1011,12 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     const nextDefinition = fromApiQuery(savedView.query, savedView.projectionRows);
     if (updateRoute) updateRequestRoute(savedRequest.name);
     setSelectedContextIndex(null);
-    boundModelRef.current = JSON.stringify({
-      definition: nextDefinition,
-      requestName: savedRequest.name,
-    });
     updateDefinition(nextDefinition);
     setRequestName(savedRequest.name);
     setRequestNameError("");
     setSelectedRequestName(savedRequest.name);
     setSelectedRequestId(savedRequest.id);
+    setSelectedRequestRawText(savedRequest.rawText ?? null);
     setSelectedRequestIsBuiltin(savedRequest.isBuiltin);
     setQueryRequestNotice("");
   };

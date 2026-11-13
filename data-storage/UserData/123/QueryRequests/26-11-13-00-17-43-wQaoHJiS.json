@@ -1,0 +1,73 @@
+{
+  "domainId": "HR_Domain",
+  "name": "HR 6. Department salary rank",
+  "rawText": "Employees: DepartmentId, \n    Id EmployeeId, \n    Salary, \n    Rank(DepartmentId, Salary) DepartmentRank\n  Order DepartmentId ASC, DepartmentRank ASC, EmployeeId ASC",
+  "id": "26-11-13-00-17-43-wQaoHJiS",
+  "isBuiltin": false,
+  "contexts": {},
+  "entity": "Employees",
+  "projections": [
+    {
+      "field": {
+        "kind": "field",
+        "field": "DepartmentId"
+      },
+      "alias": null
+    },
+    {
+      "field": {
+        "kind": "field",
+        "field": "Id"
+      },
+      "alias": "EmployeeId"
+    },
+    {
+      "field": {
+        "kind": "field",
+        "field": "Salary"
+      },
+      "alias": null
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "Rank",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "DepartmentId"
+          },
+          {
+            "kind": "field",
+            "field": "Salary"
+          }
+        ]
+      },
+      "alias": "DepartmentRank"
+    }
+  ],
+  "sorts": [
+    {
+      "field": {
+        "kind": "field",
+        "field": "DepartmentId"
+      },
+      "direction": "Ascending"
+    },
+    {
+      "field": {
+        "kind": "field",
+        "field": "DepartmentRank"
+      },
+      "direction": "Ascending"
+    },
+    {
+      "field": {
+        "kind": "field",
+        "field": "EmployeeId"
+      },
+      "direction": "Ascending"
+    }
+  ],
+  "joins": []
+}

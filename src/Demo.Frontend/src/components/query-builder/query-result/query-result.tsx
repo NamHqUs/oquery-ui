@@ -76,6 +76,7 @@ export default function QueryResult({ result, sqlStatement, resultView, onRunQue
             className="button primary query-result-action"
             aria-label={queryLoading ? "Running query" : "Run query"}
             title={queryLoading ? "Running query" : "Run query"}
+            onMouseDown={(event) => event.preventDefault()}
             onClick={onRunQuery}
             disabled={queryLoading || queryDisabled}
           >
