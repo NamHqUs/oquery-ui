@@ -8,7 +8,8 @@ const entities = [
     name: "Employees",
     fields: ["Id"],
     relations: [
-      { name: "Manager", target: "Managers", kind: "lookup" },
+      { name: "Manager", target: "Employees", kind: "lookup" },
+      { name: "Members", target: "Employees", kind: "collection" },
       { name: "PerformanceReviews", target: "PerformanceReviews", kind: "collection" },
     ],
   },
@@ -54,12 +55,12 @@ function functionLabels(text) {
 }
 
 test("uses the aggregate receiver as the context inside a relation aggregate", () => {
-  assert.deepEqual(fieldLabels("Departments: Employees.Sum("), ["Id", "Manager", "PerformanceReviews"]);
+  assert.deepEqual(fieldLabels("Departments: Employees.Sum("), ["Id", "Manager", "Members", "PerformanceReviews"]);
 });
 
 test("uses the nested aggregate receiver and restores the outer context", () => {
   assert.deepEqual(fieldLabels("Departments: Employees.AnyFunction(PerformanceReviews.Avg("), ["BonusAmount", "Rating", "ReviewYear", "Score"]);
-  assert.deepEqual(fieldLabels("Departments: Employees.AnyFunction(PerformanceReviews.Avg(Score), "), ["Id", "Manager", "PerformanceReviews"]);
+  assert.deepEqual(fieldLabels("Departments: Employees.AnyFunction(PerformanceReviews.Avg(Score), "), ["Id", "Manager", "Members", "PerformanceReviews"]);
 });
 
 test("does not inherit an incomplete aggregate context from a previous projection", () => {
@@ -74,7 +75,7 @@ test("does not inherit an incomplete aggregate context from a previous projectio
 test("keeps the active entity context after an expression operator", () => {
   assert.deepEqual(
     fieldLabels(["Employees:", "    FirstName + "].join("\n")),
-    ["Id", "Manager", "PerformanceReviews"],
+    ["Id", "Manager", "Members", "PerformanceReviews"],
   );
 });
 
