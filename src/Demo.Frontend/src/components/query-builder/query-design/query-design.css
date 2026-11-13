@@ -12,6 +12,7 @@
 .query-oquery-workspace.horizontal .query-oquery-diagram-panel { grid-column: 1; grid-row: 1; }
 .query-oquery-workspace.vertical .query-oquery-diagram-panel { grid-column: 1; grid-row: 1; }
 .query-oquery-diagram-panel > .database-diagram { height: 100%; min-height: 0; }
+.query-oquery-diagram-panel .diagram-toolbar { padding: 8px 12px; }
 .query-oquery-workspace > .panel-splitter { position: relative; top: auto; right: auto; bottom: auto; left: auto; z-index: 5; }
 .query-oquery-workspace.horizontal > .panel-splitter.horizontal { top: auto; bottom: auto; grid-column: 1; grid-row: 2; width: auto; height: 4px; }
 .query-oquery-workspace.horizontal > .panel-splitter .panel-splitter-handle { top: 0; }

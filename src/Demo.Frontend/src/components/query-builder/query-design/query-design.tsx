@@ -385,12 +385,9 @@ export default function QueryDesign({
           <div className="query-oquery-diagram-panel">
             <DiagramView
               tables={diagramTables}
-              groups={[{ id: domainId, name: domainId || "Current domain", tables: diagramTables, tone: "custom" }]}
-              initialGroup={domainId || "Current domain"}
               selectedTableName={definition.entity}
               loading={metadataStatus === "loading"}
               relationships={diagramRelationships}
-              hideActiveGroup
               compactCards
               navigationActions={
                 <button
