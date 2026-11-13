@@ -1151,7 +1151,6 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
             <div className="query-design-area">
               <MetadataRelationsContext.Provider value={metadataRelations}>
               <QueryDesign
-                key={`${selectedRequestName ?? "draft"}-${activeContextIndex ?? "request"}`}
                 domainId={domainId}
                 metadata={metadata}
                 metadataStatus={metadataStatus}

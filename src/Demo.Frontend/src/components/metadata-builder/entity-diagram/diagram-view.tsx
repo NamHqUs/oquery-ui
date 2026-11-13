@@ -782,12 +782,51 @@ export default function DiagramView({
 
   return (
     <section className="database-diagram" aria-label="Database relationship diagram">
-      {!suppliedTables && <div className="diagram-toolbar">
+      <div className="diagram-toolbar">
         <div>
-          <span className="section-kicker">DATABASE SCHEMA</span>
-          <p>Choose a domain to explore its relationships. Drag tables to adjust the layout; expand a table to inspect its columns. Double-click a table header to preview its first 10 rows.</p>
+          {suppliedTables
+            ? <strong className="diagram-toolbar-title">Metadata</strong>
+            : <>
+              <span className="section-kicker">DATABASE SCHEMA</span>
+              <p>Choose a domain to explore its relationships. Drag tables to adjust the layout; expand a table to inspect its columns. Double-click a table header to preview its first 10 rows.</p>
+            </>}
         </div>
-      </div>}
+        <div className="diagram-layout-controls">
+          <button
+            type="button"
+            className={`diagram-layout-auto${autoRange ? " active" : ""}`}
+            aria-label={`Toggle automatic layout (${autoRange ? "on" : "off"})`}
+            aria-pressed={autoRange}
+            title={`Automatic layout ${autoRange ? "on" : "off"}`}
+            onClick={() => {
+              const enabled = !autoRange;
+              setAutoRange(enabled);
+              if (enabled) {
+                setLayoutSize(boardSize);
+                setPositions({});
+                setGraphPan({ x: 0, y: 0 });
+              }
+            }}
+          >
+            <Icon name="sliders" size={14} />
+            <span>Auto</span>
+          </button>
+          {navigationActions}
+          <button
+            type="button"
+            className="diagram-layout-button"
+            aria-label="Arrange diagram"
+            title="Arrange diagram"
+            onClick={() => {
+              setLayoutSize(boardSize);
+              setPositions({});
+              setGraphPan({ x: 0, y: 0 });
+            }}
+          >
+            <Icon name="reset" size={14} />
+          </button>
+        </div>
+      </div>
       {(!suppliedTables || suppliedGroups?.length) && <div className="diagram-group-toolbar">
         <nav className="diagram-group-switch" aria-label="Diagram table groups">
           {groups.filter((group) => !hideActiveGroup || group.name !== initialGroup).map((group) => (
@@ -831,37 +870,7 @@ export default function DiagramView({
               <span className="diagram-group-count">{group.tables.length}</span>
             </button>
           ))}
-          {navigationActions}
         </nav>
-        <div className="diagram-layout-controls">
-          <label className="diagram-auto-range">
-            <input
-              type="checkbox"
-              checked={autoRange}
-              onChange={(event) => {
-                const enabled = event.target.checked;
-                setAutoRange(enabled);
-                if (enabled) {
-                  setLayoutSize(boardSize);
-                  setPositions({});
-                  setGraphPan({ x: 0, y: 0 });
-                }
-              }}
-            />
-            <span>Auto</span>
-          </label>
-          <button
-            type="button"
-            className="diagram-arrange-button"
-            onClick={() => {
-              setLayoutSize(boardSize);
-              setPositions({});
-              setGraphPan({ x: 0, y: 0 });
-            }}
-          >
-            <Icon name="reset" size={14} /> Arrange
-          </button>
-        </div>
       </div>}
       <div className="diagram-content">
         {relationInspector}

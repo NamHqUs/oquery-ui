@@ -25,6 +25,12 @@
   font-size: 11px;
 }
 
+.diagram-toolbar-title {
+  color: #e6e6ed;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .diagram-relation-count {
   flex: 0 0 auto;
   padding: 7px 10px;
@@ -98,55 +104,63 @@
   margin-left: auto;
 }
 
-.diagram-auto-range {
+.diagram-layout-button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  color: #aeb7c5;
+  border: 1px solid #424958;
+  border-radius: 3px;
+  background: #171d28;
+  cursor: pointer;
+}
+
+.diagram-layout-button:hover,
+.diagram-layout-button:focus-visible,
+.diagram-layout-button.active {
+  color: #f0ecff;
+  border-color: #8068d1;
+  background: #211b32;
+  outline: 0;
+}
+
+.diagram-layout-button:focus-visible {
+  outline: 2px solid #b39ae7;
+  outline-offset: 2px;
+}
+
+.diagram-layout-button.active {
+  box-shadow: inset 0 0 0 1px #624b91;
+}
+
+.diagram-layout-auto {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 8px;
   color: #aeb7c5;
-  font-size: 11px;
-  white-space: nowrap;
-  cursor: pointer;
-  user-select: none;
-}
-
-.diagram-auto-range input {
-  appearance: none;
-  display: block;
-  width: 34px;
-  height: 20px;
-  margin: 0;
-  padding: 0;
   border: 1px solid #424958;
-  border-radius: 999px;
-  background: #252b36;
+  border-radius: 3px;
+  background: #171d28;
+  font-size: 11px;
   cursor: pointer;
-  transition: background .16s, border-color .16s, box-shadow .16s;
 }
 
-.diagram-auto-range input::before {
-  display: block;
-  width: 12px;
-  height: 12px;
-  margin: 3px;
-  border-radius: 50%;
-  background: #aeb7c5;
-  content: "";
-  transition: transform .16s, background .16s;
+.diagram-layout-auto:hover,
+.diagram-layout-auto:focus-visible,
+.diagram-layout-auto.active {
+  color: #f0ecff;
+  border-color: #8068d1;
+  background: #211b32;
+  outline: 0;
 }
 
-.diagram-auto-range input:checked {
-  border-color: #8068b5;
-  background: #624b91;
-}
-
-.diagram-auto-range input:checked::before {
-  transform: translateX(14px);
-  background: #fff;
-}
-
-.diagram-auto-range input:focus-visible {
+.diagram-layout-auto:focus-visible {
   outline: 2px solid #b39ae7;
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 
 .diagram-group-button {
