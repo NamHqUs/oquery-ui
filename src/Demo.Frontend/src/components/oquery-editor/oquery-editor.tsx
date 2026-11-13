@@ -244,6 +244,8 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
   const lineNumbersRef = useRef<HTMLDivElement>(null);
   const pendingCaretRef = useRef<number | null>(null);
   const pendingSelectionRef = useRef<{ start: number; end: number } | null>(null);
+  const undoStackRef = useRef<string[]>([]);
+  const redoStackRef = useRef<string[]>([]);
   const [text, setInternalText] = useState(() =>
     normalizeOqueryEditorText(textOverride ?? initialText ?? value ?? ""));
   const [selectedText, setSelectedText] = useState("");
@@ -254,11 +256,17 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
   useLayoutEffect(() => {
     if (textOverride === undefined) return;
     const normalizedText = normalizeOqueryEditorText(textOverride);
-    if (normalizedText !== text) setInternalText(normalizedText);
+    if (normalizedText !== text) {
+      setInternalText(normalizedText);
+    }
   }, [textOverride, text]);
   useImperativeHandle(ref, () => ({
     getText: () => text,
-    setText: (nextText: string) => setInternalText(normalizeOqueryEditorText(nextText)),
+    setText: (nextText: string) => {
+      undoStackRef.current = [];
+      redoStackRef.current = [];
+      setInternalText(normalizeOqueryEditorText(nextText));
+    },
   }), [text]);
   const projection = getFoldedOquery(text, collapsed);
   useLayoutEffect(() => {
@@ -299,6 +307,10 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
       setCollapsed(new Set());
     }
     setFoldMessage("");
+    if (updated !== text) {
+      undoStackRef.current.push(text);
+      redoStackRef.current = [];
+    }
     if (nextCaret !== undefined) {
       pendingCaretRef.current = nextCaret;
       pendingSelectionRef.current = {
@@ -308,6 +320,24 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
     }
     setInternalText(updated);
     onTextChange(updated);
+  };
+  const undo = () => {
+    const previous = undoStackRef.current.pop();
+    if (previous === undefined) return;
+    redoStackRef.current.push(text);
+    pendingCaretRef.current = previous.length;
+    pendingSelectionRef.current = { start: previous.length, end: previous.length };
+    setInternalText(previous);
+    onTextChange(previous);
+  };
+  const redo = () => {
+    const next = redoStackRef.current.pop();
+    if (next === undefined) return;
+    undoStackRef.current.push(text);
+    pendingCaretRef.current = next.length;
+    pendingSelectionRef.current = { start: next.length, end: next.length };
+    setInternalText(next);
+    onTextChange(next);
   };
   const completionResult = completionPosition === null
     ? null
@@ -452,6 +482,8 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
           changeVisibleText,
           setFoldMessage,
           pendingCaretRef,
+          undo,
+          redo,
           onExecuteSelectedText: props.onExecuteSelectedText,
         })}
         onScroll={(event) => {

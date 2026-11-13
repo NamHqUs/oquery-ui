@@ -97,11 +97,27 @@ function getSelectedLineEdit(value: string, selectionStart: number, selectionEnd
   return { value: `${value.slice(0, start)}${replacement}${value.slice(end)}`, selectionStart: start, selectionEnd: start + replacement.length };
 }
 
+function getLineRange(value: string, position: number) {
+  const start = value.lastIndexOf("\n", Math.max(0, position - 1)) + 1;
+  const lineBreak = value.indexOf("\n", position);
+  return {
+    start,
+    end: lineBreak < 0 ? value.length : lineBreak + 1,
+  };
+}
+
 export function replaceTextareaSelection(textarea: HTMLTextAreaElement, replacement: string, selectionStart: number, selectionEnd: number, nextSelectionStart: number, nextSelectionEnd: number) {
   textarea.setSelectionRange(selectionStart, selectionEnd);
   if (!textarea.ownerDocument.execCommand("insertText", false, replacement)) return false;
   textarea.setSelectionRange(nextSelectionStart, nextSelectionEnd);
   return true;
+}
+
+function copyTextareaText(textarea: HTMLTextAreaElement, text: string): Promise<boolean> {
+  if (navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(text).then(() => true, () => false);
+  }
+  return Promise.resolve(textarea.ownerDocument.execCommand("copy"));
 }
 
 export type OQueryKeyboardOptions = {
@@ -118,6 +134,8 @@ export type OQueryKeyboardOptions = {
   changeVisibleText: (value: string, caret?: number, selectionEnd?: number) => void;
   setFoldMessage: (message: string) => void;
   pendingCaretRef: { current: number | null };
+  undo: () => void;
+  redo: () => void;
   onExecuteSelectedText?: (text: string) => void;
 };
 
@@ -125,7 +143,7 @@ export function processOQueryKeyboard(event: KeyboardEvent<HTMLTextAreaElement>,
   const {
     completions, completionIndex, completionPosition, text, collapsed, projectionText,
     updateCompletionPosition, setCompletionIndex, setCompletionPosition,
-    applyCompletion, changeVisibleText, setFoldMessage, pendingCaretRef, onExecuteSelectedText,
+    applyCompletion, changeVisibleText, setFoldMessage, pendingCaretRef, undo, redo, onExecuteSelectedText,
   } = options;
   const textarea = event.currentTarget;
   if ((event.ctrlKey || event.metaKey) && event.key === " ") {
@@ -152,18 +170,39 @@ export function processOQueryKeyboard(event: KeyboardEvent<HTMLTextAreaElement>,
     if (!nativeEditApplied) changeVisibleText(edit.value, edit.selectionStart, edit.selectionEnd);
     return;
   }
-  if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === "x" && textarea.selectionStart === textarea.selectionEnd) {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === "z") {
     event.preventDefault();
-    const lineStart = textarea.value.lastIndexOf("\n", textarea.selectionStart - 1) + 1;
-    const lineBreak = textarea.value.indexOf("\n", textarea.selectionStart);
-    const lineEnd = lineBreak < 0 ? textarea.value.length : lineBreak + 1;
-    textarea.setSelectionRange(lineStart, lineEnd);
-    textarea.ownerDocument.execCommand("copy");
-    const nativeEditApplied = replaceTextareaSelection(textarea, "", lineStart, lineEnd, lineStart, lineStart);
-    if (!nativeEditApplied) {
-      const edit = getSelectedLineEdit(textarea.value, textarea.selectionStart, textarea.selectionEnd, "delete");
-      changeVisibleText(edit.value, edit.selectionStart, edit.selectionEnd);
-    }
+    if (event.shiftKey) redo(); else undo();
+    return;
+  }
+  if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === "y") {
+    event.preventDefault();
+    redo();
+    return;
+  }
+  if ((event.ctrlKey || event.metaKey)
+    && (event.key.toLocaleLowerCase() === "c" || event.key.toLocaleLowerCase() === "x")
+    && textarea.selectionStart === textarea.selectionEnd) {
+    event.preventDefault();
+    const line = getLineRange(textarea.value, textarea.selectionStart);
+    textarea.setSelectionRange(line.start, line.end);
+    const lineText = textarea.value.slice(line.start, line.end);
+    const copiedText = line.end === textarea.value.length ? `${lineText}\n` : lineText;
+    void copyTextareaText(textarea, copiedText).then((copied) => {
+      if (!copied) {
+        setFoldMessage("Unable to copy the current line: this browser does not support clipboard editing.");
+        return;
+      }
+      if (event.key.toLocaleLowerCase() === "c") {
+        textarea.setSelectionRange(line.start, line.start);
+        return;
+      }
+      changeVisibleText(
+        `${textarea.value.slice(0, line.start)}${textarea.value.slice(line.end)}`,
+        line.start,
+        line.start,
+      );
+    });
     return;
   }
   if ((event.ctrlKey || event.metaKey) && event.key === "/") {
