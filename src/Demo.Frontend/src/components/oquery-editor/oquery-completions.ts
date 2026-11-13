@@ -208,9 +208,34 @@ function getCompletionContext(lineBeforeCursor: string, text: string, position: 
   return "projection";
 }
 
-function getRelationPath(lineBeforeCursor: string) {
+function getRelationPath(sourceBeforeCursor: string) {
+  const activeCalls: ({ receiverPath: string | null } | null)[] = [];
+  for (let index = 0; index < sourceBeforeCursor.length; index++) {
+    const character = sourceBeforeCursor[index];
+    if (character === "(") {
+      const functionCall = /([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\s*$/
+        .exec(sourceBeforeCursor.slice(0, index));
+      const path = functionCall?.[1];
+      activeCalls.push(path
+        ? { receiverPath: path.includes(".") ? path.slice(0, path.lastIndexOf(".")) : null }
+        : null);
+    } else if (character === ")") {
+      activeCalls.pop();
+    }
+  }
+
+  if (activeCalls.length > 0) {
+    const contextSegments: string[] = [];
+    for (const call of activeCalls) {
+      if (call?.receiverPath) contextSegments.push(...call.receiverPath.split("."));
+    }
+    if (contextSegments.length > 0) return contextSegments.join(".");
+  }
+
+  const lineBeforeCursor = sourceBeforeCursor.slice(sourceBeforeCursor.lastIndexOf("\n") + 1);
   const match = /(?:^|[\s,(])([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\.([A-Za-z_][A-Za-z0-9_]*)?$/.exec(lineBeforeCursor);
-  return match?.[1] ?? null;
+  if (match?.[1]) return match[1];
+  return null;
 }
 
 function isProjectionAliasPosition(lineBeforeCursor: string) {
@@ -331,7 +356,7 @@ export function getOQueryCompletions(
   const query = tokenMatch?.[0] ?? "";
   const replaceStart = safePosition - query.length;
   const context = getCompletionContext(lineBeforeCursor, text, safePosition);
-  const relationPath = getRelationPath(lineBeforeCursor);
+  const relationPath = getRelationPath(text.slice(text.lastIndexOf("\n", safePosition - 1) + 1, safePosition));
   const isAliasPosition = context === "projection" && isProjectionAliasPosition(lineBeforeCursor);
   const isNewLine = lineStart > 0 && text[lineStart - 1] === "\n";
   const dynamic = getDynamicCandidates(text);

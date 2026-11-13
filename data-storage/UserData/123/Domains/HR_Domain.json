@@ -1,7 +1,7 @@
 {
   "Id": "HR_Domain",
   "Name": "HR",
-  "Description": "The Human resources scope represents NorthStar\u2019s internal workforce management. It focuses on departments, employees, managers, locations, salaries, performance reviews, bonuses, and leave requests.\n\nThis scope supports decisions about:\n\n- **Department staffing and payroll**\n- **Employee performance and compensation**\n- **Manager span of control**\n- **Team structure and location coverage**\n- **Workforce composition across offices**\n- **Leave demand and approval activity**\n\nPerformance and bonus trends over time\nThe Human resources scope provides an organizational view of the company, showing how employees are distributed, managed, compensated, evaluated, and supported.",
+  "Description": "",
   "Entities": [
     {
       "Name": "Departments",
@@ -267,7 +267,7 @@
         "DepartmentId"
       ],
       "TargetEntity": "Departments",
-      "TargetRelationName": "Department",
+      "TargetRelationName": "Employees",
       "TargetFields": [
         "Id"
       ]

@@ -180,6 +180,14 @@ function highlightCompletionLabel(label: string, query: string): ReactNode {
   </>;
 }
 
+function getDoubleClickSelection(textarea: HTMLTextAreaElement): string {
+  const { selectionStart, selectionEnd } = textarea;
+  let end = selectionEnd;
+  while (end > selectionStart && textarea.value[end - 1] === " ") end--;
+  if (end !== selectionEnd) textarea.setSelectionRange(selectionStart, end);
+  return textarea.value.slice(selectionStart, end);
+}
+
 const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
   value,
   initialText,
@@ -385,6 +393,12 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
           setSelectedText(selection);
           onSelectionChange(selection);
         }}
+        onDoubleClick={(event) => {
+          const selection = getDoubleClickSelection(event.currentTarget);
+          setSelectedText(selection);
+          onSelectionChange(selection);
+          props.onDoubleClick?.(event);
+        }}
         onBlur={(event) => {
           const textarea = event.currentTarget;
           const selection = textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
@@ -449,7 +463,8 @@ const OQueryEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((props, r
   if (props.oquery) return <OqueryTextEditor {...props} ref={ref} />;
   const {
     onTextChange, highlight, value, onSelectionChange, onExecuteSelectedText,
-    oquery, domain, operators, functionDefinitions, errorFunctionName, compact, showGutter, showFoldControls, ...textareaProps
+    oquery, domain, operators, functionDefinitions, errorFunctionName, compact, showGutter, showFoldControls,
+    onDoubleClick, ...textareaProps
   } = props;
   const selectionText = (textarea: HTMLTextAreaElement) => textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
   return (
@@ -457,6 +472,10 @@ const OQueryEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((props, r
       {highlight && <pre className="oquery-editor-highlight" aria-hidden="true">{highlight(String(value ?? "")) || " "}</pre>}
       <textarea {...textareaProps} value={value} onChange={(event) => onTextChange(event.target.value)}
         onSelect={(event) => onSelectionChange?.(selectionText(event.currentTarget))}
+        onDoubleClick={(event) => {
+          onSelectionChange?.(getDoubleClickSelection(event.currentTarget));
+          onDoubleClick?.(event);
+        }}
         onBlur={(event) => { onSelectionChange?.(selectionText(event.currentTarget)); textareaProps.onBlur?.(event); }}
         onKeyDown={(event) => {
           if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {

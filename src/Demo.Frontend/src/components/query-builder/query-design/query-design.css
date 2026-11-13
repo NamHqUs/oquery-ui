@@ -3,6 +3,7 @@
 .query-builder-card:has(.query-oquery-completions) { position: relative; z-index: 3000; }
 .query-editor-tabs { margin-left: 0; }
 .query-oquery-workspace { display: grid; min-width: 0; min-height: 0; box-sizing: border-box; overflow: auto; }
+.query-oquery-workspace:has(.query-oquery-completions) { overflow: visible; }
 .query-oquery-workspace > .query-oquery-editor { min-height: 0; }
 .query-oquery-workspace.horizontal { grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--panel-height, 360px) 4px auto; }
 .query-oquery-workspace.vertical { grid-template-columns: minmax(0, 1fr) 5px var(--panel-width, 360px); grid-template-rows: minmax(0, 1fr); }
@@ -35,7 +36,7 @@
 .query-oquery-function-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; font-size: 11px; }
 .query-oquery-function { color: #86efac; }
 .query-oquery-error-function { color: #ff5668; background: #ff566826; border-radius: 2px; box-shadow: 0 0 0 1px #ff566880; }
-.query-oquery-code-editor { position: relative; width: 100%; min-width: 0; min-height: 520px; box-sizing: border-box; overflow: visible; border: 1px solid #323947; border-radius: 4px; background: #0b1018; }
+.query-oquery-code-editor { position: relative; width: 100%; min-width: 0; min-height: 520px; box-sizing: border-box; contain: layout; overflow: visible; border: 1px solid #323947; border-radius: 4px; background: #0b1018; }
 .query-oquery-highlight, .query-oquery-textarea, .query-oquery-line-numbers { position: absolute; inset: 0; height: 100%; box-sizing: border-box; margin: 0; padding: 16px; font-family: "Cascadia Mono", "Consolas", ui-monospace, SFMono-Regular, Menlo, Monaco, "Liberation Mono", "Courier New", monospace; font-size: 13px; font-weight: 300; line-height: 1.6; font-variant-ligatures: none; letter-spacing: normal; tab-size: 2; white-space: pre; overflow: auto; }
 .query-oquery-line-numbers { z-index: 3; width: 76px; padding: 16px 4px; overflow: hidden; color: #596477; border-right: 1px solid #252d3b; text-align: right; user-select: none; }
 .query-oquery-code-editor.no-fold-controls:not(.no-line-numbers) .query-oquery-line-numbers { width: 52px; }
