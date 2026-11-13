@@ -3,6 +3,9 @@
 The UI, API, frontend, and demo projects for OQuery.
 The OQuery engine is included as the `oquery` Git submodule.
 
+Documentation is centralized in [`docs/`](./docs/README.md). Start there to find
+the right file for product, frontend, project, engine, or report questions.
+
 Clone with the submodule initialized:
 
 ```powershell

@@ -13,6 +13,7 @@ import { parseWizardRoute, WIZARD_ROUTE_PATHS } from "./components/metadata-buil
 import FunctionDefinitionsWorkspace from "./components/function-definition/function-definition";
 import Home from "./components/home/home";
 import Documentation from "./components/documentation/documentation";
+import { documentationSubmenu } from "./components/documentation/doc-agenda";
 import { GITHUB_URL, PRODUCT_NAME } from "./components/home/home-content";
 import { MessageBoxProvider } from "./components/message-box/message-box";
 import * as domainService from "./services/domain-service";
@@ -52,7 +53,7 @@ const PAGE_SUBMENUS: Record<Exclude<Page, "home">, readonly string[]> = {
   sources: ["Connections", "Tables", "Schema"],
   metadata: ["Domains", "Diagram", "Entity definitions", "Explore database"],
   functions: [],
-  documentation: ["Overview", "Query syntax", "Security", "Next steps"],
+  documentation: [],
 };
 const QUERY_DOMAIN_TONES = ["revenue", "customer", "product", "finance", "custom"] as const;
 
@@ -138,6 +139,9 @@ function PageSubnav({
             <span className="query-builder-subnav-item" aria-disabled="true">Query Builder <small>Hide</small></span>
             <span className="query-builder-subnav-item" aria-disabled="true">AI Assistant <small>Roadmap</small></span>
           </> : <>
+            {page === "documentation" && documentationSubmenu.map((item) => (
+              <button key={item.target} type="button" onClick={() => scrollToSection(item.target)}>{item.label}</button>
+            ))}
             {PAGE_SUBMENUS[page].map((item) => {
             const itemSection = item === "Diagram" ? "diagram" : item === "Entity definitions" ? "entities" : item === "Domains" ? "domains" : undefined;
             const metadataItemSection = itemSection ?? (item === "Explore database" ? "explorer" : undefined);

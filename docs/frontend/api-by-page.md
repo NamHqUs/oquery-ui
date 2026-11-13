@@ -6,13 +6,13 @@ changes. The API base URL is `VITE_BACKEND_API_URL`.
 
 Implementation references:
 
-- [`src/main.tsx`](./src/main.tsx) — routes and application shell.
-- [`src/const/api-urls.ts`](./src/const/api-urls.ts) — endpoint definitions.
-- [`src/components/data-sources/database-slice.ts`](./src/components/data-sources/database-slice.ts)
+- [`src/main.tsx`](../../src/Demo.Frontend/src/main.tsx) — routes and application shell.
+- [`src/const/api-urls.ts`](../../src/Demo.Frontend/src/const/api-urls.ts) — endpoint definitions.
+- [`src/components/data-sources/database-slice.ts`](../../src/Demo.Frontend/src/components/data-sources/database-slice.ts)
   — connection, schema, and table data.
-- [`src/components/query-builder/query-design/query-builder-slice.ts`](./src/components/query-builder/query-design/query-builder-slice.ts)
+- [`src/components/query-builder/query-design/query-builder-slice.ts`](../../src/Demo.Frontend/src/components/query-builder/query-design/query-builder-slice.ts)
   — query, metadata, and saved-query requests.
-- [`src/components/metadata-builder/metadata-builder.tsx`](./src/components/metadata-builder/metadata-builder.tsx)
+- [`src/components/metadata-builder/metadata-builder.tsx`](../../src/Demo.Frontend/src/components/metadata-builder/metadata-builder.tsx)
   — metadata routes and domain UI.
 
 ## Service ownership
