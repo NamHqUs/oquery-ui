@@ -1,0 +1,207 @@
+{
+  "domainId": "HR_Domain",
+  "name": "HR 1. Department compensation and performance",
+  "rawText": "ReviewSummary is PerformanceReviews: EmployeeId EmployeeId, \n    AVG(Rating) AverageRating, \n    SUM(BonusAmount) Bonuses\n  Where ReviewYear = \u003C2025\u003E\n  \nEmployees: Department.Name Department,\n    COUNT(Id) Headcount,\n    ROUND(AVG(Salary), \u003C2\u003E) AverageSalary,\n    ROUND(SUM(Salary), \u003C2\u003E) AnnualPayroll,\n    ROUND(AVG(ReviewSummary.AverageRating), \u003C2\u003E) AverageRating,\n    ROUND(SUM(Coalesce(ReviewSummary.Bonuses, \u003C0\u003E)), \u003C2\u003E) TotalBonuses\n  Order AnnualPayroll ASC\n  Left Join ReviewSummary ReviewSummary On Id = ReviewSummary.EmployeeId\n",
+  "id": "HR 1. Department compensation and performance",
+  "isBuiltin": false,
+  "contexts": {
+    "ReviewSummary": {
+      "entity": "PerformanceReviews",
+      "projection": [
+        {
+          "field": {
+            "kind": "field",
+            "field": "EmployeeId"
+          },
+          "alias": "EmployeeId"
+        },
+        {
+          "field": {
+            "kind": "function",
+            "function": "AVG",
+            "arguments": [
+              {
+                "kind": "field",
+                "field": "Rating"
+              }
+            ]
+          },
+          "alias": "AverageRating"
+        },
+        {
+          "field": {
+            "kind": "function",
+            "function": "SUM",
+            "arguments": [
+              {
+                "kind": "field",
+                "field": "BonusAmount"
+              }
+            ]
+          },
+          "alias": "Bonuses"
+        }
+      ],
+      "sorts": []
+    }
+  },
+  "entity": "Employees",
+  "projections": [
+    {
+      "field": {
+        "kind": "field",
+        "field": "Department.Name"
+      },
+      "alias": "Department"
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "COUNT",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "Id"
+          }
+        ]
+      },
+      "alias": "Headcount"
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "ROUND",
+        "arguments": [
+          {
+            "kind": "function",
+            "function": "AVG",
+            "arguments": [
+              {
+                "kind": "field",
+                "field": "Salary"
+              }
+            ]
+          },
+          {
+            "kind": "value",
+            "value": 2
+          }
+        ]
+      },
+      "alias": "AverageSalary"
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "ROUND",
+        "arguments": [
+          {
+            "kind": "function",
+            "function": "SUM",
+            "arguments": [
+              {
+                "kind": "field",
+                "field": "Salary"
+              }
+            ]
+          },
+          {
+            "kind": "value",
+            "value": 2
+          }
+        ]
+      },
+      "alias": "AnnualPayroll"
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "ROUND",
+        "arguments": [
+          {
+            "kind": "function",
+            "function": "AVG",
+            "arguments": [
+              {
+                "kind": "field",
+                "field": "ReviewSummary.AverageRating"
+              }
+            ]
+          },
+          {
+            "kind": "value",
+            "value": 2
+          }
+        ]
+      },
+      "alias": "AverageRating"
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "ROUND",
+        "arguments": [
+          {
+            "kind": "function",
+            "function": "SUM",
+            "arguments": [
+              {
+                "kind": "function",
+                "function": "Coalesce",
+                "arguments": [
+                  {
+                    "kind": "field",
+                    "field": "ReviewSummary.Bonuses"
+                  },
+                  {
+                    "kind": "value",
+                    "value": 0
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "value",
+            "value": 2
+          }
+        ]
+      },
+      "alias": "TotalBonuses"
+    }
+  ],
+  "sorts": [
+    {
+      "field": {
+        "kind": "field",
+        "field": "AnnualPayroll"
+      },
+      "direction": "Ascending"
+    }
+  ],
+  "joins": [
+    {
+      "refContext": "ReviewSummary",
+      "alias": "ReviewSummary",
+      "condition": {
+        "logicalOperation": 0,
+        "filters": [
+          {
+            "logicalOperator": 0,
+            "left": {
+              "kind": "field",
+              "field": "Id"
+            },
+            "operation": 0,
+            "right": {
+              "kind": "field",
+              "field": "ReviewSummary.EmployeeId"
+            },
+            "parameterized": true
+          }
+        ]
+      },
+      "joinType": "Left"
+    }
+  ]
+}

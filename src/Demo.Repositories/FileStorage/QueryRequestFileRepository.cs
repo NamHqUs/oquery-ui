@@ -14,7 +14,7 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
     : FileRepositoryBase<QueryDto>(filePathResolver, FOLDER_NAME, FILE_EXTENSION),
         IQueryRequestRepository
 {
-    private const string FOLDER_NAME = "QueryRequests";
+    private const string FOLDER_NAME = "queries";
     private const string FILE_EXTENSION = ".json";
     private const string OQUERY_FILE_EXTENSION = ".oqr";
     private const string ID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";

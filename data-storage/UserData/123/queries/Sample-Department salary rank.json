@@ -1,32 +1,28 @@
 {
-  "domainId": "HR_Domain",
-  "name": "HR 6. Department salary rank",
-  "rawText": "Employees: DepartmentId, \n    Id EmployeeId, \n    Salary, \n    Rank(DepartmentId, Salary) DepartmentRank\n  Order DepartmentId ASC, DepartmentRank ASC, EmployeeId ASC",
-  "id": "26-11-13-00-17-43-wQaoHJiS",
-  "isBuiltin": false,
-  "contexts": {},
-  "entity": "Employees",
-  "projections": [
+  "DomainId": "HR_Domain",
+  "Name": "Sample-Department salary rank",
+  "Entity": "Employees",
+  "Projections": [
     {
       "field": {
         "kind": "field",
         "field": "DepartmentId"
       },
-      "alias": null
+      "Alias": null
     },
     {
       "field": {
         "kind": "field",
         "field": "Id"
       },
-      "alias": "EmployeeId"
+      "Alias": "EmployeeId"
     },
     {
       "field": {
         "kind": "field",
         "field": "Salary"
       },
-      "alias": null
+      "Alias": null
     },
     {
       "field": {
@@ -43,31 +39,37 @@
           }
         ]
       },
-      "alias": "DepartmentRank"
+      "Alias": "DepartmentRank"
     }
   ],
-  "sorts": [
+  "Filter": null,
+  "Sorts": [
     {
-      "field": {
+      "Field": {
         "kind": "field",
         "field": "DepartmentId"
       },
-      "direction": "Ascending"
+      "Direction": "Ascending"
     },
     {
-      "field": {
+      "Field": {
         "kind": "field",
         "field": "DepartmentRank"
       },
-      "direction": "Ascending"
+      "Direction": "Ascending"
     },
     {
-      "field": {
+      "Field": {
         "kind": "field",
         "field": "EmployeeId"
       },
-      "direction": "Ascending"
+      "Direction": "Ascending"
     }
   ],
-  "joins": []
+  "Take": null,
+  "Skip": null,
+  "Joins": null,
+  "Id": "Sample-Department salary rank",
+  "Contexts": {},
+  "IsBuiltin": false
 }

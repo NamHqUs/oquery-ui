@@ -1,6 +1,0 @@
-User: Id, Name, Ref1.Name Manager1, Ref2.ManagerName Manager2
-  Inner Join Ref1 On ManagerId = Ref1.Id
-  Inner Join Ref2 On ManagerId = Ref2.Id
-Ref1 is User: Id, Name
-Ref2 is User: Id, Name, Ref1.Name ManagerName
-  Inner Join Ref1 On ManagerId = Ref1.Id
