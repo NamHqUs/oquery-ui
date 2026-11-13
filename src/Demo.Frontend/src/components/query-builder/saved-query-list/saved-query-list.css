@@ -16,9 +16,9 @@
 .saved-query-status.error { color: #f0a6ae; white-space: pre-wrap; overflow-wrap: anywhere; }
 .saved-query-retry { align-self: flex-start; padding: 0; border: 0; background: transparent; color: #c2b2f0; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .saved-query-retry:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
-.saved-query-list { display: grid; gap: 5px; margin: 14px 0 0; padding: 0; list-style: none; }
+.saved-query-list { display: grid; gap: 3px; margin: 8px 0 0; padding: 0; list-style: none; }
 .saved-query-list li { min-width: 0; }
-.saved-query-item { position: relative; display: flex; width: 100%; min-height: 54px; align-items: center; justify-content: flex-start; gap: 10px; padding: 8px 10px; box-sizing: border-box; border: 1px solid #ffffff08; border-radius: 5px; background: linear-gradient(110deg, #ffffff04, #ffffff00); color: #c0c5d1; text-align: left; cursor: pointer; transition: border-color .16s ease, background .16s ease, transform .16s ease, color .16s ease; }
+.saved-query-item { position: relative; display: flex; width: 100%; min-height: 40px; align-items: center; justify-content: flex-start; gap: 8px; padding: 6px 8px; box-sizing: border-box; border: 1px solid #ffffff08; border-radius: 5px; background: linear-gradient(110deg, #ffffff04, #ffffff00); color: #c0c5d1; text-align: left; cursor: pointer; transition: border-color .16s ease, background .16s ease, transform .16s ease, color .16s ease; }
 .saved-query-item:hover { transform: translateX(2px); border-color: #60547e; background: linear-gradient(110deg, #8a70dd18, #ffffff05); color: #f0eaff; }
 .saved-query-item.active { border-color: #8069c4; background: linear-gradient(105deg, #7154d430, #392f5228 70%, #ffffff04); color: #fff; box-shadow: inset 3px 0 #a78bfa, 0 4px 14px #00000020; }
 .saved-query-item:focus-visible { outline: 2px solid var(--purple); outline-offset: 1px; }
