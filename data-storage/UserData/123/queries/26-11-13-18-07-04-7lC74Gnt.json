@@ -1,0 +1,20 @@
+{
+  "domainId": "HR_Domain",
+  "name": "Order probe",
+  "rawText": "Employees: Id",
+  "id": "26-11-13-18-07-04-7lC74Gnt",
+  "isBuiltin": false,
+  "contexts": {},
+  "entity": "Employees",
+  "projections": [
+    {
+      "field": {
+        "kind": "field",
+        "field": "Id"
+      },
+      "alias": null
+    }
+  ],
+  "sorts": [],
+  "joins": []
+}

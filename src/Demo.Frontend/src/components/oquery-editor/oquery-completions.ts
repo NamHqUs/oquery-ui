@@ -28,7 +28,7 @@ export type OQueryCompletionResult = {
 export type OQuerySuggestionEntity = {
   name: string;
   fields: string[];
-  relations: { name: string; target: string }[];
+  relations: { name: string; target: string; kind?: "collection" | "lookup" }[];
 };
 
 type Candidate = OQueryCompletion & {
@@ -212,6 +212,10 @@ function getRelationPath(sourceBeforeCursor: string) {
   const activeCalls: ({ receiverPath: string | null } | null)[] = [];
   for (let index = 0; index < sourceBeforeCursor.length; index++) {
     const character = sourceBeforeCursor[index];
+    if (character === "\n") {
+      activeCalls.length = 0;
+      continue;
+    }
     if (character === "(") {
       const functionCall = /([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\s*$/
         .exec(sourceBeforeCursor.slice(0, index));
@@ -283,7 +287,7 @@ function getSuggestionContext(
         fields
           .filter((field) => field.includes("."))
           .map((field) => field.split(".")[0]!),
-      )].map((name) => ({ name, target: "" }));
+      )].map((name) => ({ name, target: "", kind: undefined }));
       return {
         fields: fields.filter((field) => !field.includes(".")),
         relations,
@@ -310,6 +314,26 @@ function getSuggestionContext(
   return { fields: entity.fields, relations: entity.relations };
 }
 
+function isCollectionPath(
+  rootEntityName: string,
+  relationPath: string | null,
+  entities: OQuerySuggestionEntity[],
+) {
+  if (!relationPath) return false;
+  let entity = entities.find((candidate) => candidate.name === rootEntityName);
+  if (!entity) return false;
+
+  const segments = relationPath.split(".");
+  for (const [index, relationName] of segments.entries()) {
+    const relation = entity.relations.find((candidate) => candidate.name === relationName);
+    if (!relation) return false;
+    if (index === segments.length - 1) return relation.kind === "collection";
+    entity = entities.find((candidate) => candidate.name === relation.target);
+    if (!entity) return false;
+  }
+  return false;
+}
+
 function getActiveEntityName(text: string, position: number, fallback: string) {
   const lines = text.slice(0, position).split(/\r?\n/).reverse();
   for (const line of lines) {
@@ -319,6 +343,23 @@ function getActiveEntityName(text: string, position: number, fallback: string) {
     if (queryHeader?.[1]) return queryHeader[1];
   }
   return fallback;
+}
+
+function isCommentPosition(lineBeforeCursor: string) {
+  let quote: "'" | "\"" | null = null;
+  for (let index = 0; index < lineBeforeCursor.length; index++) {
+    const character = lineBeforeCursor[index];
+    if (quote) {
+      if (character === quote && lineBeforeCursor[index - 1] !== "\\") quote = null;
+      continue;
+    }
+    if (character === "'" || character === "\"") {
+      quote = character;
+    } else if (character === "#") {
+      return true;
+    }
+  }
+  return false;
 }
 
 function scoreCandidate(candidate: Candidate, query: string) {
@@ -355,8 +396,11 @@ export function getOQueryCompletions(
   const tokenMatch = /[A-Za-z_][A-Za-z0-9_]*$/.exec(lineBeforeCursor);
   const query = tokenMatch?.[0] ?? "";
   const replaceStart = safePosition - query.length;
+  if (isCommentPosition(lineBeforeCursor)) {
+    return { items: [], replaceStart, replaceEnd: safePosition };
+  }
   const context = getCompletionContext(lineBeforeCursor, text, safePosition);
-  const relationPath = getRelationPath(text.slice(text.lastIndexOf("\n", safePosition - 1) + 1, safePosition));
+  const relationPath = getRelationPath(text.slice(0, safePosition));
   const isAliasPosition = context === "projection" && isProjectionAliasPosition(lineBeforeCursor);
   const isNewLine = lineStart > 0 && text[lineStart - 1] === "\n";
   const dynamic = getDynamicCandidates(text);
@@ -364,6 +408,7 @@ export function getOQueryCompletions(
   const candidates: Candidate[] = [];
   const activeEntityName = getActiveEntityName(text, safePosition, rootEntityName);
   const suggestionContext = getSuggestionContext(activeEntityName, relationPath, suggestionEntities, fields, dynamicContextFields);
+  const collectionPath = isCollectionPath(activeEntityName, relationPath, suggestionEntities);
 
   if (context === "document" || context === "header") {
     entities.forEach((entity) => addCandidate(candidates, entity, "Entity", "entity", 0, context === "document" ? `${entity}: ` : entity, context === "document" ? entity.length + 2 : undefined));
@@ -380,15 +425,17 @@ export function getOQueryCompletions(
   }
 
   if (context === "projection" || context === "on") {
-    functionDefinitions.forEach((definition) => addCandidate(
-      candidates,
-      definition.name,
-      definition.isAggregate ? "Aggregate function" : "Function",
-      "function",
-      3,
-      `${definition.name}()`,
-      definition.name.length + 1,
-    ));
+    functionDefinitions
+      .filter((definition) => !definition.isAggregate || collectionPath)
+      .forEach((definition) => addCandidate(
+        candidates,
+        definition.name,
+        definition.isAggregate ? "Aggregate function" : "Function",
+        "function",
+        3,
+        `${definition.name}()`,
+        definition.name.length + 1,
+      ));
   } else if (context === "clause") {
     addKeywords(candidates, clauseKeywords);
   } else if (context === "where" || context === "on") {

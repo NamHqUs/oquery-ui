@@ -1,9 +1,9 @@
 Employees: Department.Name Department,
-    COUNT(Id) Headcount,
-    AVG(Salary).Round(2) AverageSalary,
-    SUM(Salary).Round(2) AnnualPayroll,
-    AVG(ReviewSummary.AverageRating).Round(2) AverageRating,
-    SUM(Coalesce(ReviewSummary.Bonuses, <0>)).Round(2) TotalBonuses
+    COUNT(Id) TotalEmployees,
+    AVG(Salary) AverageSalary,
+    SUM(Salary) AnnualPayroll,
+    AVG(ReviewSummary.AverageRating) AverageRating,
+    SUM(Coalesce(ReviewSummary.Bonuses, <0>)) TotalBonuses
   Order AnnualPayroll ASC
   Left Join ReviewSummary ReviewSummary On Id = ReviewSummary.EmployeeId
 ReviewSummary is PerformanceReviews: EmployeeId EmployeeId, AVG(Rating) AverageRating, SUM(BonusAmount) Bonuses

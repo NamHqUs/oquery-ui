@@ -8,7 +8,8 @@ namespace Demo.Services;
 
 public sealed class QueryRequestService(
     IQueryRequestRepository repository,
-    IUserSectionManager userSectionManager) : IQueryRequestService
+    IUserSectionManager userSectionManager,
+    IDynamicQueryService dynamicQueryService) : IQueryRequestService
 {
     public IReadOnlyList<QueryDto> List(string domainId)
     {
@@ -38,6 +39,7 @@ public sealed class QueryRequestService(
 
     public QueryDto Create(QueryDto query)
     {
+        query = NormalizeQuery(query);
         ValidateQuery(query);
         var sectionId = userSectionManager.GetSectionId();
         EnsureNameIsAvailable(sectionId, query.Name, currentId: null);
@@ -53,6 +55,7 @@ public sealed class QueryRequestService(
     public QueryDto? Update(string id, QueryDto query)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        query = NormalizeQuery(query);
         ValidateQuery(query);
         if (!string.Equals(query.Id, id, StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Query request ID must match the requested ID.", nameof(query));
@@ -99,5 +102,29 @@ public sealed class QueryRequestService(
         ArgumentException.ThrowIfNullOrWhiteSpace(query.DomainId);
         ArgumentNullException.ThrowIfNull(query.Projections);
         QueryDefinitionJsonParser.ValidateContextReferences(query);
+    }
+
+    private QueryDto NormalizeQuery(QueryDto query)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        if (string.IsNullOrWhiteSpace(query.RawText))
+            return query;
+
+        var parsed = dynamicQueryService.ParseQueryRequestString(query.RawText);
+        return new QueryDto(parsed.Entity)
+        {
+            Id = query.Id,
+            Name = query.Name,
+            DomainId = query.DomainId,
+            RawText = query.RawText,
+            IsBuiltin = query.IsBuiltin,
+            Projections = parsed.Projections,
+            Filter = parsed.Filter,
+            Sorts = parsed.Sorts,
+            Take = parsed.Take,
+            Skip = parsed.Skip,
+            Joins = parsed.Joins,
+            Contexts = parsed.Contexts,
+        };
     }
 }

@@ -1,6 +1,23 @@
 import type { FunctionDefinition } from "../function-definition/types";
 import type { FilterOperatorDefinition } from "./query-design/query-builder-slice";
 
+export type OQueryErrorPosition = {
+  line: number;
+  column: number;
+  length: number;
+};
+
+export function getOqueryErrorPosition(error: string): OQueryErrorPosition | null {
+  const location = /Line\s+(\d+),\s+column\s+(\d+)/i.exec(error);
+  if (!location) return null;
+  const functionName = /:\s+([A-Za-z_][A-Za-z0-9_]*)\s+(?:requires|accepts)/i.exec(error)?.[1];
+  return {
+    line: Number(location[1]),
+    column: Number(location[2]),
+    length: functionName?.length ?? 1,
+  };
+}
+
 export function getOquerySyntaxError(
   text: string,
   functionDefinitions: FunctionDefinition[],
@@ -8,7 +25,7 @@ export function getOquerySyntaxError(
 ): string | null {
   const firstLine = text.split(/\r?\n/).find((line) => line.trim() && !line.trimStart().startsWith("#") && !/^\s/.test(line));
   if (!firstLine || !/^([A-Za-z_][A-Za-z0-9_]*)(?:\s+is\s+[A-Za-z_][A-Za-z0-9_]*)?\s*:/i.test(firstLine)) {
-    return "Invalid OQuery: expected a query header such as \"Users: Id, Name\".";
+    return "Line 1, column 1: Invalid OQuery: expected a query header such as \"Users: Id, Name\".";
   }
   return getOqueryFilterSyntaxError(text, filterOperators) ?? getOqueryExpressionSyntaxError(text, functionDefinitions);
 }
@@ -86,6 +103,7 @@ function getOqueryExpressionSyntaxError(text: string, functionDefinitions: Funct
         requiredArguments: definition.arguments.filter((argument) =>
           argument.defaultValue === null || argument.defaultValue === undefined).length,
         totalArguments: definition.arguments.length,
+        isAggregate: definition.isAggregate,
       },
     ]),
   );
@@ -151,7 +169,7 @@ function getOqueryExpressionSyntaxError(text: string, functionDefinitions: Funct
     }
 
     const hasImplicitReceiver = text[nameStart - 1] === ".";
-    const effectiveArgumentCount = argumentCount + (hasImplicitReceiver ? 1 : 0);
+    const effectiveArgumentCount = argumentCount + (hasImplicitReceiver && !signature.isAggregate ? 1 : 0);
     const errorLine = text.slice(0, nameStart).split(/\r?\n/).length;
     const lastLineBreak = text.lastIndexOf("\n", nameStart - 1);
     const errorColumn = nameStart - lastLineBreak;

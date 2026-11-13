@@ -8,6 +8,7 @@ import SortBuilder from "./sort-builder/sort-builder";
 import FilterBuilder from "./filter-builder/filter-builder";
 import JoinsBuilder from "./joins-builder/joins-builder";
 import OQueryEditor from "../../oquery-editor/oquery-editor";
+import { getOqueryErrorPosition } from "../../oquery-editor/oquery-validation";
 import { getOQuerySuggestionData } from "../../oquery-editor/oquery-suggestion-data";
 import { MetadataRelationsContext } from "./metadata-relations-context";
 import DiagramView, { type DiagramRelationship, type DiagramTable } from "../../metadata-builder/entity-diagram/diagram-view";
@@ -432,10 +433,13 @@ export default function QueryDesign({
               onSelectionChange={onOQuerySelectionChange}
               onExecuteContext={onExecuteOQueryContext}
               onBlur={(event) => {
-                if (event.relatedTarget instanceof Element && event.relatedTarget.closest(".saved-query-item")) return;
+                if (event.relatedTarget instanceof Element
+                  && (event.relatedTarget.closest(".saved-query-item")
+                    || event.relatedTarget.closest(".query-toolbar-actions"))) return;
                 onApplyOquery();
               }}
               errorFunctionName={oqueryError.match(/:\s+([A-Za-z_][A-Za-z0-9_]*) requires at least/i)?.[1] ?? ""}
+              errorPosition={getOqueryErrorPosition(oqueryError)}
               disabled={oqueryStatus !== "idle"}
             />
           </div>

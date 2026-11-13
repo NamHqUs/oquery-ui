@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, useState, type ChangeEvent, type ReactNode, type TextareaHTMLAttributes } from "react";
+import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, useState, type ChangeEvent, type CSSProperties, type ReactNode, type TextareaHTMLAttributes } from "react";
 import Icon, { type IconName } from "../icon/icon";
 import type { FunctionDefinition } from "../function-definition/types";
 import type { DomainRelation, FilterOperatorDefinition, MetadataEntity } from "../query-builder/query-design/query-builder-slice";
@@ -7,6 +7,7 @@ import { applyFoldedOqueryEdit, getFoldedOquery, getOqueryFolds } from "../query
 import { getOQueryCompletions, type OQueryCompletion, type OQuerySuggestionEntity } from "./oquery-completions";
 import { processOQueryKeyboard, replaceTextareaSelection } from "./oquery-editor-keyboard";
 import { normalizeOqueryEditorText } from "./oquery-editor-text";
+import type { OQueryErrorPosition } from "./oquery-validation";
 import "../query-builder/query-design/query-design.css";
 
 type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange" | "value"> & {
@@ -30,6 +31,7 @@ type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onCh
   suggestionEntityName?: string;
   suggestionEntitiesMetadata?: OQuerySuggestionEntity[];
   errorFunctionName?: string;
+  errorPosition?: OQueryErrorPosition | null;
   compact?: boolean;
   showGutter?: boolean;
   showLineNumbers?: boolean;
@@ -155,6 +157,25 @@ function getOqueryCaretPosition(textarea: HTMLTextAreaElement, position: number)
   };
 }
 
+function getOqueryErrorMarkerStyle(
+  textarea: HTMLTextAreaElement,
+  position: OQueryErrorPosition,
+): CSSProperties {
+  const lines = textarea.value.split("\n");
+  const lineOffset = lines.slice(0, Math.max(0, position.line - 1)).reduce((total, line) => total + line.length + 1, 0);
+  const start = Math.min(textarea.value.length, lineOffset + Math.max(0, position.column - 1));
+  const end = Math.min(textarea.value.length, start + position.length);
+  const startPosition = getOqueryCaretPosition(textarea, start);
+  const endPosition = getOqueryCaretPosition(textarea, end);
+  const lineHeight = Number.parseFloat(window.getComputedStyle(textarea).lineHeight) || 20.8;
+  return {
+    left: startPosition.left,
+    top: startPosition.top - lineHeight,
+    width: Math.max(4, endPosition.left - startPosition.left),
+    height: lineHeight,
+  };
+}
+
 function getCompletionIcon(kind: OQueryCompletion["kind"]): IconName {
   switch (kind) {
     case "field": return "key";
@@ -199,6 +220,7 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
   functionDefinitions,
   operators,
   errorFunctionName = "",
+  errorPosition = null,
   compact = false,
   showGutter = true,
   showLineNumbers = true,
@@ -214,6 +236,7 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
 }, ref) => {
   const highlightRef = useRef<HTMLPreElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const errorMarkerRef = useRef<HTMLSpanElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
   const pendingCaretRef = useRef<number | null>(null);
   const pendingSelectionRef = useRef<{ start: number; end: number } | null>(null);
@@ -292,6 +315,9 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
   const completionStyle = completionPosition === null || !textareaRef.current
     ? undefined
     : getOqueryCaretPosition(textareaRef.current, completionPosition);
+  const errorMarkerStyle = errorPosition && textareaRef.current
+    ? getOqueryErrorMarkerStyle(textareaRef.current, errorPosition)
+    : undefined;
   const applyCompletion = (completion: OQueryCompletion) => {
     if (!completionResult) return;
     const next = `${projection.text.slice(0, completionResult.replaceStart)}${completion.insertText}${projection.text.slice(completionResult.replaceEnd)}`;
@@ -361,6 +387,7 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
               : text,
           ]).join("\n") || " " }}
       />
+      {errorMarkerStyle && <span ref={errorMarkerRef} className="query-oquery-error-position" aria-hidden="true" style={errorMarkerStyle} />}
       <textarea
         ref={textareaRef}
         className="query-oquery-textarea"
@@ -428,6 +455,9 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
           highlightRef.current.scrollTop = event.currentTarget.scrollTop;
           highlightRef.current.scrollLeft = event.currentTarget.scrollLeft;
           if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = event.currentTarget.scrollTop;
+          if (errorPosition && errorMarkerRef.current) {
+            Object.assign(errorMarkerRef.current.style, getOqueryErrorMarkerStyle(event.currentTarget, errorPosition));
+          }
         }}
         spellCheck={false}
         disabled={disabled}

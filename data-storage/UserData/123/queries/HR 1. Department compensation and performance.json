@@ -1,7 +1,7 @@
 {
   "domainId": "HR_Domain",
   "name": "HR 1. Department compensation and performance",
-  "rawText": "ReviewSummary is PerformanceReviews: EmployeeId EmployeeId, \n    AVG(Rating) AverageRating, \n    SUM(BonusAmount) Bonuses\n  Where ReviewYear = \u003C2025\u003E\n  \nEmployees: Department.Name Department,\n    COUNT(Id) Headcount,\n    AVG(Salary).Round(2) AverageSalary,\n    SUM(Salary).Round(2) AnnualPayroll,\n    AVG(ReviewSummary.AverageRating).Round(2) AverageRating,\n    SUM(Coalesce(ReviewSummary.Bonuses, \u003C0\u003E)).Round(2) TotalBonuses\n  Left Join ReviewSummary ReviewSummary On Id = ReviewSummary.EmployeeId\n  Order AnnualPayroll ASC\n\n\nDepartments:",
+  "rawText": "# Style 1: Separate into muliple contexts.\n# ---------------------------------------------------------\nReviewSummary is PerformanceReviews: EmployeeId EmployeeId, \n    AVG(Rating) AverageRating, \n    SUM(BonusAmount) Bonuses\n  Where ReviewYear = \u003C2025\u003E\n  \nEmployees: Department.Name Department,\n    COUNT(Id) TotalEmployees,\n    AVG(Salary) AverageSalary,\n    SUM(Salary) AnnualPayroll,\n    AVG(ReviewSummary.AverageRating) AverageRating,\n    SUM(Coalesce(ReviewSummary.Bonuses, \u003C0\u003E)) TotalBonuses\n  Left Join ReviewSummary ReviewSummary On Id = ReviewSummary.EmployeeId\n  Order AnnualPayroll ASC\n\n# Style 2: Using fluent syntax with without JOIN.\n# ---------------------------------------------------------\nDepartments:\n    Name\n    Employees.Count(Id) TotalEmployees\n    Employees.Avg(Salary) AverageSalary\n    Employees.Sum(Salary) AnnualPayroll\n    Employees.Avg(PerformanceReviews.AvgIf(Rating, ReviewYear = 2025)) AverageRating\n    Employees.Sum(PerformanceReviews.SumIf(BonusAmount, ReviewYear = 2025)) TotalBonuses\n Order AnnualPayroll ASC",
   "id": "HR 1. Department compensation and performance",
   "isBuiltin": false,
   "contexts": {
@@ -65,33 +65,67 @@
           }
         ]
       },
-      "alias": "Headcount"
+      "alias": "TotalEmployees"
     },
     {
       "field": {
-        "kind": "field",
-        "field": "AVG(Salary).Round(2)"
+        "kind": "function",
+        "function": "AVG",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "Salary"
+          }
+        ]
       },
       "alias": "AverageSalary"
     },
     {
       "field": {
-        "kind": "field",
-        "field": "SUM(Salary).Round(2)"
+        "kind": "function",
+        "function": "SUM",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "Salary"
+          }
+        ]
       },
       "alias": "AnnualPayroll"
     },
     {
       "field": {
-        "kind": "field",
-        "field": "AVG(ReviewSummary.AverageRating).Round(2)"
+        "kind": "function",
+        "function": "AVG",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "ReviewSummary.AverageRating"
+          }
+        ]
       },
       "alias": "AverageRating"
     },
     {
       "field": {
-        "kind": "field",
-        "field": "SUM(Coalesce(ReviewSummary.Bonuses, \u003C0\u003E)).Round(2)"
+        "kind": "function",
+        "function": "SUM",
+        "arguments": [
+          {
+            "kind": "function",
+            "function": "Coalesce",
+            "arguments": [
+              {
+                "kind": "field",
+                "field": "ReviewSummary.Bonuses"
+              },
+              {
+                "kind": "value",
+                "value": 0
+              }
+            ]
+          }
+        ]
       },
       "alias": "TotalBonuses"
     }

@@ -31,6 +31,10 @@ public sealed class QueryRequestController(IQueryRequestService queryRequestServ
         {
             return BadRequest(exception.Message);
         }
+        catch (FormatException exception)
+        {
+            return BadRequest(exception.Message);
+        }
         catch (InvalidOperationException exception)
         {
             return Conflict(exception.Message);
@@ -47,6 +51,10 @@ public sealed class QueryRequestController(IQueryRequestService queryRequestServ
             return Ok(updated);
         }
         catch (ArgumentException exception)
+        {
+            return BadRequest(exception.Message);
+        }
+        catch (FormatException exception)
         {
             return BadRequest(exception.Message);
         }

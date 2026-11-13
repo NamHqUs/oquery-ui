@@ -61,6 +61,7 @@
 .query-oquery-fold-actions button:hover:not(:disabled), .query-oquery-fold-actions button:focus-visible { color: #f0ecff; border-color: #8068d1; background: #28233bdd; outline: 0; }
 .query-oquery-fold-actions button:disabled { opacity: .4; cursor: not-allowed; }
 .query-oquery-highlight { left: 76px; width: calc(100% - 76px); color: #8d99aa; pointer-events: none; }
+.query-oquery-error-position { position: absolute; z-index: 1; pointer-events: none; border: 1px solid #ff5668; border-radius: 2px; background: #ff566826; box-shadow: 0 0 0 1px #ff566844; }
 .query-oquery-code-editor.no-fold-controls:not(.no-line-numbers) .query-oquery-highlight { left: 52px; width: calc(100% - 52px); }
 .query-oquery-code-editor.no-line-numbers .query-oquery-highlight { left: 28px; width: calc(100% - 28px); }
 .query-oquery-code-editor.no-gutter .query-oquery-highlight { left: 0; width: 100%; }

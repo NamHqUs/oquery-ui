@@ -10,6 +10,7 @@ export function getOQuerySuggestionData(metadata: MetadataEntity[], relations: D
       relations: relationsForEntity(item.name, relations).map((relation) => ({
         name: relation.name,
         target: relation.refEntity,
+        kind: relation.side === "target" ? "collection" : "lookup",
       })),
     })),
   };

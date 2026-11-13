@@ -424,6 +424,8 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   const [selectedRequestRawText, setSelectedRequestRawText] = useState<string | null>(null);
   const [selectedRequestIsBuiltin, setSelectedRequestIsBuiltin] = useState(false);
   const [queryRequestNotice, setQueryRequestNotice] = useState("");
+  const [oqueryNotice, setOqueryNotice] = useState("");
+  const [oqueryValidationAttempt, setOqueryValidationAttempt] = useState(0);
   const [requestNameError, setRequestNameError] = useState("");
   const [isSavingQuery, setIsSavingQuery] = useState(false);
   const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
@@ -540,8 +542,9 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   }, [editorMode, selectedRequestName, activeContextIndex, selectedRequestRawText]);
   const applyOquery = async () => {
     if (!oqueryText.trim() || oqueryStatus !== "idle") return;
+    setOqueryValidationAttempt((attempt) => attempt + 1);
+    setOqueryNotice("");
     setOqueryStatus("applying");
-    setOqueryError("");
     try {
       const syntaxError = getOquerySyntaxError(oqueryText, functionDefinitions, filterOperators);
       if (syntaxError) {
@@ -551,7 +554,10 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
       const normalizedOqueryText = oqueryText;
       const parsed = await dispatch(parseQueryRequestText(normalizedOqueryText)).unwrap();
       updateDefinitionFromDesign(fromApiQueryDefinition(parsed));
+      setOqueryError("");
+      setOqueryNotice("OQuery syntax is valid.");
     } catch (error) {
+      setOqueryNotice("");
       setOqueryError(typeof error === "string" ? error : "Unable to parse OQuery text.");
     } finally {
       setOqueryStatus("idle");
@@ -560,7 +566,6 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   const formatOquery = async () => {
     if (!oqueryText.trim() || oqueryStatus !== "idle") return;
     setOqueryStatus("applying");
-    setOqueryError("");
     try {
       const syntaxError = getOquerySyntaxError(oqueryText, functionDefinitions, filterOperators);
       if (syntaxError) {
@@ -572,6 +577,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
       const formatted = await dispatch(getQueryRequestText(fromApiQueryDefinition(parsed))).unwrap();
       setOqueryText(preserveOqueryKeys(formatted, oqueryText));
       updateSelectedOQueryText("");
+      setOqueryError("");
     } catch (error) {
       setOqueryError(typeof error === "string" ? error : "Unable to format OQuery text.");
     } finally {
@@ -864,31 +870,24 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   }, [queryRequests, searchParams, selectedRequestName]);
 
   const saveCurrentRequest = async () => {
+    if (isSavingQuery) return;
     if (editorMode !== "oquery") {
       await persistCurrentRequest(definition);
       return;
     }
-    if (!oqueryText.trim() || oqueryStatus !== "idle") return;
-    setOqueryStatus("applying");
-    setOqueryError("");
+    if (!oqueryText.trim()) {
+      setOqueryError("Enter an OQuery before saving.");
+      return;
+    }
     try {
       const syntaxError = getOquerySyntaxError(oqueryText, functionDefinitions, filterOperators);
       if (syntaxError) {
         setOqueryError(syntaxError);
         return;
       }
-      const normalizedOqueryText = oqueryText;
-      const parsed = await dispatch(parseQueryRequestText(normalizedOqueryText)).unwrap();
-      const nextActiveDefinition = fromApiQueryDefinition(parsed);
-      const nextDefinition = activeContextIndex === null
-        ? nextActiveDefinition
-        : updateContextDefinition(activeContextIndex, nextActiveDefinition);
-      updateDefinition(nextDefinition);
-      await persistCurrentRequest(nextDefinition);
+      await persistCurrentRequest(activeDefinition);
     } catch (error) {
       setOqueryError(typeof error === "string" ? error : "Unable to save OQuery query.");
-    } finally {
-      setOqueryStatus("idle");
     }
   };
   const removeCurrentRequest = async () => {
@@ -931,7 +930,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
             {selectedRequestName && <button type="button" className="button secondary query-icon-button query-delete-button" aria-label="Delete query" title="Delete query" onClick={() => void removeCurrentRequest()}>
               <Icon name="trash" size={16} />
             </button>}
-            <button type="button" className="button primary query-icon-button query-save-button" aria-label={isSavingQuery ? "Saving query" : "Save query"} title={isSavingQuery ? "Saving query..." : "Save query"} onClick={() => void saveCurrentRequest()} disabled={queryStatus === "loading" || isSavingQuery}>
+            <button type="button" className="button primary query-icon-button query-save-button" aria-label={isSavingQuery ? "Saving query" : "Save query"} title={isSavingQuery ? "Saving query..." : "Save query"} onClick={() => void saveCurrentRequest()} disabled={isSavingQuery}>
               <Icon name="save" size={17} />
             </button>
           </>}
@@ -960,9 +959,9 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
             <Icon name="file-plus" size={17} />
           </button>
           <ToastNotice
-            key={queryRequestsStatus}
-            message={queryRequestsError || queryRequestNotice}
-            isError={Boolean(queryRequestsError)}
+            key={`${queryRequestsStatus}-${oqueryValidationAttempt}`}
+            message={queryRequestsError || oqueryError || oqueryNotice || queryRequestNotice}
+            isError={Boolean(queryRequestsError || oqueryError)}
             placement="anchor"
           />
         </div>,
@@ -1015,6 +1014,8 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
                 oqueryError={oqueryError}
                 onOqueryTextChange={(text) => {
                   setOqueryText(text);
+                  setOqueryError("");
+                  setOqueryNotice("");
                   updateSelectedOQueryText("");
                 }}
                 onOQuerySelectionChange={updateSelectedOQueryText}
