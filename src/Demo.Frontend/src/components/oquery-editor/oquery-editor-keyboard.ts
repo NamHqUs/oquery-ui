@@ -117,7 +117,20 @@ function copyTextareaText(textarea: HTMLTextAreaElement, text: string): Promise<
   if (navigator.clipboard?.writeText) {
     return navigator.clipboard.writeText(text).then(() => true, () => false);
   }
-  return Promise.resolve(textarea.ownerDocument.execCommand("copy"));
+  const helper = textarea.ownerDocument.createElement("textarea");
+  helper.value = text;
+  helper.setAttribute("readonly", "");
+  Object.assign(helper.style, {
+    position: "fixed",
+    left: "-10000px",
+    top: "0",
+    opacity: "0",
+  });
+  textarea.ownerDocument.body.appendChild(helper);
+  helper.select();
+  const copied = textarea.ownerDocument.execCommand("copy");
+  helper.remove();
+  return Promise.resolve(copied);
 }
 
 export type OQueryKeyboardOptions = {
@@ -185,7 +198,6 @@ export function processOQueryKeyboard(event: KeyboardEvent<HTMLTextAreaElement>,
     && textarea.selectionStart === textarea.selectionEnd) {
     event.preventDefault();
     const line = getLineRange(textarea.value, textarea.selectionStart);
-    textarea.setSelectionRange(line.start, line.end);
     const lineText = textarea.value.slice(line.start, line.end);
     const copiedText = line.end === textarea.value.length ? `${lineText}\n` : lineText;
     void copyTextareaText(textarea, copiedText).then((copied) => {
@@ -193,10 +205,7 @@ export function processOQueryKeyboard(event: KeyboardEvent<HTMLTextAreaElement>,
         setFoldMessage("Unable to copy the current line: this browser does not support clipboard editing.");
         return;
       }
-      if (event.key.toLocaleLowerCase() === "c") {
-        textarea.setSelectionRange(line.start, line.start);
-        return;
-      }
+      if (event.key.toLocaleLowerCase() === "c") return;
       changeVisibleText(
         `${textarea.value.slice(0, line.start)}${textarea.value.slice(line.end)}`,
         line.start,

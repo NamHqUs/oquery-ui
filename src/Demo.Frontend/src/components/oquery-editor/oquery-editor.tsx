@@ -437,16 +437,25 @@ const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
           const pastedText = normalizeOqueryEditorText(event.clipboardData.getData("text/plain"));
           const start = textarea.selectionStart;
           const end = textarea.selectionEnd;
-          const next = `${textarea.value.slice(0, start)}${pastedText}${textarea.value.slice(end)}`;
+          const isRowPaste = start === end && pastedText.endsWith("\n");
+          const insertionStart = isRowPaste
+            ? textarea.value.lastIndexOf("\n", Math.max(0, start - 1)) + 1
+            : start;
+          const nextCaret = start + pastedText.length;
+          const next = `${textarea.value.slice(0, insertionStart)}${pastedText}${textarea.value.slice(isRowPaste ? insertionStart : end)}`;
+          if (isRowPaste) {
+            changeVisibleText(next, nextCaret);
+            return;
+          }
           const nativeEditApplied = replaceTextareaSelection(
             textarea,
             pastedText,
-            start,
-            end,
-            start + pastedText.length,
-            start + pastedText.length,
+            insertionStart,
+            isRowPaste ? insertionStart : end,
+            nextCaret,
+            nextCaret,
           );
-          if (!nativeEditApplied) changeVisibleText(next, start + pastedText.length);
+          if (!nativeEditApplied) changeVisibleText(next, nextCaret);
         }}
         onSelect={(event) => {
           const textarea = event.currentTarget;
