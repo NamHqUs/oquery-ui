@@ -128,6 +128,13 @@ class FakeEditor {
     return { set: (_decorations: unknown[]) => undefined, clear: () => undefined };
   }
 
+  getContribution<T>(id: string): T | null {
+    if (id !== "editor.contrib.markerController") return null;
+    return { close: () => { this.markerWidgetCloseCount += 1; } } as T;
+  }
+
+  markerWidgetCloseCount = 0;
+
   private readonly mouseDownListeners = new Set<(event: unknown) => void>();
 
   onMouseDown(listener: (event: unknown) => void) {

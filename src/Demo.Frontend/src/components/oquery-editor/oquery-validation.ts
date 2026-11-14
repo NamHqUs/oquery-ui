@@ -67,7 +67,8 @@ function getOqueryExpressionSyntaxError(text: string, functionDefinitions: Funct
       continue;
     }
     if (character === "#" && !quote) {
-      while (index < text.length && text[index] !== "\n") index++;
+      const lineEnd = text.indexOf("\n", index);
+      index = lineEnd < 0 ? text.length : lineEnd - 1;
       continue;
     }
     if (quote) {
@@ -117,6 +118,11 @@ function getOqueryExpressionSyntaxError(text: string, functionDefinitions: Funct
       else if (character === functionQuote) functionQuote = null;
       continue;
     }
+    if (character === "#") {
+      const lineEnd = text.indexOf("\n", index);
+      index = lineEnd < 0 ? text.length : lineEnd - 1;
+      continue;
+    }
     if (character === "'" || character === "\"") {
       functionQuote = character;
       continue;
@@ -148,6 +154,11 @@ function getOqueryExpressionSyntaxError(text: string, functionDefinitions: Funct
         if (argumentEscaped) argumentEscaped = false;
         else if (argumentCharacter === "\\") argumentEscaped = true;
         else if (argumentCharacter === argumentQuote) argumentQuote = null;
+        continue;
+      }
+      if (argumentCharacter === "#") {
+        const lineEnd = text.indexOf("\n", argumentIndex);
+        argumentIndex = lineEnd < 0 ? text.length : lineEnd - 1;
         continue;
       }
       if (argumentCharacter === "'" || argumentCharacter === "\"") {

@@ -23,7 +23,7 @@ edit. The status column says how much each file can be trusted.
 | How do I install, define metadata, and use providers? | [MANUAL.md](../../oquery/MANUAL.md) | reference |
 | How do I build and test the core? | [MANUAL.md, Build and test](../../oquery/MANUAL.md#build-and-test) | canonical |
 | What rules apply when editing the core repo? | [oquery/AGENT.md](../../oquery/AGENT.md) | canonical |
-| Which sample reports exist? | [northstar-demo-queries.md](../../oquery/data-storage/scripts/northstar-demo-queries.md), [sales-report-queries.md](../../oquery/data-storage/scripts/sales-report-queries.md) | reference |
+| Which sample reports exist? | [northstar-demo-queries.md](../../oquery/data-storage/scripts/northstar-samples-docs/northstar-demo-queries.md), [sales-report-queries.md](../../oquery/data-storage/scripts/sales-report-queries.md) | reference |
 
 ## Precedence when documents disagree
 

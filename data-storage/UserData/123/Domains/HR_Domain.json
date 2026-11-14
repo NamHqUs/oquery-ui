@@ -240,12 +240,12 @@
       "SourceEntity": "Employees",
       "SourceRelationName": "Manager",
       "SourceFields": [
-        "Id"
+        "ManagerId"
       ],
       "TargetEntity": "Employees",
       "TargetRelationName": "Members",
       "TargetFields": [
-        "ManagerId"
+        "Id"
       ]
     },
     {

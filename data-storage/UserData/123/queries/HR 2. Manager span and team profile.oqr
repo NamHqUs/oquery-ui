@@ -1,8 +1,10 @@
-Employees: Department.Name Department,
-    FirstName + < > + LastName Manager,
-    Members.Count(Id) ToalMembers,
+Employees: FirstName + < > + LastName TeamLead,
+    Members.Count(Id) TotalMembers,
     Members.Count(LocationId) TotalLocations,
     Members.Avg(Salary) AverageTeamSalary,
-    __calculated__5,
-    Members.Sum(Salary) TeamPayroll
-  Order Department ASC
+    Members.Sum(Salary) TeamPayroll,
+    Members.Min(Salary) LowestSalary,
+    Members.Max(Salary) HighestSalary,
+    Members.PerformanceReviews.Avg(Rating) AverageTeamRating,
+    Members.Count(PerformanceReviews.Id) TotalReviews
+  Order TotalMembers DESC

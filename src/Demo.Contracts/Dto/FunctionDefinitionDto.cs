@@ -12,6 +12,7 @@ public sealed class FunctionDefinitionDto
     public bool CanDelete { get; set; }
     public bool IsBuiltin { get; set; }
     public bool IsAggregate { get; set; }
+    public bool BindArgumentsFromEnd { get; set; }
     public string Description { get; set; } = "";
     public Dictionary<string, string> SqlTemplates { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
@@ -36,7 +37,8 @@ public sealed class FunctionDefinitionDto
             resultType,
             Description,
             SqlTemplates,
-            IsAggregate);
+            IsAggregate,
+            BindArgumentsFromEnd);
     }
 
     public static FunctionDefinitionDto FromFunctionDefinition(SqlFunctionDefintion definition)
@@ -53,6 +55,7 @@ public sealed class FunctionDefinitionDto
             }).ToList(),
             ResultType = definition.ResultType.ToString(),
             IsAggregate = definition.IsAggregate,
+            BindArgumentsFromEnd = definition.BindArgumentsFromEnd,
             Description = definition.Description,
             SqlTemplates = new Dictionary<string, string>(definition.SqlTemplates, StringComparer.OrdinalIgnoreCase)
         };

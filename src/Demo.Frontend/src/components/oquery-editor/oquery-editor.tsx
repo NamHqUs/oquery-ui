@@ -131,6 +131,8 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     const model = modelRef.current;
     const editor = editorRef.current;
     if (!model || !editor) return;
+    // A problem widget opened from a marker refers to the previous text, so it closes when the text is replaced.
+    editor.getContribution<{ close(focusEditor?: boolean): void; dispose(): void }>("editor.contrib.markerController")?.close(false);
     const edit = getMinimalTextEdit(model.getValue(), normalizeOqueryEditorText(next));
     if (!edit) return;
     externalWriteRef.current = true;
@@ -167,6 +169,8 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       folding: (current.showFoldControls ?? true) && current.showGutter !== false,
       glyphMargin: Boolean(current.onExecuteContext),
       lineDecorationsWidth: current.showGutter === false ? 0 : 16,
+      // Clicking a line number would otherwise select the whole row.
+      selectOnLineNumbers: false,
       minimap: { enabled: false },
       wordWrap: "off",
       scrollBeyondLastLine: false,

@@ -318,12 +318,12 @@
       "SourceEntity": "Seller",
       "SourceRelationName": "Manager",
       "SourceFields": [
-        "Id"
+        "ManagerId"
       ],
       "TargetEntity": "Seller",
       "TargetRelationName": "Members",
       "TargetFields": [
-        "ManagerId"
+        "Id"
       ]
     }
   ],

@@ -87,6 +87,16 @@ describe("OQueryEditor (Monaco)", () => {
     expect(onTextChange).not.toHaveBeenCalled();
   });
 
+  it("closes an open problem widget when the parent replaces the query text", () => {
+    render({ initialText: "Entity: User" });
+    const editor = currentEditor();
+
+    render({ textOverride: "Entity: Orders" });
+
+    expect(editor.model.getValue()).toBe("Entity: Orders");
+    expect(editor.markerWidgetCloseCount).toBeGreaterThan(0);
+  });
+
   it("shows validation errors as a Monaco marker with the server message", () => {
     render({
       initialText: "Entity: User\nPage: 1",

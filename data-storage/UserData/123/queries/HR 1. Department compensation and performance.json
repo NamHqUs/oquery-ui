@@ -1,7 +1,7 @@
 {
   "domainId": "HR_Domain",
   "name": "HR 1. Department compensation and performance",
-  "rawText": "# Would you know which departments cost the most and how well they perform?\r\n# \r\n#   - How many employees does each department have?\r\n#   - What is the average employee salary?\r\n#   - What is the total annual payroll for each department?\r\n#   - Which departments achieved the highest average performance ratings in 2025?\r\n#   - How much bonus compensation did each department distribute in 2025?\r\n#   - Which departments have the largest payroll commitments?\r\n# \r\n# What if you could combine employee data, salary information, and historical performance reviews \r\n# \u2014 including conditional and nested aggregations \r\n# \u2014 into a single readable query?\r\n# No complex SQL. No manually written joins. No separate queries for each calculation.\r\n# \r\n# Just describe what you want to know. Let OQuery handle the complexity.\r\n# ____________________________________________________________\r\n \r\nDepartments:\r\n    Name\r\n    Employees.Count(Id) TotalEmployees\r\n    Employees.Avg(Salary) AverageSalary\r\n    Employees.Sum(Salary) AnnualPayroll\r\n    Employees.Avg(PerformanceReviews.AvgIf(Rating, ReviewYear = 2025)) AverageRating\r\n    Employees.Sum(PerformanceReviews.SumIf(BonusAmount, ReviewYear = 2025)) TotalBonuses \r\n Order AnnualPayroll ASC",
+  "rawText": "# Would you know which departments cost the most and how well they perform?\n# \n#  - How many employees does each department have?\n#  - What is the average employee salary?\n#  - What is the total annual payroll for each department?\n#  - What is the average performance rating for each department in 2025?\n#  - How much bonus compensation did each department distribute in 2025?\n#  - Which departments have the highest payroll costs?\n# \n# What if you could combine employee data, salary information, and historical performance reviews into a single readable query \u2014 including conditional and nested aggregations?\n# No complex SQL. No manually written joins. No separate queries for each calculation.\n# Just describe what you want to know. Let OQuery handle the complexity.\n# ____________________________________________________________\n \nDepartments:\n    Name\n    Employees.Count(Id) TotalEmployees\n    Employees.Avg(Salary) AverageSalary\n    Employees.Sum(Salary) AnnualPayroll\n    Employees.PerformanceReviews.AvgIf(Rating, ReviewYear = 2025) AverageRating\n    Employees.PerformanceReviews.SumIf(BonusAmount, ReviewYear = 2025) TotalBonuses\n Order AnnualPayroll ASC\n ",
   "id": "HR 1. Department compensation and performance",
   "isBuiltin": false,
   "contexts": {},
@@ -29,33 +29,73 @@
     },
     {
       "field": {
-        "kind": "field",
-        "field": "__calculated__2"
+        "kind": "function",
+        "function": "Employees.Avg",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "Salary"
+          }
+        ]
       },
-      "alias": null
+      "alias": "AverageSalary"
     },
     {
       "field": {
-        "kind": "field",
-        "field": "__calculated__3"
+        "kind": "function",
+        "function": "Employees.Sum",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "Salary"
+          }
+        ]
       },
-      "alias": null
+      "alias": "AnnualPayroll"
     },
     {
       "field": {
-        "kind": "field",
-        "field": "__calculated__4"
+        "kind": "function",
+        "function": "Employees.PerformanceReviews.AvgIf",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "Rating"
+          },
+          {
+            "kind": "field",
+            "field": "ReviewYear = 2025"
+          }
+        ]
       },
-      "alias": null
+      "alias": "AverageRating"
     },
     {
       "field": {
-        "kind": "field",
-        "field": "__calculated__5"
+        "kind": "function",
+        "function": "Employees.PerformanceReviews.SumIf",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "BonusAmount"
+          },
+          {
+            "kind": "field",
+            "field": "ReviewYear = 2025"
+          }
+        ]
       },
-      "alias": null
+      "alias": "TotalBonuses"
     }
   ],
-  "sorts": [],
+  "sorts": [
+    {
+      "field": {
+        "kind": "field",
+        "field": "AnnualPayroll"
+      },
+      "direction": "Ascending"
+    }
+  ],
   "joins": []
 }

@@ -132,12 +132,12 @@
       "SourceEntity": "User",
       "SourceRelationName": "Manager",
       "SourceFields": [
-        "Id"
+        "ManagerId"
       ],
       "TargetEntity": "User",
       "TargetRelationName": "Members",
       "TargetFields": [
-        "ManagerId"
+        "Id"
       ]
     },
     {

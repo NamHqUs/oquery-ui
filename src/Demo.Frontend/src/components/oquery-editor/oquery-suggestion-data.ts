@@ -7,6 +7,9 @@ export function getOQuerySuggestionData(metadata: MetadataEntity[], relations: D
     entitiesMetadata: metadata.map((item) => ({
       name: item.name,
       fields: item.fields.map((field) => field.name),
+      fieldDataTypes: Object.fromEntries(
+        item.fields.flatMap((field) => field.dataType ? [[field.name, field.dataType]] : []),
+      ),
       relations: relationsForEntity(item.name, relations).map((relation) => ({
         name: relation.name,
         target: relation.refEntity,

@@ -28,6 +28,7 @@ export type OQueryCompletionResult = {
 export type OQuerySuggestionEntity = {
   name: string;
   fields: string[];
+  fieldDataTypes?: Record<string, string>;
   relations: { name: string; target: string; kind?: "collection" | "lookup" }[];
 };
 
@@ -120,6 +121,18 @@ function addCandidate(
 
 function addKeywords(candidates: Candidate[], keywords: readonly (readonly [string, string])[], relevance = 0) {
   keywords.forEach(([label, detail]) => addCandidate(candidates, label, detail, "keyword", relevance, `${label} `));
+}
+
+function addFunctionCandidate(candidates: Candidate[], definition: FunctionDefinition, relevance: number) {
+  addCandidate(
+    candidates,
+    definition.name,
+    definition.isAggregate ? "Aggregate function" : "Function",
+    "function",
+    relevance,
+    `${definition.name}()`,
+    definition.name.length + 1,
+  );
 }
 
 function getDynamicCandidates(text: string) {
@@ -228,18 +241,35 @@ function getRelationPath(sourceBeforeCursor: string) {
     }
   }
 
-  if (activeCalls.length > 0) {
-    const contextSegments: string[] = [];
-    for (const call of activeCalls) {
-      if (call?.receiverPath) contextSegments.push(...call.receiverPath.split("."));
-    }
-    if (contextSegments.length > 0) return contextSegments.join(".");
-  }
-
   const lineBeforeCursor = sourceBeforeCursor.slice(sourceBeforeCursor.lastIndexOf("\n") + 1);
   const match = /(?:^|[\s,(])([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\.([A-Za-z_][A-Za-z0-9_]*)?$/.exec(lineBeforeCursor);
-  if (match?.[1]) return match[1];
-  return null;
+  const dotPath = match?.[1] ?? null;
+
+  const contextSegments: string[] = [];
+  for (const call of activeCalls) {
+    if (call?.receiverPath) contextSegments.push(...call.receiverPath.split("."));
+  }
+  if (contextSegments.length > 0) {
+    // A dot typed inside a call is relative to the call's collection context.
+    return dotPath ? [...contextSegments, dotPath].join(".") : contextSegments.join(".");
+  }
+  return dotPath;
+}
+
+// Parentheses reset at each line break, so an unclosed call on an earlier projection line does not leak forward.
+function isInsideFunctionCall(sourceBeforeCursor: string) {
+  let depth = 0;
+  for (const character of sourceBeforeCursor) {
+    if (character === "\n") depth = 0;
+    else if (character === "(") depth++;
+    else if (character === ")") depth = Math.max(0, depth - 1);
+  }
+  return depth > 0;
+}
+
+// True when the cursor directly follows a dotted path, such as "HireDate." or "HireDate.Da".
+function isImmediateDotPosition(lineBeforeCursor: string) {
+  return /(?:^|[\s,(])[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*\.[A-Za-z_]*$/.test(lineBeforeCursor);
 }
 
 function isProjectionAliasPosition(lineBeforeCursor: string) {
@@ -267,6 +297,26 @@ function isProjectionAliasPosition(lineBeforeCursor: string) {
     }
   }
 
+  return false;
+}
+
+function isCollectionPath(
+  rootEntityName: string,
+  relationPath: string | null,
+  entities: OQuerySuggestionEntity[],
+) {
+  if (!relationPath) return false;
+  let entity = entities.find((candidate) => candidate.name === rootEntityName);
+  if (!entity) return false;
+
+  const segments = relationPath.split(".");
+  for (const [index, relationName] of segments.entries()) {
+    const relation = entity.relations.find((candidate) => candidate.name === relationName);
+    if (!relation) return false;
+    if (index === segments.length - 1) return relation.kind === "collection";
+    entity = entities.find((candidate) => candidate.name === relation.target);
+    if (!entity) return false;
+  }
   return false;
 }
 
@@ -319,24 +369,30 @@ function getSuggestionContext(
   return { fields: entity.fields, relations: entity.relations };
 }
 
-function isCollectionPath(
+
+// Returns the data type of a scalar field path such as "HireDate" or "Manager.HireDate".
+function getScalarFieldDataType(
   rootEntityName: string,
-  relationPath: string | null,
+  relationPath: string,
   entities: OQuerySuggestionEntity[],
 ) {
-  if (!relationPath) return false;
-  let entity = entities.find((candidate) => candidate.name === rootEntityName);
-  if (!entity) return false;
-
   const segments = relationPath.split(".");
-  for (const [index, relationName] of segments.entries()) {
-    const relation = entity.relations.find((candidate) => candidate.name === relationName);
-    if (!relation) return false;
-    if (index === segments.length - 1) return relation.kind === "collection";
-    entity = entities.find((candidate) => candidate.name === relation.target);
-    if (!entity) return false;
+  const fieldName = segments.pop()!;
+  let entity = entities.find((candidate) => candidate.name === rootEntityName);
+  for (const relationName of segments) {
+    const relation = entity?.relations.find((candidate) => candidate.name === relationName);
+    entity = relation ? entities.find((candidate) => candidate.name === relation.target) : undefined;
   }
-  return false;
+  if (!entity || entity.relations.some((relation) => relation.name === fieldName)) return null;
+  return entity.fieldDataTypes?.[fieldName] ?? null;
+}
+
+// A function is a field-receiver candidate when its first argument accepts the field's data type.
+function acceptsReceiverDataType(definition: FunctionDefinition, dataType: string) {
+  const firstArgumentType = definition.arguments?.[0]?.dataType;
+  return !definition.isAggregate
+    && firstArgumentType !== undefined
+    && firstArgumentType.toLocaleLowerCase() === dataType.toLocaleLowerCase();
 }
 
 function getActiveEntityName(text: string, position: number, fallback: string) {
@@ -412,6 +468,9 @@ export function getOQueryCompletions(
   const dynamicContextFields = getDynamicContextFields(text);
   const candidates: Candidate[] = [];
   const activeEntityName = getActiveEntityName(text, safePosition, rootEntityName);
+  const receiverDataType = isImmediateDotPosition(lineBeforeCursor) && relationPath
+    ? getScalarFieldDataType(activeEntityName, relationPath, suggestionEntities)
+    : null;
   const suggestionContext = getSuggestionContext(activeEntityName, relationPath, suggestionEntities, fields, dynamicContextFields);
   const collectionPath = isCollectionPath(activeEntityName, relationPath, suggestionEntities);
 
@@ -421,7 +480,7 @@ export function getOQueryCompletions(
     if (context === "header") addKeywords(candidates, expressionKeywords.filter(([label]) => label === "Is"), 10);
   }
 
-  if (!isAliasPosition && (context === "projection" || context === "where" || context === "on" || context === "order" || context === "value")) {
+  if (!receiverDataType && !isAliasPosition && (context === "projection" || context === "where" || context === "on" || context === "order" || context === "value")) {
     suggestionContext.relations.forEach((relation) => addCandidate(candidates, relation.name, "Relation", "relation", 0));
     dynamic.contexts.forEach((name) => addCandidate(candidates, name, "Declared context", "context", 1));
     suggestionContext.fields.forEach((field) => addCandidate(candidates, field, "Field", "field", 0));
@@ -429,18 +488,30 @@ export function getOQueryCompletions(
     dynamic.aliases.forEach((alias) => addCandidate(candidates, alias, "Alias from this query", "alias", 4));
   }
 
-  if (context === "projection" || context === "on") {
-    functionDefinitions
-      .filter((definition) => !definition.isAggregate || collectionPath)
-      .forEach((definition) => addCandidate(
-        candidates,
-        definition.name,
-        definition.isAggregate ? "Aggregate function" : "Function",
-        "function",
-        3,
-        `${definition.name}()`,
-        definition.name.length + 1,
-      ));
+  if (receiverDataType) {
+    if (context === "projection" || context === "where" || context === "on" || context === "order") {
+      functionDefinitions
+        .filter((definition) => acceptsReceiverDataType(definition, receiverDataType))
+        .forEach((definition) => addFunctionCandidate(candidates, definition, 0));
+    }
+  } else if (context === "projection" || context === "on") {
+    if (isImmediateDotPosition(lineBeforeCursor)) {
+      // After a dot only functions whose first argument is a collection (aggregates) fit a collection receiver.
+      // Any other receiver, such as a lookup relation, has no matching function.
+      if (collectionPath) {
+        functionDefinitions
+          .filter((definition) => definition.isAggregate)
+          .forEach((definition) => addFunctionCandidate(candidates, definition, 3));
+      }
+    } else if (!isInsideFunctionCall(text.slice(0, safePosition))) {
+      // In the root context, collection-first-argument (aggregate) functions are offered alongside the others.
+      functionDefinitions.forEach((definition) => addFunctionCandidate(candidates, definition, 3));
+    } else {
+      // Inside an argument list aggregates stay hidden, because nested aggregates are not valid SQL.
+      functionDefinitions
+        .filter((definition) => !definition.isAggregate)
+        .forEach((definition) => addFunctionCandidate(candidates, definition, 3));
+    }
   } else if (context === "clause") {
     addKeywords(candidates, clauseKeywords);
   } else if (context === "where" || context === "on") {

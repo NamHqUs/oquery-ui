@@ -315,12 +315,12 @@
       "SourceEntity": "Doctors",
       "SourceRelationName": "Manager",
       "SourceFields": [
-        "Id"
+        "ManagerId"
       ],
       "TargetEntity": "Doctors",
       "TargetRelationName": "Members",
       "TargetFields": [
-        "ManagerId"
+        "Id"
       ]
     },
     {

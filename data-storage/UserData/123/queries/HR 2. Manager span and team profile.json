@@ -1,19 +1,12 @@
 {
   "domainId": "HR_Domain",
-  "name": "HR 2. Manager span and team profile",
-  "rawText": "# Do you really know how your organization is performing?\n#   - Which departments have the largest teams?\n#   - Who manages each department?\n#   - How many unique locations does each team cover?\n#   - What is the average salary across each team?\n#   - How well are your teams performing on average?\n# ____________________________________________________________\n\nEmployees: \n    Department.Name Department\n    FirstName \u002B \u003C \u003E \u002B LastName | Manager\n    Members.Count(Id) ToalMembers\n    Members.Count(LocationId) TotalLocations\n    Members.Avg(Salary) AverageTeamSalary\n    Members.Avg(PerformanceReviews.Avg(Rating)) AverageTeamRating\n    Members.Sum(Salary) TeamPayroll\n  Order Department ASC\n    \n    ",
+  "name": "HR 2. Team Structure \u0026 Performance Overview",
+  "rawText": "# Do you really know how your teams are structured and performing?\n# \n#  - Which team leads oversee the largest teams?\n#  - How many members does each team have?\n#  - How many unique locations does each team cover?\n#  - What is the average salary within each team?\n#  - What is the total payroll cost of each team?\n#  - What are the lowest and highest salaries within each team?\n#  - What is the average performance rating across each team?\n#  - How many performance reviews have been recorded for each team?\n# \n# What if you could combine organizational relationships, team structures, salary information, and historical performance reviews into a single readable query \u2014 including self-referencing relationships and nested aggregations?\n# No complex SQL. No manually written joins. No separate queries for each calculation.\n# Just describe what you want to know. Let OQuery handle the complexity.\n# ____________________________________________________________\n\nEmployees:\n    FirstName \u002B \u003C \u003E \u002B LastName TeamLead\n    Members.Count(Id) TotalMembers\n    Members.Count(LocationId) TotalLocations\n    Members.Avg(Salary) AverageTeamSalary\n    Members.Sum(Salary) TeamPayroll\n    Members.Min(Salary) LowestSalary\n    Members.Max(Salary) HighestSalary\n    Members.PerformanceReviews.Avg(Rating) AverageTeamRating\n    Members.Count(PerformanceReviews.Id) TotalReviews\nOrder TotalMembers DESC\n    \n    ",
   "id": "HR 2. Manager span and team profile",
   "isBuiltin": false,
   "contexts": {},
   "entity": "Employees",
   "projections": [
-    {
-      "field": {
-        "kind": "field",
-        "field": "Department.Name"
-      },
-      "alias": "Department"
-    },
     {
       "field": {
         "kind": "group",
@@ -32,7 +25,7 @@
           }
         ]
       },
-      "alias": "Manager"
+      "alias": "TeamLead"
     },
     {
       "field": {
@@ -45,7 +38,7 @@
           }
         ]
       },
-      "alias": "ToalMembers"
+      "alias": "TotalMembers"
     },
     {
       "field": {
@@ -75,13 +68,6 @@
     },
     {
       "field": {
-        "kind": "field",
-        "field": "__calculated__5"
-      },
-      "alias": null
-    },
-    {
-      "field": {
         "kind": "function",
         "function": "Members.Sum",
         "arguments": [
@@ -92,15 +78,67 @@
         ]
       },
       "alias": "TeamPayroll"
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "Members.Min",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "Salary"
+          }
+        ]
+      },
+      "alias": "LowestSalary"
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "Members.Max",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "Salary"
+          }
+        ]
+      },
+      "alias": "HighestSalary"
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "Members.PerformanceReviews.Avg",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "Rating"
+          }
+        ]
+      },
+      "alias": "AverageTeamRating"
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "Members.Count",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "PerformanceReviews.Id"
+          }
+        ]
+      },
+      "alias": "TotalReviews"
     }
   ],
   "sorts": [
     {
       "field": {
         "kind": "field",
-        "field": "Department"
+        "field": "TotalMembers"
       },
-      "direction": "Ascending"
+      "direction": "Descending"
     }
   ],
   "joins": []

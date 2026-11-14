@@ -1,331 +1,143 @@
 {
-  "DomainId": "HR_Domain",
-  "Name": "HR 3. Workforce composition by location",
-  "Entity": "Locations",
-  "Projections": [
+  "domainId": "HR_Domain",
+  "name": "HR 3. Workforce Distribution \u0026 Location Analysis",
+  "rawText": "# Do you know how your workforce is distributed across locations?\n# \n#  - Which offices have the largest workforces?\n#  - How many departments are represented at each location?\n#  - What is the mix of full-time, part-time, and contract employees?\n#  - How long have employees been with the company on average?\n#  - What is the total annual payroll for each office?\n#  - Which locations have the highest staffing costs?\n# \n# What if you could combine location data, employee information, employment types, hire dates, and salary details into a single readable query \u2014 including conditional aggregations, distinct counts, and date calculations?\n# No complex SQL. No manually written joins. No separate queries for each calculation.\n# **Just describe what you want to know. Let OQuery handle the complexity.**\n# ____________________________________________________________\n\nLocations:\n    City OfficeCity\n    State\n    Employees.Count(Id) Headcount\n    Employees.CountDistinct(DepartmentId) DepartmentsRepresented\n    Employees.CountIf(EmploymentType = \u0027Full-time\u0027) FullTime\n    Employees.CountIf(EmploymentType = \u0027Part-time\u0027) PartTime\n    Employees.CountIf(EmploymentType = \u0027Contract\u0027) Contractors\n    Employees.Avg(HireDate.DateSub(\u003C2025-10-31\u003E) / 365.25) AverageTenureYears\n    Employees.Sum(Salary).Round(2) AnnualPayroll\nOrder Headcount DESC, AnnualPayroll DESC\n    \n    ",
+  "id": "HR 3. Workforce composition by location",
+  "isBuiltin": false,
+  "contexts": {},
+  "entity": "Locations",
+  "projections": [
     {
       "field": {
         "kind": "field",
         "field": "City"
       },
-      "Alias": "OfficeCity"
+      "alias": "OfficeCity"
     },
     {
       "field": {
         "kind": "field",
         "field": "State"
       },
-      "Alias": null
+      "alias": null
     },
     {
       "field": {
-        "kind": "field",
-        "field": "LocationStaff.Headcount"
-      },
-      "Alias": "Headcount"
-    },
-    {
-      "field": {
-        "kind": "field",
-        "field": "LocationStaff.DepartmentsRepresented"
-      },
-      "Alias": "DepartmentsRepresented"
-    },
-    {
-      "field": {
-        "kind": "field",
-        "field": "LocationStaff.FullTime"
-      },
-      "Alias": "FullTime"
-    },
-    {
-      "field": {
-        "kind": "field",
-        "field": "LocationStaff.PartTime"
-      },
-      "Alias": "PartTime"
-    },
-    {
-      "field": {
-        "kind": "field",
-        "field": "LocationStaff.Contractors"
-      },
-      "Alias": "Contractors"
-    },
-    {
-      "field": {
-        "kind": "field",
-        "field": "LocationStaff.AverageTenureYears"
-      },
-      "Alias": "AverageTenureYears"
-    },
-    {
-      "field": {
-        "kind": "field",
-        "field": "LocationStaff.AnnualPayroll"
-      },
-      "Alias": "AnnualPayroll"
-    }
-  ],
-  "Filter": null,
-  "Sorts": [
-    {
-      "Field": {
-        "kind": "field",
-        "field": "Headcount"
-      },
-      "Direction": "Descending"
-    },
-    {
-      "Field": {
-        "kind": "field",
-        "field": "AnnualPayroll"
-      },
-      "Direction": "Descending"
-    },
-    {
-      "Field": {
-        "kind": "field",
-        "field": "OfficeCity"
-      },
-      "Direction": "Ascending"
-    },
-    {
-      "Field": {
-        "kind": "field",
-        "field": "State"
-      },
-      "Direction": "Ascending"
-    }
-  ],
-  "Take": 10,
-  "Skip": 0,
-  "Joins": [
-    {
-      "Alias": "LocationStaff",
-      "Condition": {
-        "logicalOperation": 0,
-        "filters": [
+        "kind": "function",
+        "function": "Employees.Count",
+        "arguments": [
           {
-            "logicalOperator": 0,
-            "left": {
-              "kind": "field",
-              "field": "Id"
-            },
-            "operation": 0,
-            "right": {
-              "kind": "field",
-              "field": "LocationStaff.LocationId"
-            },
-            "parameterized": true
+            "kind": "field",
+            "field": "Id"
           }
         ]
       },
-      "JoinType": "Inner",
-      "RefContext": "LocationStaff"
+      "alias": "Headcount"
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "Employees.CountDistinct",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "DepartmentId"
+          }
+        ]
+      },
+      "alias": "DepartmentsRepresented"
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "Employees.CountIf",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "EmploymentType = \u0027Full-time\u0027"
+          }
+        ]
+      },
+      "alias": "FullTime"
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "Employees.CountIf",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "EmploymentType = \u0027Part-time\u0027"
+          }
+        ]
+      },
+      "alias": "PartTime"
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "Employees.CountIf",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "EmploymentType = \u0027Contract\u0027"
+          }
+        ]
+      },
+      "alias": "Contractors"
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "Employees.Avg",
+        "arguments": [
+          {
+            "kind": "group",
+            "fields": [
+              {
+                "kind": "function",
+                "function": "HireDate.DateSub",
+                "arguments": [
+                  {
+                    "kind": "value",
+                    "value": "2025-10-31"
+                  }
+                ]
+              },
+              {
+                "oper": "/",
+                "kind": "value",
+                "value": 365.25
+              }
+            ]
+          }
+        ]
+      },
+      "alias": "AverageTenureYears"
+    },
+    {
+      "field": {
+        "kind": "field",
+        "field": "Employees.Sum(Salary).Round(2)"
+      },
+      "alias": "AnnualPayroll"
     }
   ],
-  "Id": "HR 3. Workforce composition by location",
-  "Contexts": {
-    "LocationStaff": {
-      "Entity": "Employees",
-      "Projections": [
-        {
-          "field": {
-            "kind": "field",
-            "field": "LocationId"
-          },
-          "Alias": "LocationId"
-        },
-        {
-          "field": {
-            "kind": "function",
-            "function": "COUNT",
-            "arguments": [
-              {
-                "kind": "field",
-                "field": "Id"
-              }
-            ]
-          },
-          "Alias": "Headcount"
-        },
-        {
-          "field": {
-            "kind": "function",
-            "function": "CountDistinct",
-            "arguments": [
-              {
-                "kind": "field",
-                "field": "DepartmentId"
-              }
-            ]
-          },
-          "Alias": "DepartmentsRepresented"
-        },
-        {
-          "field": {
-            "kind": "function",
-            "function": "CountIf",
-            "arguments": [
-              {
-                "kind": "condition",
-                "condition": {
-                  "logicalOperation": 0,
-                  "filters": [
-                    {
-                      "logicalOperator": 0,
-                      "left": {
-                        "kind": "field",
-                        "field": "EmploymentType"
-                      },
-                      "operation": 0,
-                      "right": {
-                        "kind": "value",
-                        "value": "Full-time"
-                      },
-                      "parameterized": true
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          "Alias": "FullTime"
-        },
-        {
-          "field": {
-            "kind": "function",
-            "function": "CountIf",
-            "arguments": [
-              {
-                "kind": "condition",
-                "condition": {
-                  "logicalOperation": 0,
-                  "filters": [
-                    {
-                      "logicalOperator": 0,
-                      "left": {
-                        "kind": "field",
-                        "field": "EmploymentType"
-                      },
-                      "operation": 0,
-                      "right": {
-                        "kind": "value",
-                        "value": "Part-time"
-                      },
-                      "parameterized": true
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          "Alias": "PartTime"
-        },
-        {
-          "field": {
-            "kind": "function",
-            "function": "CountIf",
-            "arguments": [
-              {
-                "kind": "condition",
-                "condition": {
-                  "logicalOperation": 0,
-                  "filters": [
-                    {
-                      "logicalOperator": 0,
-                      "left": {
-                        "kind": "field",
-                        "field": "EmploymentType"
-                      },
-                      "operation": 0,
-                      "right": {
-                        "kind": "value",
-                        "value": "Contract"
-                      },
-                      "parameterized": true
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          "Alias": "Contractors"
-        },
-        {
-          "field": {
-            "kind": "function",
-            "function": "ROUND",
-            "arguments": [
-              {
-                "kind": "function",
-                "function": "AVG",
-                "arguments": [
-                  {
-                    "kind": "group",
-                    "fields": [
-                      {
-                        "kind": "function",
-                        "function": "DateSub",
-                        "arguments": [
-                          {
-                            "kind": "field",
-                            "field": "HireDate"
-                          },
-                          {
-                            "kind": "value",
-                            "value": "2025-10-31"
-                          }
-                        ]
-                      },
-                      {
-                        "oper": "/",
-                        "kind": "value",
-                        "value": 365.25
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "kind": "value",
-                "value": 1
-              }
-            ]
-          },
-          "Alias": "AverageTenureYears"
-        },
-        {
-          "field": {
-            "kind": "function",
-            "function": "ROUND",
-            "arguments": [
-              {
-                "kind": "function",
-                "function": "SUM",
-                "arguments": [
-                  {
-                    "kind": "field",
-                    "field": "Salary"
-                  }
-                ]
-              },
-              {
-                "kind": "value",
-                "value": 2
-              }
-            ]
-          },
-          "Alias": "AnnualPayroll"
-        }
-      ],
-      "Filter": null,
-      "Sorts": null,
-      "Take": null,
-      "Skip": null,
-      "Joins": null
+  "sorts": [
+    {
+      "field": {
+        "kind": "field",
+        "field": "Headcount"
+      },
+      "direction": "Descending"
+    },
+    {
+      "field": {
+        "kind": "field",
+        "field": "AnnualPayroll"
+      },
+      "direction": "Descending"
     }
-  },
-  "IsBuiltin": false
+  ],
+  "joins": []
 }

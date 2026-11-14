@@ -94,7 +94,86 @@ test("does not show completions after a comment marker", () => {
   assert.deepEqual(result.items, []);
 });
 
-test("suggests aggregates only for collection relations", () => {
-  assert.deepEqual(functionLabels("Departments: Employees."), ["AnyFunction", "Avg", "Count", "Sum"]);
-  assert.deepEqual(functionLabels("Departments: Employees.Manager."), ["AnyFunction"]);
+test("suggests only aggregates after a collection dot and no function after a lookup dot", () => {
+  assert.deepEqual(functionLabels("Departments: Employees."), ["Avg", "Count", "Sum"]);
+  assert.deepEqual(functionLabels("Departments: Employees.Manager."), []);
+});
+
+test("suggests every declared collection aggregate after a collection dot in a header-based query", () => {
+  const text = "Employees:\n  Members.";
+  const labels = getOQueryCompletions(text, text.length, [], [], [], functions, "Employees", entities)
+    .items.filter((item) => item.kind === "function").map((item) => item.label);
+  assert.deepEqual(labels, ["Avg", "Count", "Sum"]);
+});
+
+test("offers aggregates in the root context alongside other functions", () => {
+  assert.deepEqual(functionLabels("Departments: "), ["AnyFunction", "Avg", "Count", "Sum"]);
+});
+
+test("never suggests aggregate functions, even inside a collection aggregate call", () => {
+  assert.deepEqual(functionLabels("Departments: Employees.Avg("), ["AnyFunction"]);
+  assert.deepEqual(functionLabels("Departments: Employees.Sum("), ["AnyFunction"]);
+});
+
+const typedEntities = [
+  {
+    name: "Employees",
+    fields: ["Id", "HireDate", "Salary"],
+    fieldDataTypes: { Id: "Number", HireDate: "Datetime", Salary: "Number" },
+    relations: [{ name: "Reports", target: "Employees", kind: "collection" }],
+  },
+];
+
+const typedFunctions = [
+  {
+    name: "DateSub",
+    isAggregate: false,
+    arguments: [{ name: "startDate", dataType: "Datetime" }, { name: "endDate", dataType: "Datetime" }],
+  },
+  {
+    name: "DateAdd",
+    isAggregate: false,
+    arguments: [{ name: "value", dataType: "Datetime" }, { name: "amount", dataType: "Number" }],
+  },
+  {
+    name: "Round",
+    isAggregate: false,
+    arguments: [{ name: "value", dataType: "Number" }, { name: "digits", dataType: "Number" }],
+  },
+  { name: "Avg", isAggregate: true, arguments: [{ name: "expression", dataType: "Number" }] },
+  { name: "GetDate", isAggregate: false, arguments: [] },
+];
+
+function typedLabels(text) {
+  return getOQueryCompletions(text, text.length, [], [], [], typedFunctions, "Employees", typedEntities)
+    .items.map((item) => item.label);
+}
+
+test("suggests only functions whose first argument matches a datetime field after its dot", () => {
+  assert.deepEqual(typedLabels("Employees: HireDate."), ["DateAdd", "DateSub"]);
+});
+
+test("suggests only functions whose first argument matches a numeric field after its dot", () => {
+  assert.deepEqual(typedLabels("Employees: Salary."), ["Round"]);
+});
+
+test("does not suggest scalar functions after a collection dot", () => {
+  const labels = getOQueryCompletions("Employees: Reports.", "Employees: Reports.".length, [], [], [], typedFunctions, "Employees", typedEntities)
+    .items.filter((item) => item.kind === "function").map((item) => item.label);
+  assert.deepEqual(labels, ["Avg"]);
+});
+
+test("resolves a field receiver inside a relation aggregate against the relation's entity", () => {
+  assert.deepEqual(typedLabels("Employees: Reports.Avg(HireDate."), ["DateAdd", "DateSub"]);
+});
+
+test("inserts a scalar receiver function after the existing field dot", () => {
+  const text = "Employees: Reports.Avg(HireDate.";
+  const result = getOQueryCompletions(text, text.length, [], [], [], typedFunctions, "Employees", typedEntities);
+  const dateSub = result.items.find((item) => item.label === "DateSub");
+  assert.ok(dateSub);
+  assert.equal(
+    text.slice(0, result.replaceStart) + dateSub.insertText + text.slice(result.replaceEnd),
+    "Employees: Reports.Avg(HireDate.DateSub()",
+  );
 });

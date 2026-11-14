@@ -1,1 +1,7 @@
-Departments: Name, Employees.Count(Id) TotalEmployees, __calculated__2, __calculated__3, __calculated__4, __calculated__5
+Departments: Name,
+    Employees.Count(Id) TotalEmployees,
+    Employees.Avg(Salary) AverageSalary,
+    Employees.Sum(Salary) AnnualPayroll,
+    Employees.PerformanceReviews.AvgIf(Rating, ReviewYear = 2025) AverageRating,
+    Employees.PerformanceReviews.SumIf(BonusAmount, ReviewYear = 2025) TotalBonuses
+  Order AnnualPayroll ASC
