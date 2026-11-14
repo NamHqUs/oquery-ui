@@ -257,14 +257,25 @@ function getRelationPath(sourceBeforeCursor: string) {
 }
 
 // Parentheses reset at each line break, so an unclosed call on an earlier projection line does not leak forward.
+// Grouping parentheses such as "(CountIf(...) * 100.0 / Count(Id))" are not calls, so only a "(" after a name counts.
 export function isInsideFunctionCall(sourceBeforeCursor: string) {
-  let depth = 0;
+  const openStack: boolean[] = [];
+  let previousSignificant = "";
   for (const character of sourceBeforeCursor) {
-    if (character === "\n") depth = 0;
-    else if (character === "(") depth++;
-    else if (character === ")") depth = Math.max(0, depth - 1);
+    if (character === "\n") {
+      openStack.length = 0;
+      previousSignificant = "";
+    } else if (character === "(") {
+      openStack.push(/[A-Za-z0-9_]/.test(previousSignificant));
+      previousSignificant = character;
+    } else if (character === ")") {
+      openStack.pop();
+      previousSignificant = character;
+    } else if (!/\s/.test(character)) {
+      previousSignificant = character;
+    }
   }
-  return depth > 0;
+  return openStack.some(Boolean);
 }
 
 // True when the cursor directly follows a dotted path, such as "HireDate." or "HireDate.Da".
@@ -391,6 +402,7 @@ export type FunctionReceiver =
   | { kind: "root" }
   | { kind: "collection"; path: string }
   | { kind: "scalar"; path: string; dataType: string }
+  | { kind: "expression" }
   | { kind: "unresolved"; path: string };
 
 // Shared by completions and syntax checking so both apply the same function rules.
@@ -402,6 +414,8 @@ export function resolveFunctionReceiver(
 ): FunctionReceiver {
   const sourceBeforePosition = text.slice(0, position);
   const lineBeforePosition = sourceBeforePosition.slice(sourceBeforePosition.lastIndexOf("\n") + 1);
+  // A parenthesized group or call result, such as "(CountIf(...) * 100).", is a computed numeric receiver.
+  if (/\)\s*\.[A-Za-z_]*$/.test(lineBeforePosition)) return { kind: "expression" };
   if (!isImmediateDotPosition(lineBeforePosition)) return { kind: "root" };
 
   const path = getRelationPath(sourceBeforePosition);
@@ -439,6 +453,19 @@ export function getFunctionApplicabilityError(
       return firstArgumentType.toLocaleLowerCase() === receiver.dataType.toLocaleLowerCase()
         ? null
         : `${name} cannot be applied to ${receiver.path} of type ${receiver.dataType}: its first argument is ${firstArgumentType}.`;
+    }
+    case "expression": {
+      if (definition.isAggregate) {
+        return `${name} cannot be applied to this expression: aggregate functions need a collection receiver.`;
+      }
+      // Computed expressions are numeric, so the function's first argument must accept a Number.
+      const firstArgumentType = definition.arguments?.[0]?.dataType;
+      if (!firstArgumentType) {
+        return `${name} cannot be applied to this expression: it has no first argument that accepts a value.`;
+      }
+      return firstArgumentType.toLocaleLowerCase() === "number"
+        ? null
+        : `${name} cannot be applied to this expression: its first argument is ${firstArgumentType}, not Number.`;
     }
     case "unresolved":
       return `${name} cannot be applied to ${receiver.path || "this receiver"}: its receiver is not a known field or collection.`;
@@ -519,7 +546,7 @@ export function getOQueryCompletions(
   const candidates: Candidate[] = [];
   const activeEntityName = getActiveEntityName(text, safePosition, rootEntityName);
   const functionReceiver = resolveFunctionReceiver(text, safePosition, activeEntityName, suggestionEntities);
-  const receiverDataType = functionReceiver.kind === "scalar" ? functionReceiver.dataType : null;
+  const hasFunctionReceiver = functionReceiver.kind === "scalar" || functionReceiver.kind === "expression";
   const isInsideCall = isInsideFunctionCall(text.slice(0, safePosition));
   const isApplicable = (definition: FunctionDefinition) =>
     getFunctionApplicabilityError(definition, functionReceiver, isInsideCall) === null;
@@ -531,7 +558,7 @@ export function getOQueryCompletions(
     if (context === "header") addKeywords(candidates, expressionKeywords.filter(([label]) => label === "Is"), 10);
   }
 
-  if (!receiverDataType && !isAliasPosition && (context === "projection" || context === "where" || context === "on" || context === "order" || context === "value")) {
+  if (!hasFunctionReceiver && !isAliasPosition && (context === "projection" || context === "where" || context === "on" || context === "order" || context === "value")) {
     suggestionContext.relations.forEach((relation) => addCandidate(candidates, relation.name, "Relation", "relation", 0));
     dynamic.contexts.forEach((name) => addCandidate(candidates, name, "Declared context", "context", 1));
     suggestionContext.fields.forEach((field) => addCandidate(candidates, field, "Field", "field", 0));
@@ -539,7 +566,7 @@ export function getOQueryCompletions(
     dynamic.aliases.forEach((alias) => addCandidate(candidates, alias, "Alias from this query", "alias", 4));
   }
 
-  if (receiverDataType) {
+  if (hasFunctionReceiver) {
     if (context === "projection" || context === "where" || context === "on" || context === "order") {
       functionDefinitions
         .filter(isApplicable)

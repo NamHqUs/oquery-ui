@@ -1,10 +1,10 @@
 PerformanceReviews: Employee.Department.Name Department,
     ReviewYear,
-    COUNT(Id) Reviews,
-    ROUND(AVG(Rating), <2>) AverageRating,
-    CountIf(Rating >= <4>) HighRatings,
-    ROUND(<100.0> * CountIf(Rating >= <4>) / COUNT(Id), <2>) HighRatingPercent,
-    ROUND(AVG(Employee.Salary), <2>) AverageSalary,
-    ROUND(SUM(BonusAmount), <2>) TotalBonus
-  Order ReviewYear DESC, AverageRating DESC, TotalBonus DESC, Department ASC
+    Count(Id) Reviews,
+    Avg(Rating).Round(2) AverageRating,
+    CountIf(Rating >= 4) HighRatings,
+    (CountIf(Rating >= 4) * 100.0 / Count(Id)).Round(2) HighRatingPercent,
+    Avg(Employee.Salary).Round(2) AverageSalary,
+    Sum(BonusAmount).Round(2) TotalBonus
+  Order ReviewYear DESC, AverageRating DESC, TotalBonus DESC
   Take 10

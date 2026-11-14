@@ -24,6 +24,11 @@ const functions = [
   { name: "AnyFunction", isAggregate: false },
 ];
 
+const numericFunctions = [
+  ...functions,
+  { name: "Round", isAggregate: false, arguments: [{ name: "value", dataType: "Number" }] },
+];
+
 function fieldLabels(text) {
   return getOQueryCompletions(
     text,
@@ -53,6 +58,24 @@ function functionLabels(text) {
     .filter((item) => item.kind === "function")
     .map((item) => item.label);
 }
+
+test("suggests Number functions after a grouped expression receiver", () => {
+  const labels = getOQueryCompletions(
+    "Departments: (Count(Id) * 100).Ro",
+    "Departments: (Count(Id) * 100).Ro".length,
+    [],
+    [],
+    [],
+    numericFunctions,
+    "Departments",
+    entities,
+  ).items.filter((item) => item.kind === "function").map((item) => item.label);
+  assert.deepEqual(labels, ["Round"]);
+});
+
+test("does not suggest fields after a grouped expression receiver", () => {
+  assert.deepEqual(fieldLabels("Departments: (Count(Id) * 100)."), []);
+});
 
 test("uses the aggregate receiver as the context inside a relation aggregate", () => {
   assert.deepEqual(fieldLabels("Departments: Employees.Sum("), ["Id", "Manager", "Members", "PerformanceReviews"]);

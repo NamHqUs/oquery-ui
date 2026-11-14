@@ -89,5 +89,30 @@ describe("getOquerySyntaxError", () => {
       expect(getOquerySyntaxError("Employees: Round(Avg(Id))", functions, [], entities, "Employees"))
         .toBe("Line 1, column 18: Avg cannot be nested inside another function call: it is an aggregate.");
     });
+
+    it("accepts root aggregates inside grouping parentheses", () => {
+      expect(getOquerySyntaxError(
+        "Employees: (Avg(Id) * 100.0 / Avg(Id)).Round() Percent",
+        functions,
+        [],
+        entities,
+        "Employees",
+      )).toBeNull();
+    });
+
+    it("rejects a root aggregate inside a grouping nested in a call", () => {
+      expect(getOquerySyntaxError("Employees: Round((Avg(Id) * 2))", functions, [], entities, "Employees"))
+        .toBe("Line 1, column 19: Avg cannot be nested inside another function call: it is an aggregate.");
+    });
+
+    it("rejects an aggregate applied to a grouped expression receiver", () => {
+      expect(getOquerySyntaxError("Employees: (Id * 2).Avg()", functions, [], entities, "Employees"))
+        .toBe("Line 1, column 21: Avg cannot be applied to this expression: aggregate functions need a collection receiver.");
+    });
+
+    it("rejects a function whose first argument is not Number after a grouped expression receiver", () => {
+      expect(getOquerySyntaxError("Employees: (Id * 2).DateSub(<2025-01-01>)", functions, [], entities, "Employees"))
+        .toBe("Line 1, column 21: DateSub cannot be applied to this expression: its first argument is Datetime, not Number.");
+    });
   });
 });
