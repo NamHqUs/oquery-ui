@@ -12,6 +12,7 @@ import QueryDesign from "./query-design/query-design";
 import QueryResult from "./query-result/query-result";
 import SavedQueryList from "./saved-query-list/saved-query-list";
 import { getOquerySyntaxError } from "../oquery-editor/oquery-validation";
+import { getOQuerySuggestionData } from "../oquery-editor/oquery-suggestion-data";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
 import type { AppDispatch, RootState } from "../../store/store";
 import * as oQueryEditorService from "../../services/oquery-editor-service";
@@ -432,6 +433,10 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   const [oqueryDesignHeight, setOqueryDesignHeight] = useState(readOqueryDesignHeight);
   const [oqueryDesignResized, setOqueryDesignResized] = useState(() => Boolean(window.localStorage.getItem(OQUERY_DESIGN_HEIGHT_STORAGE_KEY)));
   const entity = useMemo(() => metadata.find((item) => item.name === definition.entity), [metadata, definition.entity]);
+  const suggestionEntities = useMemo(
+    () => getOQuerySuggestionData(metadata, metadataRelations).entitiesMetadata,
+    [metadata, metadataRelations],
+  );
   const selectedContext = selectedContextIndex === null ? undefined : definition.contextCatalog?.[selectedContextIndex];
   const activeContextIndex = selectedContext ? selectedContextIndex : null;
   const activeDefinition = useMemo(
@@ -546,7 +551,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     setOqueryNotice("");
     setOqueryStatus("applying");
     try {
-      const syntaxError = getOquerySyntaxError(oqueryText, functionDefinitions, filterOperators);
+      const syntaxError = getOquerySyntaxError(oqueryText, functionDefinitions, filterOperators, suggestionEntities, definition.entity);
       if (syntaxError) {
         setOqueryError(syntaxError);
         return;
@@ -567,7 +572,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     if (!oqueryText.trim() || oqueryStatus !== "idle") return;
     setOqueryStatus("applying");
     try {
-      const syntaxError = getOquerySyntaxError(oqueryText, functionDefinitions, filterOperators);
+      const syntaxError = getOquerySyntaxError(oqueryText, functionDefinitions, filterOperators, suggestionEntities, definition.entity);
       if (syntaxError) {
         setOqueryError(syntaxError);
         return;
@@ -880,7 +885,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
       return;
     }
     try {
-      const syntaxError = getOquerySyntaxError(oqueryText, functionDefinitions, filterOperators);
+      const syntaxError = getOquerySyntaxError(oqueryText, functionDefinitions, filterOperators, suggestionEntities, definition.entity);
       if (syntaxError) {
         setOqueryError(syntaxError);
         return;

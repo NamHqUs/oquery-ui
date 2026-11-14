@@ -39,4 +39,55 @@ describe("getOquerySyntaxError", () => {
       [],
     )).toBeNull();
   });
+
+  describe("function applicability uses the same rules as suggestions", () => {
+    const entities = [
+      {
+        name: "Employees",
+        fields: ["Id", "HireDate"],
+        fieldDataTypes: { Id: "Number", HireDate: "Datetime" },
+        relations: [{ name: "Reports", target: "Employees", kind: "collection" }],
+      },
+    ];
+    const functions = [
+      {
+        name: "DateSub",
+        arguments: [
+          { name: "startDate", dataType: "Datetime", defaultValue: null },
+          { name: "endDate", dataType: "Datetime", defaultValue: null },
+        ],
+        isAggregate: false,
+      },
+      {
+        name: "Avg",
+        arguments: [{ name: "expression", dataType: "Number", defaultValue: null }],
+        isAggregate: true,
+      },
+      {
+        name: "Round",
+        arguments: [{ name: "value", dataType: "Number", defaultValue: null }],
+        isAggregate: false,
+      },
+    ];
+
+    it("rejects a scalar function after a collection dot", () => {
+      expect(getOquerySyntaxError("Employees: Reports.DateSub(<2025-01-01>)", functions, [], entities, "Employees"))
+        .toBe("Line 1, column 20: DateSub cannot be applied to collection Reports: only aggregate functions apply.");
+    });
+
+    it("accepts a scalar function whose first argument matches the receiver's data type", () => {
+      expect(getOquerySyntaxError("Employees: HireDate.DateSub(<2025-01-01>)", functions, [], entities, "Employees"))
+        .toBeNull();
+    });
+
+    it("rejects a scalar function whose first argument has a different data type", () => {
+      expect(getOquerySyntaxError("Employees: Id.DateSub(<2025-01-01>)", functions, [], entities, "Employees"))
+        .toBe("Line 1, column 15: DateSub cannot be applied to Id of type Number: its first argument is Datetime.");
+    });
+
+    it("rejects an aggregate nested inside another function call", () => {
+      expect(getOquerySyntaxError("Employees: Round(Avg(Id))", functions, [], entities, "Employees"))
+        .toBe("Line 1, column 18: Avg cannot be nested inside another function call: it is an aggregate.");
+    });
+  });
 });

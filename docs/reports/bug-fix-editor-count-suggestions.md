@@ -34,13 +34,22 @@
 - **Metadata check:** all listed aggregates exist in the builtin definitions
   (`Avg`, `AvgIf`, `Sum`, `SumIf`, `Max`, `MaxIf`, `Min`, `MinIf`, `CountIf`, `Count`).
   No definitions were missing.
-- **Suggestion rules (current):**
-  - After a collection dot (`Employees.`), only aggregates (`isAggregate`) are offered.
-    Scalar functions such as `DateSub` are hidden because their first argument is not a collection.
-  - After a lookup or scalar dot without a matching first argument, no function is offered.
+- **Suggestion and check-syntax rules (one engine):** `resolveFunctionReceiver` and
+  `getFunctionApplicabilityError` in
+  [oquery-completions.ts](/D:/SourceCode/Github/public/oquery-ui/src/Demo.Frontend/src/components/oquery-editor/oquery-completions.ts)
+  decide which functions apply. The completion list and
+  [oquery-validation.ts](/D:/SourceCode/Github/public/oquery-ui/src/Demo.Frontend/src/components/oquery-editor/oquery-validation.ts)
+  both call them, so a function that is not suggested is also rejected by "Check syntax".
+  Receivers that metadata cannot resolve (dynamic contexts, unknown paths) are not suggested
+  and are left to the backend compiler by the check.
+  - After a collection dot (`Employees.`), only aggregates (`isAggregate`) apply.
+    Scalar functions such as `DateSub` are rejected because their first argument is not a collection.
+  - After a lookup dot (`Employees.Manager.`), no function applies.
+  - After a scalar dot (`HireDate.`), only functions whose first argument has the same data type apply.
   - In the root context, all functions are offered, including aggregates.
-  - Inside an argument list, aggregates stay hidden (nested aggregates are not valid SQL).
-  - Scalar receivers (`HireDate.`) offer only functions whose first argument has the same data type.
+  - Inside an argument list, aggregates are hidden and rejected (nested aggregates are not valid SQL).
+  - [query-builder.tsx](/D:/SourceCode/Github/public/oquery-ui/src/Demo.Frontend/src/components/query-builder/query-builder.tsx)
+    passes the same entity metadata the editor uses to the check.
   - Collection-argument design: [FUNCTION-ARGUMENTS.md](/D:/SourceCode/Github/public/oquery-ui/oquery/FUNCTION-ARGUMENTS.md).
 
 ## Tests

@@ -1,5 +1,11 @@
 import type { FunctionDefinition } from "../function-definition/types";
-import type { FilterOperatorDefinition } from "./query-design/query-builder-slice";
+import type { FilterOperatorDefinition } from "../query-builder/query-design/query-builder-slice";
+import {
+  getFunctionApplicabilityError,
+  isInsideFunctionCall,
+  resolveFunctionReceiver,
+  type OQuerySuggestionEntity,
+} from "./oquery-completions";
 
 export type OQueryErrorPosition = {
   line: number;
@@ -10,7 +16,7 @@ export type OQueryErrorPosition = {
 export function getOqueryErrorPosition(error: string): OQueryErrorPosition | null {
   const location = /Line\s+(\d+),\s+column\s+(\d+)/i.exec(error);
   if (!location) return null;
-  const functionName = /:\s+([A-Za-z_][A-Za-z0-9_]*)\s+(?:requires|accepts)/i.exec(error)?.[1];
+  const functionName = /:\s+([A-Za-z_][A-Za-z0-9_]*)\s+(?:requires|accepts|cannot)/i.exec(error)?.[1];
   return {
     line: Number(location[1]),
     column: Number(location[2]),
@@ -22,12 +28,15 @@ export function getOquerySyntaxError(
   text: string,
   functionDefinitions: FunctionDefinition[],
   filterOperators: FilterOperatorDefinition[],
+  suggestionEntities: OQuerySuggestionEntity[] = [],
+  rootEntityName = "",
 ): string | null {
   const firstLine = text.split(/\r?\n/).find((line) => line.trim() && !line.trimStart().startsWith("#") && !/^\s/.test(line));
   if (!firstLine || !/^([A-Za-z_][A-Za-z0-9_]*)(?:\s+is\s+[A-Za-z_][A-Za-z0-9_]*)?\s*:/i.test(firstLine)) {
     return "Line 1, column 1: Invalid OQuery: expected a query header such as \"Users: Id, Name\".";
   }
-  return getOqueryFilterSyntaxError(text, filterOperators) ?? getOqueryExpressionSyntaxError(text, functionDefinitions);
+  return getOqueryFilterSyntaxError(text, filterOperators)
+    ?? getOqueryExpressionSyntaxError(text, functionDefinitions, suggestionEntities, rootEntityName);
 }
 
 function getOqueryFilterSyntaxError(text: string, filterOperators: FilterOperatorDefinition[]): string | null {
@@ -50,7 +59,12 @@ function getOqueryFilterSyntaxError(text: string, filterOperators: FilterOperato
   return null;
 }
 
-function getOqueryExpressionSyntaxError(text: string, functionDefinitions: FunctionDefinition[]): string | null {
+function getOqueryExpressionSyntaxError(
+  text: string,
+  functionDefinitions: FunctionDefinition[],
+  suggestionEntities: OQuerySuggestionEntity[],
+  rootEntityName: string,
+): string | null {
   const openings: Array<{ line: number; column: number }> = [];
   let quote: "'" | "\"" | null = null;
   let escaped = false;
@@ -101,6 +115,7 @@ function getOqueryExpressionSyntaxError(text: string, functionDefinitions: Funct
       definition.name.toLocaleLowerCase(),
       {
         name: definition.name,
+        definition,
         requiredArguments: definition.arguments.filter((argument) =>
           argument.defaultValue === null || argument.defaultValue === undefined).length,
         totalArguments: definition.arguments.length,
@@ -184,6 +199,16 @@ function getOqueryExpressionSyntaxError(text: string, functionDefinitions: Funct
     const errorLine = text.slice(0, nameStart).split(/\r?\n/).length;
     const lastLineBreak = text.lastIndexOf("\n", nameStart - 1);
     const errorColumn = nameStart - lastLineBreak;
+    // Receivers that metadata cannot resolve (for example dynamic contexts) are left to the backend compiler.
+    const receiver = resolveFunctionReceiver(text, nameStart, rootEntityName, suggestionEntities);
+    if (receiver.kind !== "unresolved") {
+      const applicabilityError = getFunctionApplicabilityError(
+        signature.definition,
+        receiver,
+        isInsideFunctionCall(text.slice(0, nameStart)),
+      );
+      if (applicabilityError) return `Line ${errorLine}, column ${errorColumn}: ${applicabilityError}`;
+    }
     if (effectiveArgumentCount < signature.requiredArguments) {
       return `Line ${errorLine}, column ${errorColumn}: ${signature.name} requires at least ${signature.requiredArguments} argument(s), but ${effectiveArgumentCount} provided.`;
     }

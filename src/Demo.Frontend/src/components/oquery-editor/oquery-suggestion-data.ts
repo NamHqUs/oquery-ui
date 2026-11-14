@@ -1,10 +1,11 @@
 import { relationsForEntity, type DomainRelation, type MetadataEntity } from "../query-builder/query-design/query-builder-slice";
+import type { OQuerySuggestionEntity } from "./oquery-completions";
 
 export function getOQuerySuggestionData(metadata: MetadataEntity[], relations: DomainRelation[]) {
   return {
     fields: [...new Set(metadata.flatMap((item) => item.fields.map((field) => field.name)))],
     entities: metadata.map((item) => item.name),
-    entitiesMetadata: metadata.map((item) => ({
+    entitiesMetadata: metadata.map((item): OQuerySuggestionEntity => ({
       name: item.name,
       fields: item.fields.map((field) => field.name),
       fieldDataTypes: Object.fromEntries(

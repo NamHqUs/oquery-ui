@@ -257,7 +257,7 @@ function getRelationPath(sourceBeforeCursor: string) {
 }
 
 // Parentheses reset at each line break, so an unclosed call on an earlier projection line does not leak forward.
-function isInsideFunctionCall(sourceBeforeCursor: string) {
+export function isInsideFunctionCall(sourceBeforeCursor: string) {
   let depth = 0;
   for (const character of sourceBeforeCursor) {
     if (character === "\n") depth = 0;
@@ -387,12 +387,62 @@ function getScalarFieldDataType(
   return entity.fieldDataTypes?.[fieldName] ?? null;
 }
 
-// A function is a field-receiver candidate when its first argument accepts the field's data type.
-function acceptsReceiverDataType(definition: FunctionDefinition, dataType: string) {
-  const firstArgumentType = definition.arguments?.[0]?.dataType;
-  return !definition.isAggregate
-    && firstArgumentType !== undefined
-    && firstArgumentType.toLocaleLowerCase() === dataType.toLocaleLowerCase();
+export type FunctionReceiver =
+  | { kind: "root" }
+  | { kind: "collection"; path: string }
+  | { kind: "scalar"; path: string; dataType: string }
+  | { kind: "unresolved"; path: string };
+
+// Shared by completions and syntax checking so both apply the same function rules.
+export function resolveFunctionReceiver(
+  text: string,
+  position: number,
+  rootEntityName: string,
+  entities: OQuerySuggestionEntity[],
+): FunctionReceiver {
+  const sourceBeforePosition = text.slice(0, position);
+  const lineBeforePosition = sourceBeforePosition.slice(sourceBeforePosition.lastIndexOf("\n") + 1);
+  if (!isImmediateDotPosition(lineBeforePosition)) return { kind: "root" };
+
+  const path = getRelationPath(sourceBeforePosition);
+  if (!path) return { kind: "unresolved", path: "" };
+  const entityName = getActiveEntityName(text, position, rootEntityName);
+  if (isCollectionPath(entityName, path, entities)) return { kind: "collection", path };
+  const dataType = getScalarFieldDataType(entityName, path, entities);
+  return dataType ? { kind: "scalar", path, dataType } : { kind: "unresolved", path };
+}
+
+// Returns null when the function may be used at the call site, otherwise the reason it may not.
+export function getFunctionApplicabilityError(
+  definition: FunctionDefinition,
+  receiver: FunctionReceiver,
+  insideCall: boolean,
+): string | null {
+  const name = definition.name;
+  switch (receiver.kind) {
+    case "root":
+      return insideCall && definition.isAggregate
+        ? `${name} cannot be nested inside another function call: it is an aggregate.`
+        : null;
+    case "collection":
+      return definition.isAggregate
+        ? null
+        : `${name} cannot be applied to collection ${receiver.path}: only aggregate functions apply.`;
+    case "scalar": {
+      if (definition.isAggregate) {
+        return `${name} cannot be applied to scalar field ${receiver.path}: aggregate functions need a collection receiver.`;
+      }
+      const firstArgumentType = definition.arguments?.[0]?.dataType;
+      if (!firstArgumentType) {
+        return `${name} cannot be applied to ${receiver.path}: it has no first argument that accepts a field.`;
+      }
+      return firstArgumentType.toLocaleLowerCase() === receiver.dataType.toLocaleLowerCase()
+        ? null
+        : `${name} cannot be applied to ${receiver.path} of type ${receiver.dataType}: its first argument is ${firstArgumentType}.`;
+    }
+    case "unresolved":
+      return `${name} cannot be applied to ${receiver.path || "this receiver"}: its receiver is not a known field or collection.`;
+  }
 }
 
 function getActiveEntityName(text: string, position: number, fallback: string) {
@@ -468,11 +518,12 @@ export function getOQueryCompletions(
   const dynamicContextFields = getDynamicContextFields(text);
   const candidates: Candidate[] = [];
   const activeEntityName = getActiveEntityName(text, safePosition, rootEntityName);
-  const receiverDataType = isImmediateDotPosition(lineBeforeCursor) && relationPath
-    ? getScalarFieldDataType(activeEntityName, relationPath, suggestionEntities)
-    : null;
+  const functionReceiver = resolveFunctionReceiver(text, safePosition, activeEntityName, suggestionEntities);
+  const receiverDataType = functionReceiver.kind === "scalar" ? functionReceiver.dataType : null;
+  const isInsideCall = isInsideFunctionCall(text.slice(0, safePosition));
+  const isApplicable = (definition: FunctionDefinition) =>
+    getFunctionApplicabilityError(definition, functionReceiver, isInsideCall) === null;
   const suggestionContext = getSuggestionContext(activeEntityName, relationPath, suggestionEntities, fields, dynamicContextFields);
-  const collectionPath = isCollectionPath(activeEntityName, relationPath, suggestionEntities);
 
   if (context === "document" || context === "header") {
     entities.forEach((entity) => addCandidate(candidates, entity, "Entity", "entity", 0, context === "document" ? `${entity}: ` : entity, context === "document" ? entity.length + 2 : undefined));
@@ -491,27 +542,13 @@ export function getOQueryCompletions(
   if (receiverDataType) {
     if (context === "projection" || context === "where" || context === "on" || context === "order") {
       functionDefinitions
-        .filter((definition) => acceptsReceiverDataType(definition, receiverDataType))
+        .filter(isApplicable)
         .forEach((definition) => addFunctionCandidate(candidates, definition, 0));
     }
   } else if (context === "projection" || context === "on") {
-    if (isImmediateDotPosition(lineBeforeCursor)) {
-      // After a dot only functions whose first argument is a collection (aggregates) fit a collection receiver.
-      // Any other receiver, such as a lookup relation, has no matching function.
-      if (collectionPath) {
-        functionDefinitions
-          .filter((definition) => definition.isAggregate)
-          .forEach((definition) => addFunctionCandidate(candidates, definition, 3));
-      }
-    } else if (!isInsideFunctionCall(text.slice(0, safePosition))) {
-      // In the root context, collection-first-argument (aggregate) functions are offered alongside the others.
-      functionDefinitions.forEach((definition) => addFunctionCandidate(candidates, definition, 3));
-    } else {
-      // Inside an argument list aggregates stay hidden, because nested aggregates are not valid SQL.
-      functionDefinitions
-        .filter((definition) => !definition.isAggregate)
-        .forEach((definition) => addFunctionCandidate(candidates, definition, 3));
-    }
+    functionDefinitions
+      .filter(isApplicable)
+      .forEach((definition) => addFunctionCandidate(candidates, definition, 3));
   } else if (context === "clause") {
     addKeywords(candidates, clauseKeywords);
   } else if (context === "where" || context === "on") {
