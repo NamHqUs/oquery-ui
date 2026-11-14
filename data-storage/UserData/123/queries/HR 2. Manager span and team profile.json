@@ -1,51 +1,23 @@
 {
   "domainId": "HR_Domain",
   "name": "HR 2. Manager span and team profile",
-  "rawText": "# Use a self-join to build manager teams and report span of control, \n# average salary, high performers, and location coverage.\n# ____________________________________________________________\n\n# Option 1:\nReviewSummary is PerformanceReviews: \n    Employee.ManagerId ManagerId, \n    AVG(Rating) AverageTeamRating\n  Where ReviewYear = \u003C2025\u003E\n  \nEmployees: Id ManagerId,\n    Concat(FirstName, \u003C \u003E, LastName) Manager,\n    Department.Name Department,\n    CountDistinct(Members.Id) DirectReports,\n    CountDistinct(Members.LocationId) TeamLocations,\n    ROUND(AVG(Members.Salary), \u003C2\u003E) AverageTeamSalary,\n    ROUND(ReviewSummary.AverageTeamRating, \u003C2\u003E) AverageTeamRating,\n    ROUND(SUM(Members.Salary), \u003C2\u003E) TeamPayroll\n  Where Members.Id IS NOT NULL\n  Order DirectReports ASC, TeamPayroll ASC\n  Left Join ReviewSummary On Id = ReviewSummary.ManagerId\n\n# Option 2:\nManager is Employees:\n    FirstName \u002B \u003C \u003E \u002B LastName | ManagerName\n    Department.Name Department,\n    ",
+  "rawText": "# Do you really know how your organization is performing?\n#   - Which departments have the largest teams?\n#   - Who manages each department?\n#   - How many unique locations does each team cover?\n#   - What is the average salary across each team?\n#   - How well are your teams performing on average?\n# ____________________________________________________________\n\nEmployees: \n    Department.Name Department\n    FirstName \u002B \u003C \u003E \u002B LastName | Manager\n    Members.Count(Id) ToalMembers\n    Members.Count(LocationId) TotalLocations\n    Members.Avg(Salary) AverageTeamSalary\n    Members.Avg(PerformanceReviews.Avg(Rating)) AverageTeamRating\n    Members.Sum(Salary) TeamPayroll\n  Order Department ASC\n    \n    ",
   "id": "HR 2. Manager span and team profile",
   "isBuiltin": false,
-  "contexts": {
-    "ReviewSummary": {
-      "entity": "PerformanceReviews",
-      "projection": [
-        {
-          "field": {
-            "kind": "field",
-            "field": "Employee.ManagerId"
-          },
-          "alias": "ManagerId"
-        },
-        {
-          "field": {
-            "kind": "function",
-            "function": "AVG",
-            "arguments": [
-              {
-                "kind": "field",
-                "field": "Rating"
-              }
-            ]
-          },
-          "alias": "AverageTeamRating"
-        }
-      ],
-      "sorts": []
-    }
-  },
+  "contexts": {},
   "entity": "Employees",
   "projections": [
     {
       "field": {
         "kind": "field",
-        "field": "Id"
+        "field": "Department.Name"
       },
-      "alias": "ManagerId"
+      "alias": "Department"
     },
     {
       "field": {
-        "kind": "function",
-        "function": "Concat",
-        "arguments": [
+        "kind": "group",
+        "fields": [
           {
             "kind": "field",
             "field": "FirstName"
@@ -64,55 +36,38 @@
     },
     {
       "field": {
-        "kind": "field",
-        "field": "Department.Name"
-      },
-      "alias": "Department"
-    },
-    {
-      "field": {
         "kind": "function",
-        "function": "CountDistinct",
+        "function": "Members.Count",
         "arguments": [
           {
             "kind": "field",
-            "field": "Members.Id"
+            "field": "Id"
           }
         ]
       },
-      "alias": "DirectReports"
+      "alias": "ToalMembers"
     },
     {
       "field": {
         "kind": "function",
-        "function": "CountDistinct",
+        "function": "Members.Count",
         "arguments": [
           {
             "kind": "field",
-            "field": "Members.LocationId"
+            "field": "LocationId"
           }
         ]
       },
-      "alias": "TeamLocations"
+      "alias": "TotalLocations"
     },
     {
       "field": {
         "kind": "function",
-        "function": "ROUND",
+        "function": "Members.Avg",
         "arguments": [
           {
-            "kind": "function",
-            "function": "AVG",
-            "arguments": [
-              {
-                "kind": "field",
-                "field": "Members.Salary"
-              }
-            ]
-          },
-          {
-            "kind": "value",
-            "value": 2
+            "kind": "field",
+            "field": "Salary"
           }
         ]
       },
@@ -120,101 +75,33 @@
     },
     {
       "field": {
-        "kind": "function",
-        "function": "ROUND",
-        "arguments": [
-          {
-            "kind": "field",
-            "field": "ReviewSummary.AverageTeamRating"
-          },
-          {
-            "kind": "value",
-            "value": 2
-          }
-        ]
+        "kind": "field",
+        "field": "__calculated__5"
       },
-      "alias": "AverageTeamRating"
+      "alias": null
     },
     {
       "field": {
         "kind": "function",
-        "function": "ROUND",
+        "function": "Members.Sum",
         "arguments": [
           {
-            "kind": "function",
-            "function": "SUM",
-            "arguments": [
-              {
-                "kind": "field",
-                "field": "Members.Salary"
-              }
-            ]
-          },
-          {
-            "kind": "value",
-            "value": 2
+            "kind": "field",
+            "field": "Salary"
           }
         ]
       },
       "alias": "TeamPayroll"
     }
   ],
-  "filter": {
-    "logicalOperation": 0,
-    "filters": [
-      {
-        "logicalOperator": 0,
-        "left": {
-          "kind": "field",
-          "field": "Members.Id"
-        },
-        "operation": 13,
-        "right": {
-          "kind": "value",
-          "value": ""
-        },
-        "parameterized": true
-      }
-    ]
-  },
   "sorts": [
     {
       "field": {
         "kind": "field",
-        "field": "DirectReports"
-      },
-      "direction": "Ascending"
-    },
-    {
-      "field": {
-        "kind": "field",
-        "field": "TeamPayroll"
+        "field": "Department"
       },
       "direction": "Ascending"
     }
   ],
-  "joins": [
-    {
-      "refContext": "ReviewSummary",
-      "condition": {
-        "logicalOperation": 0,
-        "filters": [
-          {
-            "logicalOperator": 0,
-            "left": {
-              "kind": "field",
-              "field": "Id"
-            },
-            "operation": 0,
-            "right": {
-              "kind": "field",
-              "field": "ReviewSummary.ManagerId"
-            },
-            "parameterized": true
-          }
-        ]
-      },
-      "joinType": "Left"
-    }
-  ]
+  "joins": []
 }
