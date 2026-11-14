@@ -7,4 +7,3 @@ PerformanceReviews: Employee.Department.Name Department,
     Avg(Employee.Salary).Round(2) AverageSalary,
     Sum(BonusAmount).Round(2) TotalBonus
   Order ReviewYear DESC, AverageRating DESC, TotalBonus DESC
-  Take 10

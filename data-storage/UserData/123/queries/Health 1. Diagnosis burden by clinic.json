@@ -1,28 +1,32 @@
 {
-  "DomainId": "HEALTHCARE_DOMAIN",
-  "Name": "Health 1. Diagnosis burden by clinic",
-  "Entity": "Visits",
-  "Projections": [
+  "domainId": "HEALTHCARE_DOMAIN",
+  "name": "H1. Diagnosis Burden \u0026 Clinic Performance Analysis",
+  "rawText": "# Do you know which diagnoses place the greatest burden on your clinics?\n# \n#  - Which diagnoses generate the highest number of completed visits?\n#  - How many unique patients are affected by each diagnosis?\n#  - Which clinics handle the largest volume of visits for each diagnosis?\n#  - What is the average charge associated with each diagnosis?\n#  - Where are abnormal laboratory results most concentrated?\n#  - Which diagnoses combine high visit volumes with higher abnormal lab rates?\n#  - How does the clinical workload differ across locations?\n# \n# Analyze diagnoses, clinic locations, patient visits, charges, and laboratory outcomes from a single business starting point.\n# Start with **Visits** and access diagnoses, clinics, and laboratory results through their relationships.\n# No manually constructed joins. No separate queries for related information. Just describe what you want to analyze and let OQuery handle the relational complexity.\n\nVisits:\n    Diagnose.Name Diagnosis\n    Diagnose.Category DiagnosisCategory\n    Location.City ClinicCity\n    CountDistinct(Id) VisitCount\n    CountDistinct(UserId) UniquePatients\n    Avg(Charge).Round(2) AverageCharge\n    (LabResults.CountIf(IsAbnormal = true) * 100.0\n        / LabResults.Count(Id)).Round(2) AbnormalLabPercent\nWhere Status = \u0027Completed\u0027\nOrder VisitCount DESC, AbnormalLabPercent DESC\nTake 10",
+  "id": "Health 1. Diagnosis burden by clinic",
+  "isBuiltin": false,
+  "contexts": {},
+  "entity": "Visits",
+  "projections": [
     {
       "field": {
         "kind": "field",
-        "field": "Diagnosis.Name"
+        "field": "Diagnose.Name"
       },
-      "Alias": "Diagnosis"
+      "alias": "Diagnosis"
     },
     {
       "field": {
         "kind": "field",
-        "field": "Diagnosis.Category"
+        "field": "Diagnose.Category"
       },
-      "Alias": "DiagnosisCategory"
+      "alias": "DiagnosisCategory"
     },
     {
       "field": {
         "kind": "field",
         "field": "Location.City"
       },
-      "Alias": "ClinicCity"
+      "alias": "ClinicCity"
     },
     {
       "field": {
@@ -35,7 +39,7 @@
           }
         ]
       },
-      "Alias": "VisitCount"
+      "alias": "VisitCount"
     },
     {
       "field": {
@@ -48,107 +52,24 @@
           }
         ]
       },
-      "Alias": "UniquePatients"
+      "alias": "UniquePatients"
     },
     {
       "field": {
-        "kind": "function",
-        "function": "ROUND",
-        "arguments": [
-          {
-            "kind": "function",
-            "function": "AVG",
-            "arguments": [
-              {
-                "kind": "field",
-                "field": "Charge"
-              }
-            ]
-          },
-          {
-            "kind": "value",
-            "value": 2
-          }
-        ]
+        "kind": "field",
+        "field": "Avg(Charge).Round(2)"
       },
-      "Alias": "AverageCharge"
+      "alias": "AverageCharge"
     },
     {
       "field": {
-        "kind": "function",
-        "function": "ROUND",
-        "arguments": [
-          {
-            "kind": "group",
-            "fields": [
-              {
-                "kind": "value",
-                "value": 100.0
-              },
-              {
-                "oper": "*",
-                "kind": "function",
-                "function": "SUM",
-                "arguments": [
-                  {
-                    "kind": "function",
-                    "function": "Coalesce",
-                    "arguments": [
-                      {
-                        "kind": "field",
-                        "field": "VisitLabs.AbnormalCount"
-                      },
-                      {
-                        "kind": "value",
-                        "value": 0
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "oper": "/",
-                "kind": "function",
-                "function": "NULLIF",
-                "arguments": [
-                  {
-                    "kind": "function",
-                    "function": "SUM",
-                    "arguments": [
-                      {
-                        "kind": "function",
-                        "function": "Coalesce",
-                        "arguments": [
-                          {
-                            "kind": "field",
-                            "field": "VisitLabs.LabCount"
-                          },
-                          {
-                            "kind": "value",
-                            "value": 0
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "kind": "value",
-                    "value": 0
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "kind": "value",
-            "value": 2
-          }
-        ]
+        "kind": "field",
+        "field": "(LabResults.CountIf(IsAbnormal = true) * 100.0\n/ LabResults.Count(Id)).Round(2)"
       },
-      "Alias": "AbnormalLabPercent"
+      "alias": "AbnormalLabPercent"
     }
   ],
-  "Filter": {
+  "filter": {
     "logicalOperation": 0,
     "filters": [
       {
@@ -166,125 +87,22 @@
       }
     ]
   },
-  "Sorts": [
+  "sorts": [
     {
-      "Field": {
+      "field": {
         "kind": "field",
         "field": "VisitCount"
       },
-      "Direction": "Descending"
+      "direction": "Descending"
     },
     {
-      "Field": {
+      "field": {
         "kind": "field",
         "field": "AbnormalLabPercent"
       },
-      "Direction": "Descending"
-    },
-    {
-      "Field": {
-        "kind": "field",
-        "field": "Diagnosis.Name"
-      },
-      "Direction": "Ascending"
-    },
-    {
-      "Field": {
-        "kind": "field",
-        "field": "Location.City"
-      },
-      "Direction": "Ascending"
+      "direction": "Descending"
     }
   ],
-  "Take": 10,
-  "Skip": 0,
-  "Joins": [
-    {
-      "Alias": "VisitLabs",
-      "RefContext": "VisitLabs",
-      "Condition": {
-        "logicalOperation": 0,
-        "filters": [
-          {
-            "logicalOperator": 0,
-            "left": {
-              "kind": "field",
-              "field": "Id"
-            },
-            "operation": 0,
-            "right": {
-              "kind": "field",
-              "field": "VisitLabs.VisitId"
-            },
-            "parameterized": true
-          }
-        ]
-      },
-      "JoinType": "Left"
-    }
-  ],
-  "Id": "Health 1. Diagnosis burden by clinic",
-  "Contexts": {
-    "VisitLabs": {
-      "Entity": "LabResults",
-      "Sorts": null,
-      "Projections": [
-        {
-          "field": {
-            "kind": "field",
-            "field": "VisitId"
-          },
-          "Alias": "VisitId"
-        },
-        {
-          "field": {
-            "kind": "function",
-            "function": "COUNT",
-            "arguments": [
-              {
-                "kind": "field",
-                "field": "Id"
-              }
-            ]
-          },
-          "Alias": "LabCount"
-        },
-        {
-          "field": {
-            "kind": "function",
-            "function": "CountIf",
-            "arguments": [
-              {
-                "kind": "condition",
-                "condition": {
-                  "logicalOperation": 0,
-                  "filters": [
-                    {
-                      "logicalOperator": 0,
-                      "left": {
-                        "kind": "field",
-                        "field": "IsAbnormal"
-                      },
-                      "operation": 0,
-                      "right": {
-                        "kind": "value",
-                        "value": true
-                      },
-                      "parameterized": true
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          "Alias": "AbnormalCount"
-        }
-      ],
-      "Filter": null,
-      "Joins": null,
-      "Skip": null,
-      "Take": null
-    }
-  },
-  "IsBuiltin": false
+  "take": 10,
+  "joins": []
 }

@@ -5,7 +5,7 @@
 .query-oquery-workspace.horizontal { grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--panel-height, 360px) 4px auto; }
 .query-oquery-workspace.vertical { grid-template-columns: minmax(0, 1fr) 5px var(--panel-width, 360px); grid-template-rows: minmax(0, 1fr); }
 .query-oquery-workspace.horizontal.panel-collapsed { grid-template-rows: 0 24px auto; }
-.query-oquery-workspace.vertical.panel-collapsed { grid-template-columns: minmax(0, 1fr) 24px 0; }
+.query-oquery-workspace.vertical.panel-collapsed { grid-template-columns: minmax(0, 1fr) 24px 0; overflow-x: hidden; }
 .query-oquery-diagram-panel { min-width: 0; min-height: 0; overflow: hidden; border: 1px solid #323947; border-radius: 4px; background: #10141c; }
 .query-oquery-workspace.horizontal .query-oquery-diagram-panel { grid-column: 1; grid-row: 1; }
 .query-oquery-workspace.vertical .query-oquery-diagram-panel { grid-column: 1; grid-row: 1; }

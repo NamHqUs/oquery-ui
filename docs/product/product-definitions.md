@@ -499,4 +499,19 @@ The following principles should guide future language and engine decisions:
 5. **Make reuse composable:** Support reusable query definitions without making the everyday query syntax unnecessarily complex.
 6. **Keep generated SQL transparent:** Developers should be able to inspect the SQL and parameters produced by the engine when debugging or validating behavior.
 
-**Differentiation statement:** MQuery lets developers express database queries using familiar SQL concepts while its metadata-aware engine handles much of the complexity traditionally required to build those queries.
+### 13.7 Where OQuery stands out
+
+No single OQuery feature is unique on its own. Our advantage is that the business model, the editor, and the query engine work together as one experience:
+
+- **Business entity as the root:** Users choose the business entity they need, such as `Department:`, and do not have to work out which table should be the root. In traditional SQL, a different root table changes the joins and grouping required, so every query author has to reason about it. In OQuery, the entity is the root and the engine handles the tables involved.
+- **Entity graph exploration:** Users browse entities and their relationships before writing a query, so the model is visible rather than hidden in documentation.
+- **Contextual editor suggestions:** Typing `.` after a name suggests the fields, relations, or functions valid in that context.
+- **Relationship paths:** Users traverse from the root to the data they need, such as `Department: Name, Employees.Name, Employees.Salary`, without considering how many tables are involved. The engine resolves the joins and the relational complexity behind them.
+- **Aggregates across relations:** Fluent aggregates apply to relation collections, joined entities, and named contexts, and they can be chained into result pipelines.
+- **Extensible query vocabulary:** User-defined functions add business terms to the language. They are defined in metadata, so they stay governed by the same engine.
+- **One engine, many interfaces:** Query text, C#, `QueryDefinition`, the Fluent API, and the Frontend API share the same semantics.
+- **Transparent SQL:** Developers can inspect the generated SQL and its parameters for any query.
+
+**Our assessment:** OQuery's distinctiveness comes from this combination, not from any one feature. Several capabilities overlap with other platforms. Its strongest competitive advantage depends on how well the editor and the engine deliver that unified experience, so the editor's suggestions and the engine's relationship resolution are the areas to protect first.
+
+**Differentiation statement:** OQuery lets developers express database queries using familiar SQL concepts while its metadata-aware engine handles much of the complexity traditionally required to build those queries.
