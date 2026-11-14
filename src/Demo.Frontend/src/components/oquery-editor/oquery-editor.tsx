@@ -1,16 +1,16 @@
-import { forwardRef, useImperativeHandle, useLayoutEffect, useRef, useState, type ChangeEvent, type CSSProperties, type ReactNode, type TextareaHTMLAttributes } from "react";
-import Icon, { type IconName } from "../icon/icon";
+import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type FocusEventHandler, type ReactNode, type TextareaHTMLAttributes } from "react";
 import type { FunctionDefinition } from "../function-definition/types";
 import type { DomainRelation, FilterOperatorDefinition, MetadataEntity } from "../query-builder/query-design/query-builder-slice";
 import { getOQueryContextKeys } from "../query-builder/query-design/oquery-context-colors";
-import { applyFoldedOqueryEdit, getFoldedOquery, getOqueryFolds } from "../query-builder/query-design/oquery-folding";
-import { getOQueryCompletions, type OQueryCompletion, type OQuerySuggestionEntity } from "./oquery-completions";
-import { processOQueryKeyboard, replaceTextareaSelection } from "./oquery-editor-keyboard";
-import { normalizeOqueryEditorText } from "./oquery-editor-text";
-import type { OQueryErrorPosition } from "./oquery-validation";
 import "../query-builder/query-design/query-design.css";
+import { getOQueryCompletions, type OQuerySuggestionEntity } from "./oquery-completions";
+import { getOqueryEnterEdit } from "./oquery-editor-enter";
+import { normalizeOqueryEditorText } from "./oquery-editor-text";
+import { getMinimalTextEdit, getOqueryErrorRange } from "./oquery-monaco-adapters";
+import { createOqueryModel, ensureOqueryLanguage, monaco, OQUERY_THEME_ID, registerOqueryEditorSource } from "./oquery-monaco-setup";
+import type { OQueryErrorPosition } from "./oquery-validation";
 
-type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange" | "value"> & {
+type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange" | "value" | "onBlur"> & {
   value?: string;
   initialText?: string;
   textOverride?: string;
@@ -32,11 +32,12 @@ type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onCh
   suggestionEntitiesMetadata?: OQuerySuggestionEntity[];
   errorFunctionName?: string;
   errorPosition?: OQueryErrorPosition | null;
+  errorMessage?: string;
   compact?: boolean;
   showGutter?: boolean;
   showLineNumbers?: boolean;
-  showContextRunAlways?: boolean;
   showFoldControls?: boolean;
+  onBlur?: FocusEventHandler<HTMLElement>;
   onSelectionChange?: (text: string) => void;
   onExecuteSelectedText?: (text: string) => void;
   onExecuteContext?: (contextName: string) => void;
@@ -47,163 +48,8 @@ export type OQueryEditorHandle = {
   setText: (text: string) => void;
 };
 
-function highlightOquery(text: string, functionDefinitions: FunctionDefinition[], errorFunctionName: string): string {
-  const keys = getOQueryContextKeys(text);
-  let position = 0;
-  const parts: string[] = [];
-  for (const key of keys) {
-    parts.push(highlightOqueryTokens(text.slice(position, key.start), functionDefinitions, errorFunctionName));
-    const name = text.slice(key.start, key.end)
-      .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
-      .replaceAll("\"", "&quot;").replaceAll("'", "&#39;");
-    const className = key.kind === "table"
-      ? "query-oquery-table-key"
-      : "query-oquery-context-key";
-    parts.push(`<span class="${className}">${name}</span>`);
-    position = key.end;
-  }
-  parts.push(highlightOqueryTokens(text.slice(position), functionDefinitions, errorFunctionName));
-  return parts.join("");
-}
-
-function highlightOqueryTokens(text: string, functionDefinitions: FunctionDefinition[], errorFunctionName: string): string {
-  if (text.includes("\n")) {
-    return text.split("\n")
-      .map((line) => highlightOqueryTokens(line, functionDefinitions, errorFunctionName))
-      .join("\n");
-  }
-  const commentStart = findCommentStart(text);
-  if (commentStart >= 0) {
-    return `${highlightOqueryTokens(text.slice(0, commentStart), functionDefinitions, errorFunctionName)}<span class="query-oquery-comment">${text.slice(commentStart)
-      .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
-      .replaceAll("\"", "&quot;").replaceAll("'", "&#39;")}</span>`;
-  }
-  const escaped = text
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll("\"", "&quot;")
-    .replaceAll("'", "&#39;");
-
-  const builtinFunctions = new Set(
-    functionDefinitions.filter((definition) => definition.isBuiltin).map((definition) => definition.name),
-  );
-  const customFunctions = new Set(
-    functionDefinitions
-      .filter((definition) => !definition.isBuiltin && !builtinFunctions.has(definition.name))
-      .map((definition) => definition.name),
-  );
-  const functionNames = [...builtinFunctions, ...customFunctions]
-    .sort((left, right) => right.length - left.length)
-    .map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  const highlightedFunctions = functionNames.length
-    ? escaped.replace(new RegExp(`\\b(${functionNames.join("|")})(?=\\s*\\()`, "gi"), (match) => {
-      const className = errorFunctionName && match.toLocaleLowerCase() === errorFunctionName.toLocaleLowerCase()
-        ? "query-oquery-function query-oquery-error-function"
-        : "query-oquery-function";
-      return `<span class="${className}">${match}</span>`;
-    })
-    : escaped;
-
-  return highlightedFunctions.replace(
-    /\b(where|order|skip|take|join|left|inner|right|full|on|asc|desc|and|or|is|in|between|not|like|contains|null|true|false)\b/gi,
-    "<span class=\"query-oquery-protected-key\">$1</span>",
-  );
-}
-
-function highlightSelectedOccurrences(html: string, selection: string): string {
-  if (!selection || selection.includes("\n")) return html;
-  const escapedSelection = selection
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll("\"", "&quot;")
-    .replaceAll("'", "&#39;");
-  return html.split(/(<[^>]*>)/g).map((part) =>
-    part.startsWith("<")
-      ? part
-      : part.split(escapedSelection).join(`<mark class="query-oquery-match">${escapedSelection}</mark>`),
-  ).join("");
-}
-
-function findCommentStart(text: string): number {
-  let quote: "'" | "\"" | null = null;
-  for (let index = 0; index < text.length; index++) {
-    const character = text[index];
-    if (quote) {
-      if (character === quote && text[index - 1] !== "\\") quote = null;
-      continue;
-    }
-    if (character === "'" || character === "\"") {
-      quote = character;
-    } else if (character === "#") {
-      return index;
-    }
-  }
-  return -1;
-}
-
-function getOqueryCaretPosition(textarea: HTMLTextAreaElement, position: number) {
-  const style = window.getComputedStyle(textarea);
-  const beforeCaret = textarea.value.slice(0, position);
-  const lineStart = beforeCaret.lastIndexOf("\n") + 1;
-  const line = beforeCaret.slice(lineStart);
-  const lineHeight = Number.parseFloat(style.lineHeight) || Number.parseFloat(style.fontSize) * 1.6;
-  const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
-  const paddingTop = Number.parseFloat(style.paddingTop) || 0;
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
-  if (context) context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-  const textWidth = context?.measureText(line).width ?? line.length * (Number.parseFloat(style.fontSize) || 13) * .6;
-  return {
-    left: paddingLeft + textWidth - textarea.scrollLeft,
-    top: paddingTop + (beforeCaret.match(/\n/g)?.length ?? 0) * lineHeight + lineHeight - textarea.scrollTop,
-  };
-}
-
-function getOqueryErrorMarkerStyle(
-  textarea: HTMLTextAreaElement,
-  position: OQueryErrorPosition,
-): CSSProperties {
-  const lines = textarea.value.split("\n");
-  const lineOffset = lines.slice(0, Math.max(0, position.line - 1)).reduce((total, line) => total + line.length + 1, 0);
-  const start = Math.min(textarea.value.length, lineOffset + Math.max(0, position.column - 1));
-  const end = Math.min(textarea.value.length, start + position.length);
-  const startPosition = getOqueryCaretPosition(textarea, start);
-  const endPosition = getOqueryCaretPosition(textarea, end);
-  const lineHeight = Number.parseFloat(window.getComputedStyle(textarea).lineHeight) || 20.8;
-  return {
-    left: startPosition.left,
-    top: startPosition.top - lineHeight,
-    width: Math.max(4, endPosition.left - startPosition.left),
-    height: lineHeight,
-  };
-}
-
-function getCompletionIcon(kind: OQueryCompletion["kind"]): IconName {
-  switch (kind) {
-    case "field": return "key";
-    case "relation": return "link";
-    case "context": return "schema";
-    case "function": return "function";
-    case "operator": return "operator";
-    case "value": return "type";
-    case "entity": return "table";
-    case "alias": return "type";
-    default: return "code";
-  }
-}
-
-function highlightCompletionLabel(label: string, query: string): ReactNode {
-  if (!query) return label;
-  const index = label.toLocaleLowerCase().indexOf(query.toLocaleLowerCase());
-  if (index < 0) return label;
-  return <>
-    {label.slice(0, index)}
-    <mark>{label.slice(index, index + query.length)}</mark>
-    {label.slice(index + query.length)}
-  </>;
-}
+const COMPACT_LINE_HEIGHT = 20.8;
+const COMPACT_CHROME_HEIGHT = 34;
 
 function getDoubleClickSelection(textarea: HTMLTextAreaElement): string {
   const { selectionStart, selectionEnd } = textarea;
@@ -213,333 +59,281 @@ function getDoubleClickSelection(textarea: HTMLTextAreaElement): string {
   return textarea.value.slice(selectionStart, end);
 }
 
-const OqueryTextEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>(({
-  value,
-  initialText,
-  textOverride,
-  disabled,
-  onTextChange,
-  onBlur,
-  domain,
-  functionDefinitions,
-  operators,
-  errorFunctionName = "",
-  errorPosition = null,
-  compact = false,
-  showGutter = true,
-  showLineNumbers = true,
-  showContextRunAlways = false,
-  showFoldControls = true,
-  onSelectionChange = () => undefined,
-  onExecuteContext,
-  suggestionFields = [],
-  suggestionEntities = [],
-  suggestionEntityName = "",
-  suggestionEntitiesMetadata = [],
-  ...props
-}, ref) => {
-  const highlightRef = useRef<HTMLPreElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const errorMarkerRef = useRef<HTMLSpanElement>(null);
-  const lineNumbersRef = useRef<HTMLDivElement>(null);
-  const pendingCaretRef = useRef<number | null>(null);
-  const pendingSelectionRef = useRef<{ start: number; end: number } | null>(null);
-  const undoStackRef = useRef<string[]>([]);
-  const redoStackRef = useRef<string[]>([]);
-  const [text, setInternalText] = useState(() =>
-    normalizeOqueryEditorText(textOverride ?? initialText ?? value ?? ""));
-  const [selectedText, setSelectedText] = useState("");
-  const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
-  const [foldMessage, setFoldMessage] = useState("");
-  const [completionPosition, setCompletionPosition] = useState<number | null>(null);
-  const [completionIndex, setCompletionIndex] = useState(0);
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getRange(model: monaco.editor.ITextModel, start: number, end: number): monaco.Range {
+  const from = model.getPositionAt(start);
+  const to = model.getPositionAt(end);
+  return new monaco.Range(from.lineNumber, from.column, to.lineNumber, to.column);
+}
+
+function getErrorFunctionMatches(text: string, functionName: string): { start: number; end: number }[] {
+  if (!functionName) return [];
+  const pattern = new RegExp(`\\b(${escapeRegExp(functionName)})(?=\\s*\\()`, "gi");
+  return [...text.matchAll(pattern)].map((match) => ({
+    start: match.index,
+    end: match.index + match[1]!.length,
+  }));
+}
+
+const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((props, ref) => {
+  const {
+    textOverride, disabled = false, onBlur,
+    functionDefinitions, errorFunctionName = "", errorPosition = null, errorMessage = "",
+    compact = false, showGutter = true, showLineNumbers = true, showFoldControls = true,
+    onExecuteContext,
+  } = props;
+  const instanceId = useId().replace(/[^A-Za-z0-9_-]/g, "");
+  const hostRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const modelRef = useRef<monaco.editor.ITextModel | null>(null);
+  const decorationsRef = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
+  const externalWriteRef = useRef(false);
+  const latestRef = useRef(props);
+  const [lineCount, setLineCount] = useState(() => normalizeOqueryEditorText(props.textOverride ?? props.initialText ?? props.value ?? "").split("\n").length);
+
   useLayoutEffect(() => {
-    if (textOverride === undefined) return;
-    const normalizedText = normalizeOqueryEditorText(textOverride);
-    if (normalizedText !== text) {
-      setInternalText(normalizedText);
-    }
-  }, [textOverride, text]);
-  useImperativeHandle(ref, () => ({
-    getText: () => text,
-    setText: (nextText: string) => {
-      undoStackRef.current = [];
-      redoStackRef.current = [];
-      setInternalText(normalizeOqueryEditorText(nextText));
-    },
-  }), [text]);
-  const projection = getFoldedOquery(text, collapsed);
-  useLayoutEffect(() => {
-    const caret = pendingCaretRef.current;
-    if (caret === null) return;
-    pendingCaretRef.current = null;
-    const selection = pendingSelectionRef.current;
-    pendingSelectionRef.current = null;
-    textareaRef.current?.setSelectionRange(selection?.start ?? caret, selection?.end ?? caret);
-  }, [projection.text]);
-  const visibleLines = new Set(projection.visible.map(item => item.line));
-  const folds = getOqueryFolds(text);
-  const foldsByLine = new Map(folds.map(fold => [fold.start, fold]));
-  const hasVisibleFoldControls = showFoldControls
-    && projection.visible.some(({ line }) => foldsByLine.has(line));
-  const contextAtLine = (line: string) =>
-    line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?::|is\s+[A-Za-z_][A-Za-z0-9_]*\s*:)/i)?.[1]
-      ?? null;
-  const hasVisibleContextActions = Boolean(onExecuteContext)
-    && projection.visible.some(({ line }) => contextAtLine(text.split("\n")[line]!) !== null);
-  const hasGutterContent = showLineNumbers || hasVisibleFoldControls || hasVisibleContextActions || showContextRunAlways;
-  const compactHeight = Math.max(1, projection.visible.length) * 20.8 + 34;
-  const changeVisibleText = (next: string, caret?: number, selectionEnd?: number) => {
-    const updated = applyFoldedOqueryEdit(text, collapsed, next);
-    if (updated === null) {
-      setCollapsed(new Set());
-      setFoldMessage("Blocks expanded: retry the edit so hidden OQuery text is not accidentally removed.");
-      return;
-    }
-    let nextCaret = caret;
-    if (next.split("\n").length !== projection.text.split("\n").length) {
-      if (caret !== undefined) {
-        let start = 0;
-        while (start < projection.text.length && start < next.length && projection.text[start] === next[start]) start++;
-        const row = [...projection.visible].reverse().find(item => item.offset <= start)!;
-        nextCaret = caret + row.source - row.offset;
-      }
-      setCollapsed(new Set());
-    }
-    setFoldMessage("");
-    if (updated !== text) {
-      undoStackRef.current.push(text);
-      redoStackRef.current = [];
-    }
-    if (nextCaret !== undefined) {
-      pendingCaretRef.current = nextCaret;
-      pendingSelectionRef.current = {
-        start: nextCaret,
-        end: selectionEnd ?? nextCaret,
-      };
-    }
-    setInternalText(updated);
-    onTextChange(updated);
-  };
-  const undo = () => {
-    const previous = undoStackRef.current.pop();
-    if (previous === undefined) return;
-    redoStackRef.current.push(text);
-    pendingCaretRef.current = previous.length;
-    pendingSelectionRef.current = { start: previous.length, end: previous.length };
-    setInternalText(previous);
-    onTextChange(previous);
-  };
-  const redo = () => {
-    const next = redoStackRef.current.pop();
-    if (next === undefined) return;
-    undoStackRef.current.push(text);
-    pendingCaretRef.current = next.length;
-    pendingSelectionRef.current = { start: next.length, end: next.length };
-    setInternalText(next);
-    onTextChange(next);
-  };
-  const completionResult = completionPosition === null
-    ? null
-    : getOQueryCompletions(projection.text, completionPosition, suggestionFields, operators, suggestionEntities, functionDefinitions, suggestionEntityName, suggestionEntitiesMetadata);
-  const completions = completionResult?.items ?? [];
-  const completionQuery = completionResult
-    ? projection.text.slice(completionResult.replaceStart, completionResult.replaceEnd)
-    : "";
-  const completionStyle = completionPosition === null || !textareaRef.current
-    ? undefined
-    : getOqueryCaretPosition(textareaRef.current, completionPosition);
-  const errorMarkerStyle = errorPosition && textareaRef.current
-    ? getOqueryErrorMarkerStyle(textareaRef.current, errorPosition)
-    : undefined;
-  const applyCompletion = (completion: OQueryCompletion) => {
-    if (!completionResult) return;
-    const next = `${projection.text.slice(0, completionResult.replaceStart)}${completion.insertText}${projection.text.slice(completionResult.replaceEnd)}`;
-    const caret = completionResult.replaceStart + (completion.cursorOffset ?? completion.insertText.length);
-    changeVisibleText(next, caret);
-    setCompletionPosition(completion.kind === "entity" ? caret : null);
-    setCompletionIndex(0);
-    requestAnimationFrame(() => textareaRef.current?.focus());
-  };
-  const updateCompletionPosition = (textarea: HTMLTextAreaElement, open = true) => {
-    setCompletionPosition(open ? textarea.selectionStart : null);
-    setCompletionIndex(0);
-  };
-  const isCompletionTrigger = (event: ChangeEvent<HTMLTextAreaElement>) => {
-    const inputEvent = event.nativeEvent as InputEvent;
-    const caret = event.currentTarget.selectionStart;
-    const insertedCharacter = inputEvent.data
-      ?? event.currentTarget.value.slice(Math.max(0, caret - 1), caret);
-    const isCompletionStopCharacter = ",<>()[]{}=!:;+-*/%&|#".includes(insertedCharacter);
-    return inputEvent.inputType === "insertText"
-      && insertedCharacter.length === 1
-      && !/\s/.test(insertedCharacter)
-      && !isCompletionStopCharacter;
+    latestRef.current = props;
+  });
+
+  const refreshDecorations = () => {
+    const model = modelRef.current;
+    if (!model) return;
+    const text = model.getValue();
+    const { errorFunctionName: functionName = "" } = latestRef.current;
+    const contextDecorations = getOQueryContextKeys(text).map((key) => ({
+      range: getRange(model, key.start, key.end),
+      options: {
+        inlineClassName: key.kind === "table" ? "query-oquery-table-key" : "query-oquery-context-key",
+      },
+    }));
+    const errorDecorations = getErrorFunctionMatches(text, functionName).map((match) => ({
+      range: getRange(model, match.start, match.end),
+      options: { inlineClassName: "query-oquery-error-function" },
+    }));
+    decorationsRef.current?.set([...contextDecorations, ...errorDecorations]);
   };
 
-  return (
-    <>
-    <div className={`query-oquery-code-editor${showGutter && hasGutterContent ? "" : " no-gutter"}${showLineNumbers ? "" : " no-line-numbers"}${showFoldControls ? "" : " no-fold-controls"}${showContextRunAlways ? " show-context-run-always" : ""}`} style={compact ? { height: `${compactHeight}px` } : undefined}>
-      {showGutter && hasGutterContent && <div ref={lineNumbersRef} className="query-oquery-line-numbers">
-        {projection.visible.map(({ line }) => {
-          const fold = foldsByLine.get(line);
-          const contextName = contextAtLine(text.split("\n")[line]!);
-          return <div key={line} className="query-oquery-gutter-line">
-            {showLineNumbers && <span aria-hidden="true">{line + 1}</span>}
-            {showFoldControls && fold && <button type="button" disabled={disabled}
-              aria-label={`${collapsed.has(line) ? "Expand" : "Collapse"} ${fold.label} at line ${line + 1}`}
-              aria-expanded={!collapsed.has(line)}
-              className={`query-oquery-fold-button${collapsed.has(line) ? " collapsed" : ""}`}
-              title={`${collapsed.has(line) ? "Expand" : "Collapse"} ${fold.end - fold.start} lines`}
-              onClick={() => setCollapsed(previous => {
-                const next = new Set(previous);
-                if (next.has(line)) next.delete(line); else next.add(line);
-                return next;
-              })} />}
-            {contextName && onExecuteContext && <button
-              type="button"
-              className="query-oquery-context-run"
-              disabled={disabled}
-              aria-label={`Run ${contextName} context`}
-              title={`Run ${contextName} context`}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => onExecuteContext(contextName)}
-            >
-              <Icon name="play" size={14} />
-            </button>}
-          </div>;
-        })}
-      </div>}
-      <pre
-        ref={highlightRef}
-        className="query-oquery-highlight"
-        aria-hidden="true"
-        dangerouslySetInnerHTML={{ __html: highlightSelectedOccurrences(highlightOquery(text, functionDefinitions, errorFunctionName), selectedText)
-          .split("\n").flatMap((text, line) => !visibleLines.has(line) ? [] : [
-            collapsed.has(line) && foldsByLine.has(line)
-              ? `<span class="query-oquery-collapsed-line">${text}</span>`
-              : text,
-          ]).join("\n") || " " }}
-      />
-      {errorMarkerStyle && <span ref={errorMarkerRef} className="query-oquery-error-position" aria-hidden="true" style={errorMarkerStyle} />}
-      <textarea
-        ref={textareaRef}
-        className="query-oquery-textarea"
-        aria-label="Query OQuery text"
-        value={projection.text}
-        onChange={(event) => {
-          changeVisibleText(event.target.value, textareaRef.current?.selectionStart);
-          updateCompletionPosition(event.currentTarget, isCompletionTrigger(event));
-        }}
-        onPaste={(event) => {
-          event.preventDefault();
-          const textarea = event.currentTarget;
-          const pastedText = normalizeOqueryEditorText(event.clipboardData.getData("text/plain"));
-          const start = textarea.selectionStart;
-          const end = textarea.selectionEnd;
-          const isRowPaste = start === end && pastedText.endsWith("\n");
-          const insertionStart = isRowPaste
-            ? textarea.value.lastIndexOf("\n", Math.max(0, start - 1)) + 1
-            : start;
-          const nextCaret = start + pastedText.length;
-          const next = `${textarea.value.slice(0, insertionStart)}${pastedText}${textarea.value.slice(isRowPaste ? insertionStart : end)}`;
-          if (isRowPaste) {
-            changeVisibleText(next, nextCaret);
-            return;
-          }
-          const nativeEditApplied = replaceTextareaSelection(
-            textarea,
-            pastedText,
-            insertionStart,
-            isRowPaste ? insertionStart : end,
-            nextCaret,
-            nextCaret,
-          );
-          if (!nativeEditApplied) changeVisibleText(next, nextCaret);
-        }}
-        onSelect={(event) => {
-          const textarea = event.currentTarget;
-          const selection = textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
-          setSelectedText(selection);
-          onSelectionChange(selection);
-        }}
-        onDoubleClick={(event) => {
-          const selection = getDoubleClickSelection(event.currentTarget);
-          setSelectedText(selection);
-          onSelectionChange(selection);
-          props.onDoubleClick?.(event);
-        }}
-        onBlur={(event) => {
-          const textarea = event.currentTarget;
-          const selection = textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
-          setSelectedText(selection);
-          onSelectionChange(selection);
-          onBlur?.(event);
-          window.setTimeout(() => setCompletionPosition(null), 0);
-        }}
-        onKeyDown={(event) => processOQueryKeyboard(event, {
-          completions,
-          completionIndex,
-          completionPosition,
+  const writeExternalText = (next: string) => {
+    const model = modelRef.current;
+    const editor = editorRef.current;
+    if (!model || !editor) return;
+    const edit = getMinimalTextEdit(model.getValue(), normalizeOqueryEditorText(next));
+    if (!edit) return;
+    externalWriteRef.current = true;
+    try {
+      editor.executeEdits("oquery-external", [{
+        range: getRange(model, edit.start, edit.end),
+        text: edit.text,
+        forceMoveMarkers: true,
+      }]);
+    } finally {
+      externalWriteRef.current = false;
+    }
+  };
+
+  useImperativeHandle(ref, () => ({
+    getText: () => modelRef.current?.getValue() ?? "",
+    setText: writeExternalText,
+  }));
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const current = latestRef.current;
+    const initial = normalizeOqueryEditorText(current.textOverride ?? current.initialText ?? current.value ?? "");
+    ensureOqueryLanguage(current.functionDefinitions);
+    const model = createOqueryModel(initial, instanceId);
+    const editor = monaco.editor.create(host, {
+      model,
+      theme: OQUERY_THEME_ID,
+      automaticLayout: true,
+      readOnly: current.disabled ?? false,
+      ariaLabel: current["aria-label"] ?? "OQuery text editor",
+      lineNumbers: current.showLineNumbers === false || current.showGutter === false ? "off" : "on",
+      folding: (current.showFoldControls ?? true) && current.showGutter !== false,
+      glyphMargin: false,
+      lineDecorationsWidth: current.showGutter === false ? 0 : 16,
+      codeLens: Boolean(current.onExecuteContext),
+      minimap: { enabled: false },
+      wordWrap: "off",
+      scrollBeyondLastLine: false,
+      fontFamily: "\"Cascadia Mono\", Consolas, ui-monospace, SFMono-Regular, Menlo, Monaco, \"Liberation Mono\", \"Courier New\", monospace",
+      fontSize: 13,
+      fontWeight: "300",
+      lineHeight: COMPACT_LINE_HEIGHT,
+      tabSize: 2,
+      insertSpaces: true,
+      padding: { top: 16, bottom: 16 },
+      renderLineHighlight: "line",
+      renderWhitespace: "none",
+      scrollbar: { alwaysConsumeMouseWheel: false },
+      wordBasedSuggestions: "off",
+      quickSuggestions: { other: true, comments: false, strings: false },
+      suggestOnTriggerCharacters: true,
+      fixedOverflowWidgets: true,
+    });
+    modelRef.current = model;
+    editorRef.current = editor;
+    decorationsRef.current = editor.createDecorationsCollection();
+
+    const unregisterSource = registerOqueryEditorSource(model, {
+      getCompletions: (text, offset) => {
+        const latest = latestRef.current;
+        return getOQueryCompletions(
           text,
-          collapsed,
-          projectionText: projection.text,
-          updateCompletionPosition,
-          setCompletionIndex,
-          setCompletionPosition,
-          applyCompletion,
-          changeVisibleText,
-          setFoldMessage,
-          pendingCaretRef,
-          undo,
-          redo,
-          onExecuteSelectedText: props.onExecuteSelectedText,
-        })}
-        onScroll={(event) => {
-          if (!highlightRef.current) return;
-          highlightRef.current.scrollTop = event.currentTarget.scrollTop;
-          highlightRef.current.scrollLeft = event.currentTarget.scrollLeft;
-          if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = event.currentTarget.scrollTop;
-          if (errorPosition && errorMarkerRef.current) {
-            Object.assign(errorMarkerRef.current.style, getOqueryErrorMarkerStyle(event.currentTarget, errorPosition));
-          }
-        }}
-        spellCheck={false}
-        disabled={disabled}
-      />
-      {completions.length > 0 && !disabled && <div
-        className="query-oquery-completions"
-        role="listbox"
-        aria-label="OQuery suggestions"
-        style={completionStyle}
-        onMouseDown={(event) => event.preventDefault()}
-      >
-        {completions.map((completion, index) => <button
-          type="button"
-          role="option"
-          aria-selected={index === completionIndex}
-          className={index === completionIndex ? "selected" : ""}
-          key={`${completion.kind}-${completion.label}`}
-          onClick={() => applyCompletion(completion)}
-        >
-          <span className={`query-oquery-completion-kind ${completion.kind}`} title={completion.kind}>
-            <Icon name={getCompletionIcon(completion.kind)} size={13} />
-          </span>
-          <span className="query-oquery-completion-label">{highlightCompletionLabel(completion.label, completionQuery)}</span>
-        </button>)}
-      </div>}
+          offset,
+          latest.suggestionFields ?? [],
+          latest.operators,
+          latest.suggestionEntities ?? [],
+          latest.functionDefinitions,
+          latest.suggestionEntityName ?? "",
+          latest.suggestionEntitiesMetadata ?? [],
+        );
+      },
+      onExecuteContext: (contextName) => latestRef.current.onExecuteContext?.(contextName),
+    });
+
+    const subscriptions = [
+      model.onDidChangeContent(() => {
+        setLineCount(model.getLineCount());
+        refreshDecorations();
+        if (!externalWriteRef.current) latestRef.current.onTextChange(model.getValue());
+      }),
+      editor.onDidChangeCursorSelection(() => {
+        const selection = editor.getSelection();
+        latestRef.current.onSelectionChange?.(selection ? model.getValueInRange(selection) : "");
+      }),
+    ];
+    refreshDecorations();
+
+    return () => {
+      subscriptions.forEach((subscription) => subscription.dispose());
+      unregisterSource();
+      decorationsRef.current?.clear();
+      decorationsRef.current = null;
+      editor.dispose();
+      model.dispose();
+      editorRef.current = null;
+      modelRef.current = null;
+    };
+    // The editor is created once per mounted component; props are read through latestRef.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instanceId]);
+
+  useLayoutEffect(() => {
+    if (textOverride === undefined) return;
+    writeExternalText(textOverride);
+    // writeExternalText reads refs only, so it does not need to be a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [textOverride]);
+
+  useEffect(() => {
+    ensureOqueryLanguage(functionDefinitions);
+    refreshDecorations();
+    // refreshDecorations reads the latest props through refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [functionDefinitions, errorFunctionName]);
+
+  useEffect(() => {
+    editorRef.current?.updateOptions({
+      readOnly: disabled,
+      lineNumbers: showLineNumbers && showGutter ? "on" : "off",
+      folding: showFoldControls && showGutter,
+      lineDecorationsWidth: showGutter ? 16 : 0,
+      codeLens: Boolean(onExecuteContext),
+    });
+  }, [disabled, showLineNumbers, showFoldControls, showGutter, onExecuteContext]);
+
+  useEffect(() => {
+    const model = modelRef.current;
+    if (!model) return;
+    monaco.editor.setModelMarkers(model, "oquery", errorPosition ? [{
+      ...getOqueryErrorRange(errorPosition),
+      severity: monaco.MarkerSeverity.Error,
+      message: errorMessage || "OQuery error",
+    }] : []);
+    // Markers depend on the position values, not the object identity recreated on each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [errorPosition?.line, errorPosition?.column, errorPosition?.length, errorMessage]);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    // Captured before Monaco's own handlers so OQuery Enter and Run-selection
+    // behavior takes precedence; other keys fall through to Monaco.
+    const onKeyDown = (event: KeyboardEvent) => {
+      const editor = editorRef.current;
+      const model = modelRef.current;
+      if (!editor || !model || latestRef.current.disabled) return;
+      if (event.key !== "Enter" || event.altKey || event.shiftKey) return;
+      const selection = editor.getSelection();
+      if (!selection) return;
+      if (event.ctrlKey || event.metaKey) {
+        if (selection.isEmpty()) return;
+        event.preventDefault();
+        event.stopPropagation();
+        latestRef.current.onExecuteSelectedText?.(model.getValueInRange(selection));
+        return;
+      }
+      if (wrapper.querySelector(".suggest-widget.visible")) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const text = model.getValue();
+      const edit = getOqueryEnterEdit(
+        text,
+        model.getOffsetAt(selection.getStartPosition()),
+        model.getOffsetAt(selection.getEndPosition()),
+      );
+      const minimal = getMinimalTextEdit(text, edit.value);
+      // The caret is set as part of the edit: calling setPosition after executeEdits
+      // is not reliable here because the parent re-syncs textOverride on the same change.
+      const caretLines = edit.value.slice(0, edit.caret).split("\n");
+      const caretColumn = caretLines[caretLines.length - 1]!.length + 1;
+      const caret = new monaco.Selection(caretLines.length, caretColumn, caretLines.length, caretColumn);
+      if (minimal) {
+        editor.executeEdits("oquery-enter", [{
+          range: getRange(model, minimal.start, minimal.end),
+          text: minimal.text,
+          forceMoveMarkers: true,
+        }], [caret]);
+      } else {
+        editor.setSelection(caret);
+      }
+    };
+    wrapper.addEventListener("keydown", onKeyDown, { capture: true });
+    return () => wrapper.removeEventListener("keydown", onKeyDown, { capture: true });
+  }, []);
+
+  const compactHeight = Math.max(1, lineCount) * COMPACT_LINE_HEIGHT + COMPACT_CHROME_HEIGHT;
+
+  return (
+    <div
+      ref={wrapperRef}
+      className={`query-oquery-code-editor query-oquery-monaco${showGutter ? "" : " no-gutter"}`}
+      style={compact ? { height: `${compactHeight}px` } : undefined}
+      onBlur={(event) => {
+        if (event.relatedTarget instanceof Node && wrapperRef.current?.contains(event.relatedTarget)) return;
+        onBlur?.(event);
+      }}
+    >
+      <div ref={hostRef} className="query-oquery-monaco-host" />
     </div>
-    {foldMessage && <p className="query-message" role="status">{foldMessage}</p>}
-    </>
   );
 });
 
+OqueryMonacoEditor.displayName = "OqueryMonacoEditor";
+
 const OQueryEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((props, ref) => {
-  if (props.oquery) return <OqueryTextEditor {...props} ref={ref} />;
+  if (props.oquery) return <OqueryMonacoEditor {...props} ref={ref} />;
   const {
     onTextChange, highlight, value, onSelectionChange, onExecuteSelectedText,
     oquery, domain, operators, functionDefinitions, errorFunctionName, compact, showGutter, showFoldControls,
-    onDoubleClick, ...textareaProps
+    onDoubleClick, errorMessage, showLineNumbers, suggestionFields, suggestionEntities, suggestionEntityName,
+    suggestionEntitiesMetadata, initialText, textOverride, errorPosition, onExecuteContext, ...textareaProps
   } = props;
   const selectionText = (textarea: HTMLTextAreaElement) => textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
   return (

@@ -440,6 +440,7 @@ export default function QueryDesign({
               }}
               errorFunctionName={oqueryError.match(/:\s+([A-Za-z_][A-Za-z0-9_]*) requires at least/i)?.[1] ?? ""}
               errorPosition={getOqueryErrorPosition(oqueryError)}
+              errorMessage={oqueryError}
               disabled={oqueryStatus !== "idle"}
             />
           </div>

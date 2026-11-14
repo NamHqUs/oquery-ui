@@ -338,9 +338,7 @@
 .new-home-example-code > .new-home-example-toggle { width: 100%; box-sizing: border-box; justify-content: flex-start; }
 .new-home-example-code > pre { overflow-x: auto; margin: 0; padding: 11px 13px; border-left: 0; color: #8d99aa; background: #0b1017; font: 12px/1.6 "Cascadia Mono","Consolas",monospace; white-space: pre; }
 .new-home-example-editor { position: relative; z-index: 0; overflow: visible; border-left: 0; background: #0b1017; text-align: left; direction: ltr; }
-.new-home-example-code:has(.query-oquery-completions) { z-index: 3000; }
 .new-home-example-editor .query-oquery-code-editor { min-height: 0; height: auto; border: 0; border-radius: 0; }
-.new-home-example-editor .query-oquery-fold-actions { top: 5px; right: 5px; }
 .new-home-example-result { position: absolute; z-index: 1000; top: 100%; right: 19px; left: 19px; min-width: 0; margin-top: 2px; box-shadow: 0 16px 30px #0009; }
 .new-home-example-run { position: static; display: grid; flex: 0 0 25px; width: 25px; height: 25px; place-items: center; margin-left: 0; padding: 0; border: 1px solid #62529a; border-radius: 3px; color: #ddd5fa; background: #352957; cursor: pointer; }
 .new-home-example-run:hover:not(:disabled) { color: #fff; background: #4a3974; }

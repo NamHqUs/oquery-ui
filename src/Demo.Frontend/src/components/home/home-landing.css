@@ -33,7 +33,6 @@
 .hp-playground-hint kbd { padding: 1px 5px; border: 1px solid #2d3441; border-radius: 2px; color: #a9b1bf; background: #191e28; font: 10px "Manrope", sans-serif; }
 .hp-playground-editor { position: relative; display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); background: #0c0f15; }
 .hp-playground-editor > :first-child { min-width: 0; flex: 1; }
-.hp-playground-editor:has(.query-oquery-completions) { z-index: 30; }
 .hp-playground-editor .query-oquery-code-editor { min-height: 0; }
 .hp-run { flex: 0 0 auto; padding: 8px 14px; font-size: 12px; }
 .hp-run:disabled { cursor: progress; }

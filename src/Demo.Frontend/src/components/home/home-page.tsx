@@ -424,7 +424,6 @@ export default function HomePage({
         oquery
         compact
         showLineNumbers={false}
-        showContextRunAlways
         showFoldControls={false}
         rows={Math.max(1, query.split("\n").length)}
         initialText={query}
