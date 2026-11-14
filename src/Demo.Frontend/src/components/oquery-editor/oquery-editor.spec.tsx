@@ -51,6 +51,23 @@ describe("OQueryEditor (Monaco)", () => {
     expect(editor.model.language).toBe("oquery");
   });
 
+  it("runs a context from its gutter glyph and ignores clicks on text", () => {
+    const onExecuteContext = vi.fn();
+    render({ initialText: "Employees: Manager.\nDepartments: Id", onExecuteContext });
+
+    act(() => {
+      currentEditor().emitMouseDown({
+        target: { type: monacoMock.editor.MouseTargetType.GUTTER_GLYPH_MARGIN, position: { lineNumber: 2 } },
+      });
+    });
+    expect(onExecuteContext).toHaveBeenCalledWith("Departments");
+
+    act(() => {
+      currentEditor().emitMouseDown({ target: { type: 6, position: { lineNumber: 1 } } });
+    });
+    expect(onExecuteContext).toHaveBeenCalledTimes(1);
+  });
+
   it("reports typed changes, and does not echo text that came from the parent", () => {
     const onTextChange = vi.fn();
     render({ initialText: "Entity: User", onTextChange });

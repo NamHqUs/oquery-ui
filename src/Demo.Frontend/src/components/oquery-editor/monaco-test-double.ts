@@ -30,6 +30,8 @@ class FakeModel {
     return this.value;
   }
 
+  setEOL() {}
+
   getLineCount() {
     return this.value.split("\n").length;
   }
@@ -126,6 +128,17 @@ class FakeEditor {
     return { set: (_decorations: unknown[]) => undefined, clear: () => undefined };
   }
 
+  private readonly mouseDownListeners = new Set<(event: unknown) => void>();
+
+  onMouseDown(listener: (event: unknown) => void) {
+    this.mouseDownListeners.add(listener);
+    return { dispose: () => this.mouseDownListeners.delete(listener) };
+  }
+
+  emitMouseDown(event: unknown) {
+    this.mouseDownListeners.forEach((listener) => listener(event));
+  }
+
   dispose() {
     this.disposed = true;
     this.model.dispose();
@@ -154,7 +167,8 @@ export const editor = {
   setModelMarkers: (model: FakeModel, _owner: string, markers: unknown[]) => {
     model.markers = markers;
   },
-  registerCommand: () => undefined,
+  MouseTargetType: { GUTTER_GLYPH_MARGIN: 2 },
+  EndOfLineSequence: { LF: 0, CRLF: 1 },
 };
 
 export const languages = {
@@ -164,7 +178,6 @@ export const languages = {
   setMonarchTokensProvider: () => undefined,
   registerCompletionItemProvider: () => undefined,
   registerFoldingRangeProvider: () => undefined,
-  registerCodeLensProvider: () => undefined,
   CompletionItemKind: {
     Class: 1, Field: 2, Reference: 3, Module: 4, Variable: 5, Function: 6, Keyword: 7, Operator: 8, Value: 9,
   },

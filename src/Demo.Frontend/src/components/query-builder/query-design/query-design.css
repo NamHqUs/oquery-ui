@@ -26,7 +26,8 @@
 .query-oquery-workspace.horizontal > .query-oquery-editor { grid-column: 1; grid-row: 3; }
 .query-oquery-workspace.vertical > .query-oquery-editor { grid-column: 1; grid-row: 1; }
 .query-oquery-workspace.vertical > .query-oquery-diagram-panel { grid-column: 3; }
-.query-oquery-editor { position: relative; z-index: 1; display: grid; width: 100%; min-width: 0; gap: 4px; }
+.query-oquery-editor { position: relative; display: grid; width: 100%; min-width: 0; gap: 4px; }
+/* No z-index here: a stacking context would trap Monaco's fixed suggest widget under the diagram cards. */
 .query-oquery-editor-header { position: relative; min-height: 52px; }
 .query-oquery-editor-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .query-oquery-editor-header p { margin: 6px 0 0; color: #9299aa; font-size: 12px; line-height: 1.5; }
@@ -36,6 +37,17 @@
 .query-oquery-code-editor { position: relative; width: 100%; min-width: 0; min-height: 520px; box-sizing: border-box; overflow: hidden; border: 1px solid #323947; border-radius: 4px; background: #0b1018; }
 .query-oquery-code-editor:focus-within { border-color: #7054d4; box-shadow: 0 0 0 2px #7054d433; }
 .query-oquery-monaco-host { position: absolute; inset: 0; }
+
+.query-oquery-run-glyph { display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+.query-oquery-run-glyph::before {
+  width: 0;
+  height: 0;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 11px solid #86efac;
+  content: "";
+}
 .query-oquery-table-key { color: #fbbf24 !important; }
 .query-oquery-context-key { color: #67e8f9 !important; }
 .query-oquery-error-function { color: #ff5668 !important; background: #ff566826; border-radius: 2px; box-shadow: 0 0 0 1px #ff566880; }

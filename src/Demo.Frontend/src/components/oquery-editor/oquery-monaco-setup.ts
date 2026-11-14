@@ -2,15 +2,13 @@ import * as monaco from "monaco-editor";
 import EditorWorker from "monaco-editor/editor/editor.worker.js?worker";
 import type { FunctionDefinition } from "../function-definition/types";
 import type { OQueryCompletion, OQueryCompletionResult, OQueryCompletionKind } from "./oquery-completions";
-import { getOqueryContextLenses, getOqueryFoldingRanges, toMonacoCompletionInsert } from "./oquery-monaco-adapters";
+import { getOqueryFoldingRanges, toMonacoCompletionInsert } from "./oquery-monaco-adapters";
 import { OQUERY_LANGUAGE_CONFIGURATION, OQUERY_LANGUAGE_ID, getOqueryMonarchLanguage } from "./oquery-monaco-language";
 
 export const OQUERY_THEME_ID = "oquery-dark";
-const RUN_CONTEXT_COMMAND_ID = "oquery.runContext";
 
 export type OqueryEditorSource = {
   getCompletions: (text: string, offset: number) => OQueryCompletionResult | null;
-  onExecuteContext?: (contextName: string) => void;
 };
 
 // Monaco language providers are global, so each one dispatches to the editor
@@ -75,26 +73,6 @@ function registerProviders() {
       return getOqueryFoldingRanges(model.getValue()).map((range) => ({ start: range.start, end: range.end }));
     },
   });
-
-  monaco.languages.registerCodeLensProvider(language, {
-    provideCodeLenses(model) {
-      const uri = model.uri.toString();
-      if (!sourcesByUri.get(uri)?.onExecuteContext) return { lenses: [], dispose: () => undefined };
-      const lenses = getOqueryContextLenses(model.getValue()).map((lens) => ({
-        range: new monaco.Range(lens.lineNumber, 1, lens.lineNumber, 1),
-        command: {
-          id: RUN_CONTEXT_COMMAND_ID,
-          title: `Run ${lens.contextName} context`,
-          arguments: [uri, lens.contextName],
-        },
-      }));
-      return { lenses, dispose: () => undefined };
-    },
-  });
-
-  monaco.editor.registerCommand(RUN_CONTEXT_COMMAND_ID, (_accessor, uri: string, contextName: string) => {
-    sourcesByUri.get(uri)?.onExecuteContext?.(contextName);
-  });
 }
 
 function defineTheme() {
@@ -140,7 +118,10 @@ export function ensureOqueryLanguage(functionDefinitions: FunctionDefinition[]) 
 }
 
 export function createOqueryModel(initialText: string, id: string): monaco.editor.ITextModel {
-  return monaco.editor.createModel(initialText, OQUERY_LANGUAGE_ID, monaco.Uri.parse(`inmemory://oquery/${id}.oquery`));
+  const model = monaco.editor.createModel(initialText, OQUERY_LANGUAGE_ID, monaco.Uri.parse(`inmemory://oquery/${id}.oquery`));
+  // Text is normalized to LF before syncing; a CRLF model would make every sync diff the whole tail of the document.
+  model.setEOL(monaco.editor.EndOfLineSequence.LF);
+  return model;
 }
 
 export function registerOqueryEditorSource(model: monaco.editor.ITextModel, source: OqueryEditorSource): () => void {

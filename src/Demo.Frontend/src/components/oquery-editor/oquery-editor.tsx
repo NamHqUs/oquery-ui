@@ -6,7 +6,7 @@ import "../query-builder/query-design/query-design.css";
 import { getOQueryCompletions, type OQuerySuggestionEntity } from "./oquery-completions";
 import { getOqueryEnterEdit } from "./oquery-editor-enter";
 import { normalizeOqueryEditorText } from "./oquery-editor-text";
-import { getMinimalTextEdit, getOqueryErrorRange } from "./oquery-monaco-adapters";
+import { getMinimalTextEdit, getOqueryContextLenses, getOqueryErrorRange } from "./oquery-monaco-adapters";
 import { createOqueryModel, ensureOqueryLanguage, monaco, OQUERY_THEME_ID, registerOqueryEditorSource } from "./oquery-monaco-setup";
 import type { OQueryErrorPosition } from "./oquery-validation";
 
@@ -114,7 +114,17 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       range: getRange(model, match.start, match.end),
       options: { inlineClassName: "query-oquery-error-function" },
     }));
-    decorationsRef.current?.set([...contextDecorations, ...errorDecorations]);
+    // Run glyphs live in the fixed-width gutter, so showing them never shifts the text.
+    const runDecorations = latestRef.current.onExecuteContext
+      ? getOqueryContextLenses(text).map((lens) => ({
+        range: new monaco.Range(lens.lineNumber, 1, lens.lineNumber, 1),
+        options: {
+          glyphMarginClassName: "query-oquery-run-glyph",
+          glyphMarginHoverMessage: { value: `Run ${lens.contextName} context` },
+        },
+      }))
+      : [];
+    decorationsRef.current?.set([...contextDecorations, ...errorDecorations, ...runDecorations]);
   };
 
   const writeExternalText = (next: string) => {
@@ -155,9 +165,8 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       ariaLabel: current["aria-label"] ?? "OQuery text editor",
       lineNumbers: current.showLineNumbers === false || current.showGutter === false ? "off" : "on",
       folding: (current.showFoldControls ?? true) && current.showGutter !== false,
-      glyphMargin: false,
+      glyphMargin: Boolean(current.onExecuteContext),
       lineDecorationsWidth: current.showGutter === false ? 0 : 16,
-      codeLens: Boolean(current.onExecuteContext),
       minimap: { enabled: false },
       wordWrap: "off",
       scrollBeyondLastLine: false,
@@ -194,7 +203,6 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
           latest.suggestionEntitiesMetadata ?? [],
         );
       },
-      onExecuteContext: (contextName) => latestRef.current.onExecuteContext?.(contextName),
     });
 
     const subscriptions = [
@@ -206,6 +214,12 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       editor.onDidChangeCursorSelection(() => {
         const selection = editor.getSelection();
         latestRef.current.onSelectionChange?.(selection ? model.getValueInRange(selection) : "");
+      }),
+      editor.onMouseDown((event) => {
+        if (event.target.type !== monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) return;
+        const lineNumber = event.target.position?.lineNumber;
+        const lens = getOqueryContextLenses(model.getValue()).find((item) => item.lineNumber === lineNumber);
+        if (lens) latestRef.current.onExecuteContext?.(lens.contextName);
       }),
     ];
     refreshDecorations();
@@ -231,12 +245,14 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [textOverride]);
 
+  const hasRunContext = Boolean(onExecuteContext);
+
   useEffect(() => {
     ensureOqueryLanguage(functionDefinitions);
     refreshDecorations();
     // refreshDecorations reads the latest props through refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [functionDefinitions, errorFunctionName]);
+  }, [functionDefinitions, errorFunctionName, hasRunContext]);
 
   useEffect(() => {
     editorRef.current?.updateOptions({
@@ -244,9 +260,9 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       lineNumbers: showLineNumbers && showGutter ? "on" : "off",
       folding: showFoldControls && showGutter,
       lineDecorationsWidth: showGutter ? 16 : 0,
-      codeLens: Boolean(onExecuteContext),
+      glyphMargin: hasRunContext,
     });
-  }, [disabled, showLineNumbers, showFoldControls, showGutter, onExecuteContext]);
+  }, [disabled, showLineNumbers, showFoldControls, showGutter, hasRunContext]);
 
   useEffect(() => {
     const model = modelRef.current;

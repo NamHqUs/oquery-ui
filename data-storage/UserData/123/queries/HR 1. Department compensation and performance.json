@@ -1,63 +1,23 @@
 {
   "domainId": "HR_Domain",
   "name": "HR 1. Department compensation and performance",
-  "rawText": "# Build a professional, developer-oriented text/code editor for OQuery.\r\n# The editing experience should be comparable to a modern IDE editor such\r\n# as VS Code, while providing OQuery-specific language intelligence.\r\n# \r\n# The editor must support:\r\n# \r\n# -   Reliable text editing and selection.\r\n# -   Standard keyboard shortcuts.\r\n# -   Find and replace.\r\n# -   Multi-line and multi-cursor editing.\r\n# -   Code-editor usability features.\r\n# -   OQuery syntax highlighting, completion, validation, and formatting\r\n#     integration.\r\n# -   Automated tests for editing behavior, shortcuts, language services,\r\n#     and regressions.\r\n# \r\n# The implementation must modify the actual application, not merely\r\n# produce a mockup or a list of recommendations.\r\n# ____________________________________________________________\r\n\r\n# Option 1: Multiple contexts.\r\nReviewSummary is PerformanceReviews: EmployeeId EmployeeId, \r\n    AVG(Rating) AverageRating, \r\n    SUM(BonusAmount) Bonuses\r\n  Where ReviewYear = \u003C2025\u003E\r\n  \r\nEmployees: Department.Name Department,\r\n    COUNT(Id) TotalEmployees,\r\n    AVG(Salary) AverageSalary,\r\n    SUM(Salary) AnnualPayroll,\r\n    AVG(ReviewSummary.AverageRating) AverageRating,\r\n    SUM(Coalesce(ReviewSummary.Bonuses, \u003C0\u003E)) TotalBonuses\r\n  Left Join ReviewSummary ReviewSummary On Id = ReviewSummary.EmployeeId\r\n  Order AnnualPayroll ASC\r\n\r\n# Option 2: Fluent syntax\r\nDepartments:\r\n    Name\r\n    Employees.Count(Id) TotalEmployees\r\n    Employees.Avg(Salary) AverageSalary\r\n    Employees.Sum(Salary) AnnualPayroll\r\n    Employees.Avg(PerformanceReviews.AvgIf(Rating, ReviewYear = 2025)) AverageRating\r\n    Employees.Sum(PerformanceReviews.SumIf(BonusAmount, ReviewYear = 2025)) TotalBonuses\r\n Order AnnualPayroll ASC",
+  "rawText": "# Would you know which departments cost the most and how well they perform?\r\n# \r\n#   - How many employees does each department have?\r\n#   - What is the average employee salary?\r\n#   - What is the total annual payroll for each department?\r\n#   - Which departments achieved the highest average performance ratings in 2025?\r\n#   - How much bonus compensation did each department distribute in 2025?\r\n#   - Which departments have the largest payroll commitments?\r\n# \r\n# What if you could combine employee data, salary information, and historical performance reviews \r\n# \u2014 including conditional and nested aggregations \r\n# \u2014 into a single readable query?\r\n# No complex SQL. No manually written joins. No separate queries for each calculation.\r\n# \r\n# Just describe what you want to know. Let OQuery handle the complexity.\r\n# ____________________________________________________________\r\n \r\nDepartments:\r\n    Name\r\n    Employees.Count(Id) TotalEmployees\r\n    Employees.Avg(Salary) AverageSalary\r\n    Employees.Sum(Salary) AnnualPayroll\r\n    Employees.Avg(PerformanceReviews.AvgIf(Rating, ReviewYear = 2025)) AverageRating\r\n    Employees.Sum(PerformanceReviews.SumIf(BonusAmount, ReviewYear = 2025)) TotalBonuses \r\n Order AnnualPayroll ASC",
   "id": "HR 1. Department compensation and performance",
   "isBuiltin": false,
-  "contexts": {
-    "ReviewSummary": {
-      "entity": "PerformanceReviews",
-      "projection": [
-        {
-          "field": {
-            "kind": "field",
-            "field": "EmployeeId"
-          },
-          "alias": "EmployeeId"
-        },
-        {
-          "field": {
-            "kind": "function",
-            "function": "AVG",
-            "arguments": [
-              {
-                "kind": "field",
-                "field": "Rating"
-              }
-            ]
-          },
-          "alias": "AverageRating"
-        },
-        {
-          "field": {
-            "kind": "function",
-            "function": "SUM",
-            "arguments": [
-              {
-                "kind": "field",
-                "field": "BonusAmount"
-              }
-            ]
-          },
-          "alias": "Bonuses"
-        }
-      ],
-      "sorts": []
-    }
-  },
-  "entity": "Employees",
+  "contexts": {},
+  "entity": "Departments",
   "projections": [
     {
       "field": {
         "kind": "field",
-        "field": "Department.Name"
+        "field": "Name"
       },
-      "alias": "Department"
+      "alias": null
     },
     {
       "field": {
         "kind": "function",
-        "function": "COUNT",
+        "function": "Employees.Count",
         "arguments": [
           {
             "kind": "field",
@@ -69,99 +29,33 @@
     },
     {
       "field": {
-        "kind": "function",
-        "function": "AVG",
-        "arguments": [
-          {
-            "kind": "field",
-            "field": "Salary"
-          }
-        ]
+        "kind": "field",
+        "field": "__calculated__2"
       },
-      "alias": "AverageSalary"
+      "alias": null
     },
-    {
-      "field": {
-        "kind": "function",
-        "function": "SUM",
-        "arguments": [
-          {
-            "kind": "field",
-            "field": "Salary"
-          }
-        ]
-      },
-      "alias": "AnnualPayroll"
-    },
-    {
-      "field": {
-        "kind": "function",
-        "function": "AVG",
-        "arguments": [
-          {
-            "kind": "field",
-            "field": "ReviewSummary.AverageRating"
-          }
-        ]
-      },
-      "alias": "AverageRating"
-    },
-    {
-      "field": {
-        "kind": "function",
-        "function": "SUM",
-        "arguments": [
-          {
-            "kind": "function",
-            "function": "Coalesce",
-            "arguments": [
-              {
-                "kind": "field",
-                "field": "ReviewSummary.Bonuses"
-              },
-              {
-                "kind": "value",
-                "value": 0
-              }
-            ]
-          }
-        ]
-      },
-      "alias": "TotalBonuses"
-    }
-  ],
-  "sorts": [
     {
       "field": {
         "kind": "field",
-        "field": "AnnualPayroll"
+        "field": "__calculated__3"
       },
-      "direction": "Ascending"
+      "alias": null
+    },
+    {
+      "field": {
+        "kind": "field",
+        "field": "__calculated__4"
+      },
+      "alias": null
+    },
+    {
+      "field": {
+        "kind": "field",
+        "field": "__calculated__5"
+      },
+      "alias": null
     }
   ],
-  "joins": [
-    {
-      "refContext": "ReviewSummary",
-      "alias": "ReviewSummary",
-      "condition": {
-        "logicalOperation": 0,
-        "filters": [
-          {
-            "logicalOperator": 0,
-            "left": {
-              "kind": "field",
-              "field": "Id"
-            },
-            "operation": 0,
-            "right": {
-              "kind": "field",
-              "field": "ReviewSummary.EmployeeId"
-            },
-            "parameterized": true
-          }
-        ]
-      },
-      "joinType": "Left"
-    }
-  ]
+  "sorts": [],
+  "joins": []
 }
