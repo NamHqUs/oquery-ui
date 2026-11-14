@@ -1,11 +1,3 @@
-Visits: Diagnose.Name Diagnosis,
-    Diagnose.Category DiagnosisCategory,
-    Location.City ClinicCity,
-    CountDistinct(Id) VisitCount,
-    CountDistinct(UserId) UniquePatients,
-    Avg(Charge).Round(2) AverageCharge,
-    (LabResults.CountIf(IsAbnormal = true) * 100.0
+Visits: (LabResults.CountIf(IsAbnormal = true) * 100.0
 / LabResults.Count(Id)).Round(2) AbnormalLabPercent
   Where Status = <Completed>
-  Order VisitCount DESC, AbnormalLabPercent DESC
-  Take 10

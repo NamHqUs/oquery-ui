@@ -188,6 +188,7 @@ export default function EntityBuilder({
                 {filteredTables.map((table) => (
                   <button
                     type="button"
+                    className="metadata-dropdown-item"
                     key={`${table.schema}.${table.name}`}
                     onClick={() => {
                       onSelectTable(table);
@@ -203,6 +204,19 @@ export default function EntityBuilder({
               </div>
             )}
           </div>
+        )}
+        {!showRawSql && onSelectTable && (
+          <label>
+            Schema
+            <input
+              spellCheck={false}
+              value={draft.schema}
+              onChange={(event) =>
+                onDraftChange((entity) => ({ ...entity, schema: event.target.value }))
+              }
+              placeholder="dbo"
+            />
+          </label>
         )}
         </div>
 

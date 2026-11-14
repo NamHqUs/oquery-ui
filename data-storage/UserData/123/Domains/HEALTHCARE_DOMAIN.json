@@ -69,7 +69,7 @@
       ],
       "RawSql": "Doctors",
       "DbTable": "Employees",
-      "DbSchema": "dbo",
+      "DbSchema": "main",
       "IsRawSql": false
     },
     {
@@ -120,7 +120,7 @@
       ],
       "RawSql": "Patients",
       "DbTable": "Users",
-      "DbSchema": "dbo",
+      "DbSchema": "main",
       "IsRawSql": false
     },
     {
@@ -159,7 +159,7 @@
       ],
       "RawSql": "Diagnoses",
       "DbTable": "Diagnoses",
-      "DbSchema": "dbo",
+      "DbSchema": "he",
       "IsRawSql": false
     },
     {
@@ -204,7 +204,7 @@
       ],
       "RawSql": "LabResults",
       "DbTable": "LabResults",
-      "DbSchema": null,
+      "DbSchema": "he",
       "IsRawSql": false
     },
     {
@@ -273,7 +273,7 @@
       ],
       "RawSql": "Visits",
       "DbTable": "Visits",
-      "DbSchema": "dbo",
+      "DbSchema": "he",
       "IsRawSql": false
     },
     {
