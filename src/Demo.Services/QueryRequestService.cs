@@ -2,6 +2,7 @@ using Demo.Contracts.Application;
 using Demo.Contracts.Dto;
 using Demo.Contracts.Repositories;
 using Demo.Contracts.Services;
+using OQuery;
 using OQuery.QueryDefinitions.Parsers;
 
 namespace Demo.Services;
@@ -110,7 +111,18 @@ public sealed class QueryRequestService(
         if (string.IsNullOrWhiteSpace(query.RawText))
             return query;
 
-        var parsed = dynamicQueryService.ParseQueryRequestString(query.RawText);
+        // Saving keeps whatever text the user typed; text that does not parse (for example, comments only)
+        // is stored with the submitted definition instead of being rejected.
+        QueryDefinition parsed;
+        try
+        {
+            parsed = dynamicQueryService.ParseQueryRequestString(query.RawText);
+        }
+        catch (FormatException)
+        {
+            return query;
+        }
+
         return new QueryDto(parsed.Entity)
         {
             Id = query.Id,

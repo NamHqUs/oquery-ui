@@ -1,32 +1,39 @@
 {
-  "DomainId": "HEALTHCARE_DOMAIN",
-  "Name": "Health 5. Visit-type utilization by month",
-  "Entity": "Visits",
-  "Projections": [
+  "domainId": "HEALTHCARE_DOMAIN",
+  "name": "H5. Visit-type utilization by month",
+  "rawText": "# Do you know when your healthcare facilities are busiest and how many appointments are being missed?\n#  - Which months experience the highest patient visit volumes?\n#  - Which types of visits account for the largest share of healthcare activity?\n#  - Are no-show rates increasing during particular months or for specific visit types?\n#  - What percentage of scheduled visits are missed, and where is the problem most significant?\n#  - How much time do physicians spend with patients on average across different visit types?\n#  - Which visit types generate the highest total charges?\n#  - Are certain months experiencing high appointment volumes but also unusually high no-show rates?\n#  - How can we identify seasonal demand patterns to improve staffing and appointment scheduling?\n#  - Are there opportunities to reduce missed appointments and improve healthcare resource utilization?\n# __________________________________________________\n\nVisitUtilizationByMonth is Visits:\n    VisitDate.Year() VisitYear,\n    VisitDate.Month() VisitMonth,\n    VisitType,\n    Count(Id) ScheduledVisits,\n    CountIf(Status = \u003CNo-Show\u003E) NoShows,\n    (CountIf(Status = \u003CNo-Show\u003E) * 100.0 / Count(Id)).Round(2) NoShowPercent,\n    AvgIf(DurationMinutes, Status = \u003CCompleted\u003E).Round(1) AverageMinutes,\n    Sum(Charge).Round(2) Charges\n  Order ScheduledVisits DESC\n  Take 10",
+  "id": "Health 5. Visit-type utilization by month",
+  "isBuiltin": false,
+  "contexts": {},
+  "entity": "Visits",
+  "projections": [
     {
       "field": {
         "kind": "function",
-        "function": "MonthKey",
-        "arguments": [
-          {
-            "kind": "field",
-            "field": "VisitDate"
-          }
-        ]
+        "function": "VisitDate.Year",
+        "arguments": []
       },
-      "Alias": "VisitMonth"
+      "alias": "VisitYear"
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "VisitDate.Month",
+        "arguments": []
+      },
+      "alias": "VisitMonth"
     },
     {
       "field": {
         "kind": "field",
         "field": "VisitType"
       },
-      "Alias": null
+      "alias": null
     },
     {
       "field": {
         "kind": "function",
-        "function": "COUNT",
+        "function": "Count",
         "arguments": [
           {
             "kind": "field",
@@ -34,7 +41,7 @@
           }
         ]
       },
-      "Alias": "ScheduledVisits"
+      "alias": "ScheduledVisits"
     },
     {
       "field": {
@@ -42,173 +49,44 @@
         "function": "CountIf",
         "arguments": [
           {
-            "kind": "condition",
-            "condition": {
-              "logicalOperation": 0,
-              "filters": [
-                {
-                  "logicalOperator": 0,
-                  "left": {
-                    "kind": "field",
-                    "field": "Status"
-                  },
-                  "operation": 0,
-                  "right": {
-                    "kind": "value",
-                    "value": "No-Show"
-                  },
-                  "parameterized": true
-                }
-              ]
-            }
+            "kind": "field",
+            "field": "Status = \u003CNo-Show\u003E"
           }
         ]
       },
-      "Alias": "NoShows"
+      "alias": "NoShows"
     },
     {
       "field": {
-        "kind": "function",
-        "function": "ROUND",
-        "arguments": [
-          {
-            "kind": "group",
-            "fields": [
-              {
-                "kind": "value",
-                "value": 100.0
-              },
-              {
-                "oper": "*",
-                "kind": "function",
-                "function": "CountIf",
-                "arguments": [
-                  {
-                    "kind": "condition",
-                    "condition": {
-                      "logicalOperation": 0,
-                      "filters": [
-                        {
-                          "logicalOperator": 0,
-                          "left": {
-                            "kind": "field",
-                            "field": "Status"
-                          },
-                          "operation": 0,
-                          "right": {
-                            "kind": "value",
-                            "value": "No-Show"
-                          },
-                          "parameterized": true
-                        }
-                      ]
-                    }
-                  }
-                ]
-              },
-              {
-                "oper": "/",
-                "kind": "function",
-                "function": "COUNT",
-                "arguments": [
-                  {
-                    "kind": "field",
-                    "field": "Id"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "kind": "value",
-            "value": 2
-          }
-        ]
+        "kind": "field",
+        "field": "(CountIf(Status = \u003CNo-Show\u003E) * 100.0 / Count(Id)).Round(2)"
       },
-      "Alias": "NoShowPercent"
+      "alias": "NoShowPercent"
     },
     {
       "field": {
-        "kind": "function",
-        "function": "ROUND",
-        "arguments": [
-          {
-            "kind": "function",
-            "function": "AvgIf",
-            "arguments": [
-              {
-                "kind": "field",
-                "field": "DurationMinutes"
-              },
-              {
-                "kind": "condition",
-                "condition": {
-                  "logicalOperation": 0,
-                  "filters": [
-                    {
-                      "logicalOperator": 0,
-                      "left": {
-                        "kind": "field",
-                        "field": "Status"
-                      },
-                      "operation": 0,
-                      "right": {
-                        "kind": "value",
-                        "value": "Completed"
-                      },
-                      "parameterized": true
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "kind": "value",
-            "value": 1
-          }
-        ]
+        "kind": "field",
+        "field": "AvgIf(DurationMinutes, Status = \u003CCompleted\u003E).Round(1)"
       },
-      "Alias": "AverageMinutes"
+      "alias": "AverageMinutes"
     },
     {
       "field": {
-        "kind": "function",
-        "function": "ROUND",
-        "arguments": [
-          {
-            "kind": "function",
-            "function": "SUM",
-            "arguments": [
-              {
-                "kind": "field",
-                "field": "Charge"
-              }
-            ]
-          },
-          {
-            "kind": "value",
-            "value": 2
-          }
-        ]
+        "kind": "field",
+        "field": "Sum(Charge).Round(2)"
       },
-      "Alias": "Charges"
+      "alias": "Charges"
     }
   ],
-  "Filter": null,
-  "Sorts": [
+  "sorts": [
     {
-      "Field": {
+      "field": {
         "kind": "field",
         "field": "ScheduledVisits"
       },
-      "Direction": "Descending"
+      "direction": "Descending"
     }
   ],
-  "Take": 10,
-  "Skip": 0,
-  "Joins": null,
-  "Id": "Health 5. Visit-type utilization by month",
-  "Contexts": {},
-  "IsBuiltin": false
+  "take": 10,
+  "joins": []
 }

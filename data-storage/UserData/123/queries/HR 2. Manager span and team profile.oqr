@@ -1,10 +1,10 @@
 Employees: FirstName + < > + LastName TeamLead,
     Members.Count(Id) TotalMembers,
     Members.Count(LocationId) TotalLocations,
-    Members.Avg(Salary) AverageTeamSalary,
+    Members.Avg(Salary).Round(2) AverageTeamSalary,
     Members.Sum(Salary) TeamPayroll,
     Members.Min(Salary) LowestSalary,
     Members.Max(Salary) HighestSalary,
-    Members.PerformanceReviews.Avg(Rating) AverageTeamRating,
+    Members.PerformanceReviews.Avg(Rating).Round(2) AverageTeamRating,
     Members.Count(PerformanceReviews.Id) TotalReviews
   Order TotalMembers DESC

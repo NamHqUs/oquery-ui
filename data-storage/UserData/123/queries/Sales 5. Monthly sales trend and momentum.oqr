@@ -1,14 +1,10 @@
-Query is MonthlySales:
-  Inner Join MonthlySales MonthlySales
-    SalesMonth,
-    ROUND(Revenue, <2>) Revenue,
-    OrderCount,
-    ROUND(Lag(Revenue, <1>, SalesMonth), <2>) PriorMonthRevenue,
-    ROUND(Difference(Revenue, Lag(Revenue, <1>, SalesMonth)), <2>) RevenueChange,
-    ROUND(WindowSum(Revenue, SalesMonth), <2>) RunningRevenue
+OrderItems: MonthKey(Order.OrderDate) SalesMonth,
+    SUM(Quantity * UnitPrice - DiscountAmount) NetRevenue,
+    CountDistinct(OrderId) OrderCount,
+    NetRevenue Revenue,
+    Lag(NetRevenue, <1>, SalesMonth) PriorMonthRevenue,
+    NetRevenue - Lag(NetRevenue, <1>, SalesMonth) RevenueChange,
+    WindowSum(NetRevenue, SalesMonth) RunningRevenue
+  Where Order.Status = <Completed>
   Order SalesMonth DESC
   Take 10
-MonthlySales is Orders: MonthKey(OrderDate) SalesMonth,
-    SUM(Items.Quantity * Items.UnitPrice - Items.DiscountAmount) Revenue,
-    CountDistinct(Id) OrderCount
-  Where Status = <Completed>

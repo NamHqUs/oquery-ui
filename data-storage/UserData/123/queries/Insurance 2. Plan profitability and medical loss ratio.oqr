@@ -1,16 +1,11 @@
-InsurancePlans:
-  Left Join PremiumTotals PremiumTotals On Id = PremiumTotals.PlanId
-  Left Join ClaimTotals ClaimTotals On Id = ClaimTotals.PlanId
-    Name Plan,
+InsurancePlans: Name Plan,
     Tier,
-    CountDistinct(Policies.Id) PolicyCount,
-    ROUND(IfNull(PremiumTotals.PremiumRevenue, <0>), <2>) PremiumRevenue,
-    IfNull(ClaimTotals.ClaimCount, <0>) ClaimCount,
-    ROUND(IfNull(ClaimTotals.ClaimsPaid, <0>), <2>) ClaimsPaid,
-    MedicalLossRatio(ClaimTotals.ClaimsPaid, PremiumTotals.PremiumRevenue) MedicalLossRatioPercent,
-    IfNull(ClaimTotals.DeniedClaims, <0>) DeniedClaims
+    CountOver(Policies) PolicyCount,
+    Round(IfNull(Policies.Sum(PremiumPayments.SumIf(Amount, Status = <Paid>)), <0>), <2>) PremiumRevenue,
+    Round(IfNull(Policies.Sum(Claims.Sum(PaidAmount)), <0>), <2>) ClaimsPaid,
+    Policies.Sum(CountOver(Claims)) ClaimCount,
+    Policies.Sum(Claims.CountIf(Status = <Denied>)) DeniedClaims,
+    (100 * IfNull(Policies.Sum(Claims.Sum(PaidAmount)), 0)
+/ NullIf(Policies.Sum(PremiumPayments.SumIf(Amount, Status = <Paid>)), 0)).Round(2) MedicalLossRatioPercent
   Order MedicalLossRatioPercent DESC
   Take 10
-PremiumTotals is PremiumPayments: Policy.PlanId PlanId, SUM(Amount) PremiumRevenue
-  Where Status = <Paid>
-ClaimTotals is Claims: Policy.PlanId PlanId, SUM(PaidAmount) ClaimsPaid, COUNT(Id) ClaimCount, CountIf(Status = <Denied>) DeniedClaims

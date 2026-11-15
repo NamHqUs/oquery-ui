@@ -4,6 +4,7 @@
     <Project Path="Demo.DbServices/Demo.DbServices.csproj" Id="728b0ab9-6f37-4d5b-8f09-35acc670403a" />
     <Project Path="Demo.Repositories/Demo.Repositories.csproj" />
     <Project Path="Demo.Services/Demo.Services.csproj" />
+    <Project Path="Demo.Services.UnitTest/Demo.Services.UnitTest.csproj" />
     <Project Path="Demo.Share/Demo.Share.csproj" Id="b4876c7a-82d3-410b-84bc-3a8502971a80" />
   </Folder>
   <Folder Name="/Solution Items/">

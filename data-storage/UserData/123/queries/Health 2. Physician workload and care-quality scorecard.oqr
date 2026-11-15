@@ -1,16 +1,12 @@
-Doctors:
-  Left Join DoctorLabs On Id = DoctorLabs.DoctorId
-    FirstName + < > + LastName Physician,
+Doctors: FirstName + < > + LastName Physician,
     Department.Name Department,
     Location.City ClinicCity,
     Examinations.CountIf(Status = <Completed>) VisitCount,
     Examinations.CountDistinctIf(UserId, Status = <Completed>) PatientCount,
-    Examinations.AvgIf(DurationMinutes, Status = <Completed>) AverageVisitMinutes,
+    Examinations.AvgIf(DurationMinutes, Status = <Completed>).Round(2) AverageVisitMinutes,
     Examinations.SumIf(Charge, Status = <Completed>) Charges,
-    (<100> * DoctorLabs.AbnormalCount
-/ NullIf(DoctorLabs.LabCount, <0>)).Round(<2>) AbnormalLabPercent
+    (100 * Examinations.SumIf(LabResults.CountIf(IsAbnormal = <True>), Status = <Completed>)
+/ NullIf(Examinations.SumIf(LabResults.Count(Id), Status = <Completed>), 0)).Round(2) AbnormalLabPercent
   Where Department.Name IN <Primary Care> + <Specialty Care> + <Emergency Medicine>
   Order VisitCount DESC, Charges DESC
   Take 10
-DoctorLabs is LabResults: Visit.DoctorId DoctorId, Count(Id) LabCount, CountIf(IsAbnormal = <true>) AbnormalCount
-  Where Visit.Status = <Completed>

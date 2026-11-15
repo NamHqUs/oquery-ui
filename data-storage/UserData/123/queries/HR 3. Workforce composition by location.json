@@ -1,7 +1,7 @@
 {
   "domainId": "HR_Domain",
   "name": "HR 3. Workforce Distribution \u0026 Location Analysis",
-  "rawText": "# Do you know how your workforce is distributed across locations?\n#  - Which offices have the largest workforces?\n#  - How many departments are represented at each location?\n#  - What is the mix of full-time, part-time, and contract employees?\n#  - How long have employees been with the company on average?\n#  - What is the total annual payroll for each office?\n#  - Which locations have the highest staffing costs?\n# ____________________________________________________________\n\nLocations:\n    City OfficeCity\n    State\n    Employees.Count(Id) Headcount\n    Employees.CountDistinct(DepartmentId) DepartmentsRepresented\n    Employees.CountIf(EmploymentType = \u0027Full-time\u0027) FullTime\n    Employees.CountIf(EmploymentType = \u0027Part-time\u0027) PartTime\n    Employees.CountIf(EmploymentType = \u0027Contract\u0027) Contractors\n    Employees.Avg(HireDate.DateSub(\u003C2025-10-31\u003E) / 365.25) AverageTenureYears\n    Employees.Sum(Salary).Round(2) AnnualPayroll\nOrder Headcount DESC, AnnualPayroll DESC\n    \n    ",
+  "rawText": "# Do you know how your workforce is distributed across locations?\n#  - Which offices have the largest workforces?\n#  - How many departments are represented at each location?\n#  - What is the mix of full-time, part-time, and contract employees?\n#  - How long have employees been with the company on average?\n#  - What is the total annual payroll for each office?\n#  - Which locations have the highest staffing costs?\n# ____________________________________________________________\n\nLocations:\n    City OfficeCity\n    State\n    Employees.Count(Id) Headcount\n    Employees.CountDistinct(DepartmentId) DepartmentsRepresented\n    Employees.CountIf(EmploymentType = \u0027Full-time\u0027) FullTime\n    Employees.CountIf(EmploymentType = \u0027Part-time\u0027) PartTime\n    Employees.CountIf(EmploymentType = \u0027Contract\u0027) Contractors\n    Employees.Avg(HireDate.DateSub(\u003C2025-10-31\u003E) / 365.25).Round(2) AverageTenureYears\n    Employees.Sum(Salary).Round(2) AnnualPayroll\nOrder Headcount DESC, AnnualPayroll DESC\n    \n    ",
   "id": "HR 3. Workforce composition by location",
   "isBuiltin": false,
   "contexts": {},
@@ -88,30 +88,8 @@
     },
     {
       "field": {
-        "kind": "function",
-        "function": "Employees.Avg",
-        "arguments": [
-          {
-            "kind": "group",
-            "fields": [
-              {
-                "kind": "function",
-                "function": "HireDate.DateSub",
-                "arguments": [
-                  {
-                    "kind": "value",
-                    "value": "2025-10-31"
-                  }
-                ]
-              },
-              {
-                "oper": "/",
-                "kind": "value",
-                "value": 365.25
-              }
-            ]
-          }
-        ]
+        "kind": "field",
+        "field": "Employees.Avg(HireDate.DateSub(\u003C2025-10-31\u003E) / 365.25).Round(2)"
       },
       "alias": "AverageTenureYears"
     },

@@ -1,10 +1,12 @@
-Claims: Policy.Plan.Name Plan,
-    Policy.Plan.Tier Tier,
-    COUNT(Id) ClaimsReceived,
-    CountIf(Status = <Paid>) PaidClaims,
-    CountIf(Status = <Denied>) DeniedClaims,
-    ROUND(<100.0> * CountIf(Status = <Denied>) / COUNT(Id), <2>) DenialPercent,
-    ROUND(AvgIf(DateSub(ClaimDate, ProcessedDate), ProcessedDate IS NOT NULL), <1>) AverageProcessingDays,
-    ROUND(SUM(PaidAmount), <2>) TotalPaid
+InsurancePlans: Name Plan,
+    Tier,
+    Policies.Sum(CountOver(Claims)) ClaimsReceived,
+    Policies.Sum(Claims.CountIf(Status = <Paid>)) PaidClaims,
+    Policies.Sum(Claims.CountIf(Status = <Denied>)) DeniedClaims,
+    (DeniedClaims * 100.0 / NullIf(ClaimsReceived, 0)).Round(2) DenialPercent,
+    (Policies.Sum(Claims.Sum(DateSub(ClaimDate, ProcessedDate))) * 1.0
+/ NullIf(Policies.Sum(Claims.Count(ProcessedDate)), 0)).Round(1) AverageProcessingDays,
+    Policies.Sum(Claims.Sum(PaidAmount)).Round(2) TotalPaid
+  Where ClaimsReceived > <0>
   Order ClaimsReceived DESC
   Take 10

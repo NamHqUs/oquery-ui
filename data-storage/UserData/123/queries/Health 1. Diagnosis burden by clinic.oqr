@@ -1,13 +1,9 @@
-Visits:
-  Left Join VisitLabs On Id = VisitLabs.VisitId
-    Diagnose.Name Diagnosis,
+Visits: Diagnose.Name DiagnosisName,
     Diagnose.Category DiagnosisCategory,
     Location.City ClinicCity,
     CountDistinct(Id) VisitCount,
     CountDistinct(UserId) UniquePatients,
-    Avg(Charge).ROUND(2) AverageCharge,
-    (100.0 * Sum(IfNull(VisitLabs.AbnormalCount, 0))
-/ NullIf(Sum(IfNull(VisitLabs.LabCount, 0)), 0)).Round(2) AbnormalLabPercent
+    Avg(Charge).Round(2) AverageCharge,
+    (100.0 * Sum(LabResults.CountIf(IsAbnormal = <True>))
+/ NullIf(Sum(LabResults.Count(Id)), 0)).Round(2) AbnormalLabPercent
   Where Status = <Completed>
-  Order VisitCount DESC, AbnormalLabPercent DESC
-VisitLabs is LabResults: VisitId, Count(Id) LabCount, CountIf(IsAbnormal = true) AbnormalCount

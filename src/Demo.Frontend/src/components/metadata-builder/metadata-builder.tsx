@@ -865,7 +865,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       setDraft({ ...existingDraft, rawSql: rawSqlOverride ?? existingDraft.rawSql });
       setDirty(newRelations.length > 0);
     } else {
-      setSelectedName("");
+      setSelectedName(preserveEntityName ? selectedName : "");
       setDraft({
         name: entityName,
         schema: table.schema,

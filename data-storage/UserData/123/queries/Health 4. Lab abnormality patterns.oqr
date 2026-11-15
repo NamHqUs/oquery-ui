@@ -1,10 +1,10 @@
 LabResults: TestName,
-    Visit.Diagnosis.Category DiagnosisCategory,
-    COUNT(Id) TestCount,
+    Visit.Diagnose.Category DiagnosisCategory,
+    Count(Id) TestCount,
     CountIf(IsAbnormal = <True>) AbnormalCount,
-    ROUND(<100.0> * CountIf(IsAbnormal = <True>) / COUNT(Id), <2>) AbnormalPercent,
-    ROUND(AVG(ResultValue), <2>) AverageResult,
-    ROUND(AVG(ReferenceMax), <2>) AverageReferenceMaximum
-  Where Visit.Status = <Completed> AND COUNT(Id) >= <5>
+    (CountIf(IsAbnormal = <True>) * 100.0 / Count(Id)).Round(2) AbnormalPercent,
+    Avg(ResultValue).Round(2) AverageResult,
+    Avg(ReferenceMax).Round(2) AverageReferenceMaximum
+  Where Visit.Status = <Completed> AND Count(Id) >= <5>
   Order AbnormalPercent DESC, TestCount DESC
   Take 10

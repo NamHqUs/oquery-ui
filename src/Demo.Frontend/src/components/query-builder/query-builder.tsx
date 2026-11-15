@@ -885,11 +885,6 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
       return;
     }
     try {
-      const syntaxError = getOquerySyntaxError(oqueryText, functionDefinitions, filterOperators, suggestionEntities, definition.entity);
-      if (syntaxError) {
-        setOqueryError(syntaxError);
-        return;
-      }
       await persistCurrentRequest(activeDefinition);
     } catch (error) {
       setOqueryError(typeof error === "string" ? error : "Unable to save OQuery query.");

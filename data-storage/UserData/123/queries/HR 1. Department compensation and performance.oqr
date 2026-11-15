@@ -1,7 +1,7 @@
 Departments: Name,
     Employees.Count(Id) TotalEmployees,
-    Employees.Avg(Salary) AverageSalary,
+    Employees.Avg(Salary).Round(2) AverageSalary,
     Employees.Sum(Salary) AnnualPayroll,
-    Employees.PerformanceReviews.AvgIf(Rating, ReviewYear = 2025) AverageRating,
+    Employees.PerformanceReviews.AvgIf(Rating, ReviewYear = 2025).Round(2) AverageRating,
     Employees.PerformanceReviews.SumIf(BonusAmount, ReviewYear = 2025) TotalBonuses
   Order AnnualPayroll ASC

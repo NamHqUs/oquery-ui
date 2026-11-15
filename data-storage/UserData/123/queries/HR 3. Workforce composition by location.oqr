@@ -5,6 +5,6 @@ Locations: City OfficeCity,
     Employees.CountIf(EmploymentType = 'Full-time') FullTime,
     Employees.CountIf(EmploymentType = 'Part-time') PartTime,
     Employees.CountIf(EmploymentType = 'Contract') Contractors,
-    Employees.Avg(HireDate.DateSub(<2025-10-31>) / <365.25>) AverageTenureYears,
+    Employees.Avg(HireDate.DateSub(<2025-10-31>) / 365.25).Round(2) AverageTenureYears,
     Employees.Sum(Salary).Round(2) AnnualPayroll
   Order Headcount DESC, AnnualPayroll DESC

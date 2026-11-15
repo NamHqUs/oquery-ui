@@ -1,10 +1,10 @@
-Claims: Policy.Plan.Tier Tier,
-    Policy.Plan.Name Plan,
+Claims: Policy.InsurancePlan.Tier Tier,
+    Policy.InsurancePlan.Name Plan,
     DenialReason,
-    COUNT(Id) DeniedClaims,
-    ROUND(SUM(BilledAmount), <2>) BilledAmount,
-    ROUND(SUM(AllowedAmount), <2>) AllowedAmount,
-    ROUND(AVG(BilledAmount), <2>) AverageBilledAmount
+    Count(Id) DeniedClaims,
+    Sum(BilledAmount).Round(2) BilledAmount,
+    Sum(AllowedAmount).Round(2) AllowedAmount,
+    Avg(BilledAmount).Round(2) AverageBilledAmount
   Where Status = <Denied>
   Order DeniedClaims DESC, BilledAmount DESC
   Take 10

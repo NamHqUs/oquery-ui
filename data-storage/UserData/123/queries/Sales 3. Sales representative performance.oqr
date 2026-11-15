@@ -1,11 +1,9 @@
-Employees: Id SalesRepId,
-    Concat(FirstName, < >, LastName) SalesRep,
-    Location.City HomeCity,
-    Department.Name Department,
-    CountDistinct(SalesOrders.Id) CompletedOrders,
-    SUM(SalesOrders.Items.Quantity) UnitsSold,
-    ROUND(SUM(SalesOrders.Items.Quantity * SalesOrders.Items.UnitPrice - SalesOrders.Items.DiscountAmount), <2>) NetSales,
-    ROUND(SUM(SalesOrders.Items.Quantity * (SalesOrders.Items.UnitPrice - SalesOrders.Items.Product.CostPrice) - SalesOrders.Items.DiscountAmount), <2>) GrossProfit
-  Where Department.Name = <Retail Sales> AND SalesOrders.Status = <Completed>
+OrderItems: Order.SalesRepId SalesRepId,
+    Order.Seller.FirstName + < > + Order.Seller.LastName SalesRep,
+    CountDistinct(Order.Id) CompletedOrders,
+    SUM(Quantity) UnitsSold,
+    SUM(Quantity * UnitPrice - DiscountAmount) NetSales,
+    SUM(Quantity * (UnitPrice - Product.CostPrice) - DiscountAmount) GrossProfit
+  Where Order.Status = <Completed>
   Order NetSales DESC
   Take 10

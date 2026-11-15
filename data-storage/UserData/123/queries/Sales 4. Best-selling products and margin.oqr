@@ -1,11 +1,12 @@
-Products: Id ProductId,
-    Name Product,
-    Category,
-    SUM(OrderItems.Quantity) UnitsSold,
-    CountDistinct(OrderItems.Order.Id) OrderCount,
-    ROUND(SUM(OrderItems.Quantity * OrderItems.UnitPrice - OrderItems.DiscountAmount), <2>) NetRevenue,
-    ROUND(SUM(OrderItems.Quantity * (OrderItems.UnitPrice - OrderItems.Product.CostPrice) - OrderItems.DiscountAmount), <2>) GrossProfit,
-    ROUND(<100.0> * SUM(OrderItems.Quantity * (OrderItems.UnitPrice - OrderItems.Product.CostPrice) - OrderItems.DiscountAmount) / NULLIF(SUM(OrderItems.Quantity * OrderItems.UnitPrice - OrderItems.DiscountAmount), <0>), <2>) MarginPercent
-  Where OrderItems.Order.Status = <Completed>
+OrderItems: Product.Id ProductId,
+    Product.Name Product,
+    Product.Category Category,
+    CountDistinct(Order.Id) OrderCount,
+    SUM(Quantity) UnitsSold,
+    SUM(Quantity * UnitPrice - DiscountAmount).Round(2) NetRevenue,
+    SUM(Quantity * (UnitPrice - Product.CostPrice) - DiscountAmount).Round(2) GrossProfit,
+    (<100> * SUM(Quantity * (UnitPrice - Product.CostPrice) - DiscountAmount)
+/ NullIf(SUM(Quantity * UnitPrice - DiscountAmount), <0>)).Round(2) MarginPercent
+  Where Order.Status = <Completed>
   Order GrossProfit DESC
   Take 10

@@ -300,6 +300,9 @@ function analyzeScope(
     if (block.declared) declared.set(block.name, block.outputs);
   }
   const cursorBlock = [...blocks].reverse().find((block) => block.headerLine < cursorLine) ?? null;
+  const cursorLineStart = text.lastIndexOf("\n", Math.max(0, position - 1)) + 1;
+  const currentHeader = headerPattern.exec(text.slice(cursorLineStart, position));
+  const sourceName = currentHeader ? unquote(currentHeader[2]!) : cursorBlock?.sourceName ?? rootEntityName;
   const scope: Scope = {
     root: { type: "context", fields: fallbackFields, collection: false },
     entities,
@@ -307,7 +310,7 @@ function analyzeScope(
     joins: cursorBlock?.joins ?? new Map(),
     aliases: cursorBlock?.aliases ?? [],
   };
-  scope.root = sourceNode(scope, cursorBlock?.sourceName ?? rootEntityName, false)
+  scope.root = sourceNode(scope, sourceName, false)
     ?? { type: "context", fields: fallbackFields, collection: false };
   return scope;
 }

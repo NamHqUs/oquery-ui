@@ -1,7 +1,7 @@
 {
   "domainId": "HR_Domain",
   "name": "HR 1. Department compensation and performance",
-  "rawText": "# Would you know which departments cost the most and how well they perform?\n#  - How many employees does each department have?\n#  - What is the average employee salary?\n#  - What is the total annual payroll for each department?\n#  - What is the average performance rating for each department in 2025?\n#  - How much bonus compensation did each department distribute in 2025?\n#  - Which departments have the highest payroll costs?\n# ____________________________________________________________\n \nDepartments:\n    Name\n    Employees.Count(Id) TotalEmployees\n    Employees.Avg(Salary) AverageSalary\n    Employees.Sum(Salary) AnnualPayroll\n    Employees.PerformanceReviews.AvgIf(Rating, ReviewYear = 2025) AverageRating\n    Employees.PerformanceReviews.SumIf(BonusAmount, ReviewYear = 2025) TotalBonuses\n Order AnnualPayroll ASC\n ",
+  "rawText": "# Would you know which departments cost the most and how well they perform?\n#  - How many employees does each department have?\n#  - What is the average employee salary?\n#  - What is the total annual payroll for each department?\n#  - What is the average performance rating for each department in 2025?\n#  - How much bonus compensation did each department distribute in 2025?\n#  - Which departments have the highest payroll costs?\n# ____________________________________________________________\n \nDepartments:\n    Name\n    Employees.Count(Id) TotalEmployees\n    Employees.Avg(Salary).Round(2) AverageSalary\n    Employees.Sum(Salary) AnnualPayroll\n    Employees.PerformanceReviews.AvgIf(Rating, ReviewYear = 2025).Round(2) AverageRating\n    Employees.PerformanceReviews.SumIf(BonusAmount, ReviewYear = 2025) TotalBonuses\n Order AnnualPayroll ASC\n ",
   "id": "HR 1. Department compensation and performance",
   "isBuiltin": false,
   "contexts": {},
@@ -29,14 +29,8 @@
     },
     {
       "field": {
-        "kind": "function",
-        "function": "Employees.Avg",
-        "arguments": [
-          {
-            "kind": "field",
-            "field": "Salary"
-          }
-        ]
+        "kind": "field",
+        "field": "Employees.Avg(Salary).Round(2)"
       },
       "alias": "AverageSalary"
     },
@@ -55,18 +49,8 @@
     },
     {
       "field": {
-        "kind": "function",
-        "function": "Employees.PerformanceReviews.AvgIf",
-        "arguments": [
-          {
-            "kind": "field",
-            "field": "Rating"
-          },
-          {
-            "kind": "field",
-            "field": "ReviewYear = 2025"
-          }
-        ]
+        "kind": "field",
+        "field": "Employees.PerformanceReviews.AvgIf(Rating, ReviewYear = 2025).Round(2)"
       },
       "alias": "AverageRating"
     },

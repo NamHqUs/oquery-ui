@@ -1,17 +1,10 @@
-Policies:
-  Left Join MemberPremiums MemberPremiums On UserId = MemberPremiums.UserId
-  Left Join MemberClaims MemberClaims On UserId = MemberClaims.UserId
-    User.Id MemberId,
-    Concat(User.FirstName, < >, User.LastName) Member,
-    Plan.Name Plan,
-    Status PolicyStatus,
-    IfNull(MemberClaims.Claims, <0>) Claims,
-    ROUND(IfNull(MemberPremiums.PremiumsCollected, <0>), <2>) PremiumsCollected,
-    ROUND(IfNull(MemberClaims.AllowedAmount, <0>), <2>) AllowedAmount,
-    ROUND(IfNull(MemberClaims.InsurerPaid, <0>), <2>) InsurerPaid,
-    ROUND(<100.0> * IfNull(MemberClaims.InsurerPaid, <0>) / NULLIF(MemberPremiums.PremiumsCollected, <0>), <2>) MemberLossRatioPercent
-  Order MemberLossRatioPercent DESC, Claims DESC
+Clients: Id MemberId,
+    Concat(FirstName, < >, LastName) Member,
+    Policies.Sum(PremiumPayments.SumIf(Amount, Status = <Paid>)).Round(2) PremiumsCollected,
+    Policies.Sum(Claims.Sum(AllowedAmount)).Round(2) AllowedAmount,
+    Policies.Sum(Claims.Sum(PaidAmount)).Round(2) InsurerPaid,
+    Policies.Sum(Claims.Count(Id)) ClaimCount,
+    (100.0 * InsurerPaid / NullIf(PremiumsCollected, 0)).Round(2) MemberLossRatioPercent
+  Where Policies.Count(Id) > <0>
+  Order MemberLossRatioPercent DESC, ClaimCount DESC
   Take 10
-MemberPremiums is PremiumPayments: Policy.UserId UserId, SUM(Amount) PremiumsCollected
-  Where Status = <Paid>
-MemberClaims is Claims: Policy.UserId UserId, COUNT(Id) Claims, SUM(AllowedAmount) AllowedAmount, SUM(PaidAmount) InsurerPaid

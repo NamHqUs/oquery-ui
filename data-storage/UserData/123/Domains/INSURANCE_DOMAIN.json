@@ -1,7 +1,7 @@
 {
   "Id": "INSURANCE_DOMAIN",
   "Name": "Insurance",
-  "Description": "The Insurance scope represents NorthStar\u2019s health-plan business. It focuses on insurance plans, policies, members, premiums, claims, denials, agents, and the relationship between collected premiums and healthcare costs.\n\nThis scope supports decisions about:\n\n- **Why claims are denied**\n- **Which plans generate revenue or claims exposure**\n- **How effectively agents manage their policy portfolios**\n- **How claims are processed**\n- **How much care members use compared with the premiums collected**\n- **Whether insurance plans appear financially favorable or unfavorable**\nThe Insurance scope emphasizes accurate financial analysis. Premiums, claims, policies, and installments are treated carefully so that related records do not incorrectly multiply totals during reporting.",
+  "Description": "",
   "Entities": [
     {
       "Name": "Claims",
@@ -332,6 +332,48 @@
       "DbTable": "Users",
       "DbSchema": "main",
       "IsRawSql": false
+    },
+    {
+      "Name": "Departments",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Name",
+          "DbColumn": "Name",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Departments",
+      "DbTable": "Departments",
+      "DbSchema": "hr",
+      "IsRawSql": false
+    },
+    {
+      "Name": "Locations",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "City",
+          "DbColumn": "City",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Locations",
+      "DbTable": "Locations",
+      "DbSchema": "main",
+      "IsRawSql": false
     }
   ],
   "Relations": [
@@ -354,7 +396,7 @@
         "PlanId"
       ],
       "TargetEntity": "InsurancePlans",
-      "TargetRelationName": "InsurancePlan",
+      "TargetRelationName": "Policies",
       "TargetFields": [
         "Id"
       ]
@@ -390,7 +432,7 @@
         "PolicyId"
       ],
       "TargetEntity": "Policies",
-      "TargetRelationName": "Policy",
+      "TargetRelationName": "PremiumPayments",
       "TargetFields": [
         "Id"
       ]
@@ -403,6 +445,30 @@
       ],
       "TargetEntity": "Agents",
       "TargetRelationName": "Members",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Agents",
+      "SourceRelationName": "Department",
+      "SourceFields": [
+        "DepartmentId"
+      ],
+      "TargetEntity": "Departments",
+      "TargetRelationName": "Agents",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Agents",
+      "SourceRelationName": "Location",
+      "SourceFields": [
+        "LocationId"
+      ],
+      "TargetEntity": "Locations",
+      "TargetRelationName": "Agents",
       "TargetFields": [
         "Id"
       ]

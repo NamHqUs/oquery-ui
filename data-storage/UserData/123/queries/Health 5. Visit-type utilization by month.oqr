@@ -1,9 +1,10 @@
-Visits: MonthKey(VisitDate) VisitMonth,
+Visits: VisitDate.Year() VisitYear,
+    VisitDate.Month() VisitMonth,
     VisitType,
-    COUNT(Id) ScheduledVisits,
+    Count(Id) ScheduledVisits,
     CountIf(Status = <No-Show>) NoShows,
-    ROUND(<100.0> * CountIf(Status = <No-Show>) / COUNT(Id), <2>) NoShowPercent,
-    ROUND(AvgIf(DurationMinutes, Status = <Completed>), <1>) AverageMinutes,
-    ROUND(SUM(Charge), <2>) Charges
+    (CountIf(Status = <No-Show>) * 100.0 / Count(Id)).Round(2) NoShowPercent,
+    AvgIf(DurationMinutes, Status = <Completed>).Round(1) AverageMinutes,
+    Sum(Charge).Round(2) Charges
   Order ScheduledVisits DESC
   Take 10
