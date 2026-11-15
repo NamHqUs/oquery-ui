@@ -1,6 +1,7 @@
-Users: State Region, AVG(CustomerBestMonth.BestMonthRevenue) AverageBestMonth
+Users:
   Inner Join CustomerMonth CustomerMonth
   Inner Join CustomerBestMonth CustomerBestMonth On Id = CustomerBestMonth.UserId
+    State Region, AVG(CustomerBestMonth.BestMonthRevenue) AverageBestMonth
 CustomerMonth is Orders: UserId UserId,
     Year(OrderDate) SalesYear,
     Month(OrderDate) SalesMonth,

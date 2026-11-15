@@ -308,6 +308,27 @@
       "DbTable": "Locations",
       "DbSchema": "main",
       "IsRawSql": false
+    },
+    {
+      "Name": "Departments",
+      "Fields": [
+        {
+          "Name": "Id",
+          "DbColumn": "Id",
+          "DataType": 1,
+          "IsRawSql": false
+        },
+        {
+          "Name": "Name",
+          "DbColumn": "Name",
+          "DataType": 0,
+          "IsRawSql": false
+        }
+      ],
+      "RawSql": "Departments",
+      "DbTable": "Departments",
+      "DbSchema": "hr",
+      "IsRawSql": false
     }
   ],
   "Relations": [
@@ -391,6 +412,18 @@
       ],
       "TargetEntity": "Locations",
       "TargetRelationName": "Visits",
+      "TargetFields": [
+        "Id"
+      ]
+    },
+    {
+      "SourceEntity": "Doctors",
+      "SourceRelationName": "Department",
+      "SourceFields": [
+        "DepartmentId"
+      ],
+      "TargetEntity": "Departments",
+      "TargetRelationName": "Doctors",
       "TargetFields": [
         "Id"
       ]

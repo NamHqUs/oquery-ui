@@ -85,9 +85,14 @@ describe("getOquerySyntaxError", () => {
         .toBe("Line 1, column 15: DateSub cannot be applied to Id of type Number: its first argument is Datetime.");
     });
 
-    it("rejects an aggregate nested inside another function call", () => {
+    it("accepts an aggregate inside a scalar function", () => {
       expect(getOquerySyntaxError("Employees: Round(Avg(Id))", functions, [], entities, "Employees"))
-        .toBe("Line 1, column 18: Avg cannot be nested inside another function call: it is an aggregate.");
+        .toBeNull();
+    });
+
+    it("rejects an aggregate nested inside another aggregate call", () => {
+      expect(getOquerySyntaxError("Employees: Avg(Avg(Id))", functions, [], entities, "Employees"))
+        .toBe("Line 1, column 16: Avg cannot be nested inside another aggregate function call.");
     });
 
     it("accepts root aggregates inside grouping parentheses", () => {
@@ -100,9 +105,9 @@ describe("getOquerySyntaxError", () => {
       )).toBeNull();
     });
 
-    it("rejects a root aggregate inside a grouping nested in a call", () => {
+    it("accepts a root aggregate inside a grouping nested in a scalar call", () => {
       expect(getOquerySyntaxError("Employees: Round((Avg(Id) * 2))", functions, [], entities, "Employees"))
-        .toBe("Line 1, column 19: Avg cannot be nested inside another function call: it is an aggregate.");
+        .toBeNull();
     });
 
     it("rejects an aggregate applied to a grouped expression receiver", () => {

@@ -2,7 +2,7 @@ import type { FunctionDefinition } from "../function-definition/types";
 import type { FilterOperatorDefinition } from "../query-builder/query-design/query-builder-slice";
 import {
   getFunctionApplicabilityError,
-  isInsideFunctionCall,
+  isInsideAggregateCall,
   resolveFunctionReceiver,
   type OQuerySuggestionEntity,
 } from "./oquery-completions";
@@ -205,7 +205,7 @@ function getOqueryExpressionSyntaxError(
       const applicabilityError = getFunctionApplicabilityError(
         signature.definition,
         receiver,
-        isInsideFunctionCall(text.slice(0, nameStart)),
+        isInsideAggregateCall(text.slice(0, nameStart), (name) => functionSignatures.get(name.toLocaleLowerCase())?.isAggregate === true),
       );
       if (applicabilityError) return `Line ${errorLine}, column ${errorColumn}: ${applicabilityError}`;
     }

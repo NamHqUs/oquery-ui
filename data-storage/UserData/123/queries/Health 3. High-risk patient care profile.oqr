@@ -1,4 +1,7 @@
-Users: Id PatientId,
+Users:
+  Inner Join PatientVisits PatientVisits On Id = PatientVisits.UserId
+  Inner Join PatientLabs PatientLabs On Id = PatientLabs.UserId
+    Id PatientId,
     Concat(FirstName, < >, LastName) Patient,
     AgeOn(BirthDate, <2025-10-31>) Age,
     PatientVisits.ChronicVisits ChronicVisits,
@@ -9,8 +12,6 @@ Users: Id PatientId,
   Where PatientVisits.ChronicVisits > <0> AND PatientLabs.AbnormalResults > <0>
   Order AbnormalResults DESC, ChronicVisits DESC, TotalCharges DESC
   Take 10
-  Inner Join PatientVisits PatientVisits On Id = PatientVisits.UserId
-  Inner Join PatientLabs PatientLabs On Id = PatientLabs.UserId
 PatientVisits is Visits: UserId UserId,
     CountIf(Diagnosis.IsChronic = <True>) ChronicVisits,
     COUNT(Id) CompletedVisits,

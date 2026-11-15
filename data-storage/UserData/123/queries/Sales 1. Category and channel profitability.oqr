@@ -1,4 +1,6 @@
-Query is OrderCategory: Category,
+Query is OrderCategory:
+  Inner Join OrderCategory OrderCategory
+    Category,
     Channel,
     COUNT(OrderId) OrdersContainingCategory,
     SUM(UnitsSold) UnitsSold,
@@ -8,7 +10,6 @@ Query is OrderCategory: Category,
     AVG(NetRevenue) AverageCategoryRevenuePerOrder
   Order GrossProfit DESC
   Take 10
-  Inner Join OrderCategory OrderCategory
 OrderCategory is OrderItems: OrderId OrderId,
     Product.Category Category,
     Order.Channel Channel,

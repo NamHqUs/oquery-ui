@@ -1,4 +1,6 @@
-Query is MonthlySales: SalesMonth,
+Query is MonthlySales:
+  Inner Join MonthlySales MonthlySales
+    SalesMonth,
     ROUND(Revenue, <2>) Revenue,
     OrderCount,
     ROUND(Lag(Revenue, <1>, SalesMonth), <2>) PriorMonthRevenue,
@@ -6,7 +8,6 @@ Query is MonthlySales: SalesMonth,
     ROUND(WindowSum(Revenue, SalesMonth), <2>) RunningRevenue
   Order SalesMonth DESC
   Take 10
-  Inner Join MonthlySales MonthlySales
 MonthlySales is Orders: MonthKey(OrderDate) SalesMonth,
     SUM(Items.Quantity * Items.UnitPrice - Items.DiscountAmount) Revenue,
     CountDistinct(Id) OrderCount

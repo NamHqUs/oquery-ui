@@ -1,7 +1,8 @@
-Policies: Id PolicyId,
-    Concat(User.FirstName, < >, User.LastName) Member,
-    Coalesce(RevenueSinceStart.PremiumRevenue, <0>) RevenueSinceSignup
-  Order PolicyId ASC
+Policies:
   Left Join RevenueSinceStart RevenueSinceStart On Id = RevenueSinceStart.PolicyId
+    Id PolicyId,
+    Concat(User.FirstName, < >, User.LastName) Member,
+    IfNull(RevenueSinceStart.PremiumRevenue, <0>) RevenueSinceSignup
+  Order PolicyId ASC
 RevenueSinceStart is PremiumPayments: PolicyId PolicyId, SUM(Amount) PremiumRevenue
   Where Status = <Paid> AND PaymentDate >= Policy.StartDate

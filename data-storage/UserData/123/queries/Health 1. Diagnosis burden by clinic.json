@@ -1,16 +1,111 @@
 {
   "domainId": "HEALTHCARE_DOMAIN",
   "name": "H1. Diagnosis Burden \u0026 Clinic Performance Analysis",
-  "rawText": "# Do you know which diagnoses place the greatest burden on your clinics?\n# \n#  - Which diagnoses generate the highest number of completed visits?\n#  - How many unique patients are affected by each diagnosis?\n#  - Which clinics handle the largest volume of visits for each diagnosis?\n#  - What is the average charge associated with each diagnosis?\n#  - Where are abnormal laboratory results most concentrated?\n#  - Which diagnoses combine high visit volumes with higher abnormal lab rates?\n#  - How does the clinical workload differ across locations?\n# \n# Analyze diagnoses, clinic locations, patient visits, charges, and laboratory outcomes from a single business starting point.\n# Start with **Visits** and access diagnoses, clinics, and laboratory results through their relationships.\n# No manually constructed joins. No separate queries for related information. Just describe what you want to analyze and let OQuery handle the relational complexity.\n\nVisits:\n    # Diagnose.Name Diagnosis\n    # Diagnose.Category DiagnosisCategory\n    # Location.City ClinicCity\n    # CountDistinct(Id) VisitCount\n    # CountDistinct(UserId) UniquePatients\n    # Avg(Charge).Round(2) AverageCharge\n    (LabResults.CountIf(IsAbnormal = true) * 100.0\n        / LabResults.Count(Id)).Round(2) AbnormalLabPercent\nWhere Status = \u0027Completed\u0027\n# Order VisitCount DESC, AbnormalLabPercent DESC\n# Take 10",
+  "rawText": "# Do you know which diagnoses place the greatest burden on your clinics?\n#  - Which diagnoses generate the highest number of completed visits?\n#  - How many unique patients are affected by each diagnosis?\n#  - Which clinics handle the largest volume of visits for each diagnosis?\n#  - What is the average charge associated with each diagnosis?\n#  - Where are abnormal laboratory results most concentrated?\n#  - Which diagnoses combine high visit volumes with higher abnormal lab rates?\n#  - How does the clinical workload differ across locations?\n# ____________________________________________________________\n\nVisitLabs is LabResults:\n    VisitId,\n    Count(Id) LabCount,\n    CountIf(IsAbnormal = true) AbnormalCount\n\nDiagnosisBurden is Visits:\n  Left Join VisitLabs On Id = VisitLabs.VisitId\n    Diagnose.Name Diagnosis,\n    Diagnose.Category DiagnosisCategory,\n    Location.City ClinicCity,\n    CountDistinct(Id) VisitCount,\n    CountDistinct(UserId) UniquePatients,\n    AVG(Charge).ROUND(2) AverageCharge,\n    (100.0 * Sum(IfNull(VisitLabs.AbnormalCount, 0))\n        / NullIf(Sum(IfNull(VisitLabs.LabCount, 0)), 0)).Round(2) AbnormalLabPercent\n  Where Status = \u003CCompleted\u003E\n  Order VisitCount DESC, AbnormalLabPercent DESC",
   "id": "Health 1. Diagnosis burden by clinic",
   "isBuiltin": false,
-  "contexts": {},
+  "contexts": {
+    "VisitLabs": {
+      "entity": "LabResults",
+      "projection": [
+        {
+          "field": {
+            "kind": "field",
+            "field": "VisitId"
+          },
+          "alias": null
+        },
+        {
+          "field": {
+            "kind": "function",
+            "function": "Count",
+            "arguments": [
+              {
+                "kind": "field",
+                "field": "Id"
+              }
+            ]
+          },
+          "alias": "LabCount"
+        },
+        {
+          "field": {
+            "kind": "function",
+            "function": "CountIf",
+            "arguments": [
+              {
+                "kind": "field",
+                "field": "IsAbnormal = true"
+              }
+            ]
+          },
+          "alias": "AbnormalCount"
+        }
+      ],
+      "sorts": [],
+      "joins": []
+    }
+  },
   "entity": "Visits",
   "projections": [
     {
       "field": {
         "kind": "field",
-        "field": "(LabResults.CountIf(IsAbnormal = true) * 100.0\n/ LabResults.Count(Id)).Round(2)"
+        "field": "Diagnose.Name"
+      },
+      "alias": "Diagnosis"
+    },
+    {
+      "field": {
+        "kind": "field",
+        "field": "Diagnose.Category"
+      },
+      "alias": "DiagnosisCategory"
+    },
+    {
+      "field": {
+        "kind": "field",
+        "field": "Location.City"
+      },
+      "alias": "ClinicCity"
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "CountDistinct",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "Id"
+          }
+        ]
+      },
+      "alias": "VisitCount"
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "CountDistinct",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "UserId"
+          }
+        ]
+      },
+      "alias": "UniquePatients"
+    },
+    {
+      "field": {
+        "kind": "field",
+        "field": "AVG(Charge).ROUND(2)"
+      },
+      "alias": "AverageCharge"
+    },
+    {
+      "field": {
+        "kind": "field",
+        "field": "(100.0 * Sum(IfNull(VisitLabs.AbnormalCount, 0))\n/ NullIf(Sum(IfNull(VisitLabs.LabCount, 0)), 0)).Round(2)"
       },
       "alias": "AbnormalLabPercent"
     }
@@ -33,6 +128,44 @@
       }
     ]
   },
-  "sorts": [],
-  "joins": []
+  "sorts": [
+    {
+      "field": {
+        "kind": "field",
+        "field": "VisitCount"
+      },
+      "direction": "Descending"
+    },
+    {
+      "field": {
+        "kind": "field",
+        "field": "AbnormalLabPercent"
+      },
+      "direction": "Descending"
+    }
+  ],
+  "joins": [
+    {
+      "refContext": "VisitLabs",
+      "condition": {
+        "logicalOperation": 0,
+        "filters": [
+          {
+            "logicalOperator": 0,
+            "left": {
+              "kind": "field",
+              "field": "Id"
+            },
+            "operation": 0,
+            "right": {
+              "kind": "field",
+              "field": "VisitLabs.VisitId"
+            },
+            "parameterized": true
+          }
+        ]
+      },
+      "joinType": "Left"
+    }
+  ]
 }
