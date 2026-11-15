@@ -1,21 +1,11 @@
-Users:
-  Inner Join PatientVisits PatientVisits On Id = PatientVisits.UserId
-  Inner Join PatientLabs PatientLabs On Id = PatientLabs.UserId
-    Id PatientId,
-    Concat(FirstName, < >, LastName) Patient,
-    AgeOn(BirthDate, <2025-10-31>) Age,
-    PatientVisits.ChronicVisits ChronicVisits,
-    PatientVisits.CompletedVisits CompletedVisits,
-    PatientLabs.AbnormalResults AbnormalResults,
-    ROUND(PatientVisits.TotalCharges, <2>) TotalCharges,
-    PatientVisits.LastVisitDate LastVisitDate
-  Where PatientVisits.ChronicVisits > <0> AND PatientLabs.AbnormalResults > <0>
+Patients: Id PatientId,
+    FirstName,
+    LastName,
+    BirthDate.AgeOn(<2025-10-31>) Age,
+    Visits.SumIf(Charge, Status = <Completed>).Round(<2>) TotalCharges,
+    Visits.CountIf(Status = <Completed>) CompletedVisits,
+    Visits.CountIf(Diagnose.IsChronic = <True>) ChronicVisits,
+    Visits.Sum(LabResults.CountIf(IsAbnormal = <True>)) AbnormalResults
+  Where AbnormalResults > <0>
   Order AbnormalResults DESC, ChronicVisits DESC, TotalCharges DESC
   Take 10
-PatientVisits is Visits: UserId UserId,
-    CountIf(Diagnosis.IsChronic = <True>) ChronicVisits,
-    COUNT(Id) CompletedVisits,
-    SUM(Charge) TotalCharges,
-    MAX(VisitDate) LastVisitDate
-  Where Status = <Completed>
-PatientLabs is LabResults: Visit.UserId UserId, CountIf(IsAbnormal = <True>) AbnormalResults

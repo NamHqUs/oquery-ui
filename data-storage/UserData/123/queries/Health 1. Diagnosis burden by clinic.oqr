@@ -5,7 +5,7 @@ Visits:
     Location.City ClinicCity,
     CountDistinct(Id) VisitCount,
     CountDistinct(UserId) UniquePatients,
-    AVG(Charge).ROUND(2) AverageCharge,
+    Avg(Charge).ROUND(2) AverageCharge,
     (100.0 * Sum(IfNull(VisitLabs.AbnormalCount, 0))
 / NullIf(Sum(IfNull(VisitLabs.LabCount, 0)), 0)).Round(2) AbnormalLabPercent
   Where Status = <Completed>

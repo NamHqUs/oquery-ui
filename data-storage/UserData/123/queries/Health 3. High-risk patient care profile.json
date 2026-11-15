@@ -1,120 +1,107 @@
 {
-  "DomainId": "HEALTHCARE_DOMAIN",
-  "Name": "Health 3. High-risk patient care profile",
-  "Entity": "Users",
-  "Projections": [
+  "domainId": "HEALTHCARE_DOMAIN",
+  "name": "Health 3. High-risk patient care profile",
+  "rawText": "# Do you know which patients are at the highest risk and need closer medical attention?\n#  - Which patients have the highest number of abnormal laboratory results?\n#  - Which patients have chronic conditions requiring ongoing monitoring?\n#  - How many completed visits do high-risk patients have?\n#  - How much are we spending on healthcare for high-risk patients?\n#  - Which patients have a combination of chronic conditions and frequent abnormal results?\n#  - When did high-risk patients last receive medical care?\n#  - Which patients should be prioritized for follow-up and preventive care?\n#  - Are there patients with abnormal laboratory results who may need additional medical evaluation?\n# ____________________________________________________________\n\nHighRiskPatientCare is Patients:\n    Id PatientId,\n    FirstName,\n    LastName,\n    BirthDate.AgeOn(\u003C2025-10-31\u003E) Age,\n    Visits.SumIf(Charge, Status = \u003CCompleted\u003E).Round(\u003C2\u003E) TotalCharges,\n    Visits.CountIf(Status = \u003CCompleted\u003E) CompletedVisits,\n    Visits.CountIf(Diagnose.IsChronic = \u003CTrue\u003E) ChronicVisits,\n    Visits.Sum(LabResults.CountIf(IsAbnormal = \u003CTrue\u003E)) AbnormalResults\n  Where AbnormalResults \u003E \u003C0\u003E\n  Order AbnormalResults DESC, ChronicVisits DESC, TotalCharges DESC\n  Take 10",
+  "id": "Health 3. High-risk patient care profile",
+  "isBuiltin": false,
+  "contexts": {},
+  "entity": "Patients",
+  "projections": [
     {
       "field": {
         "kind": "field",
         "field": "Id"
       },
-      "Alias": "PatientId"
+      "alias": "PatientId"
     },
     {
       "field": {
-        "kind": "function",
-        "function": "Concat",
-        "arguments": [
-          {
-            "kind": "field",
-            "field": "FirstName"
-          },
-          {
-            "kind": "value",
-            "value": " "
-          },
-          {
-            "kind": "field",
-            "field": "LastName"
-          }
-        ]
+        "kind": "field",
+        "field": "FirstName"
       },
-      "Alias": "Patient"
+      "alias": null
+    },
+    {
+      "field": {
+        "kind": "field",
+        "field": "LastName"
+      },
+      "alias": null
     },
     {
       "field": {
         "kind": "function",
-        "function": "AgeOn",
+        "function": "BirthDate.AgeOn",
         "arguments": [
-          {
-            "kind": "field",
-            "field": "BirthDate"
-          },
           {
             "kind": "value",
             "value": "2025-10-31"
           }
         ]
       },
-      "Alias": "Age"
+      "alias": "Age"
     },
     {
       "field": {
         "kind": "field",
-        "field": "PatientVisits.ChronicVisits"
+        "field": "Visits.SumIf(Charge, Status = \u003CCompleted\u003E).Round(\u003C2\u003E)"
       },
-      "Alias": "ChronicVisits"
-    },
-    {
-      "field": {
-        "kind": "field",
-        "field": "PatientVisits.CompletedVisits"
-      },
-      "Alias": "CompletedVisits"
-    },
-    {
-      "field": {
-        "kind": "field",
-        "field": "PatientLabs.AbnormalResults"
-      },
-      "Alias": "AbnormalResults"
+      "alias": "TotalCharges"
     },
     {
       "field": {
         "kind": "function",
-        "function": "ROUND",
+        "function": "Visits.CountIf",
         "arguments": [
           {
             "kind": "field",
-            "field": "PatientVisits.TotalCharges"
-          },
-          {
-            "kind": "value",
-            "value": 2
+            "field": "Status = \u003CCompleted\u003E"
           }
         ]
       },
-      "Alias": "TotalCharges"
+      "alias": "CompletedVisits"
     },
     {
       "field": {
-        "kind": "field",
-        "field": "PatientVisits.LastVisitDate"
+        "kind": "function",
+        "function": "Visits.CountIf",
+        "arguments": [
+          {
+            "kind": "field",
+            "field": "Diagnose.IsChronic = \u003CTrue\u003E"
+          }
+        ]
       },
-      "Alias": "LastVisitDate"
+      "alias": "ChronicVisits"
+    },
+    {
+      "field": {
+        "kind": "function",
+        "function": "Visits.Sum",
+        "arguments": [
+          {
+            "kind": "function",
+            "function": "LabResults.CountIf",
+            "arguments": [
+              {
+                "kind": "field",
+                "field": "IsAbnormal = \u003CTrue\u003E"
+              }
+            ]
+          }
+        ]
+      },
+      "alias": "AbnormalResults"
     }
   ],
-  "Filter": {
+  "filter": {
     "logicalOperation": 0,
     "filters": [
       {
         "logicalOperator": 0,
         "left": {
           "kind": "field",
-          "field": "PatientVisits.ChronicVisits"
-        },
-        "operation": 4,
-        "right": {
-          "kind": "value",
-          "value": 0
-        },
-        "parameterized": true
-      },
-      {
-        "logicalOperator": 0,
-        "left": {
-          "kind": "field",
-          "field": "PatientLabs.AbnormalResults"
+          "field": "AbnormalResults"
         },
         "operation": 4,
         "right": {
@@ -125,231 +112,29 @@
       }
     ]
   },
-  "Sorts": [
+  "sorts": [
     {
-      "Field": {
+      "field": {
         "kind": "field",
         "field": "AbnormalResults"
       },
-      "Direction": "Descending"
+      "direction": "Descending"
     },
     {
-      "Field": {
+      "field": {
         "kind": "field",
         "field": "ChronicVisits"
       },
-      "Direction": "Descending"
+      "direction": "Descending"
     },
     {
-      "Field": {
+      "field": {
         "kind": "field",
         "field": "TotalCharges"
       },
-      "Direction": "Descending"
+      "direction": "Descending"
     }
   ],
-  "Take": 10,
-  "Skip": 0,
-  "Joins": [
-    {
-      "Alias": "PatientVisits",
-      "Condition": {
-        "logicalOperation": 0,
-        "filters": [
-          {
-            "logicalOperator": 0,
-            "left": {
-              "kind": "field",
-              "field": "Id"
-            },
-            "operation": 0,
-            "right": {
-              "kind": "field",
-              "field": "PatientVisits.UserId"
-            },
-            "parameterized": true
-          }
-        ]
-      },
-      "JoinType": "Inner",
-      "RefContext": "PatientVisits"
-    },
-    {
-      "Alias": "PatientLabs",
-      "Condition": {
-        "logicalOperation": 0,
-        "filters": [
-          {
-            "logicalOperator": 0,
-            "left": {
-              "kind": "field",
-              "field": "Id"
-            },
-            "operation": 0,
-            "right": {
-              "kind": "field",
-              "field": "PatientLabs.UserId"
-            },
-            "parameterized": true
-          }
-        ]
-      },
-      "JoinType": "Inner",
-      "RefContext": "PatientLabs"
-    }
-  ],
-  "Id": "Health 3. High-risk patient care profile",
-  "Contexts": {
-    "PatientVisits": {
-      "Entity": "Visits",
-      "Projections": [
-        {
-          "field": {
-            "kind": "field",
-            "field": "UserId"
-          },
-          "Alias": "UserId"
-        },
-        {
-          "field": {
-            "kind": "function",
-            "function": "CountIf",
-            "arguments": [
-              {
-                "kind": "condition",
-                "condition": {
-                  "logicalOperation": 0,
-                  "filters": [
-                    {
-                      "logicalOperator": 0,
-                      "left": {
-                        "kind": "field",
-                        "field": "Diagnosis.IsChronic"
-                      },
-                      "operation": 0,
-                      "right": {
-                        "kind": "value",
-                        "value": true
-                      },
-                      "parameterized": true
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          "Alias": "ChronicVisits"
-        },
-        {
-          "field": {
-            "kind": "function",
-            "function": "COUNT",
-            "arguments": [
-              {
-                "kind": "field",
-                "field": "Id"
-              }
-            ]
-          },
-          "Alias": "CompletedVisits"
-        },
-        {
-          "field": {
-            "kind": "function",
-            "function": "SUM",
-            "arguments": [
-              {
-                "kind": "field",
-                "field": "Charge"
-              }
-            ]
-          },
-          "Alias": "TotalCharges"
-        },
-        {
-          "field": {
-            "kind": "function",
-            "function": "MAX",
-            "arguments": [
-              {
-                "kind": "field",
-                "field": "VisitDate"
-              }
-            ]
-          },
-          "Alias": "LastVisitDate"
-        }
-      ],
-      "Filter": {
-        "logicalOperation": 0,
-        "filters": [
-          {
-            "logicalOperator": 0,
-            "left": {
-              "kind": "field",
-              "field": "Status"
-            },
-            "operation": 0,
-            "right": {
-              "kind": "value",
-              "value": "Completed"
-            },
-            "parameterized": true
-          }
-        ]
-      },
-      "Sorts": null,
-      "Take": null,
-      "Skip": null,
-      "Joins": null
-    },
-    "PatientLabs": {
-      "Entity": "LabResults",
-      "Projections": [
-        {
-          "field": {
-            "kind": "field",
-            "field": "Visit.UserId"
-          },
-          "Alias": "UserId"
-        },
-        {
-          "field": {
-            "kind": "function",
-            "function": "CountIf",
-            "arguments": [
-              {
-                "kind": "condition",
-                "condition": {
-                  "logicalOperation": 0,
-                  "filters": [
-                    {
-                      "logicalOperator": 0,
-                      "left": {
-                        "kind": "field",
-                        "field": "IsAbnormal"
-                      },
-                      "operation": 0,
-                      "right": {
-                        "kind": "value",
-                        "value": true
-                      },
-                      "parameterized": true
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          "Alias": "AbnormalResults"
-        }
-      ],
-      "Filter": null,
-      "Sorts": null,
-      "Take": null,
-      "Skip": null,
-      "Joins": null
-    }
-  },
-  "IsBuiltin": false
+  "take": 10,
+  "joins": []
 }

@@ -122,6 +122,33 @@ test("suggests only aggregates after a collection dot and no function after a lo
   assert.deepEqual(functionLabels("Departments: Employees.Manager."), []);
 });
 
+test("offers projection fields and clause keywords after a join line", () => {
+  const text = "Departments:\n  Inner Join Employees On Id = Employees.Id\n  ";
+  const items = getOQueryCompletions(text, text.length, [], [], [], functions, "Departments", entities).items;
+  assert.deepEqual(
+    items.filter((item) => item.kind === "field" || item.kind === "relation").map((item) => item.label),
+    ["Id", "Employees"],
+  );
+  assert.ok(items.some((item) => item.label === "Where"));
+});
+
+test("offers projection fields on an unindented continuation line and still offers entity headers", () => {
+  const fieldText = "Departments: Id\nI";
+  const fieldItems = getOQueryCompletions(fieldText, fieldText.length, [], [], [], functions, "Departments", entities).items;
+  assert.ok(fieldItems.some((item) => item.label === "Id" && item.kind === "field"));
+
+  const headerText = "Departments: Id\nEm";
+  const headerItems = getOQueryCompletions(headerText, headerText.length, [], [], ["Employees"], functions, "Departments", entities).items;
+  assert.ok(headerItems.some((item) => item.label === "Employees" && item.kind === "entity"));
+});
+
+test("offers only clause keywords after a where line", () => {
+  const text = "Departments:\n  Where Id = <1>\n  ";
+  const items = getOQueryCompletions(text, text.length, [], [], [], functions, "Departments", entities).items;
+  assert.equal(items.some((item) => item.kind === "field"), false);
+  assert.ok(items.some((item) => item.label === "Where"));
+});
+
 test("suggests every declared collection aggregate after a collection dot in a header-based query", () => {
   const text = "Employees:\n  Members.";
   const labels = getOQueryCompletions(text, text.length, [], [], [], functions, "Employees", entities)
@@ -186,7 +213,62 @@ test("does not suggest scalar functions after a collection dot", () => {
   assert.deepEqual(labels, ["Avg"]);
 });
 
+test("suggests fields of a join alias after its dot and treats it as a collection receiver", () => {
+  const text = "Departments:\n  Join Employees e On Id = e.Id,\n    Id\n  Where e.";
+  assert.deepEqual(fieldLabels(text), ["Id", "Manager", "Members", "PerformanceReviews"]);
+  assert.deepEqual(functionLabels("Departments:\n  Join Employees e On Id = e.Id,\n    e."), ["Avg", "Count", "Sum"]);
+});
+
+test("suggests a quoted declared context through its join alias", () => {
+  const text = [
+    "\"User Context\" is Employees: Id",
+    "Departments:",
+    "  Join \"User Context\" Manager1 On Id = Manager1.Id",
+    "    Id",
+    "  Where Manager1.",
+  ].join("\n");
+  assert.deepEqual(fieldLabels(text), ["Id"]);
+});
+
+test("uses the outputs of a context source when the context is declared on another context", () => {
+  const text = "Totals is PerformanceReviews: Score ScoreValue, Rating\nReport is Totals:\n    ";
+  assert.deepEqual(fieldLabels(text), ["Rating", "ScoreValue"]);
+});
+
+test("offers whitespace and expression aliases of the current block in a where clause", () => {
+  const text = "Departments: Id Ident,\n  Employees.Sum(Id) TotalCount\n  Where ";
+  assert.deepEqual(aliasLabels(text), ["Ident", "TotalCount"]);
+});
+
+test("does not leak aliases from another context block into the current block", () => {
+  const text = "Hidden is Employees: Id as Secret\nDepartments: Id\n  Where ";
+  assert.deepEqual(aliasLabels(text), []);
+});
+
+function aliasLabels(text) {
+  return getOQueryCompletions(text, text.length, [], [], [], functions, "Departments", entities).items
+    .filter((item) => item.kind === "alias")
+    .map((item) => item.label);
+}
+
+test("offers no keywords or operators after a dot in a where clause", () => {
+  const text = "Departments:\n  Join Employees e On Id = e.Id,\n    Id\n  Where e.";
+  const kinds = getOQueryCompletions(text, text.length, [], [], [], functions, "Departments", entities)
+    .items.map((item) => item.kind);
+  assert.equal(kinds.some((kind) => kind === "keyword" || kind === "operator"), false);
+});
+
+test("offers projection fields after a Select line that follows a join", () => {
+  const text = "Departments:\n  Join Employees e On Id = e.Id\n  Select\n    ";
+  assert.deepEqual(fieldLabels(text), ["Id", "Employees"]);
+});
+
+test("offers projection fields after a Select line with no join", () => {
+  assert.deepEqual(fieldLabels("Departments:\n  Select\n    "), ["Id", "Employees"]);
+});
+
 test("resolves a field receiver inside a relation aggregate against the relation's entity", () => {
+
   assert.deepEqual(typedLabels("Employees: Reports.Avg(HireDate."), ["DateAdd", "DateSub"]);
 });
 

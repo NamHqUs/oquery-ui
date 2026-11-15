@@ -48,6 +48,7 @@ type CompletionContext =
   | "clause";
 
 const clauseKeywords = [
+  ["Select", "Start the projection"] as const,
   ["Where", "Filter rows"] as const,
   ["Order", "Sort results"] as const,
   ["Skip", "Skip rows"] as const,
@@ -135,66 +136,261 @@ function addFunctionCandidate(candidates: Candidate[], definition: FunctionDefin
   );
 }
 
-function getDynamicCandidates(text: string) {
-  const contexts: string[] = [];
-  for (const match of text.matchAll(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s+is\s+[A-Za-z_][A-Za-z0-9_]*\s*:/gim)) {
-    if (match[1]) contexts.push(match[1]);
-  }
+// A name is an unquoted identifier or a quoted name such as "User Context".
+const identifier = String.raw`(?:"[^"]+"|[A-Za-z_][A-Za-z0-9_]*)`;
+const headerStartPattern = new RegExp(String.raw`^\s*(?:${identifier}\s+is\s+)?${identifier}\s*:`, "i");
+const headerPattern = new RegExp(String.raw`^\s*(?:(${identifier})\s+is\s+)?(${identifier})\s*:(.*)$`, "i");
+const joinPattern = new RegExp(String.raw`^\s*(?:(?:inner|left|right|full)\s+)?join\s+(${identifier})(?:\s+(?!on\b)(${identifier}))?`, "i");
+const clausePattern = /^\s*(?:where|order|skip|take)\b/i;
+const onLinePattern = /^\s*on\b/i;
+const selectLinePattern = /^\s*select(?:\s|$)/i;
 
-  const aliases: string[] = [];
-  for (const match of text.matchAll(/\bas\s+([A-Za-z_][A-Za-z0-9_]*)\b/gi)) {
-    if (match[1]) aliases.push(match[1]);
-  }
+type ParsedBlock = {
+  name: string;
+  sourceName: string;
+  declared: boolean;
+  headerLine: number;
+  joins: Map<string, string>;
+  outputs: string[];
+  aliases: string[];
+};
 
-  return { contexts, aliases };
+type ScopeNode =
+  | { type: "entity"; entity: OQuerySuggestionEntity; collection: boolean }
+  | { type: "context"; fields: string[]; collection: boolean }
+  | { type: "scalar"; dataType?: string };
+
+type Scope = {
+  root: ScopeNode;
+  entities: OQuerySuggestionEntity[];
+  declared: Map<string, string[]>;
+  joins: Map<string, string>;
+  aliases: string[];
+};
+
+function unquote(name: string) {
+  return name.startsWith("\"") ? name.slice(1, -1) : name;
 }
 
-function getDynamicContextFields(text: string) {
-  const contextFields = new Map<string, string[]>();
-  let currentContext = "";
-  const addProjection = (contextName: string, projection: string) => {
-    const fields = contextFields.get(contextName) ?? [];
-    for (const item of projection.split(",")) {
-      const trimmedItem = item.trim();
-      const expression = /^[A-Za-z_][A-Za-z0-9_.]*/.exec(trimmedItem)?.[0];
-      const asAlias = /\bas\s+([A-Za-z_][A-Za-z0-9_]*)\s*$/i.exec(trimmedItem)?.[1];
-      const whitespaceAlias = /^[A-Za-z_][A-Za-z0-9_.]*\s+([A-Za-z_][A-Za-z0-9_]*)\s*$/.exec(trimmedItem)?.[1];
-      const field = asAlias ?? whitespaceAlias ?? expression;
-      if (field && !fields.includes(field)) fields.push(field);
+function isIncompleteExpression(text: string) {
+  return /(?:[+\-*/%&|=<>!]|\b(?:and|or|as|not|like|in|is))\s*$/i.test(text);
+}
+
+// A join stays open until its condition is complete. A top-level comma closes it.
+function isJoinOpen(trimmed: string, hasOn: boolean) {
+  if (/,\s*$/.test(trimmed)) return false;
+  return !hasOn || /(?:\b(?:and|or|on)|[=<>!+\-*/%&|(])\s*$/i.test(trimmed);
+}
+
+// Splits projection text on top-level commas and line breaks. Commas inside calls are not separators.
+function splitProjection(source: string) {
+  const items: string[] = [];
+  let current = "";
+  let depth = 0;
+  for (const character of source) {
+    if (character === "(" || character === "[") depth++;
+    else if ((character === ")" || character === "]") && depth > 0) depth--;
+    if (depth === 0 && (character === "," || (character === "\n" && !isIncompleteExpression(current)))) {
+      items.push(current);
+      current = "";
+    } else {
+      current += character;
     }
-    contextFields.set(contextName, fields);
+  }
+  items.push(current);
+  return items.map((item) => item.trim()).filter(Boolean);
+}
+
+// Returns the column name an item exposes, and whether that name is an explicit alias.
+function projectionOutput(item: string): { name: string; explicitAlias: boolean } | null {
+  const asAlias = new RegExp(String.raw`^(.*\S)\s+as\s+(${identifier})$`, "i").exec(item);
+  if (asAlias) return { name: unquote(asAlias[2]!), explicitAlias: true };
+  const spacedAlias = new RegExp(String.raw`^(.*\S)\s+(${identifier})$`).exec(item);
+  if (spacedAlias && !isIncompleteExpression(spacedAlias[1]!) && !/[,(]\s*$/.test(spacedAlias[1]!)) {
+    return { name: unquote(spacedAlias[2]!), explicitAlias: true };
+  }
+  return /^[A-Za-z_][A-Za-z0-9_.]*$/.test(item) ? { name: item, explicitAlias: false } : null;
+}
+
+// Splits the document into blocks. Each block starts at a header and owns the lines until the next header.
+// The excluded line (the cursor line) is ignored so a half-typed line does not create aliases or joins.
+function parseBlocks(lines: string[], excludedLine: number): ParsedBlock[] {
+  const blocks: ParsedBlock[] = [];
+  let block: ParsedBlock | null = null;
+  let projectionLines: string[] = [];
+  let projectionEnded = false;
+  let openJoin: { hasOn: boolean } | null = null;
+
+  const closeBlock = () => {
+    if (!block) return;
+    for (const item of splitProjection(projectionLines.join("\n"))) {
+      const output = projectionOutput(item);
+      if (!output) continue;
+      if (!block.outputs.includes(output.name)) block.outputs.push(output.name);
+      if (output.explicitAlias && !block.aliases.includes(output.name)) block.aliases.push(output.name);
+    }
+    blocks.push(block);
   };
 
-  for (const line of text.split(/\r?\n/)) {
-    const contextHeader = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s+is\s+[A-Za-z_][A-Za-z0-9_]*\s*:\s*(.*)$/i.exec(line);
-    if (contextHeader) {
-      currentContext = contextHeader[1]!;
-      addProjection(currentContext, contextHeader[2]!);
-      continue;
+  lines.forEach((line, index) => {
+    if (index === excludedLine) return;
+    const trimmed = line.trim();
+    const header = headerPattern.exec(line);
+    if (header) {
+      closeBlock();
+      const declared = header[1] !== undefined;
+      block = {
+        name: unquote(declared ? header[1]! : header[2]!),
+        sourceName: unquote(header[2]!),
+        declared,
+        headerLine: index,
+        joins: new Map(),
+        outputs: [],
+        aliases: [],
+      };
+      projectionLines = [header[3]!];
+      projectionEnded = false;
+      openJoin = null;
+      return;
     }
-    if (/^\s*[A-Za-z_][A-Za-z0-9_]*(?:\s+is\s+[A-Za-z_][A-Za-z0-9_]*)?\s*:/.test(line)
-      || /^\s*(?:where|order|skip|take|join|(?:inner|left|right|full)\s+join)\b/i.test(line)) {
-      currentContext = "";
-      continue;
-    }
-    if (currentContext && line.trim()) addProjection(currentContext, line);
-  }
+    if (!block || !trimmed) return;
 
-  return contextFields;
+    const join = joinPattern.exec(line);
+    if (join) {
+      const alias = unquote(join[2] ?? join[1]!);
+      block.joins.set(alias, unquote(join[1]!));
+      const hasOn = onLinePattern.test(line.slice(join[0].length));
+      openJoin = isJoinOpen(trimmed, hasOn) ? { hasOn } : null;
+      return;
+    }
+    if (clausePattern.test(line)) {
+      openJoin = null;
+      projectionEnded = true;
+      return;
+    }
+    if (selectLinePattern.test(line)) {
+      // Select starts the projection; any text after it is the first projection line.
+      openJoin = null;
+      projectionEnded = false;
+      projectionLines = [line.replace(/^\s*select\b/i, "")];
+      return;
+    }
+    if (openJoin || onLinePattern.test(line)) {
+      const hasOn = (openJoin?.hasOn ?? false) || onLinePattern.test(line);
+      openJoin = isJoinOpen(trimmed, hasOn) ? { hasOn } : null;
+      return;
+    }
+    if (!projectionEnded) projectionLines.push(line);
+  });
+  closeBlock();
+  return blocks;
+}
+
+function analyzeScope(
+  text: string,
+  position: number,
+  rootEntityName: string,
+  entities: OQuerySuggestionEntity[],
+  fallbackFields: string[],
+): Scope {
+  const cursorLine = text.slice(0, position).split(/\r?\n/).length - 1;
+  const blocks = parseBlocks(text.split(/\r?\n/), cursorLine);
+  const declared = new Map<string, string[]>();
+  for (const block of blocks) {
+    if (block.declared) declared.set(block.name, block.outputs);
+  }
+  const cursorBlock = [...blocks].reverse().find((block) => block.headerLine < cursorLine) ?? null;
+  const scope: Scope = {
+    root: { type: "context", fields: fallbackFields, collection: false },
+    entities,
+    declared,
+    joins: cursorBlock?.joins ?? new Map(),
+    aliases: cursorBlock?.aliases ?? [],
+  };
+  scope.root = sourceNode(scope, cursorBlock?.sourceName ?? rootEntityName, false)
+    ?? { type: "context", fields: fallbackFields, collection: false };
+  return scope;
+}
+
+// A source is an entity, or a context declared earlier in the document.
+function sourceNode(scope: Scope, name: string, collection: boolean): ScopeNode | null {
+  const entity = scope.entities.find((candidate) => candidate.name === name);
+  if (entity) return { type: "entity", entity, collection };
+  const fields = scope.declared.get(name);
+  return fields ? { type: "context", fields, collection } : null;
+}
+
+function stepNode(scope: Scope, node: ScopeNode, segment: string): ScopeNode | null {
+  if (node.type === "entity") {
+    const relation = node.entity.relations.find((candidate) => candidate.name === segment);
+    if (relation) return sourceNode(scope, relation.target, relation.kind === "collection");
+    if (node.entity.fields.includes(segment)) {
+      return { type: "scalar", dataType: node.entity.fieldDataTypes?.[segment] };
+    }
+    return null;
+  }
+  if (node.type === "context") {
+    const prefix = `${segment}.`;
+    const nested = node.fields
+      .filter((field) => field.startsWith(prefix))
+      .map((field) => field.slice(prefix.length));
+    if (nested.length > 0) return { type: "context", fields: nested, collection: false };
+    if (node.fields.includes(segment)) return { type: "scalar" };
+  }
+  return null;
+}
+
+// Resolution order: join alias, then declared context name, then a field or relation of the block source.
+function resolvePath(scope: Scope, segments: string[]): ScopeNode | null {
+  const [first, ...rest] = segments;
+  if (first === undefined) return null;
+  const joinSource = scope.joins.get(first);
+  let node: ScopeNode | null;
+  if (joinSource !== undefined) {
+    node = sourceNode(scope, joinSource, true);
+  } else if (scope.declared.has(first)) {
+    node = { type: "context", fields: scope.declared.get(first)!, collection: true };
+  } else {
+    node = stepNode(scope, scope.root, first);
+  }
+  for (const segment of rest) {
+    if (!node) break;
+    node = stepNode(scope, node, segment);
+  }
+  return node;
+}
+
+// Members that can be suggested after a dot, or at the root when there is no dot.
+function suggestionsFor(node: ScopeNode | null) {
+  if (!node) return { fields: [], relations: [] };
+  if (node.type === "entity") return { fields: node.entity.fields, relations: node.entity.relations };
+  if (node.type === "context") {
+    const relations = [...new Set(
+      node.fields
+        .filter((field) => field.includes("."))
+        .map((field) => field.split(".")[0]!),
+    )].map((name) => ({ name, target: "", kind: undefined }));
+    return { fields: node.fields.filter((field) => !field.includes(".")), relations };
+  }
+  return { fields: [], relations: [] };
 }
 
 function getCompletionContext(lineBeforeCursor: string, text: string, position: number): CompletionContext {
   const trimmed = lineBeforeCursor.trimStart();
   const lower = trimmed.toLocaleLowerCase();
-  const hasHeader = /^[A-Za-z_][A-Za-z0-9_]*(?:\s+is\s+[A-Za-z_][A-Za-z0-9_]*)?\s*:/.test(trimmed);
+  const hasHeader = headerStartPattern.test(trimmed);
   const isIndented = /^\s/.test(lineBeforeCursor);
   const lineStart = text.lastIndexOf("\n", Math.max(0, position - 1)) + 1;
   const beforeCurrentLine = text.slice(0, lineStart);
   const previousLines = beforeCurrentLine.split(/\r?\n/);
   const lastHeaderIndex = previousLines.reduce(
-    (index, line, lineIndex) => /^\s*[A-Za-z_][A-Za-z0-9_]*(?:\s+is\s+[A-Za-z_][A-Za-z0-9_]*)?\s*:/.test(line)
+    (index, line, lineIndex) => headerStartPattern.test(line)
       ? lineIndex
       : index,
+    -1,
+  );
+  const lastSelectIndex = previousLines.reduce(
+    (index, line, lineIndex) => selectLinePattern.test(line) ? lineIndex : index,
     -1,
   );
   const lastClauseIndex = previousLines.reduce(
@@ -203,8 +399,15 @@ function getCompletionContext(lineBeforeCursor: string, text: string, position: 
       : index,
     -1,
   );
-  const isProjectionParagraph = lastHeaderIndex > lastClauseIndex;
-  const isContextDeclaration = /^[A-Za-z_][A-Za-z0-9_]*\s+is\s+[A-Za-z_][A-Za-z0-9_]*(?:\s*:|\s*$)/i.test(trimmed);
+  const isProjectionParagraph = Math.max(lastHeaderIndex, lastSelectIndex) > lastClauseIndex;
+  // Projection may start right after a single-line join, or after a multi-line join closed by a comma.
+  const previousContentIndex = previousLines.reduce((index, line, lineIndex) => line.trim() ? lineIndex : index, -1);
+  const previousContent = previousLines[previousContentIndex] ?? "";
+  const isAfterJoin = lastHeaderIndex >= 0
+    && previousContentIndex > lastHeaderIndex
+    && (/^\s*(?:(?:inner|left|right|full)\s+)?join\b/i.test(previousContent)
+      || (/^\s*on\b/i.test(previousContent) && /,\s*$/.test(previousContent)));
+  const isContextDeclaration = new RegExp(String.raw`^${identifier}\s+is\s+${identifier}(?:\s*:|\s*$)`, "i").test(trimmed);
 
   if (!text.trim()) return "document";
   if (/^on(?:\s+|$)/i.test(trimmed) || /\bjoin\s+\S+\s+on(?:\s+|$)/i.test(lower)) return "on";
@@ -213,8 +416,11 @@ function getCompletionContext(lineBeforeCursor: string, text: string, position: 
     return /(?:=|!=|>=|<=|>|<)\s*$/.test(lineBeforeCursor) ? "value" : "where";
   }
   if (/^order(?:\s+|$)/i.test(trimmed)) return "order";
+  if (/^select\s/i.test(trimmed)) return "projection";
   if (isContextDeclaration && !/:\s*/.test(trimmed)) return "header";
-  if (isProjectionParagraph && isIndented && !lineBeforeCursor.includes(":")) return "projection";
+  if ((isProjectionParagraph || isAfterJoin) && isIndented && !lineBeforeCursor.includes(":")) return "projection";
+  // The syntax allows an unindented line to continue a projection, so it stays projection until it is typed as a header.
+  if (isProjectionParagraph && !isIndented && !hasHeader && !lineBeforeCursor.includes(":")) return "projection";
   if (!isIndented && !hasHeader && !lineBeforeCursor.includes(":")) return "header";
   if (hasHeader) return "projection";
   if (isIndented && !trimmed.includes(" ")) return "clause";
@@ -257,16 +463,18 @@ function getRelationPath(sourceBeforeCursor: string) {
 }
 
 // Parentheses reset at each line break, so an unclosed call on an earlier projection line does not leak forward.
-// Grouping parentheses such as "(CountIf(...) * 100.0 / Count(Id))" are not calls, so only a "(" after a name counts.
-export function isInsideFunctionCall(sourceBeforeCursor: string) {
+// Grouping parentheses such as "(CountIf(...) * 100.0 / Count(Id))" are not calls, so they never count as aggregate calls.
+export function isInsideAggregateCall(sourceBeforeCursor: string, isAggregateName: (name: string) => boolean) {
   const openStack: boolean[] = [];
   let previousSignificant = "";
-  for (const character of sourceBeforeCursor) {
+  for (let index = 0; index < sourceBeforeCursor.length; index += 1) {
+    const character = sourceBeforeCursor[index]!;
     if (character === "\n") {
       openStack.length = 0;
       previousSignificant = "";
     } else if (character === "(") {
-      openStack.push(/[A-Za-z0-9_]/.test(previousSignificant));
+      const callName = /([A-Za-z_][A-Za-z0-9_]*)\s*$/.exec(sourceBeforeCursor.slice(0, index))?.[1];
+      openStack.push(callName !== undefined && isAggregateName(callName));
       previousSignificant = character;
     } else if (character === ")") {
       openStack.pop();
@@ -311,93 +519,6 @@ function isProjectionAliasPosition(lineBeforeCursor: string) {
   return false;
 }
 
-function isCollectionPath(
-  rootEntityName: string,
-  relationPath: string | null,
-  entities: OQuerySuggestionEntity[],
-) {
-  if (!relationPath) return false;
-  let entity = entities.find((candidate) => candidate.name === rootEntityName);
-  if (!entity) return false;
-
-  const segments = relationPath.split(".");
-  for (const [index, relationName] of segments.entries()) {
-    const relation = entity.relations.find((candidate) => candidate.name === relationName);
-    if (!relation) return false;
-    if (index === segments.length - 1) return relation.kind === "collection";
-    entity = entities.find((candidate) => candidate.name === relation.target);
-    if (!entity) return false;
-  }
-  return false;
-}
-
-function getSuggestionContext(
-  rootEntityName: string,
-  relationPath: string | null,
-  entities: OQuerySuggestionEntity[],
-  fallbackFields: string[],
-  dynamicContextFields: Map<string, string[]>,
-) {
-  if (relationPath) {
-    const segments = relationPath.split(".");
-    const declaredFields = dynamicContextFields.get(segments[0]!);
-    if (declaredFields) {
-      let fields = declaredFields;
-      for (const segment of segments.slice(1)) {
-        const prefix = `${segment}.`;
-        fields = fields
-          .filter((field) => field.startsWith(prefix))
-          .map((field) => field.slice(prefix.length));
-      }
-      const relations = [...new Set(
-        fields
-          .filter((field) => field.includes("."))
-          .map((field) => field.split(".")[0]!),
-      )].map((name) => ({ name, target: "", kind: undefined }));
-      return {
-        fields: fields.filter((field) => !field.includes(".")),
-        relations,
-      };
-    }
-  }
-
-  let entity = entities.find((candidate) => candidate.name === rootEntityName);
-  if (!entity) {
-    return {
-      fields: fallbackFields,
-      relations: [],
-    };
-  }
-  if (!relationPath) return { fields: entity.fields, relations: entity.relations };
-
-  for (const relationName of relationPath.split(".")) {
-    const relation = entity.relations.find((candidate) => candidate.name === relationName);
-    if (!relation) return { fields: [], relations: [] };
-    entity = entities.find((candidate) => candidate.name === relation.target);
-    if (!entity) return { fields: [], relations: [] };
-  }
-
-  return { fields: entity.fields, relations: entity.relations };
-}
-
-
-// Returns the data type of a scalar field path such as "HireDate" or "Manager.HireDate".
-function getScalarFieldDataType(
-  rootEntityName: string,
-  relationPath: string,
-  entities: OQuerySuggestionEntity[],
-) {
-  const segments = relationPath.split(".");
-  const fieldName = segments.pop()!;
-  let entity = entities.find((candidate) => candidate.name === rootEntityName);
-  for (const relationName of segments) {
-    const relation = entity?.relations.find((candidate) => candidate.name === relationName);
-    entity = relation ? entities.find((candidate) => candidate.name === relation.target) : undefined;
-  }
-  if (!entity || entity.relations.some((relation) => relation.name === fieldName)) return null;
-  return entity.fieldDataTypes?.[fieldName] ?? null;
-}
-
 export type FunctionReceiver =
   | { kind: "root" }
   | { kind: "collection"; path: string }
@@ -420,23 +541,28 @@ export function resolveFunctionReceiver(
 
   const path = getRelationPath(sourceBeforePosition);
   if (!path) return { kind: "unresolved", path: "" };
-  const entityName = getActiveEntityName(text, position, rootEntityName);
-  if (isCollectionPath(entityName, path, entities)) return { kind: "collection", path };
-  const dataType = getScalarFieldDataType(entityName, path, entities);
-  return dataType ? { kind: "scalar", path, dataType } : { kind: "unresolved", path };
+  const node = resolvePath(analyzeScope(text, position, rootEntityName, entities, []), path.split("."));
+  if (node?.type === "scalar") {
+    return node.dataType ? { kind: "scalar", path, dataType: node.dataType } : { kind: "unresolved", path };
+  }
+  if (node?.type === "entity" || node?.type === "context") {
+    return node.collection ? { kind: "collection", path } : { kind: "unresolved", path };
+  }
+  return { kind: "unresolved", path };
 }
+
 
 // Returns null when the function may be used at the call site, otherwise the reason it may not.
 export function getFunctionApplicabilityError(
   definition: FunctionDefinition,
   receiver: FunctionReceiver,
-  insideCall: boolean,
+  insideAggregateCall: boolean,
 ): string | null {
   const name = definition.name;
   switch (receiver.kind) {
     case "root":
-      return insideCall && definition.isAggregate
-        ? `${name} cannot be nested inside another function call: it is an aggregate.`
+      return insideAggregateCall && definition.isAggregate
+        ? `${name} cannot be nested inside another aggregate function call.`
         : null;
     case "collection":
       return definition.isAggregate
@@ -470,17 +596,6 @@ export function getFunctionApplicabilityError(
     case "unresolved":
       return `${name} cannot be applied to ${receiver.path || "this receiver"}: its receiver is not a known field or collection.`;
   }
-}
-
-function getActiveEntityName(text: string, position: number, fallback: string) {
-  const lines = text.slice(0, position).split(/\r?\n/).reverse();
-  for (const line of lines) {
-    const contextHeader = /^\s*[A-Za-z_][A-Za-z0-9_]*\s+is\s+([A-Za-z_][A-Za-z0-9_]*)\s*:/.exec(line);
-    if (contextHeader?.[1]) return contextHeader[1];
-    const queryHeader = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*:/.exec(line);
-    if (queryHeader?.[1]) return queryHeader[1];
-  }
-  return fallback;
 }
 
 function isCommentPosition(lineBeforeCursor: string) {
@@ -541,29 +656,39 @@ export function getOQueryCompletions(
   const relationPath = getRelationPath(text.slice(0, safePosition));
   const isAliasPosition = context === "projection" && isProjectionAliasPosition(lineBeforeCursor);
   const isNewLine = lineStart > 0 && text[lineStart - 1] === "\n";
-  const dynamic = getDynamicCandidates(text);
-  const dynamicContextFields = getDynamicContextFields(text);
+  const scope = analyzeScope(text, safePosition, rootEntityName, suggestionEntities, fields);
+  const dynamic = {
+    contexts: [...scope.declared.keys()],
+    joinAliases: [...scope.joins.keys()],
+    aliases: scope.aliases,
+  };
   const candidates: Candidate[] = [];
-  const activeEntityName = getActiveEntityName(text, safePosition, rootEntityName);
-  const functionReceiver = resolveFunctionReceiver(text, safePosition, activeEntityName, suggestionEntities);
+  const functionReceiver = resolveFunctionReceiver(text, safePosition, rootEntityName, suggestionEntities);
   const hasFunctionReceiver = functionReceiver.kind === "scalar" || functionReceiver.kind === "expression";
-  const isInsideCall = isInsideFunctionCall(text.slice(0, safePosition));
+  const isInsideCall = isInsideAggregateCall(text.slice(0, safePosition), (name) =>
+    functionDefinitions.some((definition) => definition.isAggregate && definition.name.toLocaleLowerCase() === name.toLocaleLowerCase()));
   const isApplicable = (definition: FunctionDefinition) =>
     getFunctionApplicabilityError(definition, functionReceiver, isInsideCall) === null;
-  const suggestionContext = getSuggestionContext(activeEntityName, relationPath, suggestionEntities, fields, dynamicContextFields);
+  const suggestionContext = suggestionsFor(relationPath ? resolvePath(scope, relationPath.split(".")) : scope.root);
 
   if (context === "document" || context === "header") {
     entities.forEach((entity) => addCandidate(candidates, entity, "Entity", "entity", 0, context === "document" ? `${entity}: ` : entity, context === "document" ? entity.length + 2 : undefined));
     dynamic.contexts.forEach((name) => addCandidate(candidates, name, "Dynamic context", "context", 5));
     if (context === "header") addKeywords(candidates, expressionKeywords.filter(([label]) => label === "Is"), 10);
+  } else if (context === "projection" && !/^\s/.test(lineBeforeCursor)) {
+    entities.forEach((entity) => addCandidate(candidates, entity, "Entity", "entity", 0));
   }
 
   if (!hasFunctionReceiver && !isAliasPosition && (context === "projection" || context === "where" || context === "on" || context === "order" || context === "value")) {
     suggestionContext.relations.forEach((relation) => addCandidate(candidates, relation.name, "Relation", "relation", 0));
-    dynamic.contexts.forEach((name) => addCandidate(candidates, name, "Declared context", "context", 1));
     suggestionContext.fields.forEach((field) => addCandidate(candidates, field, "Field", "field", 0));
-    if (isNewLine) addKeywords(candidates, clauseKeywords, 2);
-    dynamic.aliases.forEach((alias) => addCandidate(candidates, alias, "Alias from this query", "alias", 4));
+    // A dotted path only offers members of the resolved source, not names in scope at the root.
+    if (!relationPath) {
+      dynamic.contexts.forEach((name) => addCandidate(candidates, name, "Declared context", "context", 1));
+      dynamic.joinAliases.forEach((alias) => addCandidate(candidates, alias, "Join alias", "context", 1));
+      if (isNewLine) addKeywords(candidates, clauseKeywords, 2);
+      dynamic.aliases.forEach((alias) => addCandidate(candidates, alias, "Alias from this query", "alias", 4));
+    }
   }
 
   if (hasFunctionReceiver) {
@@ -578,10 +703,10 @@ export function getOQueryCompletions(
       .forEach((definition) => addFunctionCandidate(candidates, definition, 3));
   } else if (context === "clause") {
     addKeywords(candidates, clauseKeywords);
-  } else if (context === "where" || context === "on") {
+  } else if (!relationPath && (context === "where" || context === "on")) {
     addKeywords(candidates, expressionKeywords);
     operators.forEach(([label, detail]) => addCandidate(candidates, label, detail, "operator", 5, `${label} `));
-  } else if (context === "order") {
+  } else if (!relationPath && context === "order") {
     addKeywords(candidates, expressionKeywords.filter(([label]) => label === "Asc" || label === "Desc"));
   } else if (context === "join") {
     entities.forEach((entity) => addCandidate(candidates, entity, "Join target", "entity", 0));

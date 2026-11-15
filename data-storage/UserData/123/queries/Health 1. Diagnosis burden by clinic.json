@@ -1,7 +1,7 @@
 {
   "domainId": "HEALTHCARE_DOMAIN",
   "name": "H1. Diagnosis Burden \u0026 Clinic Performance Analysis",
-  "rawText": "# Do you know which diagnoses place the greatest burden on your clinics?\n#  - Which diagnoses generate the highest number of completed visits?\n#  - How many unique patients are affected by each diagnosis?\n#  - Which clinics handle the largest volume of visits for each diagnosis?\n#  - What is the average charge associated with each diagnosis?\n#  - Where are abnormal laboratory results most concentrated?\n#  - Which diagnoses combine high visit volumes with higher abnormal lab rates?\n#  - How does the clinical workload differ across locations?\n# ____________________________________________________________\n\nVisitLabs is LabResults:\n    VisitId,\n    Count(Id) LabCount,\n    CountIf(IsAbnormal = true) AbnormalCount\n\nDiagnosisBurden is Visits:\n  Left Join VisitLabs On Id = VisitLabs.VisitId\n    Diagnose.Name Diagnosis,\n    Diagnose.Category DiagnosisCategory,\n    Location.City ClinicCity,\n    CountDistinct(Id) VisitCount,\n    CountDistinct(UserId) UniquePatients,\n    AVG(Charge).ROUND(2) AverageCharge,\n    (100.0 * Sum(IfNull(VisitLabs.AbnormalCount, 0))\n        / NullIf(Sum(IfNull(VisitLabs.LabCount, 0)), 0)).Round(2) AbnormalLabPercent\n  Where Status = \u003CCompleted\u003E\n  Order VisitCount DESC, AbnormalLabPercent DESC",
+  "rawText": "# Do you know which diagnoses place the greatest burden on your clinics?\n#  - Which diagnoses generate the highest number of completed visits?\n#  - How many unique patients are affected by each diagnosis?\n#  - Which clinics handle the largest volume of visits for each diagnosis?\n#  - What is the average charge associated with each diagnosis?\n#  - Where are abnormal laboratory results most concentrated?\n#  - Which diagnoses combine high visit volumes with higher abnormal lab rates?\n#  - How does the clinical workload differ across locations?\n# ____________________________________________________________\n\nVisitLabs is LabResults:\n    VisitId,\n    Count(Id) LabCount,\n    CountIf(IsAbnormal = true) AbnormalCount\n\nDiagnosisBurden is Visits:\n  Left Join VisitLabs On Id = VisitLabs.VisitId\n    Diagnose.Name Diagnosis,\n    Diagnose.Category DiagnosisCategory,\n    Location.City ClinicCity,\n    CountDistinct(Id) VisitCount,\n    CountDistinct(UserId) UniquePatients,\n    Avg(Charge).ROUND(2) AverageCharge,\n    (100.0 * Sum(IfNull(VisitLabs.AbnormalCount, 0))\n        / NullIf(Sum(IfNull(VisitLabs.LabCount, 0)), 0)).Round(2) AbnormalLabPercent\n  Where Status = \u003CCompleted\u003E\n  Order VisitCount DESC, AbnormalLabPercent DESC",
   "id": "Health 1. Diagnosis burden by clinic",
   "isBuiltin": false,
   "contexts": {
@@ -98,7 +98,7 @@
     {
       "field": {
         "kind": "field",
-        "field": "AVG(Charge).ROUND(2)"
+        "field": "Avg(Charge).ROUND(2)"
       },
       "alias": "AverageCharge"
     },
