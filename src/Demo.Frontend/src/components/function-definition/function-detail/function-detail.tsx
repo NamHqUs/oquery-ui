@@ -205,14 +205,6 @@ export default function FunctionDetail({
               placeholder="What this function returns"
             />
           </label>
-          <label className="function-checkbox">
-            <input
-              type="checkbox"
-              checked={draft.isAggregate}
-              onChange={(event) => updateDraft((current) => ({ ...current, isAggregate: event.target.checked }))}
-            />
-            Aggregate function
-          </label>
           <fieldset className="function-checkbox">
             <legend>Applies to</legend>
             {functionApplyForValues.map(({ value, label }) => (
@@ -220,6 +212,7 @@ export default function FunctionDetail({
                 <input
                   type="checkbox"
                   checked={(draft.applyFor & value) === value}
+
                   onChange={(event) => updateDraft((current) => ({
                     ...current,
                     applyFor: event.target.checked

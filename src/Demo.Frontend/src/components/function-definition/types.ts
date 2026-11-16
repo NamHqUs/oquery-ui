@@ -44,7 +44,9 @@ export type EditableFunctionTemplate = {
   rawSqlTemplate: string;
 };
 
-export type EditableFunctionDefinition = Omit<FunctionDefinition, "arguments" | "sqlTemplates"> & {
+export type FunctionDefinitionPayload = Omit<FunctionDefinition, "isAggregate">;
+
+export type EditableFunctionDefinition = Omit<FunctionDefinition, "arguments" | "sqlTemplates" | "isAggregate"> & {
   arguments: EditableFunctionArgument[];
   sqlTemplates: Record<string, string>;
   sqlTemplateRows: EditableFunctionTemplate[];
@@ -71,7 +73,6 @@ export const emptyFunction = (providers: string[]): EditableFunctionDefinition =
   name: "",
   arguments: [emptyFunctionArgument()],
   resultType: "String",
-  isAggregate: false,
   applyFor: 2 | 4 | 8 | 16,
   description: "",
   sqlTemplates: {},

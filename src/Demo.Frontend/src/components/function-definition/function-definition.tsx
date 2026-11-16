@@ -18,6 +18,7 @@ import type { DefinitionActionAdapter } from "../metadata-builder/definition-act
 import {
   EditableFunctionDefinition,
   FunctionDefinition,
+  FunctionDefinitionPayload,
   emptyFunction,
   toEditableFunction,
 } from "./types";
@@ -54,7 +55,7 @@ function parseArgumentDefault(argument: EditableFunctionDefinition["arguments"][
   }
 }
 
-function toPayload(draft: EditableFunctionDefinition): FunctionDefinition {
+function toPayload(draft: EditableFunctionDefinition): FunctionDefinitionPayload {
   const sqlTemplates: Record<string, string> = {};
   for (const row of draft.sqlTemplateRows) {
     const template = row.rawSqlTemplate.trim();
@@ -77,7 +78,6 @@ function toPayload(draft: EditableFunctionDefinition): FunctionDefinition {
     name: draft.name.trim(),
     arguments: args,
     resultType: draft.resultType,
-    isAggregate: draft.isAggregate,
     applyFor: draft.applyFor,
     description: draft.description.trim(),
     sqlTemplates: sqlTemplates as Record<string, string>,
@@ -157,7 +157,7 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
       setMessage("Function name and description are required.");
       return false;
     }
-    let payload: FunctionDefinition;
+    let payload: FunctionDefinitionPayload;
     try {
       payload = toPayload(draft);
     } catch (error) {

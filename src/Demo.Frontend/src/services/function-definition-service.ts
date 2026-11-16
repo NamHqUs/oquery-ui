@@ -1,5 +1,5 @@
 import { apiUrls } from "../const/api-urls";
-import { allScalarApplyFor, type FunctionApplyFor, type FunctionDefinition } from "../components/function-definition/types";
+import { allScalarApplyFor, type FunctionApplyFor, type FunctionDefinition, type FunctionDefinitionPayload } from "../components/function-definition/types";
 import { requestJson } from "./api-client";
 
 let definitionsCache: FunctionDefinition[] | null = null;
@@ -48,7 +48,7 @@ export function getDefinitions(): Promise<FunctionDefinition[]> {
   return definitionsRequest;
 }
 
-export async function saveDefinition(name: string | undefined, payload: FunctionDefinition): Promise<FunctionDefinition> {
+export async function saveDefinition(name: string | undefined, payload: FunctionDefinitionPayload): Promise<FunctionDefinition> {
   const saved: FunctionDefinition | null = await requestJson(
     name ? apiUrls.metadata.functionByName(name) : apiUrls.metadata.functions,
     {
