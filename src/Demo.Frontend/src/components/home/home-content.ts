@@ -26,25 +26,30 @@ export const HOME_EXAMPLES: HomeExample[] = [
     letter: "B",
     title: "Choose the fields you need",
     summary: "Show only the information you need.",
-    query: "Employees: FirstName",
+    query: "Seller: FirstName,  JobTitle,  EmploymentType",
   },
   {
     id: "relations",
     letter: "C",
     title: "Follow relationships",
     summary: "Ask for related information by name. No need to write the joins yourself.",
-    query: "Employees: FirstName, Location.Name, Department.Name",
+    query: `# Seller names, departments, and managers?
+Seller: FirstName, Department.Name, Manager.FirstName`,
   },
   {
     id: "calculate",
     letter: "D",
     title: "Calculate values",
     summary: "Calculate values across related data without manually writing the grouping and join logic.",
-    query: `Departments:
-    Name,
-    Employees.CountIf(
-        Location.Name like <%Atlanta%>
-    ) EmployeesInAtlanta`,
+    query: `# Which products sell the most, with their order counts and profits?
+Products:
+    Name Product,
+    Category,
+    Items.Sum(Quantity) UnitsSold,
+    Items.CountDistinct(Order.Id) OrderCount,
+    Items.Sum(Quantity * UnitPrice - DiscountAmount).Round(2) NetRevenue
+  Order UnitsSold DESC
+  Take 10`,
   },
   {
     id: "compare",

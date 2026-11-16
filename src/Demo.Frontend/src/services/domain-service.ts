@@ -22,6 +22,16 @@ export type DomainDetails = DomainName & {
   isBuiltin: boolean;
 };
 
+type DomainResponse = {
+  id: string;
+  name: string;
+  description: string;
+  entities: DomainEntityDto[];
+  relations: DomainRelation[];
+  canDelete: boolean;
+  isBuiltin: boolean;
+};
+
 let domainNamesCache: DomainName[] | null = null;
 let domainNamesRequest: Promise<DomainName[]> | null = null;
 const domainDetailsCache = new Map<string, DomainDetails>();
@@ -49,6 +59,18 @@ function publishDomainMetadata(details: DomainDetails) {
   store.dispatch(setQueryMetadata({ entities: details.entities, relations: details.relations }));
 }
 
+function toDomainDetails(domain: DomainResponse): DomainDetails {
+  return {
+    id: domain.id,
+    name: domain.name,
+    description: domain.description || "",
+    entities: domain.entities.map(metadataEntityFromDto),
+    relations: domain.relations,
+    canDelete: domain.canDelete,
+    isBuiltin: domain.isBuiltin,
+  };
+}
+
 export async function getDomain(domainId: string): Promise<DomainDetails> {
   const normalizedId = domainId.trim();
   if (!normalizedId) throw new Error("A domain ID is required.");
@@ -60,24 +82,8 @@ export async function getDomain(domainId: string): Promise<DomainDetails> {
   const pending = domainDetailsRequests.get(normalizedId);
   if (pending) return pending;
 
-  const request = requestJson<{
-    id: string;
-    name: string;
-    description: string;
-    entities: DomainEntityDto[];
-    relations: DomainRelation[];
-    canDelete: boolean;
-    isBuiltin: boolean;
-  }>(apiUrls.metadata.domainById(normalizedId)).then((domain) => {
-    const details: DomainDetails = {
-      id: domain.id,
-      name: domain.name,
-      description: domain.description || "",
-      entities: domain.entities.map(metadataEntityFromDto),
-      relations: domain.relations,
-      canDelete: domain.canDelete,
-      isBuiltin: domain.isBuiltin,
-    };
+  const request = requestJson<DomainResponse>(apiUrls.metadata.domainById(normalizedId)).then((domain) => {
+    const details = toDomainDetails(domain);
     domainDetailsCache.set(normalizedId, details);
     domainNamesCache = domainNamesCache?.map((item) =>
       item.id === details.id
@@ -115,8 +121,15 @@ export async function generateDomain(body: object) {
 }
 
 export async function updateDomain(domainId: string, body: object) {
-  const saved = await requestJson(apiUrls.metadata.domainById(domainId), jsonRequest("PUT", body));
-  invalidateDomain(domainId);
+  const saved = await requestJson<DomainResponse>(apiUrls.metadata.domainById(domainId), jsonRequest("PUT", body));
+  const details = toDomainDetails(saved);
+  const normalizedId = domainId.trim();
+  domainDetailsCache.set(normalizedId, details);
+  domainNamesCache = domainNamesCache?.map((item) =>
+    item.id === details.id
+      ? { id: details.id, name: details.name, description: details.description }
+      : item);
+  publishDomainMetadata(details);
   domainNamesCache = null;
   return saved;
 }

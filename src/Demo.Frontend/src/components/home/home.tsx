@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Icon, { getDatabaseIconName } from "../icon/icon";
-import OQueryEditor from "../oquery-editor/oquery-editor";
+import OQueryEditor, { type OQueryEditorHandle } from "../oquery-editor/oquery-editor";
 import { getOQuerySuggestionData } from "../oquery-editor/oquery-suggestion-data";
 import type { FunctionDefinition } from "../function-definition/types";
 import {
@@ -89,6 +89,7 @@ function Playground({
   const [sqlError, setSqlError] = useState("");
   const [sqlLoading, setSqlLoading] = useState(false);
   const selectionRef = useRef("");
+  const editorRef = useRef<OQueryEditorHandle>(null);
   const lastRunQueryRef = useRef(initialQuery);
   const runIdRef = useRef(0);
   const sqlIdRef = useRef(0);
@@ -130,7 +131,7 @@ function Playground({
     }
   };
 
-  const runCurrent = () => void run(selectionRef.current.trim() || query);
+  const runCurrent = () => void run(editorRef.current?.getText() ?? query);
 
   useEffect(() => {
     if (domainId) void run(initialQuery);
@@ -159,6 +160,7 @@ function Playground({
       </div>
       <div className="hp-playground-editor" ref={editorHostRef} onKeyDownCapture={handleKeyDownCapture}>
         <OQueryEditor
+          ref={editorRef}
           key={initialQuery}
           aria-label={label}
           oquery
