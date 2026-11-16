@@ -11,7 +11,8 @@ import OQueryEditor from "../../oquery-editor/oquery-editor";
 import { getOqueryErrorPosition } from "../../oquery-editor/oquery-validation";
 import { getOQuerySuggestionData } from "../../oquery-editor/oquery-suggestion-data";
 import { MetadataRelationsContext } from "./metadata-relations-context";
-import DiagramView, { type DiagramRelationship, type DiagramTable } from "../../metadata-builder/entity-diagram/diagram-view";
+import DiagramView from "../../metadata-builder/entity-diagram/diagram-view";
+import { toDiagramRelationships, toDiagramTables } from "../../metadata-builder/entity-diagram/diagram-model";
 import PanelSplitter from "../../panel-splitter/panel-splitter";
 import { useResizablePanel } from "../../../utils/use-resizable-panel";
 import "./query-design.css";
@@ -264,30 +265,8 @@ export default function QueryDesign({
   });
   const metadataRelations = useContext(MetadataRelationsContext);
   const suggestionData = getOQuerySuggestionData(metadata, metadataRelations);
-  const diagramTables: DiagramTable[] = metadata.map((item) => ({
-    schema: item.schema || "dbo",
-    name: item.name,
-    dbTable: item.dbTable,
-    columns: item.fields.map((field) => ({
-      name: field.name,
-      dataType: field.dataType || "String",
-      isPrimaryKey: false,
-    })),
-  }));
-  const diagramRelationships: DiagramRelationship[] = metadataRelations.map((relation) => {
-    const source = metadata.find((item) => item.name === relation.sourceEntity);
-    const target = metadata.find((item) => item.name === relation.targetEntity);
-    return {
-      name: relation.sourceRelationName || `${relation.sourceEntity} to ${relation.targetEntity}`,
-      sourceSchema: source?.schema || "dbo",
-      sourceTable: relation.sourceEntity,
-      sourceColumns: relation.sourceFields,
-      targetSchema: target?.schema || "dbo",
-      targetTable: relation.targetEntity,
-      targetColumns: relation.targetFields,
-      isUnique: false,
-    };
-  });
+  const diagramTables = toDiagramTables(metadata);
+  const diagramRelationships = toDiagramRelationships(metadata, metadataRelations);
   const metadataWithContexts = [
     ...metadata,
     ...contextEntities.filter((context) => !metadata.some((item) => item.name === context.name)),

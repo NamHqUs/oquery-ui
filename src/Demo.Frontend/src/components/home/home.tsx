@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type R
 import { useDispatch, useSelector } from "react-redux";
 import Icon, { getDatabaseIconName } from "../icon/icon";
 import OQueryEditor, { type OQueryEditorHandle } from "../oquery-editor/oquery-editor";
+import DiagramView from "../metadata-builder/entity-diagram/diagram-view";
+import { toDiagramRelationships, toDiagramTables } from "../metadata-builder/entity-diagram/diagram-model";
 import { getOQuerySuggestionData } from "../oquery-editor/oquery-suggestion-data";
 import type { FunctionDefinition } from "../function-definition/types";
 import {
@@ -10,6 +12,7 @@ import {
   type QueryResult,
 } from "../query-builder/query-design/query-builder-slice";
 import type { RootState } from "../../store/store";
+import { getDomain } from "../../services/domain-service";
 import * as oQueryEditorService from "../../services/oquery-editor-service";
 import {
   DEVELOPER_CARDS,
@@ -263,14 +266,18 @@ export default function Home({
   const { metadata, metadataRelations, metadataStatus, functionDefinitions, filterOperators } = useSelector((state: RootState) => state.queryBuilder);
   const { providers } = useSelector((state: RootState) => state.database);
   const [domainId] = useState(HOME_DOMAIN_ID);
+  const [domainName, setDomainName] = useState(HOME_DOMAIN_ID);
   const [activeExampleId, setActiveExampleId] = useState(HOME_EXAMPLES[0]!.id);
   const heroEditorRef = useRef<HTMLDivElement>(null);
   const activeExample = HOME_EXAMPLES.find((example) => example.id === activeExampleId) ?? HOME_EXAMPLES[0]!;
   const suggestionData = getOQuerySuggestionData(metadata, metadataRelations);
+  const diagramTables = toDiagramTables(metadata);
+  const diagramRelationships = toDiagramRelationships(metadata, metadataRelations);
   const relationCount = metadataRelations.length;
 
   useEffect(() => {
     if (domainId) oQueryEditorService.load(domainId).catch((error: unknown) => console.error(error));
+    if (domainId) getDomain(domainId).then((details) => setDomainName(details.name)).catch((error: unknown) => console.error(error));
   }, [domainId]);
   const showExample = (id: string) => {
     setActiveExampleId(id);
@@ -299,7 +306,7 @@ export default function Home({
             editorHostRef={heroEditorRef}
             domainId={domainId}
             operators={filterOperators}
-            domain={{ id: domainId, name: domainId, entities: metadata, relations: metadataRelations }}
+            domain={{ id: domainId, name: domainName, entities: metadata, relations: metadataRelations }}
           />
         </div>
       </section>
@@ -334,11 +341,23 @@ export default function Home({
               label={`Example ${activeExample.letter} · ${activeExample.title}`}
               functionDefinitions={functionDefinitions}
               operators={filterOperators}
-              domain={{ id: domainId, name: domainId, entities: metadata, relations: metadataRelations }}
+              domain={{ id: domainId, name: domainName, entities: metadata, relations: metadataRelations }}
               suggestionData={suggestionData}
               domainId={domainId}
             />
           </div>
+        </div>
+      </section>
+
+      <section className="hp-section" id="hp-domain-model" aria-labelledby="hp-domain-model-title">
+        <SectionIntro
+          id="hp-domain-model-title"
+          kicker="DOMAIN MODEL"
+          title={`The ${domainName} entities and how they connect.`}
+          text={`Every example above runs against these entities. Follow the lines to see which relationships a query can use, such as Seller to Orders or OrderItems to Products.`}
+        />
+        <div className="hp-domain-diagram">
+          <DiagramView tables={diagramTables} relationships={diagramRelationships} compactCards />
         </div>
       </section>
 

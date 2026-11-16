@@ -24,6 +24,7 @@ export type DiagramRelationship = {
   targetColumns: string[];
   isUnique: boolean;
   sourceRelationIndex?: number;
+  targetRelationName?: string;
 };
 export const DIAGRAM_GROUP_TONES: DiagramGroupTone[] = ["revenue", "customer", "product", "finance", "custom"];
 
@@ -112,18 +113,48 @@ function compactCardWidth(name, columns = [], expanded = false) {
   return Math.max(60, longestText * 7 + 41);
 }
 
-// Field popup default height shows up to 8 rows; the list scrolls beyond that.
-function compactPopupDefaultHeight(columns = []) {
-  return Math.min(Math.max(MIN_FIELD_ROWS, columns.length), DEFAULT_VISIBLE_FIELD_ROWS) * FIELD_ROW_HEIGHT + FIELD_LIST_PADDING;
+// Popup sections: a Fields title and list, then a Relations title and list. Each height count includes its title row.
+const POPUP_SECTION_TITLE_HEIGHT = 22;
+const POPUP_MIN_WIDTH = 300;
+const RELATION_ROW_HEIGHT = 21;
+const MAX_VISIBLE_RELATION_ROWS = 5;
+
+function relationSectionHeight(rowCount) {
+  return rowCount ? POPUP_SECTION_TITLE_HEIGHT + rowCount * RELATION_ROW_HEIGHT + FIELD_LIST_PADDING : 0;
 }
 
-// Popup height where every field is visible; resizing stops here so the list never scrolls.
-function compactPopupMaxHeight(columns = []) {
-  return Math.max(MIN_FIELD_ROWS, columns.length) * FIELD_ROW_HEIGHT + FIELD_LIST_PADDING;
+function compactPopupDefaultWidth(table) {
+  return Math.max(POPUP_MIN_WIDTH, compactCardWidth(table.name, table.columns, true));
+}
+
+function relationsForTable(table, relationships = []) {
+  const outgoing = relationships
+    .filter((relation) => relation.sourceTable === table.name)
+    .map((relation) => ({ name: relation.name, target: relation.targetTable, type: "many-to-one", icon: "relation-many-to-one" as const }));
+  const incoming = relationships
+    .filter((relation) => relation.targetTable === table.name)
+    .map((relation) => ({ name: relation.targetRelationName || relation.name, target: relation.sourceTable, type: "one-to-many", icon: "relation-one-to-many" as const }));
+  return [...outgoing, ...incoming];
+}
+
+// Popup height shows up to 8 field rows and 5 relation rows by default; the lists scroll beyond that.
+function compactPopupDefaultHeight(columns = [], relationCount = 0) {
+  return POPUP_SECTION_TITLE_HEIGHT
+    + Math.min(Math.max(MIN_FIELD_ROWS, columns.length), DEFAULT_VISIBLE_FIELD_ROWS) * FIELD_ROW_HEIGHT
+    + FIELD_LIST_PADDING
+    + relationSectionHeight(Math.min(relationCount, MAX_VISIBLE_RELATION_ROWS));
+}
+
+// Popup height where every field and relation is visible; resizing stops here so the lists never scroll.
+function compactPopupMaxHeight(columns = [], relationCount = 0) {
+  return POPUP_SECTION_TITLE_HEIGHT
+    + Math.max(MIN_FIELD_ROWS, columns.length) * FIELD_ROW_HEIGHT
+    + FIELD_LIST_PADDING
+    + relationSectionHeight(relationCount);
 }
 
 function compactPopupMinHeight() {
-  return FIELD_ROW_HEIGHT + FIELD_LIST_PADDING;
+  return POPUP_SECTION_TITLE_HEIGHT + FIELD_ROW_HEIGHT + FIELD_LIST_PADDING;
 }
 
 function translateEdgePath(path, offset) {
@@ -748,11 +779,11 @@ export default function DiagramView({
       ...current,
       [currentResize.key]: {
         width: Math.max(
-          compactCardWidth(table.name, table.columns, true),
+          compactPopupDefaultWidth(table),
           currentResize.originWidth + event.clientX - currentResize.startX,
         ),
         height: Math.min(
-          compactPopupMaxHeight(table.columns),
+          compactPopupMaxHeight(table.columns, relationsForTable(table, suppliedRelationships || schema.relationships).length),
           Math.max(compactPopupMinHeight(), currentResize.originHeight + event.clientY - currentResize.startY),
         ),
       },
@@ -1012,8 +1043,9 @@ export default function DiagramView({
             const position = tablePositions[key];
             if (!position || !expandedTables[key]) return null;
             const size = popupSizes[key];
-            const width = size?.width || compactCardWidth(table.name, table.columns, true);
-            const height = size?.height || compactPopupDefaultHeight(table.columns);
+            const relations = relationsForTable(table, suppliedRelationships || schema.relationships);
+            const width = size?.width || compactPopupDefaultWidth(table);
+            const height = size?.height || compactPopupDefaultHeight(table.columns, relations.length);
             return (
               <div
                 className="diagram-field-popup"
@@ -1024,10 +1056,27 @@ export default function DiagramView({
                   width,
                   height,
                 }}
-                aria-label={`${table.name} fields`}
+                aria-label={`${table.name} fields and relations`}
                 onPointerDown={(event) => event.stopPropagation()}
               >
-                {renderFieldList(table)}
+                <div className="diagram-popup-section diagram-popup-fields">
+                  <div className="diagram-popup-title">Fields</div>
+                  {renderFieldList(table)}
+                </div>
+                <div className="diagram-popup-section diagram-popup-relations">
+                  <div className="diagram-popup-title">Relations</div>
+                  {relations.length === 0
+                    ? <div className="diagram-no-columns">No relations</div>
+                    : <ul className="diagram-relation-list">
+                      {relations.map((relation, index) => <li key={`${relation.type}-${relation.name}-${index}`} title={`${relation.name} → ${relation.target} (${relation.type})`}>
+                        <span className="diagram-relation-name">{relation.name}</span>
+                        <span className="diagram-relation-target">→ {relation.target}</span>
+                        <span className="diagram-relation-type" title={relation.type} aria-label={relation.type}>
+                          <Icon name={relation.icon} size={13} />
+                        </span>
+                      </li>)}
+                    </ul>}
+                </div>
                 <button
                   type="button"
                   className="diagram-card-resize-handle"
