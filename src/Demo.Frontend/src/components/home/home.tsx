@@ -17,13 +17,15 @@ import * as oQueryEditorService from "../../services/oquery-editor-service";
 import {
   DEVELOPER_CARDS,
   EXTENSION_CARDS,
-  HERO_QUERY,
+  HERO_TEAM_QUERY,
   HOME_EXAMPLES,
   INTERFACE_CARDS,
   PRODUCT_NAME,
   REVEAL_POINTS,
   SECURITY_POINTS,
-  USE_CASES,
+  HERO_BENEFITS,
+  HERO_FIT_GOOD,
+  HERO_FIT_POOR,
   type HomeCard,
 } from "./home-content";
 import "./home-landing.css";
@@ -69,6 +71,7 @@ function Playground({
   suggestionData,
   editorHostRef,
   domainId,
+  onOpenMetadata,
 }: {
   initialQuery: string;
   label: string;
@@ -83,6 +86,7 @@ function Playground({
   suggestionData: SuggestionData;
   editorHostRef?: RefObject<HTMLDivElement | null>;
   domainId: string;
+  onOpenMetadata: () => void;
 }) {
   const [query, setQuery] = useState(initialQuery);
   const [result, setResult] = useState<QueryResult | null>(null);
@@ -208,9 +212,12 @@ function Playground({
               </div>}
       </div>
       <div className={`hp-sql${sqlOpen ? " open" : ""}`}>
-        <button className="hp-sql-toggle" type="button" aria-expanded={sqlOpen} onClick={toggleSql}>
-          <Icon name="chevron-right" size={13} /> See how it works <span>View generated SQL</span>
-        </button>
+        <div className="hp-sql-head">
+          <button className="hp-sql-toggle" type="button" aria-expanded={sqlOpen} onClick={toggleSql}>
+            <Icon name="chevron-right" size={13} /> See how it works <span>View generated SQL</span>
+          </button>
+          <TextAction onClick={onOpenMetadata}>Explore metadata</TextAction>
+        </div>
         {sqlOpen && <div className="hp-sql-body">
           {sqlError
             ? <p className="hp-result-error" role="alert">{sqlError}</p>
@@ -287,21 +294,33 @@ export default function Home({
   const openBuilder = () => onNavigateToPage("builder", true);
   const openDocs = () => onNavigateToPage("documentation");
   const openDiagramDetails = () => onNavigateToPage("metadata", false, DIAGRAMS_PATH);
+  const openDomainDiagram = () => onNavigateToPage("metadata", false, `${DIAGRAMS_PATH}?domain=${encodeURIComponent(domainId)}`);
   return (
     <div className="hp">
       <section className="hp-hero" id="hp-playground" aria-labelledby="hp-hero-title">
         <div className="hp-hero-copy">
           <span className="eyebrow">METADATA-DRIVEN QUERYING</span>
-          <h1 id="hp-hero-title">What can <span>metadata</span> make possible?</h1>
-          <p className="hp-lede">Define your data once. {PRODUCT_NAME} uses that understanding of your entities, fields, and relationships to make querying simpler.</p>
-          <section className="hp-hero-usecases" aria-label="Use cases">
-            <CardGrid cards={USE_CASES} className="hp-card-grid-5" />
+          <h1 id="hp-hero-title">Your data, ready for any question.</h1>
+          <p className="hp-lede">Metadata is where you define your tables, fields, and relations once. Every question is then built from those definitions.</p>
+          <section className="hp-hero-usecases" aria-label="Benefits">
+            <CardGrid cards={HERO_BENEFITS} className="hp-card-grid-5" />
+          </section>
+          <section className="hp-fit" aria-label="Where it fits">
+            <div>
+              <h3>Good fit for</h3>
+              <ul className="hp-fit-good">{HERO_FIT_GOOD.map((item) => <li key={item}>{item}</li>)}</ul>
+            </div>
+            <div>
+              <h3>Not a fit for</h3>
+              <ul className="hp-fit-poor">{HERO_FIT_POOR.map((item) => <li key={item}>{item}</li>)}</ul>
+            </div>
           </section>
         </div>
         <div className="hp-hero-demo">
-          <p className="hp-demo-prompt">Ask for what your metadata makes possible:</p>
+          <span className="eyebrow">NO SQL REQUIRED</span>
+          <h2 className="hp-demo-title"><span>Auto</span><s className="hp-strike">GROUP</s><s className="hp-strike">JOIN</s><s className="hp-strike">Nested query</s></h2>
           <Playground
-            initialQuery={HERO_QUERY}
+            initialQuery={HERO_TEAM_QUERY}
             label="Playground"
             functionDefinitions={functionDefinitions}
             suggestionData={suggestionData}
@@ -309,6 +328,7 @@ export default function Home({
             domainId={domainId}
             operators={filterOperators}
             domain={{ id: domainId, name: domainName, entities: metadata, relations: metadataRelations }}
+            onOpenMetadata={openDomainDiagram}
           />
         </div>
       </section>
@@ -346,6 +366,7 @@ export default function Home({
               domain={{ id: domainId, name: domainName, entities: metadata, relations: metadataRelations }}
               suggestionData={suggestionData}
               domainId={domainId}
+              onOpenMetadata={openDomainDiagram}
             />
           </div>
         </div>

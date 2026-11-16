@@ -639,6 +639,11 @@ export default function DiagramView({
   );
   const layoutWidth = autoRange ? boardSize.width : layoutSize.width;
   const layoutHeight = autoRange ? boardSize.height : layoutSize.height;
+  const layoutHeightRef = useRef(layoutHeight);
+
+  useEffect(() => {
+    layoutHeightRef.current = layoutHeight;
+  }, [layoutHeight]);
 
   useEffect(() => {
     if (!compactCards || !renderedGroup?.tables?.length) {
@@ -646,7 +651,8 @@ export default function DiagramView({
       return undefined;
     }
     let cancelled = false;
-    createCompactLayout(renderedGroup.tables, relationships, layoutWidth, layoutHeight)
+    // Compact cards are not re-centered on height changes, so resizing the board height keeps them in place.
+    createCompactLayout(renderedGroup.tables, relationships, layoutWidth, layoutHeightRef.current)
       .then((nextLayout) => {
         if (!cancelled) {
           setCompactLayout(nextLayout);
@@ -659,7 +665,7 @@ export default function DiagramView({
     return () => {
       cancelled = true;
     };
-  }, [autoRange, compactCards, layoutHeight, layoutWidth, relationships, renderedGroup]);
+  }, [autoRange, compactCards, layoutWidth, relationships, renderedGroup]);
 
   const layout = useMemo(() => {
     const next = createLayout(renderedGroup?.tables || [], relationships, layoutSize.width, layoutSize.height, compactCards);

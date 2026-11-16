@@ -3,6 +3,11 @@ import type { IconName } from "../icon/icon";
 export const PRODUCT_NAME = "OQuery";
 export const GITHUB_URL = "https://github.com/NamHqUs/oquery-ui";
 export const HERO_QUERY = "Products:";
+export const HERO_TEAM_QUERY = [
+  "# Which sellers lead teams of more than five people?",
+  "Seller: FirstName, LastName, Members.Count() TeamSize",
+  "Where TeamSize > 5",
+].join("\n");
 
 export type HomeExample = {
   id: string;
@@ -121,13 +126,24 @@ export const INTERFACE_CARDS: (HomeCard & { audience: string; code?: string })[]
   { icon: "upload", title: "Frontend API", text: "Submit dynamic queries over HTTP.", audience: "For frontend applications that need flexible data access without a dedicated endpoint per variation.", code: "POST /dynamic-query/query/from-text" },
 ];
 
-export const USE_CASES: HomeCard[] = [
-  { icon: "chart-bar", title: "Dynamic reporting", text: "Let users select fields, relationships, filters, and aggregations instead of implementing every report variation." },
-  { icon: "operator", title: "Business conditions", text: "Define and evaluate conditions against application data without hardcoding every condition into backend code." },
-  { icon: "chart-line", title: "Workflows and alerts", text: "Use query results and evaluated conditions to trigger workflows, notifications, and alerts." },
-  { icon: "grid", title: "Dynamic frontend experiences", text: "Allow frontend applications to request different data combinations through a controlled API." },
-  { icon: "schema", title: "Multi-tenant applications", text: "Provide tenant-specific logical data models, relationships, and permissions." },
-  { icon: "query", title: "AI-assisted data exploration", text: "Help users discover and understand application data through guided, metadata-aware questions.", roadmap: true },
+export const HERO_BENEFITS: HomeCard[] = [
+  { icon: "database", title: "Table changed?", text: "No query changes. Update the table's definition only." },
+  { icon: "operator", title: "New business rule?", text: "No app rebuild. Rules are defined, not compiled in." },
+  { icon: "query", title: "Users need new views?", text: "No backend coding. They pick fields and filters on screen." },
+  { icon: "schema", title: "Same table, different teams?", text: "No one-table-fits-all. Each domain sets logic per team." },
+];
+
+export const HERO_FIT_GOOD = [
+  "Internal reports and dashboards",
+  "Back-office and admin search",
+  "Self-service data explorers",
+  "Several business areas on one database",
+  "Business rules that change often",
+];
+
+export const HERO_FIT_POOR = [
+  "Apps that modify data (OQuery only reads)",
+  "One-off scripts with a fixed query",
 ];
 
 export const EXTENSION_CARDS: HomeCard[] = [
