@@ -3,7 +3,7 @@ export const OQUERY_LANGUAGE_ID = "oquery";
 export const OQUERY_KEYWORDS = [
   "select", "where", "order", "skip", "take", "join", "left", "inner", "right", "full", "on",
   "distinct",
-  "asc", "desc", "and", "or", "is", "in", "between", "not", "like", "contains",
+  "asc", "desc", "and", "or", "is", "in", "between", "not", "like",
   "null", "true", "false",
 ];
 

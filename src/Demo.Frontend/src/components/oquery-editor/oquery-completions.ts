@@ -71,7 +71,6 @@ const expressionKeywords = [
   ["Between", "Match a value range"] as const,
   ["Not", "Negate an expression"] as const,
   ["Like", "Text pattern match"] as const,
-  ["Contains", "Text contains match"] as const,
   ["Distinct", "Remove duplicate result rows or aggregate values"] as const,
   ["Null", "Null value"] as const,
   ["True", "Boolean value"] as const,
