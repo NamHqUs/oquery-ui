@@ -747,11 +747,16 @@ export function getOQueryCompletions(
     addKeywords(candidates, expressionKeywords.filter(([label]) => ["Null", "True", "False"].includes(label)));
   }
 
+  if (!hasFunctionReceiver && !relationPath && context === "where") {
+    functionDefinitions
+      .filter(isApplicable)
+      .forEach((definition) => addFunctionCandidate(candidates, definition, 3));
+  }
+
   const items = unique(candidates)
     .map((candidate) => ({ candidate, score: scoreCandidate(candidate, query) }))
     .filter(({ score }) => Number.isFinite(score))
     .sort((left, right) => left.score - right.score || left.candidate.label.localeCompare(right.candidate.label))
-    .slice(0, 20)
     .map(({ candidate }) => candidate);
 
   return { items, replaceStart, replaceEnd: safePosition };

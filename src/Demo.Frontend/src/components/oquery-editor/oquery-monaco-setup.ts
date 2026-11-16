@@ -73,6 +73,20 @@ function registerProviders() {
       return getOqueryFoldingRanges(model.getValue()).map((range) => ({ start: range.start, end: range.end }));
     },
   });
+
+  monaco.languages.registerHoverProvider(language, {
+    provideHover(model, position) {
+      const word = model.getWordAtPosition(position);
+      const definition = word ? functionDefinitionsByName.get(word.word.toLowerCase()) : undefined;
+      if (!word || !definition) return null;
+      const contents: monaco.IMarkdownString[] = [{ value: `**${formatFunctionSignature(definition)}**` }];
+      if (definition.description) contents.push({ value: definition.description });
+      return {
+        range: new monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn),
+        contents,
+      };
+    },
+  });
 }
 
 function defineTheme() {
@@ -99,11 +113,19 @@ function defineTheme() {
 }
 
 let registeredFunctionKey: string | null = null;
+const functionDefinitionsByName = new Map<string, FunctionDefinition>();
+
+function formatFunctionSignature(definition: FunctionDefinition) {
+  const args = definition.arguments.map((argument) => `${argument.name}: ${argument.dataType}`).join(", ");
+  return `${definition.name}(${args}) → ${definition.resultType}`;
+}
 
 // Re-registering the Monarch tokenizer is cheap, and it lets function names
 // from the current metadata drive highlighting without a per-editor language.
 export function ensureOqueryLanguage(functionDefinitions: FunctionDefinition[]) {
   configureEnvironment();
+  functionDefinitionsByName.clear();
+  for (const definition of functionDefinitions) functionDefinitionsByName.set(definition.name.toLowerCase(), definition);
   const functionNames = [...new Set(functionDefinitions.map((definition) => definition.name))].sort();
   const key = functionNames.join("\u0000");
   if (key === registeredFunctionKey) return;

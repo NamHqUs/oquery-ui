@@ -33,7 +33,7 @@ public sealed class DynamicQueryService(
             metadataProvider,
             metadataService.GetFunctionProvider(dialect),
             dialect);
-        var preparedQuery = EnsureDefaultProjection(PrepareQuery(query, dialect), metadataProvider);
+        var preparedQuery = EnsureDefaultProjection(PrepareQuery(query, dialect, metadataProvider), metadataProvider);
         return context.Query(preparedQuery).ToSql().CommandText;
     }
 
@@ -54,7 +54,7 @@ public sealed class DynamicQueryService(
             metadataProvider,
             metadataService.GetFunctionProvider(dialect),
             dialect);
-        var preparedQuery = EnsureDefaultProjection(PrepareQuery(query, dialect), metadataProvider);
+        var preparedQuery = EnsureDefaultProjection(PrepareQuery(query, dialect, metadataProvider), metadataProvider);
         var result = await context.Query(preparedQuery)
             .ToListWithTotalRecordsAndColumnsAsync(cancellationToken);
        
@@ -141,10 +141,23 @@ public sealed class DynamicQueryService(
         }
     }
 
-    private QueryDefinition PrepareQuery(QueryDefinition query, ISqlDialect dialect)
+    private static bool IsEntityName(IMetadataProvider metadataProvider, string name)
+    {
+        try
+        {
+            metadataProvider.GetEntity(name);
+            return true;
+        }
+        catch (EntityNotFoundException)
+        {
+            return false;
+        }
+    }
+
+    private QueryDefinition PrepareQuery(QueryDefinition query, ISqlDialect dialect, IMetadataProvider metadataProvider)
     {
         ArgumentNullException.ThrowIfNull(query);
-        QueryDefinitionJsonParser.ValidateContextReferences(query);
+        QueryDefinitionJsonParser.ValidateContextReferences(query, name => IsEntityName(metadataProvider, name));
         if (query.Filter is null
             && query.Contexts is not { Count: > 0 }
             && query.Joins is not { Count: > 0 })

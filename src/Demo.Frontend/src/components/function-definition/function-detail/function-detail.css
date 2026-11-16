@@ -30,6 +30,7 @@
 .function-metadata-fields { margin-top: 22px; }
 .function-description { grid-column: 1 / -1; }
 .function-checkbox { display: flex !important; align-items: center; gap: 9px !important; }
+.function-checkbox label { display: flex; flex: 1 1 0; min-width: 0; align-items: center; gap: 6px; }
 .function-checkbox input { width: 14px; accent-color: #8064e8; }
 .function-template-table-wrap { overflow-x: auto; margin-top: 14px; border: 1px solid #2a3140; border-radius: 3px; }
 .function-template-table { width: 100%; border-collapse: collapse; text-align: left; }

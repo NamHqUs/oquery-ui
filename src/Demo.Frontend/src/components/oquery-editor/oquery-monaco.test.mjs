@@ -53,6 +53,18 @@ test("function highlighting lists longer names first so a shorter prefix cannot 
   assert.equal(getOqueryMonarchLanguage([]).tokenizer.root.some(([, token]) => token === "function"), false);
 });
 
+test("constant values in angle brackets are not tokenized as keywords or functions", () => {
+  const language = getOqueryMonarchLanguage(["Avg"]);
+  const [enterConstant] = language.tokenizer.root.find(([, action]) => action?.next === "@constant");
+  assert.equal(enterConstant.test("<Order and>"), true);
+  assert.equal(enterConstant.test("Age <= 5"), false);
+  assert.equal(enterConstant.test("Age <> 5"), false);
+  assert.equal(enterConstant.test("Age > 5"), false);
+  const [insideConstant] = language.tokenizer.constant[0];
+  assert.match("Order and Avg", insideConstant);
+  assert.equal(language.tokenizer.constant[1][1].next, "@pop");
+});
+
 test("Enter inside a list section starts a new list item with the same indentation", () => {
   const value = "Projection:\n  - Id";
   const edit = getOqueryEnterEdit(value, value.length, value.length);

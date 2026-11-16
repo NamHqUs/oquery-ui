@@ -46,11 +46,17 @@ export function getOqueryMonarchLanguage(functionNames: string[]) {
         [/#.*$/, "comment"],
         [/"(?:[^"\\]|\\.)*"?/, "string"],
         [/'(?:[^'\\]|\\.)*'?/, "string"],
+        // A constant value such as <Order by> is plain text until its closing '>'.
+        [/<(?![=>])(?=[^>\n]*>)/, { token: "", next: "@constant" }],
         [/\b\d+(?:\.\d+)?\b/, "number"],
         ...functionRule,
         [/[A-Za-z_]\w*/, { cases: { "@keywords": "keyword", "@default": "identifier" } }],
         [/[()[\]{}]/, "@brackets"],
         [/[<>=!]+|[+\-*/%&|]/, "operator"],
+      ],
+      constant: [
+        [/[^>\n]+/, ""],
+        [/>/, { token: "", next: "@pop" }],
       ],
     },
   };

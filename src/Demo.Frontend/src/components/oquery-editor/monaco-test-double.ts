@@ -185,6 +185,7 @@ export const languages = {
   setMonarchTokensProvider: () => undefined,
   registerCompletionItemProvider: () => undefined,
   registerFoldingRangeProvider: () => undefined,
+  registerHoverProvider: () => undefined,
   CompletionItemKind: {
     Class: 1, Field: 2, Reference: 3, Module: 4, Variable: 5, Function: 6, Keyword: 7, Operator: 8, Value: 9,
   },

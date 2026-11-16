@@ -85,4 +85,19 @@ describe("getOQueryCompletions", () => {
 
     expect(labels).toEqual(["Any"]);
   });
+
+  it("shows every field, relation, and function after where, without truncating the list", () => {
+    const fields = Array.from({ length: 25 }, (_, index) => `Field${String(index + 1).padStart(2, "0")}`);
+    const entities: OQuerySuggestionEntity[] = [
+      { name: "Employees", fields: ["Id", ...fields], relations: [{ name: "Members", target: "Employees", kind: "collection" }] },
+    ];
+    const functions = [
+      { name: "Round", arguments: [{ name: "value", defaultValue: null }], isAggregate: false, applyFor: 4 },
+    ];
+    const text = "Employees: Id\n  Where ";
+    const labels = getOQueryCompletions(text, text.length, ["Id", ...fields], [], ["Employees"], functions, "Employees", entities)
+      .items.map((item) => item.label);
+
+    expect(labels).toEqual(expect.arrayContaining(["Field25", "Members", "Round"]));
+  });
 });

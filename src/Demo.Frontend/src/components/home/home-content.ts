@@ -33,7 +33,7 @@ export const HOME_EXAMPLES: HomeExample[] = [
     letter: "C",
     title: "Follow relationships",
     summary: "Ask for related information by name. No need to write the joins yourself.",
-    query: `# Seller names, departments, and managers?
+    query: `# Who manages whom on the sales team?
 Seller: FirstName, Department.Name, Manager.FirstName`,
   },
   {
@@ -41,7 +41,7 @@ Seller: FirstName, Department.Name, Manager.FirstName`,
     letter: "D",
     title: "Calculate values",
     summary: "Calculate values across related data without manually writing the grouping and join logic.",
-    query: `# Which products sell the most, with their order counts and profits?
+    query: `# Which products are our top sellers?
 Products:
     Name Product,
     Category,
@@ -56,22 +56,43 @@ Products:
     letter: "E",
     title: "Compare calculated values",
     summary: `Use calculated values in your conditions. ${PRODUCT_NAME} works out the SQL operations required.`,
-    query: `Products:
+    query: `# Which products earn more than the average?
+Products:
     Name,
-    Revenue.Avg() Average,
-    OrderItems.Sum(Quantity * UnitPrice) Revenue
-WHERE Revenue > Average`,
+    Items.Sum(Quantity * UnitPrice) Revenue,
+    AverageOver(Revenue) AverageRevenue
+  Where Revenue > AverageRevenue`,
   },
   {
     id: "hierarchy",
     letter: "F",
     title: "Explore hierarchical data",
     summary: "Query hierarchical data without manually building the recursive SQL.",
-    query: `EmployeeTree is Employees:
-    FirstName ManagerName,
-    Members.Count(Id) TotalMembers,
-    tree.FirstName MemberName,
-    INNER JOIN EmployeeTree tree on Id = tree.ManagerId`,
+    query: `# Who reports to whom, and how big is each team?
+EmployeeTree is Seller:
+    Inner Join EmployeeTree tree on Id = tree.ManagerId
+    Select 
+      FirstName ManagerName,
+      Members.Count(Id) TotalMembers,
+      tree.FirstName MemberName,`,
+  },
+  {
+    id: "filters",
+    letter: "G",
+    title: "Filter with complex conditions",
+    summary: "Combine AND, OR, ranges, lists, and patterns across a seller's orders.",
+    query: `# Who is closing the best retail deals?
+Seller:
+    FirstName + < > + LastName SalesRep,
+    EmploymentType,
+    Department.Name Department,
+    Orders.CountIf(Status = <Completed>) CompletedOrders
+  Where Department.Name = <Retail Sales> AND
+    (EmploymentType = <Full-time> OR JobTitle like <%Sales%>) AND
+    Orders.Any(Status = <Completed> AND Channel In <Online, Retail Store> AND OrderDate between <2025-06-01,2025-10-31>) AND
+    Orders.NotAny(Status = <Cancelled>)
+  Order CompletedOrders DESC, SalesRep
+  Take 20`,
   },
 ];
 

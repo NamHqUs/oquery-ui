@@ -47,11 +47,12 @@ FROM (
     GROUP BY p.Name
 ) ProductSales
 WHERE ProductSales.TotalRevenue > ProductSales.Average;`;
-const EMPLOYEE_TREE_OQUERY = `EmployeeTree is Employees:
-    FirstName ManagerName,
-    Members.Count(Id) TotalMembers,
-    tree.FirstName MemberName,
-  INNER JOIN EmployeeTree tree on Id = tree.ManagerId`;
+const EMPLOYEE_TREE_OQUERY = `EmployeeTree is Seller:
+    Inner Join EmployeeTree tree on Id = tree.ManagerId
+    Select 
+      FirstName ManagerName,
+      Members.Count(Id) TotalMembers,
+      tree.FirstName MemberName,`;
 const EMPLOYEE_TREE_SQL = `WITH EmployeeTree AS
 (
     SELECT
