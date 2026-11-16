@@ -268,19 +268,20 @@ function App() {
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [connectionDialogOpen]);
 
-  const navigateToPage = (nextPage: Page, fromHome = false) => {
-    if (nextPage === page && !(nextPage === "builder" && fromHome)) return;
+  const navigateToPage = (nextPage: Page, fromHome = false, metadataPath?: string) => {
+    if (nextPage === page && !(nextPage === "builder" && fromHome) && !(nextPage === "metadata" && metadataPath)) return;
     const rememberedMetadataRoute = window.sessionStorage.getItem(METADATA_LAST_ROUTE_STORAGE_KEY);
     const destination = nextPage === "builder" && fromHome
       ? `${PAGE_PATHS.builder}?from=home`
       : nextPage === "metadata"
-        ? rememberedMetadataRoute?.startsWith(`${PAGE_PATHS.metadata}/`)
+        ? metadataPath ?? (rememberedMetadataRoute?.startsWith(`${PAGE_PATHS.metadata}/`)
           ? rememberedMetadataRoute
-          : DOMAINS_PATH
+          : DOMAINS_PATH)
       : PAGE_PATHS[nextPage];
     const continueNavigation = () => {
       if (nextPage === "metadata") setMetadataVisited(true);
       if (nextPage === "functions") setFunctionDefinitionsVisited(true);
+      if (nextPage === "metadata" && metadataPath) window.scrollTo({ top: 0 });
       approvedNavigation.current = destination;
       routerNavigate(destination);
     };

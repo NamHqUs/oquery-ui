@@ -32,6 +32,7 @@ type HomeDestination = "builder" | "metadata" | "sources" | "functions" | "docum
 type SuggestionData = ReturnType<typeof getOQuerySuggestionData>;
 
 const PREVIEW_ROWS = 12;
+const DIAGRAMS_PATH = "/metadata/diagrams";
 const HOME_DOMAIN_ID = import.meta.env.VITE_HOME_DOMAIN_ID || "Sales_Domain";
 const SQL_KEYWORDS = new Set([
   "WITH", "RECURSIVE", "SELECT", "FROM", "WHERE", "GROUP", "BY", "HAVING", "ORDER", "LIMIT", "OFFSET", "ASC", "DESC",
@@ -259,7 +260,7 @@ export default function Home({
   onNavigateToPage,
   onRequestConnection,
 }: {
-  onNavigateToPage: (page: HomeDestination, fromHome?: boolean) => void;
+  onNavigateToPage: (page: HomeDestination, fromHome?: boolean, metadataPath?: string) => void;
   onRequestConnection: () => void;
 }) {
   const dispatch = useDispatch();
@@ -285,6 +286,7 @@ export default function Home({
   };
   const openBuilder = () => onNavigateToPage("builder", true);
   const openDocs = () => onNavigateToPage("documentation");
+  const openDiagramDetails = () => onNavigateToPage("metadata", false, DIAGRAMS_PATH);
   return (
     <div className="hp">
       <section className="hp-hero" id="hp-playground" aria-labelledby="hp-hero-title">
@@ -356,6 +358,7 @@ export default function Home({
           title={`The ${domainName} entities and how they connect.`}
           text={`Every example above runs against these entities. Follow the lines to see which relationships a query can use, such as Seller to Orders or OrderItems to Products.`}
         />
+        <TextAction onClick={openDiagramDetails}>View diagram details in Metadata</TextAction>
         <div className="hp-domain-diagram">
           <DiagramView tables={diagramTables} relationships={diagramRelationships} compactCards />
         </div>
