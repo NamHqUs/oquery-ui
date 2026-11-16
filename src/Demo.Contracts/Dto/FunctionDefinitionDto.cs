@@ -11,7 +11,7 @@ public sealed class FunctionDefinitionDto
     public string ResultType { get; set; } = "";
     public bool CanDelete { get; set; }
     public bool IsBuiltin { get; set; }
-    public bool IsAggregate { get; set; }
+    public bool IsAggregate => BuiltInAggregateFunctions.Contains(Name);
     public int? ApplyFor { get; set; }
     public bool BindArgumentsFromEnd { get; set; }
     public string Description { get; set; } = "";
@@ -38,9 +38,8 @@ public sealed class FunctionDefinitionDto
             resultType,
             Description,
             SqlTemplates,
-            IsAggregate,
             BindArgumentsFromEnd,
-            (FunctionApplyFor)(ApplyFor ?? (int)InferApplyFor(IsAggregate, arguments)));
+            (FunctionApplyFor)(ApplyFor ?? (int)InferApplyFor(Name, arguments)));
     }
 
     public static FunctionDefinitionDto FromFunctionDefinition(SqlFunctionDefintion definition)
@@ -56,7 +55,6 @@ public sealed class FunctionDefinitionDto
                     : JsonSerializer.SerializeToElement(argument.DefaultValue)
             }).ToList(),
             ResultType = definition.ResultType.ToString(),
-            IsAggregate = definition.IsAggregate,
             ApplyFor = (int)definition.FunctionApplyFor,
             BindArgumentsFromEnd = definition.BindArgumentsFromEnd,
             Description = definition.Description,
@@ -81,10 +79,10 @@ public sealed class FunctionDefinitionDto
         => ResultTypes.TryGetValue(resultType, out dataType);
 
     private static FunctionApplyFor InferApplyFor(
-        bool isAggregate,
+        string name,
         IReadOnlyList<SqlFunctionArgumentDefinition> arguments)
     {
-        if (isAggregate)
+        if (BuiltInAggregateFunctions.Contains(name))
             return FunctionApplyFor.DataSet;
         var firstArgument = arguments.FirstOrDefault();
         return firstArgument?.DataType switch
