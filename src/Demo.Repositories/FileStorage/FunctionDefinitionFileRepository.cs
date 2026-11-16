@@ -85,7 +85,8 @@ public sealed class FunctionDefinitionFileRepository(FilePathResolver filePathRe
                     group.SelectMany(function => function.SqlTemplates)
                         .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase),
                     first.IsAggregate,
-                    first.BindArgumentsFromEnd);
+                    first.BindArgumentsFromEnd,
+                    first.FunctionApplyFor);
             })
             .ToArray();
 

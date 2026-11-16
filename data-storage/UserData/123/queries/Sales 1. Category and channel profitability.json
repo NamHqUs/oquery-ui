@@ -1,7 +1,7 @@
 {
   "domainId": "SALES_DOMAIN",
   "name": "S1. Category and channel profitability",
-  "rawText": "# Do you know which product categories generate the most profit across your sales channels?\n# - Which product categories generate the highest gross profit?\n# - Which sales channels contribute the most revenue for each product category?\n# - Which product categories attract the highest number of orders?\n# - How many units are we selling across different product categories and sales channels?\n# - How much revenue are we generating after discounts?\n# - Which product categories receive the highest discounts, and how does that affect profitability?\n# - What is the average revenue generated per order for each product category?\n# - Are there product categories generating high sales volumes but relatively low profits?\n# - Which product categories and sales channels should we prioritize to maximize profitability?\n# __________________________________________________\n\nCategoryChannelProfitability is OrderItems:\n    Product.Category Category,\n    Order.Channel Channel,\n    CountDistinct(OrderId) OrdersContainingCategory,\n    Sum(Quantity) UnitsSold,\n    Sum(Quantity * UnitPrice - DiscountAmount).Round(2) NetRevenue,\n    Sum(DiscountAmount).Round(2) Discounts,\n    Sum(Quantity * (UnitPrice - Product.CostPrice) - DiscountAmount).Round(2) GrossProfit,\n    (Sum(Quantity * UnitPrice - DiscountAmount) * 1.0 / CountDistinct(OrderId)).Round(2) AverageCategoryRevenuePerOrder\n  Where Order.Status = \u003CCompleted\u003E\n  Order GrossProfit DESC\n  Take 10",
+  "rawText": "# Do you know which product categories generate the most profit across your sales channels?\n# - Which product categories generate the highest gross profit?\n# - Which sales channels contribute the most revenue for each product category?\n# - Which product categories attract the highest number of orders?\n# - How many units are we selling across different product categories and sales channels?\n# - How much revenue are we generating after discounts?\n# - Which product categories receive the highest discounts, and how does that affect profitability?\n# - What is the average revenue generated per order for each product category?\n# - Are there product categories generating high sales volumes but relatively low profits?\n# - Which product categories and sales channels should we prioritize to maximize profitability?\n# __________________________________________________\n\nCategoryChannelProfitability is OrderItems:\n    Product.Category Category,\n    Order.Channel Channel,\n    Count(distinct OrderId) OrdersContainingCategory,\n    Sum(Quantity) UnitsSold,\n    Sum(Quantity * UnitPrice - DiscountAmount).Round(2) NetRevenue,\n    Sum(DiscountAmount).Round(2) Discounts,\n    Sum(Quantity * (UnitPrice - Product.CostPrice) - DiscountAmount).Round(2) GrossProfit,\n    (Sum(Quantity * UnitPrice - DiscountAmount) * 1.0 / Count(distinct OrderId)).Round(2) AverageCategoryRevenuePerOrder\n  Where Order.Status = \u003CCompleted\u003E\n  Order GrossProfit DESC\n  Take 10",
   "id": "Sales 1. Category and channel profitability",
   "isBuiltin": false,
   "contexts": {},
@@ -24,7 +24,8 @@
     {
       "field": {
         "kind": "function",
-        "function": "CountDistinct",
+        "function": "Count",
+        "distinct": true,
         "arguments": [
           {
             "kind": "field",
@@ -71,7 +72,7 @@
     {
       "field": {
         "kind": "field",
-        "field": "(Sum(Quantity * UnitPrice - DiscountAmount) * 1.0 / CountDistinct(OrderId)).Round(2)"
+        "field": "(Sum(Quantity * UnitPrice - DiscountAmount) * 1.0 / Count(distinct OrderId)).Round(2)"
       },
       "alias": "AverageCategoryRevenuePerOrder"
     }

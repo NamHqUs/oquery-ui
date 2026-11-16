@@ -72,6 +72,7 @@ const expressionKeywords = [
   ["Not", "Negate an expression"] as const,
   ["Like", "Text pattern match"] as const,
   ["Contains", "Text contains match"] as const,
+  ["Distinct", "Remove duplicate result rows or aggregate values"] as const,
   ["Null", "Null value"] as const,
   ["True", "Boolean value"] as const,
   ["False", "Boolean value"] as const,
@@ -494,6 +495,20 @@ function isImmediateDotPosition(lineBeforeCursor: string) {
   return /(?:^|[\s,(])[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*\.[A-Za-z_]*$/.test(lineBeforeCursor);
 }
 
+function isAggregateDistinctPosition(sourceBeforeCursor: string) {
+  const lineBeforeCursor = sourceBeforeCursor.slice(sourceBeforeCursor.lastIndexOf("\n") + 1);
+  return /(?:^|[\s,(:])[A-Za-z_][A-Za-z0-9_.]*\s*\(\s*$/i.test(lineBeforeCursor);
+}
+
+function isProjectionDistinctPosition(lineBeforeCursor: string) {
+  const colonIndex = lineBeforeCursor.lastIndexOf(":");
+  const projection = (colonIndex >= 0
+    ? lineBeforeCursor.slice(colonIndex + 1)
+    : lineBeforeCursor.replace(/^\s*select\b/i, ""))
+    .trim();
+  return projection.length === 0 || /^d/i.test(projection);
+}
+
 function isProjectionAliasPosition(lineBeforeCursor: string) {
   const colonIndex = lineBeforeCursor.indexOf(":");
   const projection = colonIndex >= 0 ? lineBeforeCursor.slice(colonIndex + 1) : lineBeforeCursor;
@@ -562,19 +577,26 @@ export function getFunctionApplicabilityError(
   insideAggregateCall: boolean,
 ): string | null {
   const name = definition.name;
+  const applyFor = definition.applyFor ?? (definition.isAggregate ? 1 : 2 | 4 | 8 | 16);
+  const acceptsCollection = (applyFor & 1) !== 0;
+  const dataTypeBit = (dataType: string) => ({
+    string: 2,
+    number: 4,
+    datetime: 8,
+    boolean: 16,
+  }[dataType.toLocaleLowerCase()] ?? 0);
   switch (receiver.kind) {
     case "root":
       return insideAggregateCall && definition.isAggregate
         ? `${name} cannot be nested inside another aggregate function call.`
         : null;
     case "collection":
-      return definition.isAggregate
+      return acceptsCollection
         ? null
-        : `${name} cannot be applied to collection ${receiver.path}: only aggregate functions apply.`;
+        : `${name} cannot be applied to collection ${receiver.path}: it does not accept a dataset receiver.`;
     case "scalar": {
-      if (definition.isAggregate) {
-        return `${name} cannot be applied to scalar field ${receiver.path}: aggregate functions need a collection receiver.`;
-      }
+      if ((applyFor & dataTypeBit(receiver.dataType)) === 0)
+        return `${name} cannot be applied to ${receiver.path} of type ${receiver.dataType}.`;
       const firstArgumentType = definition.arguments?.[0]?.dataType;
       if (!firstArgumentType) {
         return `${name} cannot be applied to ${receiver.path}: it has no first argument that accepts a field.`;
@@ -584,9 +606,8 @@ export function getFunctionApplicabilityError(
         : `${name} cannot be applied to ${receiver.path} of type ${receiver.dataType}: its first argument is ${firstArgumentType}.`;
     }
     case "expression": {
-      if (definition.isAggregate) {
-        return `${name} cannot be applied to this expression: aggregate functions need a collection receiver.`;
-      }
+      if ((applyFor & 4) === 0)
+        return `${name} cannot be applied to this expression: it does not accept numeric expressions.`;
       // Computed expressions are numeric, so the function's first argument must accept a Number.
       const firstArgumentType = definition.arguments?.[0]?.dataType;
       if (!firstArgumentType) {
@@ -667,6 +688,7 @@ export function getOQueryCompletions(
   };
   const candidates: Candidate[] = [];
   const functionReceiver = resolveFunctionReceiver(text, safePosition, rootEntityName, suggestionEntities);
+  const isAggregateDistinct = isAggregateDistinctPosition(text.slice(0, safePosition));
   const hasFunctionReceiver = functionReceiver.kind === "scalar" || functionReceiver.kind === "expression";
   const isInsideCall = isInsideAggregateCall(text.slice(0, safePosition), (name) =>
     functionDefinitions.some((definition) => definition.isAggregate && definition.name.toLocaleLowerCase() === name.toLocaleLowerCase()));
@@ -699,11 +721,17 @@ export function getOQueryCompletions(
       functionDefinitions
         .filter(isApplicable)
         .forEach((definition) => addFunctionCandidate(candidates, definition, 0));
+      if (context === "projection" && isAggregateDistinct)
+        addKeywords(candidates, expressionKeywords.filter(([label]) => label === "Distinct"), 4);
     }
-  } else if (context === "projection" || context === "on") {
+  } else if (context === "projection" || context === "on" ||
+    (functionReceiver.kind === "collection" && (context === "where" || context === "order"))) {
     functionDefinitions
       .filter(isApplicable)
       .forEach((definition) => addFunctionCandidate(candidates, definition, 3));
+    if (context === "projection" &&
+        (isAggregateDistinct || isProjectionDistinctPosition(lineBeforeCursor)))
+      addKeywords(candidates, expressionKeywords.filter(([label]) => label === "Distinct"), 4);
   } else if (context === "clause") {
     addKeywords(candidates, clauseKeywords);
   } else if (!relationPath && (context === "where" || context === "on")) {

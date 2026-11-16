@@ -1,7 +1,7 @@
 Locations: City OfficeCity,
     State,
     Employees.Count(Id) Headcount,
-    Employees.CountDistinct(DepartmentId) DepartmentsRepresented,
+    Employees.Count(distinct DepartmentId) DepartmentsRepresented,
     Employees.CountIf(EmploymentType = 'Full-time') FullTime,
     Employees.CountIf(EmploymentType = 'Part-time') PartTime,
     Employees.CountIf(EmploymentType = 'Contract') Contractors,

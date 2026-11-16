@@ -5,6 +5,16 @@ export type FunctionResultDataType = typeof functionResultDataTypes[number];
 
 export type FunctionDatabaseType = string;
 
+export const functionApplyForValues = [
+  { value: 1, label: "DataSet" },
+  { value: 2, label: "Text" },
+  { value: 4, label: "Number" },
+  { value: 8, label: "DateTime" },
+  { value: 16, label: "Boolean" },
+] as const;
+export type FunctionApplyFor = number;
+export const allScalarApplyFor = 2 | 4 | 8 | 16;
+
 export type FunctionArgumentDefinition = {
   name: string;
   dataType: FunctionArgumentDataType;
@@ -18,6 +28,7 @@ export type FunctionDefinition = {
   canDelete?: boolean;
   isBuiltin?: boolean;
   isAggregate: boolean;
+  applyFor: FunctionApplyFor;
   description: string;
   sqlTemplates: Record<string, string>;
 };
@@ -61,6 +72,7 @@ export const emptyFunction = (providers: string[]): EditableFunctionDefinition =
   arguments: [emptyFunctionArgument()],
   resultType: "String",
   isAggregate: false,
+  applyFor: 2 | 4 | 8 | 16,
   description: "",
   sqlTemplates: {},
   sqlTemplateRows: [
@@ -78,6 +90,7 @@ export function toEditableFunction(definition: FunctionDefinition): EditableFunc
 
   return {
     ...definition,
+    applyFor: definition.applyFor ?? (definition.isAggregate ? 1 : allScalarApplyFor),
     arguments: definition.arguments.map((argument) => ({
       ...argument,
       id: `argument-${nextArgumentId++}`,

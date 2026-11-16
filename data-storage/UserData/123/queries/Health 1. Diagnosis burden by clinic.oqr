@@ -1,8 +1,8 @@
 Visits: Diagnose.Name DiagnosisName,
     Diagnose.Category DiagnosisCategory,
     Location.City ClinicCity,
-    CountDistinct(Id) VisitCount,
-    CountDistinct(UserId) UniquePatients,
+    Count(distinct Id) VisitCount,
+    Count(distinct UserId) UniquePatients,
     Avg(Charge).Round(2) AverageCharge,
     (100.0 * Sum(LabResults.CountIf(IsAbnormal = <True>))
 / NullIf(Sum(LabResults.Count(Id)), 0)).Round(2) AbnormalLabPercent

@@ -12,8 +12,8 @@ namespace Demo.Services.UnitTest;
 [TestFixture]
 internal sealed class DynamicQueryServiceTests
 {
-    [TestCase("Clients: Id, Name\n  Where Policies HasAny", "EXISTS (")]
-    [TestCase("Clients: Id, Name\n  Where Policies HasNone Status = <Active>", "NOT EXISTS (")]
+    [TestCase("Clients: Id, Name\n  Where Any(Policies)", "EXISTS (")]
+    [TestCase("Clients: Id, Name\n  Where NotAny(Policies, Status = <Active>)", "NOT EXISTS (")]
     public void ExistsConditionsReachTheEngineAndRenderSql(string text, string expectedSql)
     {
         var service = CreateService();

@@ -2,7 +2,7 @@ Doctors: FirstName + < > + LastName Physician,
     Department.Name Department,
     Location.City ClinicCity,
     Examinations.CountIf(Status = <Completed>) VisitCount,
-    Examinations.CountDistinctIf(UserId, Status = <Completed>) PatientCount,
+    Examinations.CountIf(distinct UserId, Status = <Completed>) PatientCount,
     Examinations.AvgIf(DurationMinutes, Status = <Completed>).Round(2) AverageVisitMinutes,
     Examinations.SumIf(Charge, Status = <Completed>) Charges,
     (100 * Examinations.SumIf(LabResults.CountIf(IsAbnormal = <True>), Status = <Completed>)

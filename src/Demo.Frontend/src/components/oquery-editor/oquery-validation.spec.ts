@@ -2,6 +2,49 @@ import { describe, expect, it } from "vitest";
 import { getOquerySyntaxError } from "./oquery-validation";
 
 describe("getOquerySyntaxError", () => {
+  const distinctFunctions = [
+    { name: "Count", arguments: [{ name: "value", defaultValue: 1 }], isAggregate: true },
+    {
+      name: "CountIf",
+      arguments: [
+        { name: "expression", defaultValue: 1 },
+        { name: "predicate", defaultValue: null },
+      ],
+      isAggregate: true,
+    },
+  ];
+
+  it("accepts distinct projections and aggregate arguments", () => {
+    expect(getOquerySyntaxError(
+      "Products: distinct Id, Name\nCount(distinct Id)\nCountIf(distinct Id, Id > <0>)",
+      distinctFunctions,
+      [],
+    )).toBeNull();
+  });
+
+  it("rejects distinct outside a projection or aggregate argument", () => {
+    expect(getOquerySyntaxError(
+      "Products: Id distinct",
+      distinctFunctions,
+      [],
+    )).toContain("distinct is only valid");
+  });
+
+  it("uses ApplyFor for receiver validation while retaining aggregate nesting rules", () => {
+    const functions = [
+      { name: "WindowTotal", arguments: [{ name: "value", defaultValue: 1 }], isAggregate: false, applyFor: 1 },
+      { name: "ScalarAggregate", arguments: [{ name: "value", defaultValue: 1 }], isAggregate: true, applyFor: 4 },
+    ];
+
+    const entities = [
+      { name: "Products", fields: ["Id"], relations: [{ name: "Orders", target: "Order", kind: "collection" as const }] },
+      { name: "Order", fields: ["Amount"], relations: [] },
+    ];
+    expect(getOquerySyntaxError("Products: Orders.WindowTotal()", functions, [], entities, "Products")).toBeNull();
+    expect(getOquerySyntaxError("Products: Orders.ScalarAggregate()", functions, [], entities, "Products")).toContain("does not accept a dataset receiver");
+    expect(getOquerySyntaxError("Products: ScalarAggregate(ScalarAggregate(Id))", functions, [])).toContain("cannot be nested");
+  });
+
   it("ignores malformed function calls in comment lines", () => {
     expect(getOquerySyntaxError(
       "Users: Id\n# UnknownFunction(, )\n# Broken(",
@@ -72,7 +115,7 @@ describe("getOquerySyntaxError", () => {
 
     it("rejects a scalar function after a collection dot", () => {
       expect(getOquerySyntaxError("Employees: Reports.DateSub(<2025-01-01>)", functions, [], entities, "Employees"))
-        .toBe("Line 1, column 20: DateSub cannot be applied to collection Reports: only aggregate functions apply.");
+        .toBe("Line 1, column 20: DateSub cannot be applied to collection Reports: it does not accept a dataset receiver.");
     });
 
     it("accepts a scalar function whose first argument matches the receiver's data type", () => {
@@ -112,7 +155,7 @@ describe("getOquerySyntaxError", () => {
 
     it("rejects an aggregate applied to a grouped expression receiver", () => {
       expect(getOquerySyntaxError("Employees: (Id * 2).Avg()", functions, [], entities, "Employees"))
-        .toBe("Line 1, column 21: Avg cannot be applied to this expression: aggregate functions need a collection receiver.");
+        .toBe("Line 1, column 21: Avg cannot be applied to this expression: it does not accept numeric expressions.");
     });
 
     it("rejects a function whose first argument is not Number after a grouped expression receiver", () => {

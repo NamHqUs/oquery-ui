@@ -1,6 +1,6 @@
 OrderItems: MonthKey(Order.OrderDate) SalesMonth,
     SUM(Quantity * UnitPrice - DiscountAmount) NetRevenue,
-    CountDistinct(OrderId) OrderCount,
+    Count(distinct OrderId) OrderCount,
     NetRevenue Revenue,
     Lag(NetRevenue, <1>, SalesMonth) PriorMonthRevenue,
     NetRevenue - Lag(NetRevenue, <1>, SalesMonth) RevenueChange,

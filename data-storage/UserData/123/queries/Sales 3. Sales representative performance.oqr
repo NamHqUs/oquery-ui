@@ -1,6 +1,6 @@
 OrderItems: Order.SalesRepId SalesRepId,
     Order.Seller.FirstName + < > + Order.Seller.LastName SalesRep,
-    CountDistinct(Order.Id) CompletedOrders,
+    Count(distinct Order.Id) CompletedOrders,
     SUM(Quantity) UnitsSold,
     SUM(Quantity * UnitPrice - DiscountAmount) NetSales,
     SUM(Quantity * (UnitPrice - Product.CostPrice) - DiscountAmount) GrossProfit

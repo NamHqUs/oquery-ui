@@ -1,7 +1,7 @@
 OrderItems: Product.Id ProductId,
     Product.Name Product,
     Product.Category Category,
-    CountDistinct(Order.Id) OrderCount,
+    Count(distinct Order.Id) OrderCount,
     SUM(Quantity) UnitsSold,
     SUM(Quantity * UnitPrice - DiscountAmount).Round(2) NetRevenue,
     SUM(Quantity * (UnitPrice - Product.CostPrice) - DiscountAmount).Round(2) GrossProfit,

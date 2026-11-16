@@ -14,7 +14,7 @@ export default function ContextsContent() {
 RevenueByMonth is InvoiceLines: ProductId,
   MonthKey(Invoice.IssueDate) | Month,
   Sum(Quantity * UnitPrice) | Revenue,
-  CountDistinct(InvoiceId) | Orders
+  Count(distinct InvoiceId) | Orders
   Where Invoice.Status = <Paid>`}</CodeBlock>
 
       <CodeBlock language="OQuery">{`// A dependent context can use another context privately

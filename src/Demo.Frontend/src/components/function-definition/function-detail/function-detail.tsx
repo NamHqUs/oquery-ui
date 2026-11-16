@@ -8,6 +8,7 @@ import {
   emptyFunctionTemplate,
   functionArgumentDataTypes,
   functionResultDataTypes,
+  functionApplyForValues,
   FunctionDatabaseType,
   FunctionResultDataType,
 } from "../types";
@@ -212,6 +213,24 @@ export default function FunctionDetail({
             />
             Aggregate function
           </label>
+          <fieldset className="function-checkbox">
+            <legend>Applies to</legend>
+            {functionApplyForValues.map(({ value, label }) => (
+              <label key={label}>
+                <input
+                  type="checkbox"
+                  checked={(draft.applyFor & value) === value}
+                  onChange={(event) => updateDraft((current) => ({
+                    ...current,
+                    applyFor: event.target.checked
+                      ? current.applyFor | value
+                      : current.applyFor & ~value,
+                  }))}
+                />
+                {label}
+              </label>
+            ))}
+          </fieldset>
         </div>
 
         <section className="editor-section">

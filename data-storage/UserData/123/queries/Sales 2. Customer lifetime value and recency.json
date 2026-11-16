@@ -1,7 +1,7 @@
 {
   "domainId": "SALES_DOMAIN",
   "name": "S2. Customer lifetime value and recency",
-  "rawText": "# Do you know who your most valuable customers are and how their purchasing behavior is changing?\n#  - Which customers generate the highest revenue from completed purchases?\n#  - Who are our most frequent customers, and how often do they place orders?\n#  - Which high-value customers have purchased most recently?\n#  - Are our most valuable customers purchasing through multiple sales channels?\n#  - Which customers contribute the most to our overall sales revenue?\n#  - Are there high-value customers who haven\u0027t placed an order recently and may be at risk of becoming inactive?\n#  - How does customer purchasing frequency relate to their total lifetime revenue?\n#  - Which customers should we prioritize for loyalty programs and retention campaigns?\n# __________________________________________________\nCustomerLifetimeValue is OrderItems:\n    Order.Customer.Id UserId,\n    Order.Customer.FirstName FirstName,\n    Order.Customer.LastName LastName,\n    CountDistinct(OrderId) OrderCount,\n    Sum(Quantity * UnitPrice - DiscountAmount).Round(2) LifetimeValue,\n    Max(Order.OrderDate) LastOrderDate,\n    CountDistinct(Order.Channel) ChannelsUsed\n  Where Order.Status = \u003CCompleted\u003E AND CountDistinct(OrderId) \u003E \u003C1\u003E\n  Order LifetimeValue DESC, LastOrderDate DESC\n  Take 10",
+  "rawText": "# Do you know who your most valuable customers are and how their purchasing behavior is changing?\n#  - Which customers generate the highest revenue from completed purchases?\n#  - Who are our most frequent customers, and how often do they place orders?\n#  - Which high-value customers have purchased most recently?\n#  - Are our most valuable customers purchasing through multiple sales channels?\n#  - Which customers contribute the most to our overall sales revenue?\n#  - Are there high-value customers who haven\u0027t placed an order recently and may be at risk of becoming inactive?\n#  - How does customer purchasing frequency relate to their total lifetime revenue?\n#  - Which customers should we prioritize for loyalty programs and retention campaigns?\n# __________________________________________________\nCustomerLifetimeValue is OrderItems:\n    Order.Customer.Id UserId,\n    Order.Customer.FirstName FirstName,\n    Order.Customer.LastName LastName,\n    Count(distinct OrderId) OrderCount,\n    Sum(Quantity * UnitPrice - DiscountAmount).Round(2) LifetimeValue,\n    Max(Order.OrderDate) LastOrderDate,\n    Count(distinct Order.Channel) ChannelsUsed\n  Where Order.Status = \u003CCompleted\u003E AND Count(distinct OrderId) \u003E \u003C1\u003E\n  Order LifetimeValue DESC, LastOrderDate DESC\n  Take 10",
   "id": "Sales 2. Customer lifetime value and recency",
   "isBuiltin": false,
   "contexts": {},
@@ -31,7 +31,8 @@
     {
       "field": {
         "kind": "function",
-        "function": "CountDistinct",
+        "function": "Count",
+        "distinct": true,
         "arguments": [
           {
             "kind": "field",
@@ -64,7 +65,8 @@
     {
       "field": {
         "kind": "function",
-        "function": "CountDistinct",
+        "function": "Count",
+        "distinct": true,
         "arguments": [
           {
             "kind": "field",
@@ -95,7 +97,7 @@
         "logicalOperator": 0,
         "left": {
           "kind": "field",
-          "field": "CountDistinct(OrderId)"
+          "field": "Count(distinct OrderId)"
         },
         "operation": 4,
         "right": {

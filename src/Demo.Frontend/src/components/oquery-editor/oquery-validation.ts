@@ -36,7 +36,32 @@ export function getOquerySyntaxError(
     return "Line 1, column 1: Invalid OQuery: expected a query header such as \"Users: Id, Name\".";
   }
   return getOqueryFilterSyntaxError(text, filterOperators)
+    ?? getOqueryDistinctSyntaxError(text, functionDefinitions)
     ?? getOqueryExpressionSyntaxError(text, functionDefinitions, suggestionEntities, rootEntityName);
+}
+
+function getOqueryDistinctSyntaxError(
+  text: string,
+  functionDefinitions: FunctionDefinition[],
+): string | null {
+  const aggregateNames = new Set(
+    functionDefinitions
+      .filter((definition) => definition.isAggregate)
+      .map((definition) => definition.name.toLocaleLowerCase()),
+  );
+  for (const [index, rawLine] of text.split(/\r?\n/).entries()) {
+    const line = rawLine.replace(/#.*$/, "");
+    const distinct = /\bdistinct\b/i.exec(line);
+    if (!distinct) continue;
+    const before = line.slice(0, distinct.index).trimEnd();
+    const projectionDistinct = /(?:^|:)\s*(?:select)?\s*$/i.test(before);
+    const aggregateDistinct = /(?:^|[\s,(:])([A-Za-z_][A-Za-z0-9_.]*)\s*\(\s*$/i.exec(before);
+    if (projectionDistinct ||
+        (aggregateDistinct && aggregateNames.has(aggregateDistinct[1]!.split(".").pop()!.toLocaleLowerCase())))
+      continue;
+    return `Line ${index + 1}, column ${distinct.index + 1}: distinct is only valid at the start of a projection or aggregate argument.`;
+  }
+  return null;
 }
 
 function getOqueryFilterSyntaxError(text: string, filterOperators: FilterOperatorDefinition[]): string | null {
@@ -195,7 +220,9 @@ function getOqueryExpressionSyntaxError(
     }
 
     const hasImplicitReceiver = text[nameStart - 1] === ".";
-    const effectiveArgumentCount = argumentCount + (hasImplicitReceiver && !signature.isAggregate ? 1 : 0);
+    const applyFor = signature.definition.applyFor ?? (signature.isAggregate ? 1 : 2 | 4 | 8 | 16);
+    const effectiveArgumentCount = argumentCount
+      + (hasImplicitReceiver && (applyFor & 1) === 0 ? 1 : 0);
     const errorLine = text.slice(0, nameStart).split(/\r?\n/).length;
     const lastLineBreak = text.lastIndexOf("\n", nameStart - 1);
     const errorColumn = nameStart - lastLineBreak;

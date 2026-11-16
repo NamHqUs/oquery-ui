@@ -46,7 +46,7 @@ Products:
     Name Product,
     Category,
     Items.Sum(Quantity) UnitsSold,
-    Items.CountDistinct(Order.Id) OrderCount,
+    Items.Count(distinct Order.Id) OrderCount,
     Items.Sum(Quantity * UnitPrice - DiscountAmount).Round(2) NetRevenue
   Order UnitsSold DESC
   Take 10`,

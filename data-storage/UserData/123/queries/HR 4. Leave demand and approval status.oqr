@@ -4,5 +4,5 @@ LeaveRequests: Employee.Department.Name Department,
     Count(Id) Requests,
     Sum(Days) DaysRequested,
     Avg(Days).Round(1) AverageRequestDays,
-    CountDistinct(EmployeeId) EmployeesRequesting
+    Count(distinct EmployeeId) EmployeesRequesting
   Order DaysRequested DESC, Requests DESC

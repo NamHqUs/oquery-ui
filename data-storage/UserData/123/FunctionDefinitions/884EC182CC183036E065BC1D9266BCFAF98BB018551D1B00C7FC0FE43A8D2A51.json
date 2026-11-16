@@ -1,0 +1,21 @@
+{
+  "Name": "E2EBad",
+  "Arguments": [
+    {
+      "Name": "value",
+      "DataType": 1,
+      "DefaultValue": null
+    }
+  ],
+  "ResultType": "Number",
+  "CanDelete": false,
+  "IsBuiltin": false,
+  "IsAggregate": false,
+  "ApplyFor": 4,
+  "BindArgumentsFromEnd": false,
+  "Description": "E2E test function",
+  "SqlTemplates": {
+    "SqlServer": "({1} * 0.1)",
+    "Sqlite": "({1} * 0.1)"
+  }
+}

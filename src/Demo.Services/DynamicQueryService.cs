@@ -170,10 +170,7 @@ public sealed class DynamicQueryService(
                 ConditionStatementDefinition { OperatorId: { } id } item =>
                     PrepareOperator(item, id, customOperators, provider),
                 ConditionStatementDefinition item => item,
-                ExistsConditionDefinition exists => exists with
-                {
-                    Condition = exists.Condition is null ? null : PrepareCondition(exists.Condition)
-                },
+                FunctionCondition function => function,
                 _ => throw new NotSupportedException(
                     $"Unsupported filter definition [{condition.GetType().Name}].")
             };
