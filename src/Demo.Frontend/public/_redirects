@@ -1,5 +1,0 @@
-/db/*              https://oquery-ui-1.onrender.com/db/:splat   200
-/metadata/*        https://oquery-ui-1.onrender.com/metadata/:splat   200
-/dynamic-query/*   https://oquery-ui-1.onrender.com/dynamic-query/:splat   200
-/query-request/*   https://oquery-ui-1.onrender.com/query-request/:splat   200
-/*                 /index.html   200
