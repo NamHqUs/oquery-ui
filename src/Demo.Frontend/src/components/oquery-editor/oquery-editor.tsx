@@ -225,8 +225,13 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       }
       cached.view.node.style.marginRight = `${marginRight}px`;
       cached.view.node.style.width = `${nodeWidth}px`;
+      // Blank lines typed after the block belong above the result, so the result stays at the document's end.
+      const lineCount = model.getLineCount();
+      const trailingText = block.endLine < lineCount
+        ? model.getValueInRange({ startLineNumber: block.endLine + 1, startColumn: 1, endLineNumber: lineCount, endColumn: model.getLineMaxColumn(lineCount) })
+        : "";
       zones.push({
-        afterLineNumber: block.endLine,
+        afterLineNumber: trailingText.trim() === "" ? lineCount : block.endLine,
         heightInPx: cached.view.height,
         domNode: cached.host,
         suppressMouseDown: true,
