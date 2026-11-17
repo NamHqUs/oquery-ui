@@ -34,15 +34,19 @@ frontend in separate Windows Terminal tabs. The API's Swagger UI is at
 The API host and database-services project target x64 because the IBM DB2
 provider requires an x64 process.
 
-Built-in metadata (YAML) lives in
-[`oquery/data-storage/metadata`](./oquery/data-storage/metadata).
-Built-in saved queries (JSON and YAML) live in
-[`oquery/data-storage/queries`](./oquery/data-storage/queries). The demo copies
-the JSON files to `BuiltinQueries` in its build and publish output and loads
-them as shared, read-only requests. Custom queries remain in
-`data-storage/UserData/{sectionId}/QueryRequests` under the configured
-`FileStoragePath`; they are not stored in the core submodule. Docker images
-include the built-in samples independently of the custom-data volume.
+Built-in datasets live under [`oquery/data-storage`](./oquery/data-storage), one
+folder per dataset listed in `Setup:DataSets` (currently `northstar-demo` and
+`unit-test`). Each dataset has the same layout:
+
+- `domains/` - domain JSON files
+- `metadata/` - metadata YAML/JSON files
+- `queries/` - shared, read-only saved query JSON files
+- `scripts/` - database schema and data scripts, named `{dataset}.{provider}.sql`
+
+The built-in root is set by `Setup:BuiltinPath` (default `../../oquery/data-storage`).
+User data stays under `Setup:FileStoragePath` (default `../../data-storage`) in
+`UserData/{sectionId}/...`. Docker images include the built-in datasets
+independently of the custom-data volume.
 
 The API and demo projects are in `src/`; the OQuery engine is in
 `oquery/src/OQuery`. Build the complete solution with:
