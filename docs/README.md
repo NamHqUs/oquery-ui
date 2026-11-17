@@ -10,11 +10,11 @@ disagree, the file named as canonical wins.
 |---|---|---|
 | Why does this product exist, and what is the design? | [product/product-definitions.md](./product/product-definitions.md) | spec |
 | What should the homepage say and show? | [product/homepage-spec.md](./product/homepage-spec.md) | spec |
-| Where is the homepage built? | `src/Demo.Frontend/src/components/home/` | code |
+| Where is the homepage built? | `src/OQuery.UI.Frontend/src/components/home/` | code |
 | How do I run the demo? | [../README.md](../README.md) | canonical |
 | How does the frontend work, page by page? | [frontend/api-by-page.md](./frontend/api-by-page.md) | canonical |
 | How do I use the Studio UI (Metadata, Playground, Docs)? | [frontend/studio-guide.md](./frontend/studio-guide.md) | guide |
-| What are the rules for the frontend project? | [projects/Demo.Frontend.md](./projects/Demo.Frontend.md) | canonical |
+| What are the rules for the frontend project? | [projects/OQuery.UI.Frontend.md](./projects/OQuery.UI.Frontend.md) | canonical |
 | What are the rules for the backend projects? | [projects/](./projects/) (one file per project, see below) | canonical |
 | How does the OQuery engine work? | [oquery/README.md](./oquery/README.md) (index of core docs) | canonical |
 | How do I write OQuery text? | [oquery/OQUERY-SYNTAX.md](../oquery/OQUERY-SYNTAX.md) | canonical |
@@ -36,13 +36,12 @@ disagree, the file named as canonical wins.
 
 | Project | File |
 |---|---|
-| `src/Demo.Contracts` | [projects/Demo.Contracts.md](./projects/Demo.Contracts.md) |
-| `src/Demo.DbServices` | [projects/Demo.DbServices.md](./projects/Demo.DbServices.md) |
-| `src/Demo.Frontend` | [projects/Demo.Frontend.md](./projects/Demo.Frontend.md) |
-| `src/Demo.Repositories` | [projects/Demo.Repositories.md](./projects/Demo.Repositories.md) |
-| `src/Demo.Services` | [projects/Demo.Services.md](./projects/Demo.Services.md) |
-| `src/Demo.Share` | [projects/Demo.Share.md](./projects/Demo.Share.md) |
-| `src/OQuery.UI` | [projects/OQuery.UI.md](./projects/OQuery.UI.md) |
+| `src/OQuery.UI.Abstracts` | [projects/OQuery.UI.Abstracts.md](./projects/OQuery.UI.Abstracts.md) |
+| `src/OQuery.UI.Api/Database` | [projects/OQuery.UI.Api.Database.md](./projects/OQuery.UI.Api.Database.md) |
+| `src/OQuery.UI.Frontend` | [projects/OQuery.UI.Frontend.md](./projects/OQuery.UI.Frontend.md) |
+| `src/OQuery.UI.Storage.Files` | [projects/OQuery.UI.Storage.Files.md](./projects/OQuery.UI.Storage.Files.md) |
+| `src/OQuery.UI.Api/Services` | [projects/OQuery.UI.Api.Services.md](./projects/OQuery.UI.Api.Services.md) |
+| `src/OQuery.UI.Api` | [projects/OQuery.UI.Api.md](./projects/OQuery.UI.Api.md) |
 | `oquery/` (core engine) | [../oquery/AGENT.md](../oquery/AGENT.md) |
 
 The Copilot instruction map in `.github/copilot-instructions.md` uses the same

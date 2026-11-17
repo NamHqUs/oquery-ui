@@ -1,11 +1,10 @@
 <Solution>
-  <Folder Name="/Demo/">
-    <Project Path="Demo.Contracts/Demo.Contracts.csproj" />
-    <Project Path="Demo.DbServices/Demo.DbServices.csproj" Id="728b0ab9-6f37-4d5b-8f09-35acc670403a" />
-    <Project Path="Demo.Repositories/Demo.Repositories.csproj" />
-    <Project Path="Demo.Services/Demo.Services.csproj" />
-    <Project Path="Demo.Services.UnitTest/Demo.Services.UnitTest.csproj" />
-    <Project Path="Demo.Share/Demo.Share.csproj" Id="b4876c7a-82d3-410b-84bc-3a8502971a80" />
+  <Folder Name="/UI/">
+    <Project Path="OQuery.UI.Abstracts/OQuery.UI.Abstracts.csproj" />
+    <Project Path="OQuery.UI.Api/OQuery.UI.Api.csproj" Id="4db7bc93-1b7c-43fe-a3f8-89fa82649c6a" />
+    <Project Path="OQuery.UI.Api.UnitTest/OQuery.UI.Api.UnitTest.csproj" />
+    <Project Path="OQuery.UI.Storage.Files/OQuery.UI.Storage.Files.csproj" />
+    <Project Path="OQuery.UI.Storage.Postgres/OQuery.UI.Storage.Postgres.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Directory.Packages.props" />
@@ -14,7 +13,6 @@
     <File Path="../README.md" />
     <File Path="Directory.Build.props" />
   </Folder>
-  <Project Path="OQuery.UI/OQuery.UI.csproj" Id="4db7bc93-1b7c-43fe-a3f8-89fa82649c6a" />
   <Project Path="../oquery/src/OQuery.UnitTest/OQuery.UnitTest.csproj" />
   <Project Path="../oquery/src/OQuery.Core/OQuery.Core.csproj" />
   <Project Path="../oquery/src/OQuery.Abstracts/OQuery.Abstracts.csproj" />

@@ -6,8 +6,8 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = $PSScriptRoot
 
-$apiDirectory = Join-Path $repoRoot "src\OQuery.UI"
-$frontendDirectory = Join-Path $repoRoot "src\Demo.Frontend"
+$apiDirectory = Join-Path $repoRoot "src\OQuery.UI.Api"
+$frontendDirectory = Join-Path $repoRoot "src\OQuery.UI.Frontend"
 
 $apiPort = 21210
 $frontendPort = 4173

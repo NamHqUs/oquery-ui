@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<PlatformTarget>x64</PlatformTarget>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+		<UserSecretsId>ffcded9a-4133-429d-805e-2ddb773cae17</UserSecretsId>
+
+		<!--Scripts folder is outside  of the solution folder, 
+		so we need to set the DockerfileContext to parent of SolutionDir.-->
+		<DockerfileContext>$(SolutionDir)..</DockerfileContext>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" />
+		<PackageReference Include="Swashbuckle.AspNetCore" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\OQuery.UI.Abstracts\OQuery.UI.Abstracts.csproj" />
+		<ProjectReference Include="..\OQuery.UI.Storage.Files\OQuery.UI.Storage.Files.csproj" />
+		<ProjectReference Include="..\OQuery.UI.Storage.Postgres\OQuery.UI.Storage.Postgres.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.Core\OQuery.Core.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.Sqlite\OQuery.Sqlite.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.SqlServer\OQuery.SqlServer.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.Postgres\OQuery.Postgres.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.CockroachDb\OQuery.CockroachDb.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.MySql\OQuery.MySql.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.Oracle\OQuery.Oracle.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.Db2\OQuery.Db2.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.Firebird\OQuery.Firebird.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.SapHana\OQuery.SapHana.csproj" />
+		<PackageReference Include="Namh.Configuration.Template" />
+	</ItemGroup>
+
+</Project>

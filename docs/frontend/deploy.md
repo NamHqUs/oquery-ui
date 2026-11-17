@@ -1,11 +1,11 @@
 # Deploy the frontend to Render (Static Site)
 
-The frontend (`src/Demo.Frontend`) is a Vite static build. It is served by a Render Static Site and calls the ASP.NET Core API (`oquery-ui-1`) through rewrite rules on the static host, so the browser sees a single origin and CORS is not needed.
+The frontend (`src/OQuery.UI.Frontend`) is a Vite static build. It is served by a Render Static Site and calls the ASP.NET Core API (`oquery-ui-1`) through rewrite rules on the static host, so the browser sees a single origin and CORS is not needed.
 
 ## 1. Build locally (optional check)
 
 ```powershell
-cd src/Demo.Frontend
+cd src/OQuery.UI.Frontend
 npm ci
 npm run build
 ```
@@ -18,7 +18,7 @@ The output goes to `dist/`. A chunk-size warning is expected and is not an error
 |---|---|
 | Repository | `NamHqUs/oquery-ui` |
 | Branch | `deploy` |
-| Root Directory | `src/Demo.Frontend` |
+| Root Directory | `src/OQuery.UI.Frontend` |
 | Build Command | `npm ci && npm run build` |
 | Publish Directory | `dist` |
 | `VITE_BACKEND_API_URL` | **Not set** |
