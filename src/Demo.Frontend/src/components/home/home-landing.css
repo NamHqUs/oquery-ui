@@ -77,7 +77,9 @@
 .hp-domain-diagram { display: flex; width: 100%; max-width: 100%; height: 320px; min-width: 320px; min-height: 240px; max-height: 90vh; box-sizing: border-box; overflow: hidden; resize: vertical; border: 1px solid #252b36; border-radius: 4px; }
 .hp-domain-diagram > .database-diagram { flex: 1 1 auto; min-width: 0; min-height: 0; }
 .hp-how-block { display: flex; flex-direction: column; gap: 14px; }
-.hp-how-subtitle { margin: 0; color: #eeeaf8; font: 600 17px "Space Grotesk", "Manrope", sans-serif; letter-spacing: -.3px; }
+.hp-how-connector { position: relative; display: flex; align-items: center; justify-content: center; box-sizing: border-box; margin: -22px 0 0; padding: 30px 16px 0; color: #eeeaf8; font: 600 15px "Space Grotesk", "Manrope", sans-serif; letter-spacing: -.2px; text-align: center; }
+.hp-how-connector::before { content: ""; position: absolute; top: 0; left: 50%; width: 4px; height: 18px; transform: translateX(-50%); border-radius: 2px; background: linear-gradient(180deg, #7d62e4, #67d4b0); }
+.hp-how-connector::after { content: ""; position: absolute; top: 18px; left: 50%; width: 0; height: 0; border-left: 9px solid transparent; border-right: 9px solid transparent; border-top: 12px solid #67d4b0; transform: translateX(-50%); }
 .hp-bridge { display: grid; grid-template-columns: minmax(0, .8fr) auto minmax(0, 1.3fr) auto minmax(0, .8fr) auto minmax(0, 1.5fr); align-items: center; gap: 10px; margin: 0; padding: 14px; border: 1px solid #2c3341; border-radius: 5px; background: #10131a; }
 .hp-bridge-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .hp-bridge-label { color: #8f7fca; font: 600 10px "Space Grotesk", "Manrope", sans-serif; letter-spacing: 1px; text-transform: uppercase; }
@@ -92,6 +94,9 @@
 .hp-bridge-query { color: #ded5ff; }
 .hp-bridge-code { margin: 0; color: #ded5ff; font: 11px/1.45 ui-monospace, "Cascadia Code", Consolas, monospace; white-space: pre; overflow-x: auto; }
 .hp-bridge-arrow { color: #7d62e4; font-size: 16px; }
+.hp-bridge-label-meta { color: #c4b5fd; }
+.hp-bridge-caption { color: #8f7fca; font-size: 10px; }
+.hp-engine-meta-tag { padding: 1px 6px; border: 1px solid #5b4b96; border-radius: 3px; color: #c4b5fd; background: #211b36; font-weight: 600; }
 @media (max-width: 980px) {
   .hp-bridge { grid-template-columns: 1fr; }
   .hp-bridge-arrow { justify-self: center; transform: rotate(90deg); }

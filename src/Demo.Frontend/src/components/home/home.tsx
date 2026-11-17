@@ -405,7 +405,7 @@ export default function Home({
                 <div className="hp-engine-diagram-engine">
                   <Icon name="database" size={18} />
                   <strong>{PRODUCT_NAME} engine</strong>
-                  <small>Metadata · SQL Functions · SQL dialects</small>
+                  <small><span className="hp-engine-meta-tag">Metadata</span> · SQL Functions · SQL dialects</small>
                 </div>
                 <span className="hp-engine-diagram-arrow" aria-hidden="true">↓</span>
                 <div className="hp-engine-diagram-column hp-engine-diagram-group">
@@ -426,6 +426,7 @@ export default function Home({
           id="hp-how-it-works-title"
           kicker="HOW IT WORKS"
           title={`Metadata gives ${PRODUCT_NAME} an understanding of your data.`}
+          text={`Metadata describes the logical entities in your application, the fields they expose, and how those entities relate. ${PRODUCT_NAME} uses that context to understand what you ask for and work out how to retrieve it from your database.`}
         />
         <figure className="hp-bridge" aria-label="Metadata maps physical tables and columns to the entities a query uses">
           <div className="hp-bridge-col">
@@ -443,7 +444,8 @@ export default function Home({
           </div>
           <span className="hp-bridge-arrow" aria-hidden="true">→</span>
           <div className="hp-bridge-col">
-            <span className="hp-bridge-label">Metadata</span>
+            <span className="hp-bridge-label hp-bridge-label-meta">Metadata</span>
+            <small className="hp-bridge-caption">Feeds the engine above</small>
             <div className="hp-bridge-card hp-bridge-meta">
               <strong>Seller</strong>
               <small>maps to Employees</small>
@@ -475,8 +477,8 @@ FROM "main"."Employees" t0
             </div>
           </div>
         </figure>
+        <h3 className="hp-how-connector">{`The ${domainName} Domain and how their entities connect.`}</h3>
         <div className="hp-how-block">
-          <h3 className="hp-how-subtitle">{`The ${domainName} entities and how they connect.`}</h3>
           <div className="hp-domain-diagram">
             <DiagramView tables={diagramTables} relationships={diagramRelationships} compactCards />
           </div>
