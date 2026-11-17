@@ -6,7 +6,7 @@ import Icon from "../icon/icon";
 import { useMessageBox } from "../message-box/message-box";
 import PanelSplitter from "../panel-splitter/panel-splitter";
 import ToastNotice from "../toast-notice/toast-notice";
-import { ApiQueryContextDefinition, clearInlineResult, clearQueryRequestError, clearQueryResult, createApiQuery, deleteQueryRequest, DomainRelation, EntityRelationView, executeContextFromText, executeQuery, executeQueryFromText, fetchQueryRequests, fromApiQuery, fromApiQueryDefinition, getQueryRequestText, getSqlStatement, getSqlStatementFromText, IFieldDefinition, MetadataEntity, MetadataField, parseQueryRequestText, QueryDefinition, QueryFilterGroup, QueryFilterNode, relationsForEntity, saveQueryRequest, toQueryBuilderSavedView } from "./query-design/query-builder-slice";
+import { ApiQueryContextDefinition, clearAllInlineResults, clearInlineResult, clearQueryRequestError, clearQueryResult, createApiQuery, deleteQueryRequest, DomainRelation, EntityRelationView, executeContextFromText, executeQuery, executeQueryFromText, fetchQueryRequests, fromApiQuery, fromApiQueryDefinition, getQueryRequestText, getSqlStatement, getSqlStatementFromText, IFieldDefinition, MetadataEntity, MetadataField, parseQueryRequestText, QueryDefinition, QueryFilterGroup, QueryFilterNode, relationsForEntity, saveQueryRequest, toQueryBuilderSavedView } from "./query-design/query-builder-slice";
 import { MetadataRelationsContext } from "./query-design/metadata-relations-context";
 import QueryDesign from "./query-design/query-design";
 import QueryResult from "./query-result/query-result";
@@ -23,10 +23,12 @@ import "./query-builder.css";
 type QueryBuilderProps = {
   onBackToHome?: () => void;
   onRequestConnection: () => void;
+  onNavigationGuardChange?: (guard: ((continueNavigation: () => void, cancelNavigation?: () => void) => void) | null) => void;
 };
 
 let cachedDefinition: QueryDefinition | null = null;
 const QUERY_DEFINITION_STORAGE_KEY = "OQuery-query-builder-definition";
+const QUERY_DEFINITION_DOMAIN_STORAGE_KEY = "OQuery-query-builder-definition-domain";
 const OQUERY_DESIGN_HEIGHT_STORAGE_KEY = "OQuery.query-builder.oquery-design-height.v2";
 const OQUERY_DESIGN_HEIGHT_DEFAULT = 840;
 const OQUERY_DESIGN_HEIGHT_MIN = 220;
@@ -45,11 +47,13 @@ function getEditorMode(searchParams: URLSearchParams): EditorMode {
 export function resetQueryBuilderCache() {
   cachedDefinition = null;
   window.sessionStorage.removeItem(QUERY_DEFINITION_STORAGE_KEY);
+  window.sessionStorage.removeItem(QUERY_DEFINITION_DOMAIN_STORAGE_KEY);
 }
 
-export function setQueryBuilderDefinition(definition: QueryDefinition) {
+export function setQueryBuilderDefinition(definition: QueryDefinition, domainId: string) {
   cachedDefinition = definition;
   window.sessionStorage.setItem(QUERY_DEFINITION_STORAGE_KEY, JSON.stringify(definition));
+  window.sessionStorage.setItem(QUERY_DEFINITION_DOMAIN_STORAGE_KEY, domainId);
 }
 
 function createDefinition(entity: string, fields: MetadataField[] = []): QueryDefinition {
@@ -95,7 +99,11 @@ function createContextEntity(
   return { name: context.name, fields };
 }
 
-function loadDefinition(): QueryDefinition {
+// The design definition belongs to one domain; another domain starts from an empty definition.
+function loadDefinition(domainId: string): QueryDefinition {
+  if (window.sessionStorage.getItem(QUERY_DEFINITION_DOMAIN_STORAGE_KEY) !== domainId) {
+    return createDefinition("");
+  }
   if (!cachedDefinition) {
     const savedDefinition = window.sessionStorage.getItem(QUERY_DEFINITION_STORAGE_KEY);
     if (!savedDefinition) return createDefinition("");
@@ -399,7 +407,7 @@ function reconcileDefinition(definition: QueryDefinition, entity: MetadataEntity
   };
 }
 
-export default function QueryBuilder({ onBackToHome, onRequestConnection }: QueryBuilderProps) {
+export default function QueryBuilder({ onBackToHome, onRequestConnection, onNavigationGuardChange }: QueryBuilderProps) {
   const dispatch = useDispatch<AppDispatch>();
   const showMessageBox = useMessageBox();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -407,7 +415,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   const savedQueriesPanel = useResizablePanel("query-builder-saved-queries");
   const { metadata, metadataRelations, metadataStatus, metadataError, result, sqlStatement, resultView, queryStatus, queryError, functionDefinitions, functionDefinitionsStatus, functionDefinitionsError, filterOperators, filterOperatorsStatus, filterOperatorsError, queryRequests, queryRequestsStatus, queryRequestsError, debugUiEnabled, inlineResults } = useSelector((state: RootState) => state.queryBuilder);
   const { connectedProvider, connectionStatus } = useSelector((state: RootState) => state.database);
-  const [definition, setDefinition] = useState<QueryDefinition>(loadDefinition);
+  const [definition, setDefinition] = useState<QueryDefinition>(() => loadDefinition(domainId));
   const [requestName, setRequestName] = useState("");
   const [carriedDraft] = useState(() => readOQueryDraft(domainId));
   const [oqueryText, setOqueryText] = useState(() => carriedDraft ?? "");
@@ -460,7 +468,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   );
   useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   const updateDefinition = (nextDefinition: QueryDefinition) => {
-    setQueryBuilderDefinition(nextDefinition);
+    setQueryBuilderDefinition(nextDefinition, domainId);
     setDefinition(nextDefinition);
   };
   const updateContextDefinition = (contextIndex: number, contextDefinition: QueryDefinition) => {
@@ -858,10 +866,29 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     if (action === "save") return persistCurrentRequest(definition);
     return action === "discard";
   };
+  const confirmModelReplacementRef = useRef(confirmModelReplacement);
+  useEffect(() => {
+    confirmModelReplacementRef.current = confirmModelReplacement;
+  });
+  useEffect(() => {
+    onNavigationGuardChange?.((continueNavigation, cancelNavigation) => {
+      // Without a selected saved query there is nothing to save or replace, so the draft carries over.
+      if (selectedRequestId === null) {
+        continueNavigation();
+        return;
+      }
+      void confirmModelReplacementRef.current().then((canContinue) => {
+        if (canContinue) continueNavigation();
+        else cancelNavigation?.();
+      });
+    });
+    return () => onNavigationGuardChange?.(null);
+  }, [onNavigationGuardChange, selectedRequestId]);
   const startNewRequest = async () => {
     if (!(await confirmModelReplacement())) return;
     oqueryLoadRequestRef.current++;
     dispatch(clearQueryResult());
+    dispatch(clearAllInlineResults());
     updateRequestRoute(null);
     setSelectedRequestName(null);
     setSelectedRequestId(null);
@@ -887,6 +914,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     dispatch(clearQueryRequestError());
     oqueryLoadRequestRef.current++;
     dispatch(clearQueryResult());
+    dispatch(clearAllInlineResults());
     if (debugUiEnabled) console.log("Saved Query Request:", savedRequest);
     const savedView = toQueryBuilderSavedView(savedRequest);
     const nextDefinition = fromApiQuery(savedView.query, savedView.projectionRows);
@@ -1020,6 +1048,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
               <MetadataRelationsContext.Provider value={metadataRelations}>
               <QueryDesign
                 domainId={domainId}
+                savedRequestBound={selectedRequestId !== null}
                 metadata={metadata}
                 metadataStatus={metadataStatus}
                 metadataError={metadataError}

@@ -24,7 +24,14 @@ export function getOqueryFoldingRanges(text: string): { start: number; end: numb
 }
 
 export function contextNameAtLine(line: string): string | null {
-  return line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?::|is\s+[A-Za-z_][A-Za-z0-9_]*\s*:)/i)?.[1] ?? null;
+  return contextHeaderAtLine(line)?.contextName ?? null;
+}
+
+// `Ctx is Entity:` binds a context name to an entity; `Entity:` uses the entity name as its context name.
+function contextHeaderAtLine(line: string): { contextName: string; entityName: string } | null {
+  const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?::|is\s+([A-Za-z_][A-Za-z0-9_]*)\s*:)/i);
+  if (!match) return null;
+  return { contextName: match[1]!, entityName: match[2] ?? match[1]! };
 }
 
 export function getOqueryContextLenses(text: string): OqueryContextLens[] {
@@ -34,20 +41,20 @@ export function getOqueryContextLenses(text: string): OqueryContextLens[] {
   });
 }
 
-export type OqueryContextBlock = { contextName: string; startLine: number; endLine: number };
+export type OqueryContextBlock = { contextName: string; entityName: string; startLine: number; endLine: number };
 
 // A block runs from its header line to the line before the next header, without trailing blank lines.
 // Lines are 1-based to match Monaco.
 export function getOqueryContextBlocks(text: string): OqueryContextBlock[] {
   const lines = text.split("\n");
   const headers = lines.flatMap((line, index) => {
-    const contextName = contextNameAtLine(line);
-    return contextName ? [{ contextName, index }] : [];
+    const header = contextHeaderAtLine(line);
+    return header ? [{ ...header, index }] : [];
   });
   return headers.map((header, position) => {
     let end = (headers[position + 1]?.index ?? lines.length) - 1;
     while (end > header.index && lines[end]!.trim() === "") end--;
-    return { contextName: header.contextName, startLine: header.index + 1, endLine: end + 1 };
+    return { contextName: header.contextName, entityName: header.entityName, startLine: header.index + 1, endLine: end + 1 };
   });
 }
 

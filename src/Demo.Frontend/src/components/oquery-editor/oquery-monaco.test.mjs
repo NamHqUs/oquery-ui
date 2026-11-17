@@ -40,8 +40,8 @@ test("context lenses are found for every context header line", () => {
 test("context blocks end before the next header and trim trailing blank lines", () => {
   assert.deepEqual(getOqueryContextBlocks("Entity: User\n  Name\n\nManagers is Employees:\n  Id\n\n"),
     [
-      { contextName: "Entity", startLine: 1, endLine: 2 },
-      { contextName: "Managers", startLine: 4, endLine: 5 },
+      { contextName: "Entity", entityName: "Entity", startLine: 1, endLine: 2 },
+      { contextName: "Managers", entityName: "Employees", startLine: 4, endLine: 5 },
     ]);
 });
 

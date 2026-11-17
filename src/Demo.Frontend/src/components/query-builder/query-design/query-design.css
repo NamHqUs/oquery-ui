@@ -35,10 +35,6 @@
 .query-oquery-function { color: #86efac; }
 .query-oquery-error-function { color: #ff5668; background: #ff566826; border-radius: 2px; box-shadow: 0 0 0 1px #ff566880; }
 .query-oquery-code-editor { position: relative; width: 100%; min-width: 0; min-height: 520px; box-sizing: border-box; overflow: hidden; border: 0; border-radius: 4px; background: #0b1018; }
-.query-oquery-monaco-host { position: absolute; inset: 0; }
-/* The host always fits the content, so Monaco's vertical slider is never needed. */
-.query-oquery-monaco-host.query-oquery-auto-height .editor-scrollable > .scrollbar.vertical { display: none; }
-
 .query-oquery-run-glyph { display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
 .query-oquery-run-glyph::before {
@@ -49,8 +45,13 @@
   border-left: 11px solid #86efac;
   content: "";
 }
+
+/* The host always fits the content, so Monaco's vertical slider is never needed. */
+.query-oquery-monaco-host.query-oquery-auto-height .editor-scrollable > .scrollbar.vertical { display: none; }
+
 .query-oquery-table-key { color: #fbbf24 !important; }
 .query-oquery-context-key { color: #67e8f9 !important; }
+.query-oquery-unknown-entity-text { color: #4b5563 !important; }
 .query-oquery-error-function { color: #ff5668 !important; background: #ff566826; border-radius: 2px; box-shadow: 0 0 0 1px #ff566880; }
 .query-builder-toolbar { display: flex; align-items: flex-start; gap: 16px; padding: 0; margin-bottom: 16px; border-bottom: 0; background: transparent; }
 .query-entity-field { display: flex; flex-direction: column; gap: 7px; }

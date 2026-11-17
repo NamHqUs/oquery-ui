@@ -56,6 +56,27 @@ export type OQueryEditorHandle = {
 const COMPACT_LINE_HEIGHT = 20.8;
 const COMPACT_CHROME_HEIGHT = 34;
 
+type ScrollSnapshot = { element: Element | Window; left: number; top: number }[];
+
+// Focusing the editor reveals its caret, which can be far below the viewport when the text was bound from a saved query.
+function captureScrollPositions(host: HTMLElement): ScrollSnapshot {
+  const snapshot: ScrollSnapshot = [{ element: window, left: window.scrollX, top: window.scrollY }];
+  for (let node = host.parentElement; node; node = node.parentElement) {
+    snapshot.push({ element: node, left: node.scrollLeft, top: node.scrollTop });
+  }
+  return snapshot;
+}
+
+function restoreScrollPositions(snapshot: ScrollSnapshot) {
+  for (const { element, left, top } of snapshot) {
+    if (element instanceof Window) element.scrollTo(left, top);
+    else {
+      element.scrollLeft = left;
+      element.scrollTop = top;
+    }
+  }
+}
+
 function getDoubleClickSelection(textarea: HTMLTextAreaElement): string {
   const { selectionStart, selectionEnd } = textarea;
   let end = selectionEnd;
@@ -118,27 +139,47 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     const knownEntityNames = suggestionEntitiesMetadata
       ? new Set(suggestionEntitiesMetadata.map((entity) => entity.name))
       : undefined;
-    const contextDecorations = getOQueryContextKeys(text, knownEntityNames).map((key) => ({
-      range: getRange(model, key.start, key.end),
-      options: {
-        inlineClassName: key.kind === "table" ? "query-oquery-table-key" : "query-oquery-context-key",
-      },
-    }));
+    // A statement whose entity is missing from the domain is greyed out as a whole, so its context keys are not coloured.
+    const unknownBlocks = knownEntityNames
+      ? getOqueryContextBlocks(text).filter((block) => !knownEntityNames.has(block.entityName))
+      : [];
+    const unknownLines = new Set<number>();
+    for (const block of unknownBlocks)
+      for (let line = block.startLine; line <= block.endLine; line++) unknownLines.add(line);
+    // Monaco puts a whole-line className on a background overlay, not on the text, so each line is decorated inline.
+    const unknownEntityDecorations = unknownBlocks.flatMap((block) =>
+      Array.from({ length: block.endLine - block.startLine + 1 }, (_, offset) => {
+        const lineNumber = block.startLine + offset;
+        return {
+          range: new monaco.Range(lineNumber, 1, lineNumber, model.getLineMaxColumn(lineNumber)),
+          options: { inlineClassName: "query-oquery-unknown-entity-text" },
+        };
+      }));
+    const contextDecorations = getOQueryContextKeys(text, knownEntityNames)
+      .filter((key) => !unknownLines.has(model.getPositionAt(key.start).lineNumber))
+      .map((key) => ({
+        range: getRange(model, key.start, key.end),
+        options: {
+          inlineClassName: key.kind === "table" ? "query-oquery-table-key" : "query-oquery-context-key",
+        },
+      }));
     const errorDecorations = getErrorFunctionMatches(text, functionName).map((match) => ({
       range: getRange(model, match.start, match.end),
       options: { inlineClassName: "query-oquery-error-function" },
     }));
-    // Run glyphs live in the fixed-width gutter, so showing them never shifts the text.
+    // Run glyphs live in the fixed-width gutter, so showing them never shifts the text. Contexts of unknown entities get none.
     const runDecorations = latestRef.current.onExecuteContext
-      ? getOqueryContextLenses(text).map((lens) => ({
-        range: new monaco.Range(lens.lineNumber, 1, lens.lineNumber, 1),
-        options: {
-          glyphMarginClassName: "query-oquery-run-glyph",
-          glyphMarginHoverMessage: { value: `Run ${lens.contextName} context` },
-        },
-      }))
+      ? getOqueryContextLenses(text)
+        .filter((lens) => !unknownLines.has(lens.lineNumber))
+        .map((lens) => ({
+          range: new monaco.Range(lens.lineNumber, 1, lens.lineNumber, 1),
+          options: {
+            glyphMarginClassName: "query-oquery-run-glyph",
+            glyphMarginHoverMessage: { value: `Run ${lens.contextName} context` },
+          },
+        }))
       : [];
-    decorationsRef.current?.set([...contextDecorations, ...errorDecorations, ...runDecorations]);
+    decorationsRef.current?.set([...unknownEntityDecorations, ...contextDecorations, ...errorDecorations, ...runDecorations]);
   };
 
   // Results sit under the last line of their context block. Zones are re-anchored on every
@@ -196,6 +237,11 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
         views.delete(name);
         inlineCollapsedRef.current.delete(name);
       }
+    }
+    // With no results left, the Data/SQL and collapse choices from the previous query no longer apply.
+    if (Object.keys(results).length === 0) {
+      inlineModesRef.current.clear();
+      inlineCollapsedRef.current.clear();
     }
     editor.changeViewZones((accessor) => {
       inlineZoneIdsRef.current.forEach((id) => accessor.removeZone(id));
@@ -331,7 +377,28 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     syncInlineZones();
     syncAutoHeight();
 
+    let scrollBeforePointerFocus: ScrollSnapshot | null = null;
+    const handlePointerDown = () => {
+      scrollBeforePointerFocus = captureScrollPositions(host);
+    };
+    const clearScrollSnapshot = () => {
+      scrollBeforePointerFocus = null;
+    };
+    const restoreScrollAfterPointerFocus = () => {
+      const snapshot = scrollBeforePointerFocus;
+      if (!snapshot) return;
+      scrollBeforePointerFocus = null;
+      restoreScrollPositions(snapshot);
+      requestAnimationFrame(() => restoreScrollPositions(snapshot));
+    };
+    host.addEventListener("pointerdown", handlePointerDown, true);
+    host.addEventListener("focusin", restoreScrollAfterPointerFocus, true);
+    window.addEventListener("pointerup", clearScrollSnapshot);
+
     return () => {
+      host.removeEventListener("pointerdown", handlePointerDown, true);
+      host.removeEventListener("focusin", restoreScrollAfterPointerFocus, true);
+      window.removeEventListener("pointerup", clearScrollSnapshot);
       subscriptions.forEach((subscription) => subscription.dispose());
       unregisterSource();
       decorationsRef.current?.clear();

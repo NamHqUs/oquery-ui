@@ -164,6 +164,7 @@ function EntityMenu({ entities, value, disabled, onChange }: EntityMenuProps) {
 
 type QueryDesignProps = {
   domainId: string;
+  savedRequestBound: boolean;
   metadata: MetadataEntity[];
   metadataStatus: string;
   metadataError: string;
@@ -212,6 +213,7 @@ function readOQueryDiagramLayout(): OQueryDiagramLayout {
 
 export default function QueryDesign({
   domainId,
+  savedRequestBound,
   metadata,
   metadataStatus,
   metadataError,
@@ -258,11 +260,11 @@ export default function QueryDesign({
     const stashOnDomainPress = (event: PointerEvent) => {
       if (!(event.target instanceof Element)) return;
       const domainButton = event.target.closest<HTMLButtonElement>(".query-builder-domain-list button");
-      if (domainButton && domainButton.getAttribute("aria-pressed") !== "true") stashOQueryDraft(domainId, oqueryText);
+      if (domainButton && domainButton.getAttribute("aria-pressed") !== "true") stashOQueryDraft(domainId, savedRequestBound ? "" : oqueryText);
     };
     document.addEventListener("pointerdown", stashOnDomainPress, true);
     return () => document.removeEventListener("pointerdown", stashOnDomainPress, true);
-  }, [domainId, oqueryText]);
+  }, [domainId, oqueryText, savedRequestBound]);
   const contextEntities = contextDefinitions.map((context) => {
     const fields = context.query.projection?.flatMap((projection) => {
       const alias = projection.alias?.trim();
@@ -440,7 +442,8 @@ export default function QueryDesign({
                   : null;
                 if (domainButton) {
                   // Switching domain must not run the syntax check; keep the draft for the next domain.
-                  if (domainButton.getAttribute("aria-pressed") !== "true") stashOQueryDraft(domainId, oqueryText);
+                  // A bound saved query is unloaded on domain switch, so its text is not carried over.
+                  if (domainButton.getAttribute("aria-pressed") !== "true") stashOQueryDraft(domainId, savedRequestBound ? "" : oqueryText);
                   return;
                 }
                 onApplyOquery();

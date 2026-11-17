@@ -204,6 +204,7 @@ function App() {
   const metadataNavigationGuard = useRef<NavigationGuard | null>(null);
   const metadataSectionNavigation = useRef<((section: MetadataSection) => void) | null>(null);
   const functionNavigationGuard = useRef<NavigationGuard | null>(null);
+  const builderNavigationGuard = useRef<NavigationGuard | null>(null);
   const approvedNavigation = useRef<string | null>(null);
   const handledBlockedLocation = useRef<string | null>(null);
   const updateMetadataNavigationGuard = useCallback((guard: NavigationGuard | null) => {
@@ -215,9 +216,13 @@ function App() {
   const updateFunctionNavigationGuard = useCallback((guard: NavigationGuard | null) => {
     functionNavigationGuard.current = guard;
   }, []);
+  const updateBuilderNavigationGuard = useCallback((guard: NavigationGuard | null) => {
+    builderNavigationGuard.current = guard;
+  }, []);
   const guardForPage = (targetPage: Page | null) => {
     if (targetPage === "metadata") return metadataNavigationGuard.current;
     if (targetPage === "functions") return functionNavigationGuard.current;
+    if (targetPage === "builder") return builderNavigationGuard.current;
     return null;
   };
 
@@ -233,6 +238,11 @@ function App() {
       approvedNavigation.current = null;
       return false;
     }
+    // Switching domain stays on the builder page, so it is guarded separately from page changes.
+    const isBuilderDomainSwitch = currentPage === "builder"
+      && nextPage === "builder"
+      && new URLSearchParams(currentLocation.search).get("domain") !== new URLSearchParams(nextLocation.search).get("domain");
+    if (isBuilderDomainSwitch) return builderNavigationGuard.current !== null;
     return currentPage !== null
       && nextPage !== null
       && currentPage !== nextPage
@@ -418,6 +428,7 @@ function App() {
       {page === "builder" && <QueryBuilder
         key={new URLSearchParams(location.search).get("domain") || "query-builder"}
         onRequestConnection={requestDatabaseConnection}
+        onNavigationGuardChange={updateBuilderNavigationGuard}
         onBackToHome={new URLSearchParams(location.search).get("from") === "home"
           ? () => navigateToPage("home")
           : undefined}

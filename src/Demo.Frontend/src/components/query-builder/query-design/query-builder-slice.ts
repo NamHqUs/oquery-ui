@@ -1308,6 +1308,9 @@ const queryBuilderSlice = createSlice({
     clearInlineResult(state, action: PayloadAction<string>) {
       delete state.inlineResults[action.payload];
     },
+    clearAllInlineResults(state) {
+      state.inlineResults = {};
+    },
     clearQueryRequestError(state) {
       state.queryRequestsError = "";
     },
@@ -1481,6 +1484,7 @@ const queryBuilderSlice = createSlice({
 });
 
 export const {
+  clearAllInlineResults,
   clearInlineResult,
   clearQueryRequestError,
   clearQueryResult,
