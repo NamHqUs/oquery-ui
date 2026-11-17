@@ -1,7 +1,7 @@
 {
   "domainId": "EXAMPLES_DOMAIN",
   "name": "E13. Multi-key sort with paging",
-  "rawText": "# Question: Which sellers rank 6th to 15th when sorted by department and salary?\n# Teaches: A multi-key sort with Skip and Take on the Seller root.\nSeller: Id,\n    FirstName,\n    LastName,\n    Department.Name Department,\n    Salary\n  Order Department.Name ASC, Salary DESC\n  Skip 5\n  Take 10",
+  "rawText": "# Question: Which sellers rank 6th to 15th when sorted by department and salary?\n# Answer: A multi-key sort with Skip and Take on the Seller root.\nSeller: Id,\n    FirstName,\n    LastName,\n    Department.Name Department,\n    Salary\n  Order Department.Name ASC, Salary DESC\n  Skip 5\n  Take 10",
   "id": "26-11-17-01-54-14-w1DyXbXT",
   "isBuiltin": false,
   "contexts": {},

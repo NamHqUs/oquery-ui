@@ -1,7 +1,7 @@
 {
   "domainId": "EXAMPLES_DOMAIN",
   "name": "E07. Simple filter",
-  "rawText": "# Question: Which orders are completed?\n# Teaches: A single equality filter on the Orders root.\nOrders: Id,\n    OrderDate,\n    Status,\n    Channel\n  Where Status = \u003CCompleted\u003E\n  Order OrderDate DESC\n  Take 10",
+  "rawText": "# Question: Which orders are completed?\n# Answer: A single equality filter on the Orders root.\nOrders: Id,\n    OrderDate,\n    Status,\n    Channel\n  Where Status = \u003CCompleted\u003E\n  Order OrderDate DESC\n  Take 10",
   "id": "26-11-17-01-54-14-DbkLiiZh",
   "isBuiltin": false,
   "contexts": {},

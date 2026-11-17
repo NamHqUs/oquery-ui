@@ -1,7 +1,7 @@
 {
   "domainId": "EXAMPLES_DOMAIN",
   "name": "E03. Computed field per row",
-  "rawText": "# Question: What is the margin per unit for each product?\n# Teaches: Arithmetic on fields inside a projection.\nProducts: Id,\n    Name,\n    UnitPrice,\n    CostPrice,\n    (UnitPrice - CostPrice) MarginPerUnit\n  Order MarginPerUnit DESC\n  Take 10",
+  "rawText": "# Question: What is the margin per unit for each product?\n# Answer: Arithmetic on fields inside a projection.\nProducts: Id,\n    Name,\n    UnitPrice,\n    CostPrice,\n    (UnitPrice - CostPrice) MarginPerUnit\n  Order MarginPerUnit DESC\n  Take 10",
   "id": "26-11-17-01-54-14-lwGxDAbQ",
   "isBuiltin": false,
   "contexts": {},

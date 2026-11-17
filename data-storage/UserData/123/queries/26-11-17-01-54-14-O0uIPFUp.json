@@ -1,7 +1,7 @@
 {
   "domainId": "EXAMPLES_DOMAIN",
   "name": "E09. OR filter",
-  "rawText": "# Question: Which products belong to First Aid or Skin Care?\n# Teaches: OR conditions on the Products root.\nProducts: Id,\n    Name,\n    Category,\n    UnitPrice\n  Where Category = \u003CFirst Aid\u003E OR Category = \u003CSkin Care\u003E\n  Order UnitPrice DESC",
+  "rawText": "# Question: Which products belong to First Aid or Skin Care?\n# Answer: OR conditions on the Products root.\nProducts: Id,\n    Name,\n    Category,\n    UnitPrice\n  Where Category = \u003CFirst Aid\u003E OR Category = \u003CSkin Care\u003E\n  Order UnitPrice DESC",
   "id": "26-11-17-01-54-14-O0uIPFUp",
   "isBuiltin": false,
   "contexts": {},

@@ -1,7 +1,7 @@
 {
   "domainId": "EXAMPLES_DOMAIN",
   "name": "E06. Collection aggregates",
-  "rawText": "# Question: How many sellers does each department have, and what is their average salary?\n# Teaches: Fluent collection aggregates (Sellers.Count, Sellers.Avg) from the Departments root.\nDepartments: Name Department,\n    Sellers.Count(Id) SellerCount,\n    Sellers.Avg(Salary).Round(\u003C2\u003E) AvgSalary\n  Order SellerCount DESC",
+  "rawText": "# Question: How many sellers does each department have, and what is their average salary?\n# Answer: Fluent collection aggregates (Sellers.Count, Sellers.Avg) from the Departments root.\nDepartments: Name Department,\n    Sellers.Count(Id) SellerCount,\n    Sellers.Avg(Salary).Round(\u003C2\u003E) AvgSalary\n  Order SellerCount DESC",
   "id": "26-11-17-01-54-14-pXgeg7Qj",
   "isBuiltin": false,
   "contexts": {},

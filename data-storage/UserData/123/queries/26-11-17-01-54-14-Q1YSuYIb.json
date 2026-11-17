@@ -1,7 +1,7 @@
 {
   "domainId": "EXAMPLES_DOMAIN",
   "name": "E19. Group by two keys",
-  "rawText": "# Question: How many orders does each sales channel place, by status?\n# Teaches: Grouping by two keys on the Orders root.\nOrders: Channel,\n    Status,\n    Count(Id) OrderCount,\n    Items.Sum(Quantity) UnitsSold\n  Order Channel ASC, OrderCount DESC",
+  "rawText": "# Question: How many orders does each sales channel place, by status?\n# Answer: Grouping by two keys on the Orders root.\nOrders: Channel,\n    Status,\n    Count(Id) OrderCount,\n    Items.Sum(Quantity) UnitsSold\n  Order Channel ASC, OrderCount DESC",
   "id": "26-11-17-01-54-14-Q1YSuYIb",
   "isBuiltin": false,
   "contexts": {},

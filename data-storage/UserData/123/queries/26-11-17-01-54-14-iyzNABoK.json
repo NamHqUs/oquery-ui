@@ -1,7 +1,7 @@
 {
   "domainId": "EXAMPLES_DOMAIN",
   "name": "E16. Grouped aggregate by key",
-  "rawText": "# Question: Which product categories sell the most units per product?\n# Teaches: Combines a root aggregate (Count) with a collection aggregate (Items.Sum) in one grouped query.\nProducts: Category,\n    Count(Id) ProductCount,\n    Items.Sum(Quantity) UnitsSold,\n    (Items.Sum(Quantity) * 1.0 / Count(Id)).Round(\u003C1\u003E) UnitsPerProduct\n  Order UnitsPerProduct DESC",
+  "rawText": "# Question: Which product categories sell the most units per product?\n# Answer: Combines a root aggregate (Count) with a collection aggregate (Items.Sum) in one grouped query.\nProducts: Category,\n    Count(Id) ProductCount,\n    Items.Sum(Quantity) UnitsSold,\n    (Items.Sum(Quantity) * 1.0 / Count(Id)).Round(\u003C1\u003E) UnitsPerProduct\n  Order UnitsPerProduct DESC",
   "id": "26-11-17-01-54-14-iyzNABoK",
   "isBuiltin": false,
   "contexts": {},

@@ -39,6 +39,7 @@ const DIAGRAMS_PATH = "/metadata/diagrams";
 const DOMAINS_PATH = "/metadata/domains";
 const HOME_DOMAIN_ID = import.meta.env.VITE_HOME_DOMAIN_ID || "Sales_Domain";
 const EXAMPLES_DOMAIN_ID = "EXAMPLES_DOMAIN";
+const EXAMPLES_BASIC_REQUEST = "E01. Basic projection";
 const SQL_KEYWORDS = new Set([
   "WITH", "RECURSIVE", "SELECT", "FROM", "WHERE", "GROUP", "BY", "HAVING", "ORDER", "LIMIT", "OFFSET", "ASC", "DESC",
   "AS", "AND", "OR", "NOT", "IN", "IS", "NULL", "LIKE", "JOIN", "LEFT", "RIGHT", "INNER", "OUTER", "ON", "DISTINCT",
@@ -289,7 +290,7 @@ export default function Home({
   onRequestConnection,
 }: {
   onNavigateToPage: (page: HomeDestination, fromHome?: boolean, metadataPath?: string) => void;
-  onBuilderDomainSelect: (domainId: string) => void;
+  onBuilderDomainSelect: (domainId: string, requestName?: string) => void;
   onRequestConnection: () => void;
 }) {
   const dispatch = useDispatch();
@@ -314,7 +315,7 @@ export default function Home({
     scrollToSection("hp-examples");
   };
   const openBuilder = () => onNavigateToPage("builder", true);
-  const openExamplesPlayground = () => onBuilderDomainSelect(EXAMPLES_DOMAIN_ID);
+  const openExamplesPlayground = () => onBuilderDomainSelect(EXAMPLES_DOMAIN_ID, EXAMPLES_BASIC_REQUEST);
   const openDocs = () => onNavigateToPage("documentation");
   const openDiagramDetails = () => onNavigateToPage("metadata", false, DIAGRAMS_PATH);
   const openDomainDiagram = () => onNavigateToPage("metadata", false, `${DIAGRAMS_PATH}?domain=${encodeURIComponent(domainId)}`);

@@ -265,7 +265,11 @@ function App() {
 
   const requestDatabaseConnection = useCallback(() => setConnectionDialogOpen(true), []);
   const navigateToBuilderDomain = useCallback(
-    (domainId: string) => routerNavigate(`${PAGE_PATHS.builder}?domain=${encodeURIComponent(domainId)}`),
+    (domainId: string, requestName?: string) => {
+      const params = new URLSearchParams({ domain: domainId });
+      if (requestName) params.set("request", requestName);
+      routerNavigate(`${PAGE_PATHS.builder}?${params.toString()}`);
+    },
     [routerNavigate],
   );
 

@@ -1,7 +1,7 @@
 {
   "domainId": "EXAMPLES_DOMAIN",
   "name": "E02. NotAny() filter",
-  "rawText": "# Question: Which orders contain no bulk line (5 or more units)?\n# Teaches: NotAny() keeps orders with no related line that matches the predicate.\nOrders: Id,\n    OrderDate,\n    Status,\n    Channel\n  Where Items.NotAny(Quantity \u003E= \u003C5\u003E)\n  Order OrderDate DESC\n  Take 10",
+  "rawText": "# Question: Which orders contain no bulk line (5 or more units)?\n# Answer: NotAny() keeps orders with no related line that matches the predicate.\nOrders: Id,\n    OrderDate,\n    Status,\n    Channel\n  Where Items.NotAny(Quantity \u003E= \u003C5\u003E)\n  Order OrderDate DESC\n  Take 10",
   "id": "26-11-17-01-54-14-l9zEvBex",
   "isBuiltin": false,
   "contexts": {},

@@ -1,7 +1,7 @@
 {
   "domainId": "EXAMPLES_DOMAIN",
   "name": "E10. Any() filter",
-  "rawText": "# Question: Which products have been ordered in bulk (5 or more units on a line)?\n# Teaches: Any() with a predicate over a related collection, used as a filter.\nProducts: Id,\n    Name,\n    Category\n  Where Items.Any(Quantity \u003E= \u003C5\u003E)\n  Order Name\n  Take 20",
+  "rawText": "# Question: Which products have been ordered in bulk (5 or more units on a line)?\n# Answer: Any() with a predicate over a related collection, used as a filter.\nProducts: Id,\n    Name,\n    Category\n  Where Items.Any(Quantity \u003E= \u003C5\u003E)\n  Order Name\n  Take 20",
   "id": "26-11-17-01-54-14-IGankvDA",
   "isBuiltin": false,
   "contexts": {},

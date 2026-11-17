@@ -1,7 +1,7 @@
 {
   "domainId": "EXAMPLES_DOMAIN",
   "name": "E18. Window function",
-  "rawText": "# Question: How does each product\u0027s revenue compare with its category average?\n# Teaches: A window function (AverageOver) with a partition, without collapsing rows.\nProductSales is OrderItems: ProductId,\n    SUM(Quantity * UnitPrice).Round(2) TotalRevenue\nProducts:\n  Inner Join ProductSales On Id = ProductSales.ProductId\n  Select Id,\n    Name,\n    Category,\n    ProductSales.TotalRevenue TotalRevenue,\n    AverageOver(ProductSales.TotalRevenue, Category).Round(2) CategoryAverage\nOrder TotalRevenue DESC\nTake 10",
+  "rawText": "# Question: How does each product\u0027s revenue compare with its category average?\n# Answer: A window function (AverageOver) with a partition, without collapsing rows.\nProductSales is OrderItems: ProductId,\n    SUM(Quantity * UnitPrice).Round(2) TotalRevenue\nProducts:\n  Inner Join ProductSales On Id = ProductSales.ProductId\n  Select Id,\n    Name,\n    Category,\n    ProductSales.TotalRevenue TotalRevenue,\n    AverageOver(ProductSales.TotalRevenue, Category).Round(2) CategoryAverage\nOrder TotalRevenue DESC\nTake 10",
   "id": "26-11-17-01-54-14-GBrr2sn8",
   "isBuiltin": false,
   "contexts": {

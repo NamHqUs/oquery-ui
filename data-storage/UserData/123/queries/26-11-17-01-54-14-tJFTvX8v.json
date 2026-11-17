@@ -1,7 +1,7 @@
 {
   "domainId": "EXAMPLES_DOMAIN",
   "name": "E08. Combined AND filter",
-  "rawText": "# Question: Which customers live in California and were born before 1980?\n# Teaches: Combining two conditions with AND on the Customers root.\nCustomers: Id,\n    FirstName,\n    LastName,\n    City,\n    BirthDate\n  Where State = \u003CCA\u003E AND BirthDate \u003C \u003C1980-01-01\u003E\n  Take 10",
+  "rawText": "# Question: Which customers live in California and were born before 1980?\n# Answer: Combining two conditions with AND on the Customers root.\nCustomers: Id,\n    FirstName,\n    LastName,\n    City,\n    BirthDate\n  Where State = \u003CCA\u003E AND BirthDate \u003C \u003C1980-01-01\u003E\n  Take 10",
   "id": "26-11-17-01-54-14-tJFTvX8v",
   "isBuiltin": false,
   "contexts": {},
