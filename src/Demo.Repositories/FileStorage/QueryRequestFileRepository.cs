@@ -16,7 +16,6 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
 {
     private const string FOLDER_NAME = "queries";
     private const string FILE_EXTENSION = ".json";
-    private const string OQUERY_FILE_EXTENSION = ".oqr";
     private const string ID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static readonly JsonSerializerOptions JSON_OPTIONS = new()
     {
@@ -79,13 +78,9 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
         ArgumentNullException.ThrowIfNull(query.Projections);
 
         Directory.CreateDirectory(GetUserStoreFolder(userSectionId));
-        var jsonPath = GetUserFilePath(userSectionId, query.Id);
-        var oqueryPath = Path.ChangeExtension(jsonPath, OQUERY_FILE_EXTENSION);
-        var oquery = QueryDefinitionOQueryParser.Write(query);
         File.WriteAllText(
-            jsonPath,
+            GetUserFilePath(userSectionId, query.Id),
             Serialize(query));
-        File.WriteAllText(oqueryPath, oquery);
     }
 
     public override bool Delete(string userSectionId, string id)
@@ -94,9 +89,6 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
         if (!File.Exists(path))
             return false;
         File.Delete(path);
-        var oqueryPath = Path.ChangeExtension(path, OQUERY_FILE_EXTENSION);
-        if (File.Exists(oqueryPath))
-            File.Delete(oqueryPath);
         return true;
     }
 
