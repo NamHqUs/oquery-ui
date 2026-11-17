@@ -1091,6 +1091,23 @@ export async function requestQueryResultFromText(text: string, domainId: string)
   };
 }
 
+/** Executes one OQuery context without touching query-builder state. */
+export async function requestContextResultFromText(text: string, context: string, domainId: string): Promise<QueryResult> {
+  const payload = await dynamicQueryService.executeOQueryContext(text, context, domainId);
+  if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows) || typeof payload.totalRecords !== "number") {
+    throw new Error("Query API returned an invalid context result.");
+  }
+  const responseColumns = typeof payload.columns === "string"
+    ? payload.columns.split(",").filter((column: string) => column.trim())
+    : [];
+  return {
+    name: payload.name,
+    columns: responseColumns,
+    rows: payload.rows.map((row: string) => row.split(",")),
+    totalRecords: payload.totalRecords,
+  };
+}
+
 /** Returns the engine-generated SQL for OQuery text without touching query-builder state. */
 export function requestSqlStatementFromText(text: string, domainId: string): Promise<string> {
   return dynamicQueryService.oqueryTextToSql(text, domainId);

@@ -388,7 +388,7 @@ function App() {
       />
       <div className="page-content">
         <Routes>
-          <Route path={PAGE_PATHS.home} element={<div className="page-transition page-transition-no-slide"><Home onNavigateToPage={navigateToPage} onRequestConnection={requestDatabaseConnection} /></div>} />
+          <Route path={PAGE_PATHS.home} element={<div className="page-transition page-transition-no-slide"><Home onNavigateToPage={navigateToPage} onBuilderDomainSelect={navigateToBuilderDomain} onRequestConnection={requestDatabaseConnection} /></div>} />
           <Route path={PAGE_PATHS.documentation} element={<div className="page-transition page-transition-no-slide"><Documentation /></div>} />
           <Route path={PAGE_PATHS.builder} element={null} />
           <Route path={PAGE_PATHS.metadata} element={null} />

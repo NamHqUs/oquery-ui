@@ -7,6 +7,7 @@ import { toDiagramRelationships, toDiagramTables } from "../metadata-builder/ent
 import { getOQuerySuggestionData } from "../oquery-editor/oquery-suggestion-data";
 import type { FunctionDefinition } from "../function-definition/types";
 import {
+  requestContextResultFromText,
   requestQueryResultFromText,
   requestSqlStatementFromText,
   type QueryResult,
@@ -37,6 +38,7 @@ const PREVIEW_ROWS = 12;
 const DIAGRAMS_PATH = "/metadata/diagrams";
 const DOMAINS_PATH = "/metadata/domains";
 const HOME_DOMAIN_ID = import.meta.env.VITE_HOME_DOMAIN_ID || "Sales_Domain";
+const EXAMPLES_DOMAIN_ID = "EXAMPLES_DOMAIN";
 const SQL_KEYWORDS = new Set([
   "WITH", "RECURSIVE", "SELECT", "FROM", "WHERE", "GROUP", "BY", "HAVING", "ORDER", "LIMIT", "OFFSET", "ASC", "DESC",
   "AS", "AND", "OR", "NOT", "IN", "IS", "NULL", "LIKE", "JOIN", "LEFT", "RIGHT", "INNER", "OUTER", "ON", "DISTINCT",
@@ -142,6 +144,25 @@ function Playground({
 
   const runCurrent = () => void run(editorRef.current?.getText() ?? query);
 
+  const runContext = async (context: string) => {
+    if (!domainId) return;
+    const text = editorRef.current?.getText() ?? query;
+    const id = ++runIdRef.current;
+    setRunning(true);
+    setError("");
+    try {
+      const next = await requestContextResultFromText(text, context, domainId);
+      if (id === runIdRef.current) setResult(next);
+    } catch (reason) {
+      if (id === runIdRef.current) {
+        setResult(null);
+        setError(reason instanceof Error ? reason.message : "Unable to run this context.");
+      }
+    } finally {
+      if (id === runIdRef.current) setRunning(false);
+    }
+  };
+
   useEffect(() => {
     if (domainId) void run(initialQuery);
   }, [domainId, initialQuery]);
@@ -187,10 +208,8 @@ function Playground({
           onTextChange={setQuery}
           onSelectionChange={(text) => { selectionRef.current = text; }}
           onExecuteSelectedText={(text) => void run(text)}
+          onExecuteContext={(context) => void runContext(context)}
         />
-        <button className="button primary hp-run" type="button" onClick={runCurrent} disabled={running} aria-busy={running}>
-          <Icon name="play" size={12} /> Run
-        </button>
       </div>
       <div className="hp-result" aria-live="polite" aria-busy={running}>
         <div className="hp-result-head">
@@ -266,9 +285,11 @@ function TextAction({ children, onClick }: { children: ReactNode; onClick: () =>
 
 export default function Home({
   onNavigateToPage,
+  onBuilderDomainSelect,
   onRequestConnection,
 }: {
   onNavigateToPage: (page: HomeDestination, fromHome?: boolean, metadataPath?: string) => void;
+  onBuilderDomainSelect: (domainId: string) => void;
   onRequestConnection: () => void;
 }) {
   const dispatch = useDispatch();
@@ -293,6 +314,7 @@ export default function Home({
     scrollToSection("hp-examples");
   };
   const openBuilder = () => onNavigateToPage("builder", true);
+  const openExamplesPlayground = () => onBuilderDomainSelect(EXAMPLES_DOMAIN_ID);
   const openDocs = () => onNavigateToPage("documentation");
   const openDiagramDetails = () => onNavigateToPage("metadata", false, DIAGRAMS_PATH);
   const openDomainDiagram = () => onNavigateToPage("metadata", false, `${DIAGRAMS_PATH}?domain=${encodeURIComponent(domainId)}`);
@@ -356,7 +378,7 @@ export default function Home({
               <span className="hp-example-letter">{example.letter}</span>
               <span><strong>{example.title}</strong><small>{example.summary}</small></span>
             </button>)}
-          <TextAction onClick={openBuilder}>Explore More</TextAction>
+          <TextAction onClick={openExamplesPlayground}>Explore More</TextAction>
           </div>
           <div className="hp-example-panel" id="hp-example-panel" role="tabpanel" aria-labelledby={`hp-tab-${activeExample.id}`}>
             <Playground

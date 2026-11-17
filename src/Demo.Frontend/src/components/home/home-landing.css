@@ -35,8 +35,7 @@
 .hp-playground-editor { position: relative; display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); background: #0c0f15; }
 .hp-playground-editor > :first-child { min-width: 0; flex: 1; }
 .hp-playground-editor .query-oquery-code-editor { min-height: 0; }
-.hp-run { flex: 0 0 auto; padding: 8px 14px; font-size: 12px; }
-.hp-run:disabled { cursor: progress; }
+.hp-playground-editor .query-oquery-monaco-host { height: 100%; }
 .hp-result-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; }
 .hp-result-title { display: inline-flex; align-items: center; gap: 7px; color: #c0c7d3; font: 600 11px "Space Grotesk", "Manrope", sans-serif; letter-spacing: .6px; text-transform: uppercase; }
 .hp-result-title .icon { color: var(--green); }
