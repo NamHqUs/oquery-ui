@@ -55,6 +55,7 @@ export type OQueryEditorHandle = {
 
 const COMPACT_LINE_HEIGHT = 20.8;
 const COMPACT_CHROME_HEIGHT = 34;
+const AUTO_HEIGHT_VIEWPORT_MARGIN = 16;
 
 type ScrollSnapshot = { element: Element | Window; left: number; top: number }[];
 
@@ -340,7 +341,9 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     const syncAutoHeight = () => {
       if (!autoHeight) return;
       host.style.position = "relative";
-      host.style.height = `${editor.getContentHeight()}px`;
+      // An empty query gets the full viewport height so a new query has room to write.
+      const fillHeight = model.getValue() === "" ? window.innerHeight - AUTO_HEIGHT_VIEWPORT_MARGIN : 0;
+      host.style.height = `${Math.max(editor.getContentHeight(), fillHeight)}px`;
     };
 
     const subscriptions = [
@@ -350,6 +353,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
         setLineCount(model.getLineCount());
         refreshDecorations();
         syncInlineZones();
+        syncAutoHeight();
         if (!externalWriteRef.current) latestRef.current.onTextChange(model.getValue());
       }),
       editor.onDidChangeCursorSelection(() => {
@@ -394,11 +398,13 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     host.addEventListener("pointerdown", handlePointerDown, true);
     host.addEventListener("focusin", restoreScrollAfterPointerFocus, true);
     window.addEventListener("pointerup", clearScrollSnapshot);
+    window.addEventListener("resize", syncAutoHeight);
 
     return () => {
       host.removeEventListener("pointerdown", handlePointerDown, true);
       host.removeEventListener("focusin", restoreScrollAfterPointerFocus, true);
       window.removeEventListener("pointerup", clearScrollSnapshot);
+      window.removeEventListener("resize", syncAutoHeight);
       subscriptions.forEach((subscription) => subscription.dispose());
       unregisterSource();
       decorationsRef.current?.clear();
