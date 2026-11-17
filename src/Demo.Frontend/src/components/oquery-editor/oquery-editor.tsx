@@ -237,6 +237,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     const initial = normalizeOqueryEditorText(current.textOverride ?? current.initialText ?? current.value ?? "");
     ensureOqueryLanguage(current.functionDefinitions);
     const autoHeight = Boolean(current.autoHeight);
+    if (autoHeight) host.classList.add("query-oquery-auto-height");
     const model = createOqueryModel(initial, instanceId);
     const editor = monaco.editor.create(host, {
       model,
@@ -260,7 +261,9 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       tabSize: 2,
       insertSpaces: true,
       padding: { top: 16, bottom: 16 },
-      renderLineHighlight: "line",
+      renderLineHighlight: "none",
+      // Stops the word under the caret from looking selected after a single click.
+      occurrencesHighlight: "off",
       renderWhitespace: "none",
       scrollbar: { alwaysConsumeMouseWheel: false, vertical: autoHeight ? "hidden" : "auto" },
       wordBasedSuggestions: "off",
