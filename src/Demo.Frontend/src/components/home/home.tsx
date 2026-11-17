@@ -318,7 +318,7 @@ export default function Home({
           </section>
         </div>
         <div className="hp-hero-demo">
-          <span className="eyebrow">NO SQL REQUIRED</span>
+          <span className="eyebrow">SQL EFFORTLESS</span>
           <h2 className="hp-demo-title"><span>Auto</span><s className="hp-strike">GROUP</s><s className="hp-strike">JOIN</s><s className="hp-strike">Nested query</s></h2>
           <Playground
             initialQuery={HERO_TEAM_QUERY}

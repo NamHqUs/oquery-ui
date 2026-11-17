@@ -1,7 +1,7 @@
 {
   "Id": "HEALTHCARE_DOMAIN",
   "Name": "Healthcare",
-  "Description": "",
+  "Description": "Clinical operations analytics for clinics, doctors, patients, and visits. Covers diagnosis burden by clinic, physician workload and care quality, abnormal lab patterns, high-risk patient profiles, and monthly visit-type utilization with no-show rates.",
   "Entities": [
     {
       "Name": "Doctors",

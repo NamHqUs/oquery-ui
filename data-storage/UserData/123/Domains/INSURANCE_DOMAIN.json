@@ -1,7 +1,7 @@
 {
   "Id": "INSURANCE_DOMAIN",
   "Name": "Insurance",
-  "Description": "",
+  "Description": "Insurance operations analytics for plans, policies, claims, premium payments, agents, and members. Covers denial reasons, plan profitability and medical loss ratio, agent portfolio and premium collection, claims adjudication and processing time, and member premiums versus claims.",
   "Entities": [
     {
       "Name": "Claims",

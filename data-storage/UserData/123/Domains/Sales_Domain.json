@@ -1,7 +1,7 @@
 {
   "Id": "SALES_DOMAIN",
   "Name": "Sales",
-  "Description": "",
+  "Description": "Sales analytics for orders, order items, products, sales representatives, and customers. Covers category and channel profitability, customer lifetime value and recency, sales rep performance, best-selling products and margins, and monthly revenue trend and momentum.",
   "Entities": [
     {
       "Name": "OrderItems",

@@ -1,7 +1,7 @@
 {
   "Id": "HR_Domain",
   "Name": "HR",
-  "Description": "",
+  "Description": "Workforce analytics for departments, managers, locations, leave, and performance. Covers department headcount and payroll, manager team size and pay, workforce mix by location and tenure, leave demand and approval status, and performance ratings with bonus trends by year.",
   "Entities": [
     {
       "Name": "Departments",

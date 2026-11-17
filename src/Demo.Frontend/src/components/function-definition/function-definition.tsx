@@ -2,6 +2,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchFunctionDefinitions, invalidateFunctionDefinitions } from "../query-builder/query-design/query-builder-slice";
+import { fetchDatabaseConnections } from "../data-sources/database-slice";
 import * as functionDefinitionService from "../../services/function-definition-service";
 import type { RootState } from "../../store/store";
 import PanelSplitter from "../panel-splitter/panel-splitter";
@@ -103,6 +104,10 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
 
   useDefinitionUnsavedWarning(dirty);
   useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
+  // Database types populate the SQL template dropdowns; the thunk skips the request once loaded.
+  useEffect(() => {
+    void dispatch(fetchDatabaseConnections());
+  }, [dispatch]);
 
   const loadDefinitions = async (selectFirst = false, preferredName = selectedName) => {
     setStatus("loading");
