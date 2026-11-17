@@ -36,6 +36,7 @@
 .query-oquery-error-function { color: #ff5668; background: #ff566826; border-radius: 2px; box-shadow: 0 0 0 1px #ff566880; }
 .query-oquery-code-editor { position: relative; width: 100%; min-width: 0; min-height: 100vh; box-sizing: border-box; overflow: hidden; border: 0; border-radius: 4px; background: #0b1018; }
 .query-oquery-run-glyph { display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.query-oquery-placeholder { color: #697385; font-family: "Cascadia Mono", Consolas, ui-monospace, monospace; font-size: 13px; font-weight: 300; line-height: 20.8px; pointer-events: none; white-space: pre; }
 
 .query-oquery-run-glyph::before {
   width: 0;

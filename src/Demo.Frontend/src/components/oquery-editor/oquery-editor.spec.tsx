@@ -87,6 +87,17 @@ describe("OQueryEditor (Monaco)", () => {
     expect(onTextChange).not.toHaveBeenCalled();
   });
 
+  it("shows the build placeholder only while the query is empty", () => {
+    render({ initialText: "" });
+    expect(currentEditor().contentWidgets.size).toBe(1);
+
+    act(() => {
+      const editor = currentEditor();
+      editor.model.applyEdit(0, 0, "Entity: Users");
+    });
+    expect(currentEditor().contentWidgets.size).toBe(0);
+  });
+
   it("closes an open problem widget when the parent replaces the query text", () => {
     render({ initialText: "Entity: User" });
     const editor = currentEditor();

@@ -124,6 +124,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
   const inlineZoneIdsRef = useRef<string[]>([]);
   const inlineZoneContextsRef = useRef(new Map<string, string>());
   const externalWriteRef = useRef(false);
+  const syncPlaceholderRef = useRef<() => void>(() => undefined);
   const latestRef = useRef(props);
   const [lineCount, setLineCount] = useState(() => normalizeOqueryEditorText(props.textOverride ?? props.initialText ?? props.value ?? "").split("\n").length);
 
@@ -348,6 +349,28 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     editorRef.current = editor;
     decorationsRef.current = editor.createDecorationsCollection();
 
+    // Monaco has no placeholder option, so an empty query shows a content widget pinned to the first character.
+    const placeholderNode = document.createElement("div");
+    placeholderNode.className = "query-oquery-placeholder";
+    placeholderNode.textContent = "Enter your query...";
+    const placeholderWidget: monaco.editor.IContentWidget = {
+      getId: () => `oquery-placeholder-${instanceId}`,
+      getDomNode: () => placeholderNode,
+      getPosition: () => ({
+        position: { lineNumber: 1, column: 1 },
+        preference: [monaco.editor.ContentWidgetPositionPreference.EXACT],
+      }),
+    };
+    let placeholderShown = false;
+    const syncPlaceholder = () => {
+      const shouldShow = model.getValue().length === 0 && !latestRef.current.disabled;
+      if (shouldShow === placeholderShown) return;
+      placeholderShown = shouldShow;
+      if (shouldShow) editor.addContentWidget(placeholderWidget);
+      else editor.removeContentWidget(placeholderWidget);
+    };
+    syncPlaceholderRef.current = syncPlaceholder;
+
     const unregisterSource = registerOqueryEditorSource(model, {
       getCompletions: (text, offset) => {
         const latest = latestRef.current;
@@ -378,6 +401,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
         refreshDecorations();
         syncInlineZones();
         syncAutoHeight();
+        syncPlaceholder();
         if (!externalWriteRef.current) latestRef.current.onTextChange(model.getValue());
       }),
       editor.onDidChangeCursorSelection(() => {
@@ -404,6 +428,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     refreshDecorations();
     syncInlineZones();
     syncAutoHeight();
+    syncPlaceholder();
 
     let scrollBeforePointerFocus: ScrollSnapshot | null = null;
     const handlePointerDown = () => {
@@ -482,6 +507,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       lineDecorationsWidth: showGutter ? 16 : 0,
       glyphMargin: hasRunContext,
     });
+    syncPlaceholderRef.current();
   }, [disabled, showLineNumbers, showFoldControls, showGutter, hasRunContext]);
 
   useEffect(() => {

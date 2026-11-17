@@ -155,6 +155,16 @@ class FakeEditor {
     return { set: (_decorations: unknown[]) => undefined, clear: () => undefined };
   }
 
+  readonly contentWidgets = new Set<string>();
+
+  addContentWidget(widget: { getId: () => string }) {
+    this.contentWidgets.add(widget.getId());
+  }
+
+  removeContentWidget(widget: { getId: () => string }) {
+    this.contentWidgets.delete(widget.getId());
+  }
+
   getContribution<T>(id: string): T | null {
     if (id !== "editor.contrib.markerController") return null;
     return { close: () => { this.markerWidgetCloseCount += 1; } } as T;
@@ -202,6 +212,7 @@ export const editor = {
     model.markers = markers;
   },
   MouseTargetType: { GUTTER_GLYPH_MARGIN: 2 },
+  ContentWidgetPositionPreference: { EXACT: 0 },
   EndOfLineSequence: { LF: 0, CRLF: 1 },
 };
 
