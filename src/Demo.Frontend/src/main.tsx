@@ -44,7 +44,7 @@ const HOME_SUBMENU = [
   { label: "Playground", target: "hp-playground" },
   { label: "Examples", target: "hp-examples" },
   { label: "Capabilities", target: "hp-capabilities" },
-  { label: "How it works", target: "hp-reveal" },
+  { label: "How it works", target: "hp-how-it-works" },
   { label: "For developers", target: "hp-developers" },
 ] as const;
 

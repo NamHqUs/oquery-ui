@@ -372,19 +372,6 @@ export default function Home({
         </div>
       </section>
 
-      <section className="hp-section" id="hp-domain-model" aria-labelledby="hp-domain-model-title">
-        <SectionIntro
-          id="hp-domain-model-title"
-          kicker="DOMAIN MODEL"
-          title={`The ${domainName} entities and how they connect.`}
-          text={`Every example above runs against these entities. Follow the lines to see which relationships a query can use, such as Seller to Orders or OrderItems to Products.`}
-        />
-        <TextAction onClick={openDiagramDetails}>View diagram details in Metadata</TextAction>
-        <div className="hp-domain-diagram">
-          <DiagramView tables={diagramTables} relationships={diagramRelationships} compactCards />
-        </div>
-      </section>
-
       <section className="hp-section" id="hp-capabilities" aria-labelledby="hp-interfaces-title">
         <SectionIntro
           id="hp-interfaces-title"
@@ -434,44 +421,66 @@ export default function Home({
         </div>
       </section>
 
-      <section className="hp-section" id="hp-reveal" aria-labelledby="hp-reveal-title">
+      <section className="hp-section" id="hp-how-it-works" aria-labelledby="hp-how-it-works-title">
         <SectionIntro
-          id="hp-reveal-title"
-          kicker="THE REVEAL"
+          id="hp-how-it-works-title"
+          kicker="HOW IT WORKS"
           title={`Metadata gives ${PRODUCT_NAME} an understanding of your data.`}
-          text={`Metadata describes the logical entities in your application, the fields they expose, and how those entities relate. ${PRODUCT_NAME} uses that context to understand what you ask for and work out how to retrieve it from your database.`}
         />
-        <div className="hp-flow">
-          <div className="hp-flow-step">
-            <span className="hp-flow-label">Your application data</span>
-            <ul className="hp-chip-list">{["Employees", "Locations", "Departments"].map((item) => <li key={item}><Icon name="table" size={12} /> {item}</li>)}</ul>
+        <figure className="hp-bridge" aria-label="Metadata maps physical tables and columns to the entities a query uses">
+          <div className="hp-bridge-col">
+            <span className="hp-bridge-label">Physical database</span>
+            <div className="hp-bridge-card">
+              <strong><Icon name="table" size={12} /> Employees</strong>
+              <code className="hp-bridge-field">FirstName</code>
+              <code className="hp-bridge-field hp-bridge-key-a">DepartmentId</code>
+            </div>
+            <div className="hp-bridge-card">
+              <strong><Icon name="table" size={12} /> Departments</strong>
+              <code className="hp-bridge-field hp-bridge-key-b">Id</code>
+              <code className="hp-bridge-field">Name</code>
+            </div>
           </div>
-          <div className="hp-flow-step">
-            <span className="hp-flow-label">What you want to see</span>
-            <ul className="hp-chip-list">{["Employee name", "Location name", "Department name"].map((item) => <li key={item}><Icon name="type" size={12} /> {item}</li>)}</ul>
+          <span className="hp-bridge-arrow" aria-hidden="true">→</span>
+          <div className="hp-bridge-col">
+            <span className="hp-bridge-label">Metadata</span>
+            <div className="hp-bridge-card hp-bridge-meta">
+              <strong>Seller</strong>
+              <small>maps to Employees</small>
+              <pre className="hp-bridge-code">FirstName: maps FirstName{"\n"}Department: maps Relation{"\n"}    <span className="hp-bridge-key-a">DepartmentId</span> = <span>Departments.</span><span className="hp-bridge-key-b">Id</span></pre>
+            </div>
+            <div className="hp-bridge-card hp-bridge-meta">
+              <strong>Departments</strong>
+              <small>maps to Departments</small>
+              <pre className="hp-bridge-code">{"Name: maps Name"}</pre>
+            </div>
           </div>
-          <div className="hp-flow-step">
-            <span className="hp-flow-label">Your query</span>
-            <code className="hp-flow-query">Employees: FirstName, Location.Name, Department.Name</code>
+          <span className="hp-bridge-arrow" aria-hidden="true">→</span>
+          <div className="hp-bridge-col">
+            <span className="hp-bridge-label">Your query</span>
+            <div className="hp-bridge-card">
+              <pre className="hp-bridge-code hp-bridge-query">{"Seller:\n    FirstName,\n    Department.Name"}</pre>
+            </div>
           </div>
-          <div className="hp-flow-step">
-            <span className="hp-flow-label">What {PRODUCT_NAME} handles</span>
-            <ol className="hp-flow-steps">
-              <li>Find the employee data</li>
-              <li>Follow the Location relationship</li>
-              <li>Follow the Department relationship</li>
-              <li>Build the required database query</li>
-            </ol>
+          <span className="hp-bridge-arrow" aria-hidden="true">→</span>
+          <div className="hp-bridge-col">
+            <span className="hp-bridge-label">Generated SQL</span>
+            <div className="hp-bridge-card">
+              <pre className="hp-bridge-code">{`SELECT 
+  t0."FirstName" "FirstName", 
+  t1."Name" "Department.Name"
+FROM "main"."Employees" t0
+  LEFT JOIN "hr"."Departments" 
+    t1 ON (t1."Id" = t0."DepartmentId")`}</pre>
+            </div>
           </div>
-          <div className="hp-flow-step hp-flow-result">
-            <span className="hp-flow-label">Result</span>
-            <p>An employee list with location and department names.</p>
-            <button className="button secondary" type="button" onClick={() => showExample("relations")}><Icon name="play" size={11} /> Run it</button>
+        </figure>
+        <div className="hp-how-block">
+          <h3 className="hp-how-subtitle">{`The ${domainName} entities and how they connect.`}</h3>
+          <div className="hp-domain-diagram">
+            <DiagramView tables={diagramTables} relationships={diagramRelationships} compactCards />
           </div>
-        </div>
-        <div className="hp-points-layout">
-          <ul className="hp-points">{REVEAL_POINTS.map((point) => <li key={point}><Icon name="check" size={14} /><span>{point}</span></li>)}</ul>
-          <div className="hp-points-feature"><Icon name="check" size={14} /><span>Automatically handles aggregates over related collections and contexts.</span></div>
+          <TextAction onClick={openDiagramDetails}>View diagram details in Metadata</TextAction>
         </div>
         <TextAction onClick={() => onNavigateToPage("metadata")}>See how {PRODUCT_NAME} understands your data</TextAction>
       </section>

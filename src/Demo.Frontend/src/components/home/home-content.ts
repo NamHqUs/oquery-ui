@@ -103,14 +103,6 @@ Seller:
 
 export type HomeCard = { icon: IconName; title: string; text: string; roadmap?: boolean };
 
-export const REVEAL_POINTS = [
-  "Work with business entities instead of database table names.",
-  "Follow related information without writing join conditions.",
-  "Use logical data structures that can combine multiple physical tables.",
-  "Expose only the information an application or user should access.",
-  "Adapt the available data model to different applications and customers.",
-];
-
 export const DEVELOPER_CARDS: HomeCard[] = [
   { icon: "table", title: "Entities", text: "Expose business-oriented entities rather than forcing consumers to understand physical tables." },
   { icon: "type", title: "Fields", text: "Choose which fields are available and map them to database columns or expressions." },
