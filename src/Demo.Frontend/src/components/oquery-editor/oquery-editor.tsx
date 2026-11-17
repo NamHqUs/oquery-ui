@@ -1,13 +1,14 @@
 import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type FocusEventHandler, type ReactNode, type TextareaHTMLAttributes } from "react";
 import type { FunctionDefinition } from "../function-definition/types";
-import type { DomainRelation, FilterOperatorDefinition, MetadataEntity } from "../query-builder/query-design/query-builder-slice";
+import type { DomainRelation, FilterOperatorDefinition, InlineQueryResult, MetadataEntity } from "../query-builder/query-design/query-builder-slice";
 import { getOQueryContextKeys } from "../query-builder/query-design/oquery-context-colors";
 import "../query-builder/query-design/query-design.css";
 import { getOQueryCompletions, type OQuerySuggestionEntity } from "./oquery-completions";
 import { getOqueryEnterEdit } from "./oquery-editor-enter";
 import { normalizeOqueryEditorText } from "./oquery-editor-text";
-import { getMinimalTextEdit, getOqueryContextLenses, getOqueryErrorRange } from "./oquery-monaco-adapters";
+import { getMinimalTextEdit, getOqueryContextBlocks, getOqueryContextLenses, getOqueryErrorRange } from "./oquery-monaco-adapters";
 import { createOqueryModel, ensureOqueryLanguage, monaco, OQUERY_THEME_ID, registerOqueryEditorSource } from "./oquery-monaco-setup";
+import { buildInlineResultView, type InlineResultView } from "./oquery-inline-result";
 import type { OQueryErrorPosition } from "./oquery-validation";
 
 type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange" | "value" | "onBlur"> & {
@@ -39,8 +40,10 @@ type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onCh
   showFoldControls?: boolean;
   onBlur?: FocusEventHandler<HTMLElement>;
   onSelectionChange?: (text: string) => void;
-  onExecuteSelectedText?: (text: string) => void;
+  onExecuteSelectedText?: (text: string, contextName?: string) => void;
   onExecuteContext?: (contextName: string) => void;
+  inlineResults?: Record<string, InlineQueryResult>;
+  onClearInlineResult?: (contextName: string) => void;
 };
 
 export type OQueryEditorHandle = {
@@ -83,7 +86,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     textOverride, disabled = false, onBlur,
     functionDefinitions, errorFunctionName = "", errorPosition = null, errorMessage = "",
     compact = false, showGutter = true, showLineNumbers = true, showFoldControls = true,
-    onExecuteContext, suggestionEntitiesMetadata,
+    onExecuteContext, suggestionEntitiesMetadata, inlineResults, onClearInlineResult,
   } = props;
   const instanceId = useId().replace(/[^A-Za-z0-9_-]/g, "");
   const hostRef = useRef<HTMLDivElement>(null);
@@ -91,6 +94,8 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const modelRef = useRef<monaco.editor.ITextModel | null>(null);
   const decorationsRef = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
+  const inlineViewsRef = useRef(new Map<string, { entry: InlineQueryResult; view: InlineResultView }>());
+  const inlineZoneIdsRef = useRef<string[]>([]);
   const externalWriteRef = useRef(false);
   const latestRef = useRef(props);
   const [lineCount, setLineCount] = useState(() => normalizeOqueryEditorText(props.textOverride ?? props.initialText ?? props.value ?? "").split("\n").length);
@@ -129,6 +134,45 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       }))
       : [];
     decorationsRef.current?.set([...contextDecorations, ...errorDecorations, ...runDecorations]);
+  };
+
+  // Results sit under the last line of their context block. Zones are re-anchored on every
+  // text change, so a result follows its block as lines are added or removed above it.
+  const syncInlineZones = () => {
+    const model = modelRef.current;
+    const editor = editorRef.current;
+    if (!model || !editor) return;
+    const latest = latestRef.current;
+    const results = latest.inlineResults ?? {};
+    const views = inlineViewsRef.current;
+    const anchored = new Set<string>();
+    const zones: { afterLineNumber: number; heightInPx: number; domNode: HTMLElement; suppressMouseDown: boolean }[] = [];
+    for (const block of getOqueryContextBlocks(model.getValue())) {
+      if (anchored.has(block.contextName)) continue;
+      anchored.add(block.contextName);
+      const entry = results[block.contextName];
+      if (!entry) continue;
+      let cached = views.get(block.contextName);
+      if (!cached || cached.entry !== entry) {
+        const contextName = block.contextName;
+        const view = buildInlineResultView(contextName, entry, () => latestRef.current.onClearInlineResult?.(contextName));
+        cached = { entry, view };
+        views.set(contextName, cached);
+      }
+      zones.push({
+        afterLineNumber: block.endLine,
+        heightInPx: cached.view.height,
+        domNode: cached.view.node,
+        suppressMouseDown: true,
+      });
+    }
+    for (const name of [...views.keys()]) {
+      if (!results[name]) views.delete(name);
+    }
+    editor.changeViewZones((accessor) => {
+      inlineZoneIdsRef.current.forEach((id) => accessor.removeZone(id));
+      inlineZoneIdsRef.current = zones.map((zone) => accessor.addZone(zone));
+    });
   };
 
   const writeExternalText = (next: string) => {
@@ -217,6 +261,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       model.onDidChangeContent(() => {
         setLineCount(model.getLineCount());
         refreshDecorations();
+        syncInlineZones();
         if (!externalWriteRef.current) latestRef.current.onTextChange(model.getValue());
       }),
       editor.onDidChangeCursorSelection(() => {
@@ -231,12 +276,15 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       }),
     ];
     refreshDecorations();
+    syncInlineZones();
 
     return () => {
       subscriptions.forEach((subscription) => subscription.dispose());
       unregisterSource();
       decorationsRef.current?.clear();
       decorationsRef.current = null;
+      inlineViewsRef.current.clear();
+      inlineZoneIdsRef.current = [];
       editor.dispose();
       model.dispose();
       editorRef.current = null;
@@ -245,6 +293,12 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     // The editor is created once per mounted component; props are read through latestRef.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instanceId]);
+
+  useEffect(() => {
+    syncInlineZones();
+    // syncInlineZones reads the latest results through latestRef.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inlineResults]);
 
   useLayoutEffect(() => {
     if (textOverride === undefined) return;
@@ -308,7 +362,11 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
         if (selection.isEmpty()) return;
         event.preventDefault();
         event.stopPropagation();
-        latestRef.current.onExecuteSelectedText?.(model.getValueInRange(selection));
+        // The run result is anchored to the context block that contains the end of the selection.
+        const contextName = getOqueryContextBlocks(model.getValue())
+          .filter((block) => block.startLine <= selection.endLineNumber)
+          .pop()?.contextName;
+        latestRef.current.onExecuteSelectedText?.(model.getValueInRange(selection), contextName);
         return;
       }
       if (wrapper.querySelector(".suggest-widget.visible")) return;

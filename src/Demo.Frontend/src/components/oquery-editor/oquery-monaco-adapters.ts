@@ -34,6 +34,23 @@ export function getOqueryContextLenses(text: string): OqueryContextLens[] {
   });
 }
 
+export type OqueryContextBlock = { contextName: string; startLine: number; endLine: number };
+
+// A block runs from its header line to the line before the next header, without trailing blank lines.
+// Lines are 1-based to match Monaco.
+export function getOqueryContextBlocks(text: string): OqueryContextBlock[] {
+  const lines = text.split("\n");
+  const headers = lines.flatMap((line, index) => {
+    const contextName = contextNameAtLine(line);
+    return contextName ? [{ contextName, index }] : [];
+  });
+  return headers.map((header, position) => {
+    let end = (headers[position + 1]?.index ?? lines.length) - 1;
+    while (end > header.index && lines[end]!.trim() === "") end--;
+    return { contextName: header.contextName, startLine: header.index + 1, endLine: end + 1 };
+  });
+}
+
 export function getOqueryErrorRange(position: OQueryErrorPosition) {
   return {
     startLineNumber: position.line,

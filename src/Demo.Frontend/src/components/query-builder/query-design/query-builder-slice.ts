@@ -316,6 +316,13 @@ export type QueryResult = {
   totalRecords: number;
 };
 
+// Inline results are keyed by OQuery context name and stay until cleared or replaced by another run of that context.
+export type InlineQueryResult = {
+  status: "loading" | "succeeded" | "failed";
+  result: QueryResult | null;
+  error: string;
+};
+
 
 
 function toApiProjectionNode(expression: IFieldDefinition): ApiProjectionNode {
@@ -1090,7 +1097,7 @@ export function requestSqlStatementFromText(text: string, domainId: string): Pro
 
 export const executeQueryFromText = createAsyncThunk(
   "queryBuilder/executeFromText",
-  async ({ text, domainId }: { text: string; domainId: string }, { rejectWithValue }) => {
+  async ({ text, domainId }: { text: string; domainId: string; context?: string }, { rejectWithValue }) => {
     try {
       return await requestQueryResultFromText(text, domainId);
     } catch (error) {
@@ -1245,6 +1252,21 @@ export const deleteQueryRequest = createAsyncThunk(
   },
 );
 
+function markInlineLoading(state: { inlineResults: Record<string, InlineQueryResult> }, context?: string) {
+  if (!context) return;
+  state.inlineResults[context] = { status: "loading", result: state.inlineResults[context]?.result ?? null, error: "" };
+}
+
+function markInlineSucceeded(state: { inlineResults: Record<string, InlineQueryResult> }, context: string | undefined, result: QueryResult) {
+  if (!context) return;
+  state.inlineResults[context] = { status: "succeeded", result, error: "" };
+}
+
+function markInlineFailed(state: { inlineResults: Record<string, InlineQueryResult> }, context: string | undefined, error: string) {
+  if (!context) return;
+  state.inlineResults[context] = { status: "failed", result: state.inlineResults[context]?.result ?? null, error };
+}
+
 const queryBuilderSlice = createSlice({
   name: "queryBuilder",
   initialState: {
@@ -1253,6 +1275,7 @@ const queryBuilderSlice = createSlice({
     metadataStatus: "idle",
     metadataError: "",
     result: null as QueryResult | null,
+    inlineResults: {} as Record<string, InlineQueryResult>,
     sqlStatement: null as string | null,
     resultView: "data" as "data" | "sql",
     queryStatus: "idle",
@@ -1274,6 +1297,9 @@ const queryBuilderSlice = createSlice({
       state.sqlStatement = null;
       state.resultView = "data";
       state.queryError = "";
+    },
+    clearInlineResult(state, action: PayloadAction<string>) {
+      delete state.inlineResults[action.payload];
     },
     clearQueryRequestError(state) {
       state.queryRequestsError = "";
@@ -1343,9 +1369,10 @@ const queryBuilderSlice = createSlice({
         state.queryStatus = "failed";
         state.queryError = String(action.payload || action.error.message || "Unable to execute query.");
       })
-      .addCase(executeQueryFromText.pending, (state) => {
+      .addCase(executeQueryFromText.pending, (state, action) => {
         state.queryStatus = "loading";
         state.queryError = "";
+        markInlineLoading(state, action.meta.arg.context);
       })
       .addCase(executeQueryFromText.fulfilled, (state, action) => {
         state.result = action.payload;
@@ -1353,6 +1380,7 @@ const queryBuilderSlice = createSlice({
         state.resultView = "data";
         state.queryStatus = "succeeded";
         state.queryError = "";
+        markInlineSucceeded(state, action.meta.arg.context, action.payload);
       })
       .addCase(executeQueryFromText.rejected, (state, action) => {
         state.result = null;
@@ -1360,10 +1388,12 @@ const queryBuilderSlice = createSlice({
         state.resultView = "data";
         state.queryStatus = "failed";
         state.queryError = String(action.payload || action.error.message || "Unable to execute query.");
+        markInlineFailed(state, action.meta.arg.context, state.queryError);
       })
-      .addCase(executeContextFromText.pending, (state) => {
+      .addCase(executeContextFromText.pending, (state, action) => {
         state.queryStatus = "loading";
         state.queryError = "";
+        markInlineLoading(state, action.meta.arg.context);
       })
       .addCase(executeContextFromText.fulfilled, (state, action) => {
         state.result = action.payload;
@@ -1371,6 +1401,7 @@ const queryBuilderSlice = createSlice({
         state.resultView = "data";
         state.queryStatus = "succeeded";
         state.queryError = "";
+        markInlineSucceeded(state, action.meta.arg.context, action.payload);
       })
       .addCase(executeContextFromText.rejected, (state, action) => {
         state.result = null;
@@ -1378,6 +1409,7 @@ const queryBuilderSlice = createSlice({
         state.resultView = "data";
         state.queryStatus = "failed";
         state.queryError = String(action.payload || action.error.message || "Unable to execute context.");
+        markInlineFailed(state, action.meta.arg.context, state.queryError);
       });
     builder
       .addCase(getSqlStatement.pending, (state) => {
@@ -1442,6 +1474,7 @@ const queryBuilderSlice = createSlice({
 });
 
 export const {
+  clearInlineResult,
   clearQueryRequestError,
   clearQueryResult,
   invalidateFunctionDefinitions,

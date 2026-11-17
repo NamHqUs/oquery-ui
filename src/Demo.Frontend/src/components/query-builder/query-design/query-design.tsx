@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
 import { useContext, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
-import { ApiQueryContextDefinition, FilterOperatorDefinition, hasApiQueryCondition, MetadataEntity, QueryDefinition } from "./query-builder-slice";
+import { ApiQueryContextDefinition, FilterOperatorDefinition, hasApiQueryCondition, InlineQueryResult, MetadataEntity, QueryDefinition } from "./query-builder-slice";
 import { FunctionDefinition } from "../../function-definition/types";
 import Icon from "../../icon/icon";
 import ProjectionBuilder from "./projection-builder/projection-builder";
@@ -192,6 +192,9 @@ type QueryDesignProps = {
   onOqueryTextChange: (text: string) => void;
   onOQuerySelectionChange: (text: string) => void;
   onExecuteOQueryContext?: (contextName: string) => void;
+  onExecuteOQuerySelection?: (text: string, contextName?: string) => void;
+  inlineResults: Record<string, InlineQueryResult>;
+  onClearInlineResult: (contextName: string) => void;
   onFormatOquery: () => void;
   onInsertOqueryTemplate: () => void;
   onApplyOquery: () => void;
@@ -237,6 +240,9 @@ export default function QueryDesign({
   onOqueryTextChange,
   onOQuerySelectionChange,
   onExecuteOQueryContext,
+  onExecuteOQuerySelection,
+  inlineResults,
+  onClearInlineResult,
   onFormatOquery,
   onInsertOqueryTemplate,
   onApplyOquery,
@@ -422,9 +428,11 @@ export default function QueryDesign({
               suggestionEntitiesMetadata={suggestionData.entitiesMetadata}
               onSelectionChange={onOQuerySelectionChange}
               onExecuteContext={onExecuteOQueryContext}
+              onExecuteSelectedText={onExecuteOQuerySelection}
+              inlineResults={inlineResults}
+              onClearInlineResult={onClearInlineResult}
               onBlur={(event) => {
-                if (event.relatedTarget instanceof Element
-                  && (event.relatedTarget.closest(".saved-query-item")
+                if (event.relatedTarget instanceof Element                  && (event.relatedTarget.closest(".saved-query-item")
                     || event.relatedTarget.closest(".query-toolbar-actions"))) return;
                 const domainButton = event.relatedTarget instanceof Element
                   ? event.relatedTarget.closest<HTMLButtonElement>(".query-builder-domain-list button")

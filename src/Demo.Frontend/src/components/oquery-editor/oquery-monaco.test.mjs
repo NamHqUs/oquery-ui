@@ -4,6 +4,7 @@ import { getOqueryEnterEdit } from "./oquery-editor-enter.ts";
 import {
   contextNameAtLine,
   getMinimalTextEdit,
+  getOqueryContextBlocks,
   getOqueryContextLenses,
   getOqueryErrorRange,
   getOqueryFoldingRanges,
@@ -34,6 +35,14 @@ test("context lenses are found for every context header line", () => {
   assert.deepEqual(getOqueryContextLenses("Entity: User\nManagers is Employees:"),
     [{ lineNumber: 1, contextName: "Entity" }, { lineNumber: 2, contextName: "Managers" }]);
   assert.equal(contextNameAtLine("  Projection:"), "Projection");
+});
+
+test("context blocks end before the next header and trim trailing blank lines", () => {
+  assert.deepEqual(getOqueryContextBlocks("Entity: User\n  Name\n\nManagers is Employees:\n  Id\n\n"),
+    [
+      { contextName: "Entity", startLine: 1, endLine: 2 },
+      { contextName: "Managers", startLine: 4, endLine: 5 },
+    ]);
 });
 
 test("error ranges use the 1-based position reported by validation", () => {

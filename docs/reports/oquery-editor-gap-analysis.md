@@ -25,8 +25,10 @@ this pass (Monaco provides these commands natively).
 - **Engine:** Monaco Editor 0.57.0 (`monaco-editor` dependency). Chosen by the user.
 - **DOM harness:** Vitest 5 + jsdom, `*.spec.tsx` files (`npm run test` runs
   both the `node --test` suites and Vitest).
-- **Ctrl+Enter:** with a selection, runs the selected text (existing behavior);
-  without a selection it uses Monaco's native Insert Line Below. Chosen by the user.
+- **Ctrl+Enter:** with a selection, runs the selected text and shows the result inline
+  under the context block that contains the selection end; without a selection it uses
+  Monaco's native Insert Line Below. Inline results stay until cleared or replaced by a
+  re-run of the same context.
 
 ## 3. Status against the specification
 

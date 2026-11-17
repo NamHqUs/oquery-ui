@@ -124,6 +124,15 @@ class FakeEditor {
     return { dispose: () => this.selectionListeners.delete(listener) };
   }
 
+  private zoneCount = 0;
+
+  changeViewZones<T>(callback: (accessor: { addZone: (zone: unknown) => string; removeZone: (id: string) => void }) => T): T {
+    return callback({
+      addZone: () => `zone-${++this.zoneCount}`,
+      removeZone: () => undefined,
+    });
+  }
+
   createDecorationsCollection() {
     return { set: (_decorations: unknown[]) => undefined, clear: () => undefined };
   }

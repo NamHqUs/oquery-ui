@@ -6,7 +6,7 @@ import Icon from "../icon/icon";
 import { useMessageBox } from "../message-box/message-box";
 import PanelSplitter from "../panel-splitter/panel-splitter";
 import ToastNotice from "../toast-notice/toast-notice";
-import { ApiQueryContextDefinition, clearQueryRequestError, clearQueryResult, createApiQuery, deleteQueryRequest, DomainRelation, EntityRelationView, executeContextFromText, executeQuery, executeQueryFromText, fetchQueryRequests, fromApiQuery, fromApiQueryDefinition, getQueryRequestText, getSqlStatement, getSqlStatementFromText, IFieldDefinition, MetadataEntity, MetadataField, parseQueryRequestText, QueryDefinition, QueryFilterGroup, QueryFilterNode, relationsForEntity, saveQueryRequest, toQueryBuilderSavedView } from "./query-design/query-builder-slice";
+import { ApiQueryContextDefinition, clearInlineResult, clearQueryRequestError, clearQueryResult, createApiQuery, deleteQueryRequest, DomainRelation, EntityRelationView, executeContextFromText, executeQuery, executeQueryFromText, fetchQueryRequests, fromApiQuery, fromApiQueryDefinition, getQueryRequestText, getSqlStatement, getSqlStatementFromText, IFieldDefinition, MetadataEntity, MetadataField, parseQueryRequestText, QueryDefinition, QueryFilterGroup, QueryFilterNode, relationsForEntity, saveQueryRequest, toQueryBuilderSavedView } from "./query-design/query-builder-slice";
 import { MetadataRelationsContext } from "./query-design/metadata-relations-context";
 import QueryDesign from "./query-design/query-design";
 import QueryResult from "./query-result/query-result";
@@ -405,7 +405,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   const [searchParams, setSearchParams] = useSearchParams();
   const domainId = searchParams.get("domain")?.trim() || "";
   const savedQueriesPanel = useResizablePanel("query-builder-saved-queries");
-  const { metadata, metadataRelations, metadataStatus, metadataError, result, sqlStatement, resultView, queryStatus, queryError, functionDefinitions, functionDefinitionsStatus, functionDefinitionsError, filterOperators, filterOperatorsStatus, filterOperatorsError, queryRequests, queryRequestsStatus, queryRequestsError, debugUiEnabled } = useSelector((state: RootState) => state.queryBuilder);
+  const { metadata, metadataRelations, metadataStatus, metadataError, result, sqlStatement, resultView, queryStatus, queryError, functionDefinitions, functionDefinitionsStatus, functionDefinitionsError, filterOperators, filterOperatorsStatus, filterOperatorsError, queryRequests, queryRequestsStatus, queryRequestsError, debugUiEnabled, inlineResults } = useSelector((state: RootState) => state.queryBuilder);
   const { connectedProvider, connectionStatus } = useSelector((state: RootState) => state.database);
   const [definition, setDefinition] = useState<QueryDefinition>(loadDefinition);
   const [requestName, setRequestName] = useState("");
@@ -769,6 +769,16 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     setOqueryError("");
     dispatch(executeContextFromText({ text, context: contextName, domainId }));
   };
+  const runOQuerySelection = (text: string, contextName?: string) => {
+    if (!domainId) return;
+    if (!text.trim()) return;
+    if (!connectedProvider || connectionStatus !== "succeeded") {
+      onRequestConnection();
+      return;
+    }
+    setOqueryError("");
+    dispatch(executeQueryFromText({ text, domainId, context: contextName }));
+  };
 
   const changePage = (page: number) => {
     if (!domainId) return;
@@ -1044,6 +1054,9 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
                 }}
                 onOQuerySelectionChange={updateSelectedOQueryText}
                 onExecuteOQueryContext={runOQueryContext}
+                onExecuteOQuerySelection={runOQuerySelection}
+                inlineResults={inlineResults}
+                onClearInlineResult={(contextName) => dispatch(clearInlineResult(contextName))}
                 onFormatOquery={() => void formatOquery()}
                 onInsertOqueryTemplate={insertOqueryTemplate}
                 onApplyOquery={() => void applyOquery()}

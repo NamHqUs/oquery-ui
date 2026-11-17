@@ -156,7 +156,7 @@ describe("OQueryEditor (Monaco)", () => {
     const event = new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, bubbles: true, cancelable: true });
     act(() => { container.querySelector(".query-oquery-code-editor")!.dispatchEvent(event); });
 
-    expect(onExecuteSelectedText).toHaveBeenCalledWith("User");
+    expect(onExecuteSelectedText).toHaveBeenCalledWith("User", "Entity");
     expect(event.defaultPrevented).toBe(true);
     expect(editor.model.getValue()).toBe("Entity: User");
   });
