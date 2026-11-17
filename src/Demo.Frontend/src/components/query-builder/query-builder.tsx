@@ -12,6 +12,7 @@ import QueryDesign from "./query-design/query-design";
 import QueryResult from "./query-result/query-result";
 import SavedQueryList from "./saved-query-list/saved-query-list";
 import { getOquerySyntaxError } from "../oquery-editor/oquery-validation";
+import { clearOQueryDraft, readOQueryDraft } from "./oquery-draft";
 import { getOQuerySuggestionData } from "../oquery-editor/oquery-suggestion-data";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
 import type { AppDispatch, RootState } from "../../store/store";
@@ -408,7 +409,12 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   const { connectedProvider, connectionStatus } = useSelector((state: RootState) => state.database);
   const [definition, setDefinition] = useState<QueryDefinition>(loadDefinition);
   const [requestName, setRequestName] = useState("");
-  const [oqueryText, setOqueryText] = useState("");
+  const [carriedDraft] = useState(() => readOQueryDraft(domainId));
+  const [oqueryText, setOqueryText] = useState(() => carriedDraft ?? "");
+  const carriedDraftPendingRef = useRef(carriedDraft !== null);
+  const [loadedDomainId, setLoadedDomainId] = useState("");
+  const [carriedDraftHighlightPending, setCarriedDraftHighlightPending] = useState(carriedDraft !== null);
+  const [oqueryMarker, setOqueryMarker] = useState<{ text: string; message: string } | null>(null);
   const [oqueryStatus, setOqueryStatus] = useState<"idle" | "loading" | "applying">("idle");
   const [oqueryError, setOqueryError] = useState("");
   const selectedOQueryTextRef = useRef("");
@@ -543,8 +549,24 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   };
   useEffect(() => {
     if (editorMode !== "oquery") return;
+    // The carried draft is already in the editor; loading the saved text here would overwrite it.
+    if (carriedDraftPendingRef.current) {
+      carriedDraftPendingRef.current = false;
+      return;
+    }
     void loadOquery(activeDefinition, selectedRequestRawText);
   }, [editorMode, selectedRequestName, activeContextIndex, selectedRequestRawText]);
+  useEffect(() => clearOQueryDraft(), []);
+  useEffect(() => {
+    if (!carriedDraftHighlightPending || loadedDomainId !== domainId
+      || metadataStatus !== "succeeded" || functionDefinitionsStatus !== "succeeded" || filterOperatorsStatus !== "succeeded") return;
+    setCarriedDraftHighlightPending(false);
+    const message = oqueryText.trim()
+      ? getOquerySyntaxError(oqueryText, functionDefinitions, filterOperators, suggestionEntities, definition.entity)
+      : null;
+    setOqueryMarker({ text: oqueryText, message: message ?? "" });
+  }, [carriedDraftHighlightPending, loadedDomainId, domainId, metadataStatus, functionDefinitionsStatus, filterOperatorsStatus, functionDefinitions, filterOperators, suggestionEntities, oqueryText, definition.entity]);
+  const displayedOqueryError = oqueryError || (oqueryMarker?.text === oqueryText ? oqueryMarker.message : "");
   const applyOquery = async () => {
     if (!oqueryText.trim() || oqueryStatus !== "idle") return;
     setOqueryValidationAttempt((attempt) => attempt + 1);
@@ -701,7 +723,9 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
   };
   useEffect(() => {
     if (!domainId) return;
-    oQueryEditorService.load(domainId, { includeQueryRequests: true }).catch((error: unknown) => console.error(error));
+    oQueryEditorService.load(domainId, { includeQueryRequests: true })
+      .then(() => setLoadedDomainId(domainId))
+      .catch((error: unknown) => console.error(error));
   }, [domainId]);
 
   useEffect(() => {
@@ -1011,7 +1035,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
                 editorMode={editorMode}
                 oqueryText={oqueryText}
                 oqueryStatus={oqueryStatus}
-                oqueryError={oqueryError}
+                oqueryError={displayedOqueryError}
                 onOqueryTextChange={(text) => {
                   setOqueryText(text);
                   setOqueryError("");

@@ -8,6 +8,7 @@ import SortBuilder from "./sort-builder/sort-builder";
 import FilterBuilder from "./filter-builder/filter-builder";
 import JoinsBuilder from "./joins-builder/joins-builder";
 import OQueryEditor from "../../oquery-editor/oquery-editor";
+import { stashOQueryDraft } from "../oquery-draft";
 import { getOqueryErrorPosition } from "../../oquery-editor/oquery-validation";
 import { getOQuerySuggestionData } from "../../oquery-editor/oquery-suggestion-data";
 import { MetadataRelationsContext } from "./metadata-relations-context";
@@ -246,6 +247,16 @@ export default function QueryDesign({
   const [diagramLayout, setDiagramLayout] = useState<OQueryDiagramLayout>(readOQueryDiagramLayout);
   const [newContextName, setNewContextName] = useState("");
   const [contextNameError, setContextNameError] = useState("");
+  useEffect(() => {
+    // Stash on press, not on editor blur: the editor is not focused after a restored draft, so blur alone would drop the text on the next switch.
+    const stashOnDomainPress = (event: PointerEvent) => {
+      if (!(event.target instanceof Element)) return;
+      const domainButton = event.target.closest<HTMLButtonElement>(".query-builder-domain-list button");
+      if (domainButton && domainButton.getAttribute("aria-pressed") !== "true") stashOQueryDraft(domainId, oqueryText);
+    };
+    document.addEventListener("pointerdown", stashOnDomainPress, true);
+    return () => document.removeEventListener("pointerdown", stashOnDomainPress, true);
+  }, [domainId, oqueryText]);
   const contextEntities = contextDefinitions.map((context) => {
     const fields = context.query.projection?.flatMap((projection) => {
       const alias = projection.alias?.trim();
@@ -415,6 +426,14 @@ export default function QueryDesign({
                 if (event.relatedTarget instanceof Element
                   && (event.relatedTarget.closest(".saved-query-item")
                     || event.relatedTarget.closest(".query-toolbar-actions"))) return;
+                const domainButton = event.relatedTarget instanceof Element
+                  ? event.relatedTarget.closest<HTMLButtonElement>(".query-builder-domain-list button")
+                  : null;
+                if (domainButton) {
+                  // Switching domain must not run the syntax check; keep the draft for the next domain.
+                  if (domainButton.getAttribute("aria-pressed") !== "true") stashOQueryDraft(domainId, oqueryText);
+                  return;
+                }
                 onApplyOquery();
               }}
               errorFunctionName={oqueryError.match(/:\s+([A-Za-z_][A-Za-z0-9_]*) requires at least/i)?.[1] ?? ""}

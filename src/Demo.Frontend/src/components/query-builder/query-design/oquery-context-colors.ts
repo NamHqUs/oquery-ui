@@ -4,16 +4,21 @@ export type OQueryContextKey = {
   kind: "context" | "table";
 };
 
-export function getOQueryContextKeys(text: string): OQueryContextKey[] {
+// When knownEntityNames is given, only entity names that exist in the current domain are marked as table keys.
+export function getOQueryContextKeys(text: string, knownEntityNames?: ReadonlySet<string>): OQueryContextKey[] {
   const searchableText = maskOQueryComments(text);
   const keys: OQueryContextKey[] = [];
   const contextNames = new Set<string>();
-  for (const match of searchableText.matchAll(/^([A-Za-z_][A-Za-z0-9_]*)\s*:/gm))
+  const isKnownEntity = (name: string) => !knownEntityNames || knownEntityNames.has(name);
+  for (const match of searchableText.matchAll(/^([A-Za-z_][A-Za-z0-9_]*)\s*:/gm)) {
+    if (!isKnownEntity(match[1]!)) continue;
     keys.push({ start: match.index!, end: match.index! + match[1]!.length, kind: "table" });
+  }
 
   for (const match of searchableText.matchAll(/^([A-Za-z_][A-Za-z0-9_]*)\s+is\s+([A-Za-z_][A-Za-z0-9_]*)\s*:/gim)) {
     contextNames.add(match[1]!);
     keys.push({ start: match.index!, end: match.index! + match[1]!.length, kind: "context" });
+    if (!isKnownEntity(match[2]!)) continue;
     const tableStart = match.index! + match[0]!.indexOf(match[2]!, match[1]!.length);
     keys.push({ start: tableStart, end: tableStart + match[2]!.length, kind: "table" });
   }

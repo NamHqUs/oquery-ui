@@ -142,6 +142,15 @@ test("offers projection fields on an unindented continuation line and still offe
   assert.ok(headerItems.some((item) => item.label === "Employees" && item.kind === "entity"));
 });
 
+test("offers no field or relation suggestions inside a block whose entity is not in the domain", () => {
+  const text = "Seller: Id\n  Where Id = <1>\n  ";
+  const items = getOQueryCompletions(text, text.length, [], [], [], functions, "Departments", entities).items;
+  assert.deepEqual(items, []);
+  const headerText = "Seller:\nEm";
+  const headerItems = getOQueryCompletions(headerText, headerText.length, [], [], ["Employees"], functions, "Departments", entities).items;
+  assert.ok(headerItems.some((item) => item.label === "Employees" && item.kind === "entity"));
+});
+
 test("offers only clause keywords after a where line", () => {
   const text = "Departments:\n  Where Id = <1>\n  ";
   const items = getOQueryCompletions(text, text.length, [], [], [], functions, "Departments", entities).items;

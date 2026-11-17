@@ -9,6 +9,17 @@ test("identifies context keys without coloring query property keys", () => {
   assert.deepEqual(keys.map(key => text.slice(key.start, key.end)), ["Managers", "Departments"]);
 });
 
+test("marks only entity headers that exist in the current domain", () => {
+  const text = "Sellers:\n  Id\nOrders:\n  Id\nSalesManager is Sellers:\n  Id\n";
+  const salesEntities = new Set(["Sellers"]);
+  const keys = getOQueryContextKeys(text, salesEntities);
+  assert.deepEqual(
+    keys.filter(key => key.kind === "table").map(key => text.slice(key.start, key.end)),
+    ["Sellers", "Sellers"],
+  );
+  assert.deepEqual(getOQueryContextKeys(text, new Set(["Orders"])).filter(key => key.kind === "table").map(key => text.slice(key.start, key.end)), ["Orders"]);
+});
+
 test("all context keys use one CSS color different from schema keywords", () => {
   const css = readFileSync(new URL("./query-design.css", import.meta.url), "utf8");
   const contextColor = css.match(/\.query-oquery-context-key\s*\{[^}]*color:\s*([^;]+)/)?.[1];

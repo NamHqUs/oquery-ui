@@ -83,7 +83,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     textOverride, disabled = false, onBlur,
     functionDefinitions, errorFunctionName = "", errorPosition = null, errorMessage = "",
     compact = false, showGutter = true, showLineNumbers = true, showFoldControls = true,
-    onExecuteContext,
+    onExecuteContext, suggestionEntitiesMetadata,
   } = props;
   const instanceId = useId().replace(/[^A-Za-z0-9_-]/g, "");
   const hostRef = useRef<HTMLDivElement>(null);
@@ -103,8 +103,12 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     const model = modelRef.current;
     if (!model) return;
     const text = model.getValue();
-    const { errorFunctionName: functionName = "" } = latestRef.current;
-    const contextDecorations = getOQueryContextKeys(text).map((key) => ({
+    const { errorFunctionName: functionName = "", suggestionEntitiesMetadata } = latestRef.current;
+    // Entities are highlighted only when they exist in the domain currently shown in the editor.
+    const knownEntityNames = suggestionEntitiesMetadata
+      ? new Set(suggestionEntitiesMetadata.map((entity) => entity.name))
+      : undefined;
+    const contextDecorations = getOQueryContextKeys(text, knownEntityNames).map((key) => ({
       range: getRange(model, key.start, key.end),
       options: {
         inlineClassName: key.kind === "table" ? "query-oquery-table-key" : "query-oquery-context-key",
@@ -257,6 +261,14 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     // refreshDecorations reads the latest props through refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [functionDefinitions, errorFunctionName, hasRunContext]);
+
+  // Switching domains changes the entity names, so highlights must be recalculated for the new domain.
+  const knownEntityKey = suggestionEntitiesMetadata?.map((entity) => entity.name).join("\n");
+  useEffect(() => {
+    refreshDecorations();
+    // refreshDecorations reads the latest props through refs; the key captures the entity names.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [knownEntityKey]);
 
   useEffect(() => {
     editorRef.current?.updateOptions({

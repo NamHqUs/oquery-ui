@@ -166,6 +166,8 @@ type Scope = {
   declared: Map<string, string[]>;
   joins: Map<string, string>;
   aliases: string[];
+  // True when the block header names neither an entity nor a declared context in this domain.
+  unresolvedSource: boolean;
 };
 
 function unquote(name: string) {
@@ -309,9 +311,11 @@ function analyzeScope(
     declared,
     joins: cursorBlock?.joins ?? new Map(),
     aliases: cursorBlock?.aliases ?? [],
+    unresolvedSource: false,
   };
-  scope.root = sourceNode(scope, sourceName, false)
-    ?? { type: "context", fields: fallbackFields, collection: false };
+  const resolvedRoot = sourceNode(scope, sourceName, false);
+  scope.unresolvedSource = resolvedRoot === null && (currentHeader !== null || cursorBlock !== null);
+  scope.root = resolvedRoot ?? { type: "context", fields: fallbackFields, collection: false };
   return scope;
 }
 
@@ -756,6 +760,8 @@ export function getOQueryCompletions(
   const items = unique(candidates)
     .map((candidate) => ({ candidate, score: scoreCandidate(candidate, query) }))
     .filter(({ score }) => Number.isFinite(score))
+    // A block whose source is not in this domain is treated as a comment: only entity headers are suggested.
+    .filter(({ candidate }) => !scope.unresolvedSource || candidate.kind === "entity")
     .sort((left, right) => left.score - right.score || left.candidate.label.localeCompare(right.candidate.label))
     .map(({ candidate }) => candidate);
 
