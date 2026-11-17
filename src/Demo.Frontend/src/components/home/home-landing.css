@@ -360,6 +360,7 @@
 }
 .hp-section:nth-of-type(odd) { background: linear-gradient(100deg, #12101d66, transparent 58%); }
 .hp-section:nth-of-type(even) { background: linear-gradient(270deg, #101c1b44, transparent 62%); }
+#hp-developers { gap: 10px; }
 .hp-section-intro { max-width: 760px; }
 .hp-section-intro h2 { margin-bottom: 8px; font-size: clamp(20px, 2.2vw, 27px); letter-spacing: -1px; }
 .hp-section-intro p { color: #b7bfcc; }
@@ -414,6 +415,7 @@
   background: transparent;
 }
 .hp-card:hover { background: linear-gradient(90deg, #211b3622, transparent); }
+#hp-developers .hp-card { min-height: 0; padding: 10px 0; }
 .hp-card-icon { width: 30px; height: 30px; border: 0; border-radius: 50%; background: #211b36; }
 .hp-card-grid .hp-card:nth-child(3n + 2) .hp-card-icon { color: #67d4b0; background: #15362f; }
 .hp-card-grid .hp-card:nth-child(3n) .hp-card-icon { color: #e8c889; background: #382d1a; }

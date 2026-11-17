@@ -281,7 +281,7 @@ function App() {
     const continueNavigation = () => {
       if (nextPage === "metadata") setMetadataVisited(true);
       if (nextPage === "functions") setFunctionDefinitionsVisited(true);
-      if (nextPage === "metadata" && metadataPath) window.scrollTo({ top: 0 });
+      if (nextPage === "builder" || (nextPage === "metadata" && metadataPath)) window.scrollTo({ top: 0 });
       approvedNavigation.current = destination;
       routerNavigate(destination);
     };

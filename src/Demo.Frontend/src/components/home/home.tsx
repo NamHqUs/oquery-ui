@@ -302,7 +302,7 @@ export default function Home({
         <div className="hp-hero-copy">
           <span className="eyebrow">METADATA-DRIVEN QUERYING</span>
           <h1 id="hp-hero-title">Your data, ready for any question.</h1>
-          <p className="hp-lede">Metadata is where you define your tables, fields, and relations once. Every question is then built from those definitions.</p>
+          <p className="hp-lede">Metadata helps your application stay independent of the physical database, so you can define business scope, domains flexibly. Every question is then built from those definitions.</p>
           <section className="hp-hero-usecases" aria-label="Benefits">
             <CardGrid cards={HERO_BENEFITS} className="hp-card-grid-5" />
           </section>
@@ -356,7 +356,7 @@ export default function Home({
               <span className="hp-example-letter">{example.letter}</span>
               <span><strong>{example.title}</strong><small>{example.summary}</small></span>
             </button>)}
-          <TextAction onClick={openBuilder}>Explore all examples in the Query builder</TextAction>
+          <TextAction onClick={openBuilder}>Explore More</TextAction>
           </div>
           <div className="hp-example-panel" id="hp-example-panel" role="tabpanel" aria-labelledby={`hp-tab-${activeExample.id}`}>
             <Playground
@@ -373,56 +373,7 @@ export default function Home({
         </div>
       </section>
 
-      <section className="hp-section" id="hp-capabilities" aria-labelledby="hp-interfaces-title">
-        <SectionIntro
-          id="hp-interfaces-title"
-          kicker="ONE ENGINE · QUERY CAPABILITIES"
-          title="Rich inputs. One engine. Multiple databases."
-          text={`Use the input style that fits your application and development workflow. Text queries, structured definitions, fluent code, and frontend requests all use the same data model, then ${PRODUCT_NAME} generates the database-specific SQL needed for execution.`}
-        />
-        <div className="hp-engine-layout">
-          <div className="hp-engine-input-panel">
-            <div className="hp-interfaces">
-              {INTERFACE_CARDS.map((card) => <article className="hp-card hp-interface" key={card.title}>
-                <div className="hp-card-title-row">
-                  <div className="hp-card-icon"><Icon name={card.icon} size={17} /></div>
-                  <strong>{card.title}</strong>
-                </div>
-                <p className="hp-interface-lead">{card.text} {card.audience}{card.code && <> <code className="hp-interface-inline-code">{card.code}</code></>}</p>
-              </article>)}
-            </div>
-            <TextAction onClick={openDocs}>Explore query interfaces</TextAction>
-          </div>
-          <div className="hp-engine-output-panel">
-            <figure className="hp-engine-diagram" aria-labelledby="hp-engine-diagram-title">
-              <div className="hp-engine-diagram-flow">
-                <div className="hp-engine-diagram-column hp-engine-diagram-group">
-                  <span className="hp-engine-diagram-label">Input types</span>
-                  <div className="hp-engine-diagram-nodes">
-                    {INTERFACE_CARDS.map((card) => <span className="hp-engine-node" key={card.title}><Icon name={card.icon} size={13} /> {card.title}</span>)}
-                  </div>
-                </div>
-                <span className="hp-engine-diagram-arrow" aria-hidden="true">↓</span>
-                <div className="hp-engine-diagram-engine">
-                  <Icon name="database" size={18} />
-                  <strong>{PRODUCT_NAME} engine</strong>
-                  <small><span className="hp-engine-meta-tag">Metadata</span> · SQL Functions · SQL dialects</small>
-                </div>
-                <span className="hp-engine-diagram-arrow" aria-hidden="true">↓</span>
-                <div className="hp-engine-diagram-column hp-engine-diagram-group">
-                  <span className="hp-engine-diagram-label">Database TYPES</span>
-                  <div className="hp-engine-diagram-nodes">
-                    {providers.map((provider) => <span className="hp-engine-node" key={provider}><Icon name={getDatabaseIconName(provider)} size={13} /> {provider}</span>)}
-                  </div>
-                </div>
-              </div>
-            </figure>
-            <TextAction onClick={onRequestConnection}>View database connections</TextAction>
-          </div>
-        </div>
-      </section>
-
-      <section className="hp-section" id="hp-how-it-works" aria-labelledby="hp-how-it-works-title">
+            <section className="hp-section" id="hp-how-it-works" aria-labelledby="hp-how-it-works-title">
         <SectionIntro
           id="hp-how-it-works-title"
           kicker="HOW IT WORKS"
@@ -486,6 +437,55 @@ FROM "main"."Employees" t0
           <div className="hp-how-links">
             <TextAction onClick={openDiagramDetails}>See {domainName} Domain</TextAction>
             <TextAction onClick={() => onNavigateToPage("metadata", false, DOMAINS_PATH)}>Explore all domains</TextAction>
+          </div>
+        </div>
+      </section>
+
+      <section className="hp-section" id="hp-capabilities" aria-labelledby="hp-interfaces-title">
+        <SectionIntro
+          id="hp-interfaces-title"
+          kicker="ONE ENGINE · QUERY CAPABILITIES"
+          title="Rich inputs. One engine. Multiple databases."
+          text={`Use the input style that fits your application and development workflow. Text queries, structured definitions, fluent code, and frontend requests all use the same data model, then ${PRODUCT_NAME} generates the database-specific SQL needed for execution.`}
+        />
+        <div className="hp-engine-layout">
+          <div className="hp-engine-input-panel">
+            <div className="hp-interfaces">
+              {INTERFACE_CARDS.map((card) => <article className="hp-card hp-interface" key={card.title}>
+                <div className="hp-card-title-row">
+                  <div className="hp-card-icon"><Icon name={card.icon} size={17} /></div>
+                  <strong>{card.title}</strong>
+                </div>
+                <p className="hp-interface-lead">{card.text} {card.audience}{card.code && <> <code className="hp-interface-inline-code">{card.code}</code></>}</p>
+              </article>)}
+            </div>
+            <TextAction onClick={openDocs}>Explore query interfaces</TextAction>
+          </div>
+          <div className="hp-engine-output-panel">
+            <figure className="hp-engine-diagram" aria-labelledby="hp-engine-diagram-title">
+              <div className="hp-engine-diagram-flow">
+                <div className="hp-engine-diagram-column hp-engine-diagram-group">
+                  <span className="hp-engine-diagram-label">Input types</span>
+                  <div className="hp-engine-diagram-nodes">
+                    {INTERFACE_CARDS.map((card) => <span className="hp-engine-node" key={card.title}><Icon name={card.icon} size={13} /> {card.title}</span>)}
+                  </div>
+                </div>
+                <span className="hp-engine-diagram-arrow" aria-hidden="true">↓</span>
+                <div className="hp-engine-diagram-engine">
+                  <Icon name="database" size={18} />
+                  <strong>{PRODUCT_NAME} engine</strong>
+                  <small><span className="hp-engine-meta-tag">Metadata</span> · SQL Functions · SQL dialects</small>
+                </div>
+                <span className="hp-engine-diagram-arrow" aria-hidden="true">↓</span>
+                <div className="hp-engine-diagram-column hp-engine-diagram-group">
+                  <span className="hp-engine-diagram-label">Database TYPES</span>
+                  <div className="hp-engine-diagram-nodes">
+                    {providers.map((provider) => <span className="hp-engine-node" key={provider}><Icon name={getDatabaseIconName(provider)} size={13} /> {provider}</span>)}
+                  </div>
+                </div>
+              </div>
+            </figure>
+            <TextAction onClick={onRequestConnection}>View database connections</TextAction>
           </div>
         </div>
       </section>
