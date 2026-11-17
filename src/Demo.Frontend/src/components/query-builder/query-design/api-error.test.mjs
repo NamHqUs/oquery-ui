@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vitest";
 import { formatApiError } from "./api-error.ts";
 
 const fallback = "Query request failed (400).";

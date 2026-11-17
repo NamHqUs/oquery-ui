@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vitest";
 import { getOQueryCompletions } from "./oquery-completions.ts";
 
 const entities = [
@@ -290,4 +290,81 @@ test("inserts a scalar receiver function after the existing field dot", () => {
     text.slice(0, result.replaceStart) + dateSub.insertText + text.slice(result.replaceEnd),
     "Employees: Reports.Avg(HireDate.DateSub()",
   );
+});
+
+test("uses the current entity context when suggesting fields on a later header", () => {
+  const entityList = [
+    { name: "User", fields: ["Id", "Address"], relations: [] },
+    { name: "School", fields: ["Id", "Name"], relations: [] },
+  ];
+  const text = "User: Address\nSchool: ";
+  const labels = getOQueryCompletions(text, text.length, ["Id", "Address"], [], ["User", "School"], [], "User", entityList)
+    .items.map((item) => item.label);
+
+  assert.ok(labels.includes("Id") && labels.includes("Name"));
+  assert.ok(!labels.includes("Address"));
+});
+
+test("suggests distinct at projection and aggregate starts", () => {
+  const aggregateFunctions = [{ name: "Count", arguments: [{ name: "value", defaultValue: 1 }], isAggregate: true }];
+  const projection = getOQueryCompletions("Products: ", 10, ["Id"], [], ["Products"], aggregateFunctions);
+  const aggregate = getOQueryCompletions("Products: Count(", 16, ["Id"], [], ["Products"], aggregateFunctions);
+
+  assert.ok(projection.items.map((item) => item.label).includes("Distinct"));
+  assert.ok(aggregate.items.map((item) => item.label).includes("Distinct"));
+});
+
+test("uses ApplyFor rather than IsAggregate for receiver applicability", () => {
+  const definitions = [
+    { name: "WindowTotal", arguments: [{ name: "value", defaultValue: 1 }], isAggregate: false, applyFor: 1 },
+    { name: "ScalarAggregate", arguments: [{ name: "value", defaultValue: 1 }], isAggregate: true, applyFor: 4 },
+  ];
+  const labels = getOQueryCompletions(
+    "Products: Orders.",
+    18,
+    ["Id"],
+    [],
+    ["Products"],
+    definitions,
+    undefined,
+    [
+      { name: "Products", fields: ["Id"], relations: [{ name: "Orders", target: "Order", kind: "collection" }] },
+      { name: "Order", fields: ["Amount"], relations: [] },
+    ],
+  ).items.map((item) => item.label);
+
+  assert.ok(labels.includes("WindowTotal"));
+  assert.ok(!labels.includes("ScalarAggregate"));
+});
+
+test("suggests collection functions such as Any inside a where clause after a collection dot", () => {
+  const entityList = [
+    { name: "Employees", fields: ["Id", "Salary"], relations: [{ name: "Members", target: "Employees", kind: "collection" }] },
+  ];
+  const functionList = [
+    { name: "Any", arguments: [{ name: "predicate", defaultValue: null }], isAggregate: false, applyFor: 1 },
+    { name: "Round", arguments: [{ name: "value", defaultValue: null }], isAggregate: false, applyFor: 4 },
+  ];
+  const text = "Employees: Id\n  Where Members.";
+  const labels = getOQueryCompletions(text, text.length, ["Id"], [], ["Employees"], functionList, "Employees", entityList)
+    .items.filter((item) => item.kind === "function").map((item) => item.label);
+
+  assert.deepEqual(labels, ["Any"]);
+});
+
+test("shows every field, relation, and function after where, without truncating the list", () => {
+  const fields = Array.from({ length: 25 }, (_, index) => `Field${String(index + 1).padStart(2, "0")}`);
+  const entityList = [
+    { name: "Employees", fields: ["Id", ...fields], relations: [{ name: "Members", target: "Employees", kind: "collection" }] },
+  ];
+  const functionList = [
+    { name: "Round", arguments: [{ name: "value", defaultValue: null }], isAggregate: false, applyFor: 4 },
+  ];
+  const text = "Employees: Id\n  Where ";
+  const labels = getOQueryCompletions(text, text.length, ["Id", ...fields], [], ["Employees"], functionList, "Employees", entityList)
+    .items.map((item) => item.label);
+
+  for (const expected of ["Field25", "Members", "Round"]) {
+    assert.ok(labels.includes(expected), `expected ${expected}`);
+  }
 });

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vitest";
 import { toggleOqueryComments } from "./oquery-comments.ts";
 import { normalizeOqueryEditorText } from "./oquery-editor-text.ts";
 

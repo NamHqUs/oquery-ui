@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vitest";
 import { formatExpression, updateExpressionNode } from "./expression-model.ts";
 
 const field = (name) => ({ kind: "field", field: name });

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { registerHooks } from "node:module";
-import test from "node:test";
+import { test } from "vitest";
 
 registerHooks({
   resolve(specifier, context, nextResolve) {
