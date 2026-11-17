@@ -84,6 +84,9 @@ public sealed class DynamicQueryService(
         return ExecuteQueryAsync(definition, domainId, cancellationToken);
     }
 
+    public string GetContextSqlQueryString(string text, string contextName, string domainId)
+        => GetSqlQueryString(QueryDefinitionOQueryParser.Parse(text, contextName), domainId);
+
     private static QueryDefinition EnsureDefaultProjection(
         QueryDefinition query,
         IMetadataProvider metadataProvider)

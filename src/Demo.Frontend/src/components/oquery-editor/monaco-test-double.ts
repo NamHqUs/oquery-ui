@@ -74,6 +74,7 @@ class FakeEditor {
   disposed = false;
   private selection = { start: 0, end: 0 };
   private readonly selectionListeners = new Set<Listener>();
+  private readonly contentSizeListeners = new Set<Listener>();
 
   constructor(readonly model: FakeModel, readonly options: Record<string, unknown>) {}
 
@@ -125,6 +126,23 @@ class FakeEditor {
   }
 
   private zoneCount = 0;
+
+  getLayoutInfo() {
+    return { verticalScrollbarWidth: 14, contentWidth: 600 };
+  }
+
+  getContentHeight() {
+    return 120;
+  }
+
+  onDidContentSizeChange(listener: Listener) {
+    this.contentSizeListeners.add(listener);
+    return { dispose: () => this.contentSizeListeners.delete(listener) };
+  }
+
+  onDidLayoutChange(_listener: Listener) {
+    return { dispose: () => undefined };
+  }
 
   changeViewZones<T>(callback: (accessor: { addZone: (zone: unknown) => string; removeZone: (id: string) => void }) => T): T {
     return callback({

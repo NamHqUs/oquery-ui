@@ -1,6 +1,6 @@
 .query-builder-card { --field-box-height: 34px; background: linear-gradient(135deg, #11141c, #0f1218); border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
 .query-editor-tabs { margin-left: 0; }
-.query-oquery-workspace { display: grid; min-width: 0; min-height: 0; box-sizing: border-box; overflow: auto; }
+.query-oquery-workspace { display: grid; min-width: 0; min-height: 0; box-sizing: border-box; overflow: visible; }
 .query-oquery-workspace > .query-oquery-editor { min-height: 0; }
 .query-oquery-workspace.horizontal { grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--panel-height, 360px) 4px auto; }
 .query-oquery-workspace.vertical { grid-template-columns: minmax(0, 1fr) 5px var(--panel-width, 360px); grid-template-rows: minmax(0, 1fr); }

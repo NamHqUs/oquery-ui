@@ -1,32 +1,63 @@
+/* Monaco's text layer paints above view zones; raising the zone container lets the result receive clicks and wheel input. */
+.query-oquery-monaco-host .view-zones {
+  z-index: 1;
+}
+
 .query-oquery-inline-result {
   box-sizing: border-box;
   overflow: hidden;
+  z-index: 2;
   margin-left: 16px;
-  margin-right: 16px;
   border-left: 3px solid #2f7ae5;
-  background: rgba(47, 122, 229, 0.05);
+  background: #1b2030;
   font-family: "Cascadia Mono", Consolas, ui-monospace, monospace;
   font-size: 12px;
-  color: inherit;
+  color: #d9dee8;
 }
 
 .query-oquery-inline-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   height: 28px;
   padding: 0 8px 0 10px;
   box-sizing: border-box;
   font-weight: 600;
+  background: #252d42;
 }
 
 .query-oquery-inline-title {
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
+.query-oquery-inline-modes {
+  display: inline-flex;
+  flex: none;
+  border: 1px solid #3a4560;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.query-oquery-inline-mode {
+  border: 0;
+  background: transparent;
+  color: #9aa6bd;
+  cursor: pointer;
+  font: inherit;
+  padding: 1px 8px;
+}
+
+.query-oquery-inline-mode[aria-pressed="true"] {
+  background: #2f7ae5;
+  color: #ffffff;
+}
+
 .query-oquery-inline-clear {
+  flex: none;
   border: 0;
   background: transparent;
   color: inherit;
@@ -39,6 +70,7 @@
 .query-oquery-inline-body {
   box-sizing: border-box;
   overflow: auto;
+  background: #1b2030;
 }
 
 .query-oquery-inline-body table {
@@ -54,13 +86,24 @@
   white-space: nowrap;
   text-align: left;
   line-height: 22px;
-  border-bottom: 1px solid rgba(127, 127, 127, 0.2);
+  border-bottom: 1px solid #2c3450;
 }
 
 .query-oquery-inline-body thead th {
   position: sticky;
   top: 0;
-  background: rgba(47, 122, 229, 0.12);
+  z-index: 1;
+  background: #252d42;
+}
+
+.query-oquery-inline-sql {
+  margin: 0;
+  padding: 0 10px;
+  font: inherit;
+  line-height: 22px;
+  white-space: pre;
+  width: max-content;
+  min-width: 100%;
 }
 
 .query-oquery-inline-message {
@@ -70,5 +113,5 @@
 }
 
 .query-oquery-inline-message.error {
-  color: #c62828;
+  color: #ff8a8a;
 }

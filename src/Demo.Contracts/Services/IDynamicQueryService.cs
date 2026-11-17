@@ -16,4 +16,5 @@ public interface IDynamicQueryService
         string contextName,
         string domainId,
         CancellationToken cancellationToken = default);
+    string GetContextSqlQueryString(string text, string contextName, string domainId);
 }

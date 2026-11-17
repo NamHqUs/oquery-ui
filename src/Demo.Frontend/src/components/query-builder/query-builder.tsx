@@ -567,7 +567,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
     setOqueryMarker({ text: oqueryText, message: message ?? "" });
   }, [carriedDraftHighlightPending, loadedDomainId, domainId, metadataStatus, functionDefinitionsStatus, filterOperatorsStatus, functionDefinitions, filterOperators, suggestionEntities, oqueryText, definition.entity]);
   const displayedOqueryError = oqueryError || (oqueryMarker?.text === oqueryText ? oqueryMarker.message : "");
-  const applyOquery = async () => {
+  const applyOquery = async (reportSuccess = false) => {
     if (!oqueryText.trim() || oqueryStatus !== "idle") return;
     setOqueryValidationAttempt((attempt) => attempt + 1);
     setOqueryNotice("");
@@ -582,7 +582,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
       const parsed = await dispatch(parseQueryRequestText(normalizedOqueryText)).unwrap();
       updateDefinitionFromDesign(fromApiQueryDefinition(parsed));
       setOqueryError("");
-      setOqueryNotice("OQuery syntax is valid.");
+      if (reportSuccess) setOqueryNotice("OQuery syntax is valid.");
     } catch (error) {
       setOqueryNotice("");
       setOqueryError(typeof error === "string" ? error : "Unable to parse OQuery text.");
@@ -980,7 +980,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
             <button
               type="button"
               className="button primary query-icon-button"
-              onClick={() => void applyOquery()}
+              onClick={() => void applyOquery(true)}
               aria-busy={oqueryStatus === "applying"}
               aria-label="Check OQuery"
               title="Check OQuery"
@@ -1003,7 +1003,6 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
       )}
 
       <div className={editorMode === "oquery" ? `query-builder-sections oquery-layout${oqueryDesignResized ? " oquery-layout-resized" : ""}` : "query-builder-sections"} style={editorMode === "oquery" ? { "--oquery-design-height": `${oqueryDesignHeight}px` } as CSSProperties : undefined}>
-        <section className="query-section query-design-section" aria-label="Section 1: Design">
           <div className={`query-design-workspace split-workspace${savedQueriesPanel.collapsed ? " panel-collapsed" : ""}`} style={savedQueriesPanel.style}>
             <SavedQueryList
               requests={queryRequests}
@@ -1064,26 +1063,25 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection }: Quer
               </MetadataRelationsContext.Provider>
             </div>
           </div>
-        </section>
-        {editorMode === "oquery" && <QuerySectionSplitter height={oqueryDesignHeight} onHeightChange={updateOqueryDesignHeight} />}
-        <section className="query-section query-result-section" aria-label="Section 2: Query Result">
-          <QueryResult
-            result={result}
-            sqlStatement={sqlStatement}
-            resultView={resultView}
-            onRunQuery={runQuery}
-            onGetSql={getSql}
-            pageNumber={activeDefinition.page ?? 1}
-            pageSize={activeDefinition.pageSize}
-            onPageChange={changePage}
-            pageNavigationEnabled
-            queryLoading={queryStatus === "loading"}
-            queryDisabled={editorMode === "oquery"
-              ? !oqueryText.trim()
-              : !activeDefinition.entity.trim() || !activeDefinition.columns.length}
-            error={queryError}
-          />
-        </section>
+        {editorMode !== "oquery" && <>
+          <QuerySectionSplitter height={oqueryDesignHeight} onHeightChange={updateOqueryDesignHeight} />
+          <section className="query-section query-result-section" aria-label="Section 2: Query Result">
+            <QueryResult
+              result={result}
+              sqlStatement={sqlStatement}
+              resultView={resultView}
+              onRunQuery={runQuery}
+              onGetSql={getSql}
+              pageNumber={activeDefinition.page ?? 1}
+              pageSize={activeDefinition.pageSize}
+              onPageChange={changePage}
+              pageNavigationEnabled
+              queryLoading={queryStatus === "loading"}
+              queryDisabled={!activeDefinition.entity.trim() || !activeDefinition.columns.length}
+              error={queryError}
+            />
+          </section>
+        </>}
       </div>
     </>
   );

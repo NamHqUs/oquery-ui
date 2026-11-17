@@ -4,7 +4,9 @@ import "./oquery-inline-result.css";
 export const INLINE_ROW_HEIGHT = 22;
 export const INLINE_HEAD_HEIGHT = 28;
 export const INLINE_MAX_ROWS = 8;
+export const INLINE_RESULT_MARGIN = 16;
 
+export type InlineResultMode = "data" | "sql";
 export type InlineResultView = { node: HTMLElement; height: number };
 
 function statusText(entry: InlineQueryResult): string {
@@ -14,18 +16,54 @@ function statusText(entry: InlineQueryResult): string {
   return `${total < 0 ? "1000+" : total} records`;
 }
 
+function buildModeToggle(
+  contextName: string,
+  mode: InlineResultMode,
+  onModeChange: (mode: InlineResultMode) => void,
+): HTMLElement {
+  const group = document.createElement("div");
+  group.className = "query-oquery-inline-modes";
+  group.setAttribute("role", "group");
+  group.setAttribute("aria-label", `${contextName} result view`);
+  for (const option of ["data", "sql"] as const) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "query-oquery-inline-mode";
+    button.textContent = option === "data" ? "Data" : "SQL";
+    button.setAttribute("aria-pressed", String(mode === option));
+    button.addEventListener("click", () => onModeChange(option));
+    group.append(button);
+  }
+  return group;
+}
+
 // The result is built with textContent so query values are never parsed as HTML.
-export function buildInlineResultView(contextName: string, entry: InlineQueryResult, onClear: () => void): InlineResultView {
-  const showTable = entry.status !== "failed" && entry.result !== null;
-  const bodyRows = showTable
-    ? Math.min(Math.max(entry.result!.rows.length, 1), INLINE_MAX_ROWS) + 1
-    : 2;
+export function buildInlineResultView(
+  contextName: string,
+  entry: InlineQueryResult,
+  mode: InlineResultMode,
+  collapsed: boolean,
+  onClear: () => void,
+  onModeChange: (mode: InlineResultMode) => void,
+): InlineResultView {
+  const showTable = mode === "data" && entry.status !== "failed" && entry.result !== null;
+  const bodyRows = mode === "sql"
+    ? INLINE_MAX_ROWS + 1
+    : showTable
+      ? Math.min(Math.max(entry.result!.rows.length, 1), INLINE_MAX_ROWS) + 1
+      : 2;
   const bodyHeight = bodyRows * INLINE_ROW_HEIGHT;
-  const height = INLINE_HEAD_HEIGHT + bodyHeight;
+  const height = collapsed ? INLINE_HEAD_HEIGHT : INLINE_HEAD_HEIGHT + bodyHeight;
 
   const node = document.createElement("div");
   node.className = "query-oquery-inline-result";
   node.style.height = `${height}px`;
+  // Wheel over the result scrolls the result, not the editor behind it.
+  node.addEventListener("wheel", (event) => event.stopPropagation(), { passive: true });
+  // Monaco captures the pointer on mousedown, which would redirect the click away from the buttons.
+  for (const type of ["pointerdown", "mousedown"] as const) {
+    node.addEventListener(type, (event) => event.stopPropagation());
+  }
 
   const head = document.createElement("div");
   head.className = "query-oquery-inline-head";
@@ -39,13 +77,18 @@ export function buildInlineResultView(contextName: string, entry: InlineQueryRes
   clear.title = "Clear result";
   clear.setAttribute("aria-label", `Clear ${contextName} result`);
   clear.addEventListener("click", onClear);
-  head.append(title, clear);
+  head.append(title, buildModeToggle(contextName, mode, onModeChange), clear);
 
   const body = document.createElement("div");
   body.className = "query-oquery-inline-body";
   body.style.height = `${bodyHeight}px`;
 
-  if (!showTable) {
+  if (mode === "sql") {
+    const sql = document.createElement("pre");
+    sql.className = entry.sql ? "query-oquery-inline-sql" : "query-oquery-inline-sql query-oquery-inline-message";
+    sql.textContent = entry.sql ?? "SQL is not available for this context yet.";
+    body.append(sql);
+  } else if (!showTable) {
     const message = document.createElement("p");
     message.className = entry.status === "failed" ? "query-oquery-inline-message error" : "query-oquery-inline-message";
     if (entry.status === "failed") message.setAttribute("role", "alert");
@@ -84,6 +127,7 @@ export function buildInlineResultView(contextName: string, entry: InlineQueryRes
     body.append(table);
   }
 
-  node.append(head, body);
+  node.append(head);
+  if (!collapsed) node.append(body);
   return { node, height };
 }

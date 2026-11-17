@@ -8,7 +8,7 @@ import { getOqueryEnterEdit } from "./oquery-editor-enter";
 import { normalizeOqueryEditorText } from "./oquery-editor-text";
 import { getMinimalTextEdit, getOqueryContextBlocks, getOqueryContextLenses, getOqueryErrorRange } from "./oquery-monaco-adapters";
 import { createOqueryModel, ensureOqueryLanguage, monaco, OQUERY_THEME_ID, registerOqueryEditorSource } from "./oquery-monaco-setup";
-import { buildInlineResultView, type InlineResultView } from "./oquery-inline-result";
+import { buildInlineResultView, INLINE_RESULT_MARGIN, type InlineResultMode, type InlineResultView } from "./oquery-inline-result";
 import type { OQueryErrorPosition } from "./oquery-validation";
 
 type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange" | "value" | "onBlur"> & {
@@ -35,6 +35,8 @@ type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onCh
   errorPosition?: OQueryErrorPosition | null;
   errorMessage?: string;
   compact?: boolean;
+  // Grows the editor to its content height so the page scrolls instead of the editor.
+  autoHeight?: boolean;
   showGutter?: boolean;
   showLineNumbers?: boolean;
   showFoldControls?: boolean;
@@ -94,8 +96,11 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const modelRef = useRef<monaco.editor.ITextModel | null>(null);
   const decorationsRef = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
-  const inlineViewsRef = useRef(new Map<string, { entry: InlineQueryResult; view: InlineResultView }>());
+  const inlineViewsRef = useRef(new Map<string, { entry: InlineQueryResult; mode: InlineResultMode; collapsed: boolean; view: InlineResultView; host: HTMLElement }>());
+  const inlineModesRef = useRef(new Map<string, InlineResultMode>());
+  const inlineCollapsedRef = useRef(new Set<string>());
   const inlineZoneIdsRef = useRef<string[]>([]);
+  const inlineZoneContextsRef = useRef(new Map<string, string>());
   const externalWriteRef = useRef(false);
   const latestRef = useRef(props);
   const [lineCount, setLineCount] = useState(() => normalizeOqueryEditorText(props.textOverride ?? props.initialText ?? props.value ?? "").split("\n").length);
@@ -146,32 +151,57 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     const results = latest.inlineResults ?? {};
     const views = inlineViewsRef.current;
     const anchored = new Set<string>();
-    const zones: { afterLineNumber: number; heightInPx: number; domNode: HTMLElement; suppressMouseDown: boolean }[] = [];
+    const zones: { afterLineNumber: number; heightInPx: number; domNode: HTMLElement; suppressMouseDown: boolean; contextName: string }[] = [];
+    // View zones are sized to the editor's full content width, so the result is sized explicitly
+    // to the visible width. Otherwise its right edge and body scrollbar are clipped by the editor.
+    const layout = editor.getLayoutInfo();
+    const marginRight = layout.verticalScrollbarWidth + INLINE_RESULT_MARGIN;
+    const nodeWidth = Math.max(0, layout.contentWidth - INLINE_RESULT_MARGIN - marginRight);
     for (const block of getOqueryContextBlocks(model.getValue())) {
       if (anchored.has(block.contextName)) continue;
       anchored.add(block.contextName);
       const entry = results[block.contextName];
       if (!entry) continue;
-      let cached = views.get(block.contextName);
-      if (!cached || cached.entry !== entry) {
-        const contextName = block.contextName;
-        const view = buildInlineResultView(contextName, entry, () => latestRef.current.onClearInlineResult?.(contextName));
-        cached = { entry, view };
+      const contextName = block.contextName;
+      const mode = inlineModesRef.current.get(contextName) ?? "data";
+      const collapsed = inlineCollapsedRef.current.has(contextName);
+      let cached = views.get(contextName);
+      if (!cached || cached.entry !== entry || cached.mode !== mode || cached.collapsed !== collapsed) {
+        const view = buildInlineResultView(contextName, entry, mode, collapsed,
+          () => latestRef.current.onClearInlineResult?.(contextName),
+          (nextMode) => {
+            inlineModesRef.current.set(contextName, nextMode);
+            views.delete(contextName);
+            syncInlineZones();
+          });
+        // Monaco resets the width of a zone's own DOM node on every layout, so the result is
+        // placed inside a host element that Monaco owns and sized explicitly.
+        const host = document.createElement("div");
+        host.append(view.node);
+        cached = { entry, mode, collapsed, view, host };
         views.set(contextName, cached);
       }
+      cached.view.node.style.marginRight = `${marginRight}px`;
+      cached.view.node.style.width = `${nodeWidth}px`;
       zones.push({
         afterLineNumber: block.endLine,
         heightInPx: cached.view.height,
-        domNode: cached.view.node,
+        domNode: cached.host,
         suppressMouseDown: true,
+        contextName,
       });
     }
     for (const name of [...views.keys()]) {
-      if (!results[name]) views.delete(name);
+      if (!results[name]) {
+        views.delete(name);
+        inlineCollapsedRef.current.delete(name);
+      }
     }
     editor.changeViewZones((accessor) => {
       inlineZoneIdsRef.current.forEach((id) => accessor.removeZone(id));
-      inlineZoneIdsRef.current = zones.map((zone) => accessor.addZone(zone));
+      const ids = zones.map(({ contextName, ...zone }) => ({ contextName, id: accessor.addZone(zone) }));
+      inlineZoneIdsRef.current = ids.map((item) => item.id);
+      inlineZoneContextsRef.current = new Map(ids.map((item) => [item.id, item.contextName]));
     });
   };
 
@@ -206,6 +236,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     const current = latestRef.current;
     const initial = normalizeOqueryEditorText(current.textOverride ?? current.initialText ?? current.value ?? "");
     ensureOqueryLanguage(current.functionDefinitions);
+    const autoHeight = Boolean(current.autoHeight);
     const model = createOqueryModel(initial, instanceId);
     const editor = monaco.editor.create(host, {
       model,
@@ -231,7 +262,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       padding: { top: 16, bottom: 16 },
       renderLineHighlight: "line",
       renderWhitespace: "none",
-      scrollbar: { alwaysConsumeMouseWheel: false },
+      scrollbar: { alwaysConsumeMouseWheel: false, vertical: autoHeight ? "hidden" : "auto" },
       wordBasedSuggestions: "off",
       quickSuggestions: { other: true, comments: false, strings: false },
       suggestOnTriggerCharacters: true,
@@ -257,7 +288,15 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       },
     });
 
+    const syncAutoHeight = () => {
+      if (!autoHeight) return;
+      host.style.position = "relative";
+      host.style.height = `${editor.getContentHeight()}px`;
+    };
+
     const subscriptions = [
+      editor.onDidContentSizeChange(syncAutoHeight),
+      editor.onDidLayoutChange(syncInlineZones),
       model.onDidChangeContent(() => {
         setLineCount(model.getLineCount());
         refreshDecorations();
@@ -269,6 +308,16 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
         latestRef.current.onSelectionChange?.(selection ? model.getValueInRange(selection) : "");
       }),
       editor.onMouseDown((event) => {
+        if (event.target.type === monaco.editor.MouseTargetType.GUTTER_VIEW_ZONE) {
+          const zoneId = (event.target.detail as { viewZoneId?: string } | undefined)?.viewZoneId;
+          const contextName = zoneId ? inlineZoneContextsRef.current.get(zoneId) : undefined;
+          if (!contextName) return;
+          const collapsed = inlineCollapsedRef.current;
+          if (collapsed.has(contextName)) collapsed.delete(contextName);
+          else collapsed.add(contextName);
+          syncInlineZones();
+          return;
+        }
         if (event.target.type !== monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) return;
         const lineNumber = event.target.position?.lineNumber;
         const lens = getOqueryContextLenses(model.getValue()).find((item) => item.lineNumber === lineNumber);
@@ -277,6 +326,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     ];
     refreshDecorations();
     syncInlineZones();
+    syncAutoHeight();
 
     return () => {
       subscriptions.forEach((subscription) => subscription.dispose());
@@ -285,7 +335,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       decorationsRef.current = null;
       inlineViewsRef.current.clear();
       inlineZoneIdsRef.current = [];
-      editor.dispose();
+      inlineZoneContextsRef.current.clear();      editor.dispose();
       model.dispose();
       editorRef.current = null;
       modelRef.current = null;

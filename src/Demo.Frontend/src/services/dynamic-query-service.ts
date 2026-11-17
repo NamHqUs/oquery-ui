@@ -36,6 +36,10 @@ export function oqueryTextToSql(text: string, domainId: string): Promise<string>
   return requestText(withDomain(apiUrls.dynamicQuery.toStringText, domainId), textBody(text));
 }
 
+export function oqueryContextToSql(text: string, context: string, domainId: string): Promise<string> {
+  return requestText(withDomain(apiUrls.dynamicQuery.toStringContextText(context), domainId), textBody(text));
+}
+
 export function definitionToOQuery(definition: object): Promise<string> {
   return requestText(apiUrls.dynamicQuery.toOQuery, jsonBody(definition));
 }

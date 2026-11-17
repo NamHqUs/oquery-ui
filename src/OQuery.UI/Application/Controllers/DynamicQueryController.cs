@@ -47,6 +47,17 @@ public sealed class DynamicQueryController(
         return Content(dynamicQueryService.GetSqlQueryString(query, domainId), "text/plain");
     }
 
+    [HttpPost("to-string-from-text/{contextName}")]
+    public async Task<IActionResult> GetContextSqlQueryStringFromText(
+        [FromRoute] string contextName,
+        [FromQuery] string domainId,
+        CancellationToken cancellationToken)
+    {
+        using var reader = new StreamReader(Request.Body, Encoding.UTF8);
+        var text = await reader.ReadToEndAsync(cancellationToken);
+        return Content(dynamicQueryService.GetContextSqlQueryString(text, contextName, domainId), "text/plain");
+    }
+
     [HttpPost("from-text")]
     public async Task<IActionResult> ExecuteQueryFromText(
         [FromQuery] string domainId,
