@@ -417,6 +417,7 @@ export default function QueryDesign({
           <div className="query-oquery-editor" role="tabpanel" aria-label="OQuery text editor">
             <OQueryEditor
               autoHeight
+              autoFocus
               textOverride={oqueryText}
               onTextChange={onOqueryTextChange}
               oquery

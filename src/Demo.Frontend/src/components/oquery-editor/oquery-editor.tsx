@@ -347,6 +347,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     });
     modelRef.current = model;
     editorRef.current = editor;
+    if (current.autoFocus) editor.focus();
     decorationsRef.current = editor.createDecorationsCollection();
 
     // Monaco has no placeholder option, so an empty query shows a content widget pinned to the first character.

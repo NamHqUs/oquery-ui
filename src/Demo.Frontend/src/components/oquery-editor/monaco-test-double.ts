@@ -157,6 +157,12 @@ class FakeEditor {
 
   readonly contentWidgets = new Set<string>();
 
+  focusCount = 0;
+
+  focus() {
+    this.focusCount += 1;
+  }
+
   addContentWidget(widget: { getId: () => string }) {
     this.contentWidgets.add(widget.getId());
   }

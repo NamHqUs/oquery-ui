@@ -124,7 +124,7 @@ function PageSubnav({
           <button type="button" onClick={() => onNavigateToPage("documentation")}>Documentation</button>
           <a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub</a>
         </div>
-        <button className="button primary hp-subnav-cta" type="button" onClick={() => scrollToSection("hp-playground")}><Icon name="play" size={11} /> Try Playground</button>
+        <button className="button primary hp-subnav-cta" type="button" onClick={() => onBuilderDomainSelect("EXAMPLES_DOMAIN")}><Icon name="play" size={11} /> Try Playground</button>
       </nav>
     );
   }

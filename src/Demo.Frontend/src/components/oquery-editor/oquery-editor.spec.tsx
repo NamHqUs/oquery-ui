@@ -98,6 +98,14 @@ describe("OQueryEditor (Monaco)", () => {
     expect(currentEditor().contentWidgets.size).toBe(0);
   });
 
+  it("takes focus on mount when autoFocus is set", () => {
+    render({ initialText: "", autoFocus: true });
+    expect(currentEditor().focusCount).toBe(1);
+
+    render({ initialText: "", autoFocus: false });
+    expect(currentEditor().focusCount).toBe(1);
+  });
+
   it("closes an open problem widget when the parent replaces the query text", () => {
     render({ initialText: "Entity: User" });
     const editor = currentEditor();
