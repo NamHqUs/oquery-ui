@@ -92,13 +92,15 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
         => string.Equals(Path.GetExtension(path), FILE_EXTENSION, StringComparison.OrdinalIgnoreCase);
 
     private static QueryDto ReadQueryRequest(string path, bool isBuiltin)
+        => ParseQueryRequest(File.ReadAllText(path), isBuiltin, path, Path.GetFileNameWithoutExtension(path));
+
+    public static QueryDto ParseQueryRequest(string json, bool isBuiltin, string source, string fallbackName)
     {
-        var json = File.ReadAllText(path);
         if (isBuiltin)
-            json = CreateBuiltinRequestJson(json, Path.GetFileNameWithoutExtension(path));
+            json = CreateBuiltinRequestJson(json, fallbackName);
         var parsedDefinition = QueryDefinitionJsonParser.Parse(json);
         var requestMetadata = JsonNode.Parse(json)?.AsObject()
-            ?? throw new InvalidDataException($"Query request file '{path}' is not a JSON object.");
+            ?? throw new InvalidDataException($"Query request '{source}' is not a JSON object.");
         requestMetadata.Remove("contexts");
         requestMetadata.Remove("Contexts");
         if (requestMetadata["Projections"] is null && requestMetadata["projection"] is JsonNode projection)
@@ -106,14 +108,14 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
         var query = JsonSerializer.Deserialize<QueryDto>(
             requestMetadata.ToJsonString(),
             JSON_OPTIONS)
-            ?? throw new InvalidDataException($"Query request file '{path}' is empty.");
+            ?? throw new InvalidDataException($"Query request '{source}' is empty.");
         query = query with { Contexts = parsedDefinition.Contexts };
         if (query is null ||
             string.IsNullOrWhiteSpace(query.Id) ||
             string.IsNullOrWhiteSpace(query.Name) ||
             string.IsNullOrWhiteSpace(query.Entity) ||
             query.Projections is null)
-            throw new InvalidDataException($"Query request file '{path}' is missing required data.");
+            throw new InvalidDataException($"Query request '{source}' is missing required data.");
 
         query = query with { IsBuiltin = isBuiltin };
         return query;
@@ -233,6 +235,6 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
         value.Remove(oldName);
     }
 
-    private static string Serialize(QueryDto query)
+    public static string Serialize(QueryDto query)
         => JsonSerializer.Serialize(query, JSON_OPTIONS);
 }

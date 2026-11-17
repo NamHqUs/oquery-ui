@@ -49,7 +49,7 @@ User data stays under `Setup:FileStoragePath` (default `../../data-storage`) in
 independently of the custom-data volume.
 
 The API and demo projects are in `src/`; the OQuery engine is in
-`oquery/src/OQuery`. Build the complete solution with:
+`oquery/src/OQuery.Core` (engine) and `oquery/src/OQuery.Abstracts` (input and output contracts). Build the complete solution with:
 
 ```powershell
 dotnet build .\src\OQuery.UI.slnx

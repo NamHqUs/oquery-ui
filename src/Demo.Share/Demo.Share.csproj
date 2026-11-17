@@ -6,7 +6,7 @@
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\..\oquery\src\OQuery\OQuery.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.Core\OQuery.Core.csproj" />
 	</ItemGroup>
 
 </Project>

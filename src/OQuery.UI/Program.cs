@@ -1,4 +1,5 @@
 using Demo.Repositories;
+using Demo.Repositories.Postgres;
 using Demo.DbServices;
 using Demo.Contracts.Application;
 using Demo.Services;
@@ -35,7 +36,10 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddDemoRepositories(configuration);
+if (string.Equals(configuration["Setup:StorageProvider"], "Postgres", StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddPostgresRepositories(configuration);
+else
+    builder.Services.AddDemoRepositories(configuration);
 builder.Services.AddDemoServices();
 builder.Services.AddDemoDbServices(configuration);
 builder.Services.AddSingleton<IUserSectionManager, UserSectionManager>();

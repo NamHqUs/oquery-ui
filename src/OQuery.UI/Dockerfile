@@ -22,8 +22,10 @@ COPY ["src/Demo.Contracts/Demo.Contracts.csproj", "src/Demo.Contracts/"]
 COPY ["src/Demo.DbServices/Demo.DbServices.csproj", "src/Demo.DbServices/"]
 COPY ["src/Demo.Share/Demo.Share.csproj", "src/Demo.Share/"]
 COPY ["src/Demo.Repositories/Demo.Repositories.csproj", "src/Demo.Repositories/"]
+COPY ["src/Demo.Repositories.Postgres/Demo.Repositories.Postgres.csproj", "src/Demo.Repositories.Postgres/"]
 COPY ["oquery/src/Directory.Build.props", "oquery/src/"]
-COPY ["oquery/src/OQuery/OQuery.csproj", "oquery/src/OQuery/"]
+COPY ["oquery/src/OQuery.Core/OQuery.Core.csproj", "oquery/src/OQuery.Core/"]
+COPY ["oquery/src/OQuery.Abstracts/OQuery.Abstracts.csproj", "oquery/src/OQuery.Abstracts/"]
 COPY ["oquery/README.md", "oquery/"]
 COPY ["oquery/MANUAL.md", "oquery/"]
 COPY ["oquery/TECH.md", "oquery/"]
@@ -31,7 +33,8 @@ COPY ["oquery/QUERY-MODEL-REFERENCE.md", "oquery/"]
 COPY ["oquery/LICENSE", "oquery/"]
 RUN dotnet restore "./src/OQuery.UI/OQuery.UI.csproj"
 COPY ["src/", "src/"]
-COPY ["oquery/src/OQuery/", "oquery/src/OQuery/"]
+COPY ["oquery/src/OQuery.Core/", "oquery/src/OQuery.Core/"]
+COPY ["oquery/src/OQuery.Abstracts/", "oquery/src/OQuery.Abstracts/"]
 WORKDIR "/workspace/src/OQuery.UI"
 RUN dotnet build "./OQuery.UI.csproj" -c $BUILD_CONFIGURATION -o /app/build
 

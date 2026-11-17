@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Demo.Contracts\Demo.Contracts.csproj" />
+		<ProjectReference Include="..\Demo.Repositories\Demo.Repositories.csproj" />
+		<PackageReference Include="Npgsql" />
+	</ItemGroup>
+</Project>

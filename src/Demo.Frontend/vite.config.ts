@@ -3,8 +3,8 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  // const backendApiUrl = env.VITE_BACKEND_API_URL || "http://localhost:21210";
-  const backendApiUrl = env.VITE_BACKEND_API_URL || "https://oquery-ui-1.onrender.com";
+   const backendApiUrl = env.VITE_BACKEND_API_URL || "http://localhost:21210";
+  // const backendApiUrl = env.VITE_BACKEND_API_URL || "https://oquery-ui-1.onrender.com";
 
   return {
     plugins: [react()],
