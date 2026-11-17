@@ -7,6 +7,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Demo.Services\Demo.Services.csproj" />
+    <ProjectReference Include="..\Demo.Repositories\Demo.Repositories.csproj" />
+    <ProjectReference Include="..\Demo.DbServices\Demo.DbServices.csproj" />
   </ItemGroup>
 
   <ItemGroup>
