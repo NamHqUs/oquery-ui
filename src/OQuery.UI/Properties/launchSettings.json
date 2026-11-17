@@ -13,8 +13,7 @@
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
       "environmentVariables": {
         "DbProvider__Default": "Sqlite",
-        "DbProvider__DbScriptsPath": "../scripts",
-        "FileStoragePath": "/tmp/file-storage"
+        "Setup__FileStoragePath": "/tmp/file-storage"
       },
       "httpPort": 21210, /* Fixed VS port for HTTP */
       "publishAllPorts": false,
@@ -25,8 +24,7 @@
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
       "environmentVariables": {
         "DbProvider__Default": "Sqlite",
-        "DbProvider__DbScriptsPath": "../scripts",
-        "FileStoragePath": "../var/data"
+        "Setup__FileStoragePath": "../var/data"
       },
       "containerRunArguments": "-v \"{ProjectDir}/../../data-storage:/var/data\"",
       "httpPort": 21210, /* Fixed VS port for HTTP */

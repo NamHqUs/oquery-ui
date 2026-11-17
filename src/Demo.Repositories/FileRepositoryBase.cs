@@ -45,9 +45,6 @@ public abstract class FileRepositoryBase<T> : IRepository<T>
     protected string GetUserStoreFolder(string userSectionId)
         => _filePathResolver.GetUserStoreFolder(userSectionId, _folderName);
 
-    protected string GetBuiltinStoreFolder()
-        => _filePathResolver.GetBuiltinStoreFolder(_folderName);
-
     protected string GetUserFilePath(string userSectionId, string id)
     {
         if (string.IsNullOrWhiteSpace(id) || Path.GetFileName(id) != id)

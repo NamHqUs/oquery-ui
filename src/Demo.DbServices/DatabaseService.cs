@@ -1,4 +1,5 @@
 using Demo.DbServices.DbInstances;
+using Demo.Contracts;
 using Demo.Contracts.Dto;
 using Demo.Contracts.Services;
 using Microsoft.Extensions.Configuration;
@@ -83,8 +84,8 @@ public class DatabaseService(IConfiguration configuration) : IDatabaseService, I
             throw new ArgumentException("A connection string is required.", nameof(connectionString));
 
         var scriptFiles = GetInitializationScripts(provider);
-        var dbVersion = configuration["DbProvider:DBVersion"]
-            ?? throw new InvalidOperationException("DBVersion is required in the configuration.");
+        var dbVersion = configuration["Setup:DBVersion"]
+            ?? throw new InvalidOperationException("Setup:DBVersion is required in the configuration.");
         return providerType switch
         {
             DbServerType.Sqlite => new SqliteDbInstance(connectionString, scriptFiles, dbVersion),
@@ -101,14 +102,11 @@ public class DatabaseService(IConfiguration configuration) : IDatabaseService, I
 
     private string[] GetInitializationScripts(string provider)
     {
-        var path = configuration["DbProvider:DbScriptsPath"]
-            ?? throw new InvalidOperationException("DbProvider:DbScriptsPath is required in the configuration.");
-        path = new DirectoryInfo(path).FullName;
-
-        var useCases = configuration.GetSection("DbProvider:UseCases").Get<string[]>() ?? [];
-        return useCases
-            .Select(useCase => Path.Combine(path, $"{useCase}.{provider}.sql".ToLowerInvariant()))
-            .Where(fileName => File.Exists(Path.Combine(Environment.CurrentDirectory, fileName)))
+        var rootDirectory = BuiltinDatasets.GetRootDirectory(configuration["Setup:BuiltinPath"]);
+        var dataSets = configuration.GetSection("Setup:DataSets").Get<string[]>() ?? [];
+        return dataSets
+            .Select(dataSet => BuiltinDatasets.GetScriptPath(rootDirectory, dataSet, provider))
+            .Where(File.Exists)
             .ToArray();
     }
 }

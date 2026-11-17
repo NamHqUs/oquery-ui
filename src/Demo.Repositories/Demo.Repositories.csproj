@@ -5,12 +5,6 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
 	<ItemGroup>
-		<Content Include="..\..\oquery\data-storage\queries\*.json"
-				 Link="BuiltinQueries\%(Filename)%(Extension)"
-				 CopyToOutputDirectory="PreserveNewest"
-				 CopyToPublishDirectory="PreserveNewest" />
-	</ItemGroup>
-	<ItemGroup>
 		<ProjectReference Include="..\Demo.Contracts\Demo.Contracts.csproj" />
 		<PackageReference Include="Namh.Configuration.Template" />
 	</ItemGroup>

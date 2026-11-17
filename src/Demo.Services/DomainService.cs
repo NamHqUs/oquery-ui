@@ -44,7 +44,9 @@ public sealed class DomainService(
         ArgumentException.ThrowIfNullOrWhiteSpace(domainId);
         var requestedId = domainId.Trim();
         var sectionId = userSectionManager.GetSectionId();
-        var domain = repository.Get(sectionId, requestedId)
+        var domain = repository.GetBuiltin()
+                .FirstOrDefault(scope => scope.Id.Equals(requestedId, StringComparison.OrdinalIgnoreCase))
+            ?? repository.Get(sectionId, requestedId)
             ?? repository.GetUserDefined(sectionId)
                 .FirstOrDefault(scope => scope.Id.Equals(requestedId, StringComparison.OrdinalIgnoreCase));
         if (domain is null)

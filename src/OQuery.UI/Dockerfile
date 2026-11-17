@@ -4,9 +4,9 @@
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 USER $APP_UID
 WORKDIR /app
-COPY ["oquery/data-storage/scripts/", "/scripts/"]
-COPY ["oquery/data-storage/queries/", "/app/BuiltinQueries/"]
-COPY ["oquery/data-storage/metadata/", "/oquery/data-storage/metadata/"]
+COPY ["oquery/data-storage/northstar-demo/", "/oquery/data-storage/northstar-demo/"]
+COPY ["oquery/data-storage/unit-test/", "/oquery/data-storage/unit-test/"]
+ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 
 
@@ -15,6 +15,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /workspace
 COPY ["src/Directory.Build.props", "src/"]
+COPY ["src/Directory.Packages.props", "src/"]
 COPY ["src/OQuery.UI/OQuery.UI.csproj", "src/OQuery.UI/"]
 COPY ["src/Demo.Services/Demo.Services.csproj", "src/Demo.Services/"]
 COPY ["src/Demo.Contracts/Demo.Contracts.csproj", "src/Demo.Contracts/"]
@@ -31,8 +32,6 @@ COPY ["oquery/LICENSE", "oquery/"]
 RUN dotnet restore "./src/OQuery.UI/OQuery.UI.csproj"
 COPY ["src/", "src/"]
 COPY ["oquery/src/OQuery/", "oquery/src/OQuery/"]
-COPY ["oquery/data-storage/queries/", "oquery/data-storage/queries/"]
-COPY ["oquery/data-storage/scripts/", "scripts/"]
 WORKDIR "/workspace/src/OQuery.UI"
 RUN dotnet build "./OQuery.UI.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
@@ -45,5 +44,4 @@ RUN dotnet publish "./OQuery.UI.csproj" -c $BUILD_CONFIGURATION -o /app/publish 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-COPY --from=build /workspace/scripts /scripts
 ENTRYPOINT ["dotnet", "OQuery.UI.dll"]

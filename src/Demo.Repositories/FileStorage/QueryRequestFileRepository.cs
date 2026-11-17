@@ -1,3 +1,4 @@
+using Demo.Contracts;
 using Demo.Contracts.Repositories;
 using Demo.Contracts.Dto;
 using OQuery;
@@ -40,14 +41,9 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
     }
 
     public override IReadOnlyCollection<QueryDto> GetBuiltin()
-    {
-        var dir = Path.Combine(AppContext.BaseDirectory, "BuiltinQueries");
-        return Directory.EnumerateFiles(dir)
-            .Where(IsJsonFile)
-            .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
+        => filePathResolver.EnumerateBuiltinFiles(BuiltinDatasets.QueriesFolder, FILE_EXTENSION)
             .Select(path => ReadQueryRequest(path, isBuiltin: true))
             .ToArray();
-    }
 
     public override IReadOnlyCollection<QueryDto> GetUserDefined(string userSectionId)
     {

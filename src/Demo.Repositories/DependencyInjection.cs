@@ -11,7 +11,7 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var provider = configuration["StorageProvider"] ?? "Files";
+        var provider = configuration["Setup:StorageProvider"] ?? "Files";
         if (provider.Equals("Files", StringComparison.OrdinalIgnoreCase))
         {
             services.AddSingleton<FilePathResolver>();

@@ -1,3 +1,4 @@
+using Demo.Contracts;
 using Microsoft.Extensions.Configuration;
 
 namespace Demo.Repositories.FileStorage;
@@ -5,26 +6,25 @@ namespace Demo.Repositories.FileStorage;
 public sealed class FilePathResolver(IConfiguration configuration)
 {
     const string FOLDER_NAME = "UserData";
-    public string GetBuiltinStoreFolder(string? subDir)
-    {
-        var rootDir = Path.Combine(Environment.CurrentDirectory,
-            configuration["FileStoragePath"] ?? throw new InvalidOperationException("Configuration is missing [FileStoragePath]."));
 
-        return subDir is null ? rootDir : Path.Combine(rootDir, subDir);
-    }
+    public string GetStorageRootDirectory()
+        => BuiltinDatasets.GetRootDirectory(configuration["Setup:FileStoragePath"]);
 
-    public string GetMetadataStoreFolder()
-        => Path.Combine(
-            Environment.CurrentDirectory,
-            configuration["MetadataPath"] ?? throw new InvalidOperationException("Configuration is missing [MetadataPath]."));
+    public string GetBuiltinRootDirectory()
+        => BuiltinDatasets.GetRootDirectory(configuration["Setup:BuiltinPath"]);
+
+    public IReadOnlyCollection<string> GetDataSets()
+        => configuration.GetSection("Setup:DataSets").Get<string[]>() ?? [];
+
+    public IEnumerable<string> EnumerateBuiltinFiles(string folder, params string[] extensions)
+        => BuiltinDatasets.EnumerateFiles(GetBuiltinRootDirectory(), GetDataSets(), folder, extensions);
 
     public string GetUserStoreFolder(string userSectionId, string? subDir)
     {
         if (string.IsNullOrWhiteSpace(userSectionId) || Path.GetFileName(userSectionId) != userSectionId)
             throw new InvalidOperationException("User section ID is not available.");
 
-        var rootDir = Path.Combine(Environment.CurrentDirectory,
-            configuration["FileStoragePath"] ?? throw new InvalidOperationException("Configuration is missing [FileStoragePath]."));
+        var rootDir = GetStorageRootDirectory();
 
         return subDir is null
             ? Path.Combine(rootDir, FOLDER_NAME, userSectionId)

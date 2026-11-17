@@ -1,5 +1,5 @@
+using Demo.Contracts;
 using Demo.Contracts.Repositories;
-using Microsoft.Extensions.Configuration;
 using OQuery;
 using System.Security.Cryptography;
 using System.Text;
@@ -9,9 +9,7 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace Demo.Repositories.FileStorage;
 
-public sealed class MetadataFileRepository(
-    IConfiguration configuration,
-    FilePathResolver filePathResolver)
+public sealed class MetadataFileRepository(FilePathResolver filePathResolver)
     : FileRepositoryBase<Entity>(filePathResolver, FOLDER_NAME), IMetadataRepository
 {
     private const string FOLDER_NAME = "UnitTestData";
@@ -32,22 +30,10 @@ public sealed class MetadataFileRepository(
     {
         if (_builtinEntities is null)
         {
-            var useCases = configuration.GetSection("DbProvider:UseCases").Get<string[]>() ?? Array.Empty<string>();
-            var metadataDirectory = _filePathResolver.GetMetadataStoreFolder();
-            if (!Directory.Exists(metadataDirectory))
-                throw new DirectoryNotFoundException($"Metadata directory '{metadataDirectory}' was not found.");
-
             var entities = new Dictionary<string, Entity>(StringComparer.OrdinalIgnoreCase);
-            foreach (var useCase in useCases)
+            foreach (var path in _filePathResolver.EnumerateBuiltinFiles(
+                         BuiltinDatasets.MetadataFolder, ".yml", ".yaml", ".json"))
             {
-                var path = Directory.EnumerateFiles(metadataDirectory)
-                    .SingleOrDefault(candidate =>
-                        string.Equals(Path.GetFileNameWithoutExtension(candidate), useCase, StringComparison.OrdinalIgnoreCase) &&
-                        (string.Equals(Path.GetExtension(candidate), ".yml", StringComparison.OrdinalIgnoreCase) ||
-                         string.Equals(Path.GetExtension(candidate), ".yaml", StringComparison.OrdinalIgnoreCase)));
-                if (path is null)
-                    throw new FileNotFoundException($"Metadata file for use case '{useCase}' was not found.", useCase);
-
                 foreach (var entity in ReadMetadata(path))
                 {
                     if (!entities.TryAdd(entity.Name, entity))

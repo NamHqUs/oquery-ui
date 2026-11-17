@@ -51,7 +51,7 @@ app.UseExceptionHandler();
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
-    options.RoutePrefix = "";
+    options.RoutePrefix = "swagger";
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "Dynamic SQL Demo v1");
 });
 app.MapControllers();
