@@ -194,6 +194,7 @@ type QueryDesignProps = {
   onOQuerySelectionChange: (text: string) => void;
   onExecuteOQueryContext?: (contextName: string) => void;
   onExecuteOQuerySelection?: (text: string, contextName?: string) => void;
+  onExecuteOQuery?: () => void;
   inlineResults: Record<string, InlineQueryResult>;
   onClearInlineResult: (contextName: string) => void;
   onFormatOquery: () => void;
@@ -243,7 +244,7 @@ export default function QueryDesign({
   onOQuerySelectionChange,
   onExecuteOQueryContext,
   onExecuteOQuerySelection,
-  inlineResults,
+  onExecuteOQuery,  inlineResults,
   onClearInlineResult,
   onFormatOquery,
   onInsertOqueryTemplate,
@@ -432,6 +433,7 @@ export default function QueryDesign({
               onSelectionChange={onOQuerySelectionChange}
               onExecuteContext={onExecuteOQueryContext}
               onExecuteSelectedText={onExecuteOQuerySelection}
+              onExecuteQuery={onExecuteOQuery}
               inlineResults={inlineResults}
               onClearInlineResult={onClearInlineResult}
               onBlur={(event) => {

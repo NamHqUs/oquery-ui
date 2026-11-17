@@ -43,6 +43,7 @@ type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onCh
   onBlur?: FocusEventHandler<HTMLElement>;
   onSelectionChange?: (text: string) => void;
   onExecuteSelectedText?: (text: string, contextName?: string) => void;
+  onExecuteQuery?: () => void;
   onExecuteContext?: (contextName: string) => void;
   inlineResults?: Record<string, InlineQueryResult>;
   onClearInlineResult?: (contextName: string) => void;
@@ -257,6 +258,27 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     });
   };
 
+  // Ctrl+Enter and the gutter Run glyph share one behavior: a non-empty selection runs as-is,
+  // otherwise the context at the cursor runs (the glyph passes its own context). With no context
+  // at the cursor, the whole file runs.
+  const runSelectionOrContext = (contextName?: string) => {
+    const editor = editorRef.current;
+    const model = modelRef.current;
+    const latest = latestRef.current;
+    if (!editor || !model) return;
+    const selection = editor.getSelection();
+    const blocks = getOqueryContextBlocks(model.getValue());
+    if (selection && !selection.isEmpty()) {
+      const selectionContext = blocks.filter((block) => block.startLine <= selection.endLineNumber).pop()?.contextName;
+      latest.onExecuteSelectedText?.(model.getValueInRange(selection), selectionContext);
+      return;
+    }
+    const cursorLine = selection?.getPosition().lineNumber ?? 0;
+    const cursorContext = contextName ?? blocks.find((block) => block.startLine <= cursorLine && cursorLine <= block.endLine)?.contextName;
+    if (cursorContext) latest.onExecuteContext?.(cursorContext);
+    else latest.onExecuteQuery?.();
+  };
+
   const writeExternalText = (next: string) => {
     const model = modelRef.current;
     const editor = editorRef.current;
@@ -379,7 +401,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
         if (event.target.type !== monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) return;
         const lineNumber = event.target.position?.lineNumber;
         const lens = getOqueryContextLenses(model.getValue()).find((item) => item.lineNumber === lineNumber);
-        if (lens) latestRef.current.onExecuteContext?.(lens.contextName);
+        if (lens) runSelectionOrContext(lens.contextName);
       }),
     ];
     refreshDecorations();
@@ -490,14 +512,9 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       const selection = editor.getSelection();
       if (!selection) return;
       if (event.ctrlKey || event.metaKey) {
-        if (selection.isEmpty()) return;
         event.preventDefault();
         event.stopPropagation();
-        // The run result is anchored to the context block that contains the end of the selection.
-        const contextName = getOqueryContextBlocks(model.getValue())
-          .filter((block) => block.startLine <= selection.endLineNumber)
-          .pop()?.contextName;
-        latestRef.current.onExecuteSelectedText?.(model.getValueInRange(selection), contextName);
+        runSelectionOrContext();
         return;
       }
       if (wrapper.querySelector(".suggest-widget.visible")) return;

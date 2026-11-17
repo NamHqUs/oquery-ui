@@ -766,6 +766,12 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection, onNavi
       else dispatch(executeQuery({ definition: activeDefinition, domainId }));
     }
   };
+  const runEditorQuery = () => {
+    // Ctrl+Enter with no selection runs the whole query, same as the Run icon.
+    // The selection ref is only updated on blur, so clear it before reusing runQuery.
+    updateSelectedOQueryText("");
+    void runQuery();
+  };
   const runOQueryContext = (contextName: string) => {
     if (!domainId) return;
     const text = oqueryText;
@@ -1083,6 +1089,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection, onNavi
                 onOQuerySelectionChange={updateSelectedOQueryText}
                 onExecuteOQueryContext={runOQueryContext}
                 onExecuteOQuerySelection={runOQuerySelection}
+                onExecuteOQuery={runEditorQuery}
                 inlineResults={inlineResults}
                 onClearInlineResult={(contextName) => dispatch(clearInlineResult(contextName))}
                 onFormatOquery={() => void formatOquery()}
