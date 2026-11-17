@@ -56,7 +56,6 @@ export type OQueryEditorHandle = {
 
 const COMPACT_LINE_HEIGHT = 20.8;
 const COMPACT_CHROME_HEIGHT = 34;
-const AUTO_HEIGHT_VIEWPORT_MARGIN = 16;
 
 type ScrollSnapshot = { element: Element | Window; left: number; top: number }[];
 
@@ -368,9 +367,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     const syncAutoHeight = () => {
       if (!autoHeight) return;
       host.style.position = "relative";
-      // An empty query gets the full viewport height so a new query has room to write.
-      const fillHeight = model.getValue() === "" ? window.innerHeight - AUTO_HEIGHT_VIEWPORT_MARGIN : 0;
-      host.style.height = `${Math.max(editor.getContentHeight(), fillHeight)}px`;
+      host.style.height = `${editor.getContentHeight()}px`;
     };
 
     const subscriptions = [
