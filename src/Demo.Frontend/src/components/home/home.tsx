@@ -35,6 +35,7 @@ type SuggestionData = ReturnType<typeof getOQuerySuggestionData>;
 
 const PREVIEW_ROWS = 12;
 const DIAGRAMS_PATH = "/metadata/diagrams";
+const DOMAINS_PATH = "/metadata/domains";
 const HOME_DOMAIN_ID = import.meta.env.VITE_HOME_DOMAIN_ID || "Sales_Domain";
 const SQL_KEYWORDS = new Set([
   "WITH", "RECURSIVE", "SELECT", "FROM", "WHERE", "GROUP", "BY", "HAVING", "ORDER", "LIMIT", "OFFSET", "ASC", "DESC",
@@ -482,9 +483,11 @@ FROM "main"."Employees" t0
           <div className="hp-domain-diagram">
             <DiagramView tables={diagramTables} relationships={diagramRelationships} compactCards />
           </div>
-          <TextAction onClick={openDiagramDetails}>View diagram details in Metadata</TextAction>
+          <div className="hp-how-links">
+            <TextAction onClick={openDiagramDetails}>See {domainName} Domain</TextAction>
+            <TextAction onClick={() => onNavigateToPage("metadata", false, DOMAINS_PATH)}>Explore all domains</TextAction>
+          </div>
         </div>
-        <TextAction onClick={() => onNavigateToPage("metadata")}>See how {PRODUCT_NAME} understands your data</TextAction>
       </section>
 
       <section className="hp-section" id="hp-developers" aria-labelledby="hp-developers-title">
