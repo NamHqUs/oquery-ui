@@ -40,7 +40,7 @@ Built-in datasets are configured under `OQuery` in `appsettings.json`:
   and `Queries` folder paths (an optional `Metadata` path is also read).
 - `OQuery:Seeds:DataSets` - `scripts/` folders. Scripts are matched by the
   suffix `.{provider}.sql`.
-- `OQuery:Repositories:Files:UserDataStorePath` - user data root
+- `OQuery:Repositories:Files:UserData` - user data root
   (`UserData/{sectionId}/...`). Docker images include the built-in datasets
   independently of the custom-data volume.
 

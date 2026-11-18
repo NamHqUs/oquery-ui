@@ -22,7 +22,7 @@ internal sealed class FunctionDefinitionFileRepositoryTests
         _root = Path.Combine(Path.GetTempPath(), "function-definitions-" + Guid.NewGuid().ToString("N"));
         _functionsRoot = Path.Combine(_root, Section, "functions");
         var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["OQuery:Repositories:Files:UserDataStorePath"] = _root })
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["OQuery:Repositories:Files:UserData"] = _root })
             .Build();
         _repository = new FunctionDefinitionFileRepository(new FilePathResolver(configuration));
     }

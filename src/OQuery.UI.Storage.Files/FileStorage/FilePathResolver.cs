@@ -6,7 +6,7 @@ namespace OQuery.UI.Storage.Files.FileStorage;
 public sealed class FilePathResolver(IConfiguration configuration)
 {
     public string GetUserDataRootDirectory()
-        => BuiltinDatasets.GetRootDirectory(configuration["OQuery:Repositories:Files:UserDataStorePath"]);
+        => BuiltinDatasets.GetRootDirectory(configuration["OQuery:Repositories:Files:UserData"]);
 
     /// <summary>Returns the configured built-in folders for one kind, e.g. "Domains" or "Queries".</summary>
     public IReadOnlyCollection<string> GetBuiltinFolders(string kind)
