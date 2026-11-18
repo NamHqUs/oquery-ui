@@ -1,31 +1,29 @@
 using OQuery.UI.Abstracts.Dto;
 using OQuery.UI.Abstracts.Repositories;
-using OQuery;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
 namespace OQuery.UI.Storage.Files.FileStorage;
 
+/// <summary>
+/// Stores user-defined function DTOs in one JSON file per database folder.
+/// Built-in functions are not stored here; the consumer supplies them from its dialects.
+/// </summary>
 public sealed class FunctionDefinitionFileRepository(FilePathResolver filePathResolver)
-    : FileRepositoryBase<SqlFunctionDefintion>(filePathResolver, FOLDER_NAME), IFunctionDefinitionRepository
+    : FileRepositoryBase<FunctionDefinitionDto>(filePathResolver, FOLDER_NAME), IFunctionDefinitionRepository
 {
     private const string FOLDER_NAME = "functions";
 
-    public override IReadOnlyCollection<SqlFunctionDefintion> GetBuiltin() => GetBuiltInDefinitions();
+    public override IReadOnlyCollection<FunctionDefinitionDto> GetBuiltin() => [];
 
-    public override IReadOnlyCollection<SqlFunctionDefintion> GetUserDefined(string userSectionId)
+    public override IReadOnlyCollection<FunctionDefinitionDto> GetUserDefined(string userSectionId)
     {
-        var builtInNames = GetBuiltInDefinitions()
-            .Select(definition => definition.Name)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var merged = new Dictionary<string, FunctionDefinitionDto>(StringComparer.OrdinalIgnoreCase);
         foreach (var path in GetDbTypeFolders(userSectionId).SelectMany(dir => Directory.EnumerateFiles(dir, "*.json")))
         {
             var dto = JsonSerializer.Deserialize<FunctionDefinitionDto>(File.ReadAllText(path))
                 ?? throw new InvalidOperationException($"Failed to deserialize function definition from '{path}'.");
-            if (builtInNames.Contains(dto.Name))
-                throw new InvalidDataException($"User function '{dto.Name}' cannot replace a built-in function.");
             if (!merged.TryGetValue(dto.Name, out var existing))
             {
                 merged[dto.Name] = dto;
@@ -37,21 +35,20 @@ public sealed class FunctionDefinitionFileRepository(FilePathResolver filePathRe
                     throw new InvalidDataException($"Duplicate SQL template for user function '{dto.Name}' and database '{dbType}' found in '{path}'.");
             }
         }
-        return merged.Values.Select(dto => dto.ToFunctionDefinition()).ToArray();
+        return merged.Values.ToArray();
     }
 
-    public override SqlFunctionDefintion? Get(string userSectionId, string id)
+    public override FunctionDefinitionDto? Get(string userSectionId, string id)
         => GetUserDefined(userSectionId).FirstOrDefault(definition =>
             string.Equals(definition.Name, id, StringComparison.OrdinalIgnoreCase));
 
-    public override void Save(string userSectionId, SqlFunctionDefintion definition)
+    public override void Save(string userSectionId, FunctionDefinitionDto definition)
     {
         Delete(userSectionId, definition.Name);
         var fileName = $"{GetFileId(definition.Name)}.json";
         foreach (var (dbType, template) in definition.SqlTemplates)
         {
-            var dto = FunctionDefinitionDto.FromFunctionDefinition(definition);
-            dto.SqlTemplates = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [dbType] = template };
+            var dto = WithSingleTemplate(definition, dbType, template);
             var dir = GetDbTypeFolder(userSectionId, dbType);
             Directory.CreateDirectory(dir);
             File.WriteAllText(Path.Combine(dir, fileName), JsonSerializer.Serialize(
@@ -87,24 +84,17 @@ public sealed class FunctionDefinitionFileRepository(FilePathResolver filePathRe
         return Directory.Exists(root) ? Directory.EnumerateDirectories(root) : Enumerable.Empty<string>();
     }
 
-    private static IReadOnlyCollection<SqlFunctionDefintion> GetBuiltInDefinitions()
-        => SqlDialectRegistry.CreateAllDialects()
-            .SelectMany(dialect => new FunctionProvider(dialect).GetFunctions())
-            .GroupBy(function => function.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(group =>
-            {
-                var first = group.First();
-                return new SqlFunctionDefintion(
-                    first.Name,
-                    first.Arguments,
-                    first.ResultType,
-                    first.Description,
-                    group.SelectMany(function => function.SqlTemplates)
-                        .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase),
-                    first.BindArgumentsFromEnd,
-                    first.FunctionApplyFor);
-            })
-            .ToArray();
+    private static FunctionDefinitionDto WithSingleTemplate(FunctionDefinitionDto source, string dbType, string template)
+        => new()
+        {
+            Name = source.Name,
+            Arguments = source.Arguments,
+            ResultType = source.ResultType,
+            ApplyFor = source.ApplyFor,
+            BindArgumentsFromEnd = source.BindArgumentsFromEnd,
+            Description = source.Description,
+            SqlTemplates = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [dbType] = template },
+        };
 
     private static string GetFileId(string id)
     {

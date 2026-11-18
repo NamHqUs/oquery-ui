@@ -5,24 +5,24 @@ namespace OQuery.UI.Api.UnitTest;
 
 public static class FakeDiscoveryDialectModule
 {
-    public static void Register() { }
+    public static ISqlDialect CreateDialect() => null!;
 }
 
 public static class NotDetectedWithoutSuffix
 {
-    public static void Register() { }
+    public static ISqlDialect CreateDialect() => null!;
 }
 
 public static class FakeDiscoveryDialectModuleWithArgument
 {
-    public static void Register(string name) { }
+    public static ISqlDialect CreateDialect(string name) => null!;
 }
 
 [TestFixture]
 public sealed class DialectModulesTests
 {
     [Test]
-    public void GetModuleTypes_FindsStaticDialectModuleWithParameterlessRegister()
+    public void GetModuleTypes_FindsStaticDialectModuleWithParameterlessCreateDialect()
     {
         var types = DialectModules.GetModuleTypes(typeof(DialectModulesTests).Assembly).ToArray();
 

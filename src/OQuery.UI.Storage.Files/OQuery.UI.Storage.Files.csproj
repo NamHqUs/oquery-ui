@@ -6,17 +6,10 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\OQuery.UI.Abstracts\OQuery.UI.Abstracts.csproj" />
-		<ProjectReference Include="..\..\oquery\src\OQuery.Core\OQuery.Core.csproj" />
 		<PackageReference Include="Namh.Configuration.Template" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
-		<PackageReference Include="Microsoft.Data.SqlClient" />
-		<PackageReference Include="Npgsql" />
-		<PackageReference Include="FirebirdSql.Data.FirebirdClient" />
-		<PackageReference Include="MySqlConnector" />
-		<PackageReference Include="Oracle.ManagedDataAccess.Core" />
-		<PackageReference Include="System.Security.Cryptography.Pkcs" />
 		<PackageReference Include="YamlDotNet" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
 	</ItemGroup>
 </Project>

@@ -13,6 +13,8 @@
     <File Path="../README.md" />
     <File Path="Directory.Build.props" />
   </Folder>
+  <Project Path="OQuery.UI.SetupTests/OQuery.UI.SetupTests.csproj" />
+  <Project Path="OQuery.UI.UnitTest/OQuery.UI.UnitTest.csproj" />
   <Project Path="../oquery/src/OQuery.UnitTest/OQuery.UnitTest.csproj" />
   <Project Path="../oquery/src/OQuery.Core/OQuery.Core.csproj" />
   <Project Path="../oquery/src/OQuery.Abstracts/OQuery.Abstracts.csproj" />

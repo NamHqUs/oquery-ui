@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using NUnit.Framework;
 using OQuery;
+using OQuery.UI.Abstracts.Dto;
 using OQuery.UI.Storage.Files.FileStorage;
 
 namespace OQuery.UI.Api.UnitTest;
@@ -64,11 +65,13 @@ internal sealed class FunctionDefinitionFileRepositoryTests
         Assert.That(Directory.EnumerateFiles(_functionsRoot, "*.json", SearchOption.AllDirectories), Is.Empty);
     }
 
-    private static SqlFunctionDefintion CreateFunction(IReadOnlyDictionary<string, string> templates)
-        => new(
-            FunctionName,
-            [new SqlFunctionDefintion.SqlFunctionArgumentDefinition("value", DataType.Number)],
-            DataType.Number,
-            "Doubles a number.",
-            templates);
+    private static FunctionDefinitionDto CreateFunction(IReadOnlyDictionary<string, string> templates)
+        => new()
+        {
+            Name = FunctionName,
+            Arguments = [new FunctionArgumentDefinitionDto { Name = "value", DataType = DataType.Number }],
+            ResultType = nameof(DataType.Number),
+            Description = "Doubles a number.",
+            SqlTemplates = new Dictionary<string, string>(templates, StringComparer.OrdinalIgnoreCase),
+        };
 }

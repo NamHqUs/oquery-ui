@@ -55,12 +55,15 @@ The API and demo projects are in `src/`; the OQuery engine is in
 dotnet build .\src\OQuery.UI.slnx
 ```
 
-Run the core provider tests against every database service with:
+Run the provider tests against every database service with:
 
 ```powershell
 docker compose -f .\oquery\docker\docker-compose.dbservers.yml up -d
-dotnet test .\oquery\src\OQuery.UnitTest\OQuery.UnitTest.csproj
+dotnet test .\src\OQuery.UI.UnitTest\OQuery.UI.UnitTest.csproj
 ```
+
+The core, DB-independent tests live in `oquery/src/OQuery.UnitTest` and run
+without any database: `dotnet test .\oquery\src\OQuery.UnitTest\OQuery.UnitTest.csproj`.
 
 The compose file starts SQL Server, PostgreSQL, CockroachDB, MariaDB,
 Firebird, Oracle, SAP HANA, SQLite, and IBM Db2. The provider tests run all
@@ -80,5 +83,5 @@ Set `POSTGRES_HOST_PORT` before running the provider tests so their PostgreSQL
 connection uses the same host port:
 
 ```powershell
-dotnet test .\oquery\src\OQuery.UnitTest\OQuery.UnitTest.csproj
+dotnet test .\src\OQuery.UI.UnitTest\OQuery.UI.UnitTest.csproj
 ```

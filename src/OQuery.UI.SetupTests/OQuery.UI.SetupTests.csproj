@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <PlatformTarget>x64</PlatformTarget>
+    <RootNamespace>OQuery.UnitTest.Setup</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\oquery\src\OQuery.Core\OQuery.Core.csproj" />
+    <ProjectReference Include="..\OQuery.UI.Abstracts\OQuery.UI.Abstracts.csproj" />
+    <ProjectReference Include="..\..\oquery\src\OQuery.Sqlite\OQuery.Sqlite.csproj" />
+    <ProjectReference Include="..\..\oquery\src\OQuery.SqlServer\OQuery.SqlServer.csproj" />
+    <ProjectReference Include="..\..\oquery\src\OQuery.Postgres\OQuery.Postgres.csproj" />
+    <ProjectReference Include="..\..\oquery\src\OQuery.CockroachDb\OQuery.CockroachDb.csproj" />
+    <ProjectReference Include="..\..\oquery\src\OQuery.MySql\OQuery.MySql.csproj" />
+    <ProjectReference Include="..\..\oquery\src\OQuery.Oracle\OQuery.Oracle.csproj" />
+    <ProjectReference Include="..\..\oquery\src\OQuery.Db2\OQuery.Db2.csproj" />
+    <ProjectReference Include="..\..\oquery\src\OQuery.Firebird\OQuery.Firebird.csproj" />
+    <ProjectReference Include="..\..\oquery\src\OQuery.SapHana\OQuery.SapHana.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="FirebirdSql.Data.FirebirdClient" />
+    <PackageReference Include="Oracle.ManagedDataAccess.Core" />
+    <PackageReference Include="MySqlConnector" />
+    <PackageReference Include="Net.IBM.Data.Db2" />
+    <PackageReference Include="Sap.Data.Hana.Net.v8.0" />
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+
+</Project>

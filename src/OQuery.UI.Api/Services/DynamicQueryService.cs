@@ -1,4 +1,5 @@
 using OQuery.UI.Abstracts.Services;
+using OQuery.Database;
 using Microsoft.Extensions.Logging;
 using OQuery;
 using OQuery.QueryDefinitions.Parsers;
@@ -24,7 +25,7 @@ public sealed class DynamicQueryService(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(domainId);
         using var connection = dbConnectionService.CreateConnection();
-        var dialect = SqlDialect.ForProvider(dbConnectionService.GetCurrentProvider(), connection);
+        var dialect = SqlDialectFactory.ForProvider(dbConnectionService.GetCurrentProvider());
         var metadataProvider = CreateMetadataProvider(domainId, dbConnectionService.GetCurrentProvider());
         ValidateQueryEntities(query, metadataProvider, domainId);
         using var context = new OQueryEngine(
@@ -41,11 +42,10 @@ public sealed class DynamicQueryService(
         string domainId,
         CancellationToken cancellationToken = default)
     {
-
         logger.LogInformation("\n---\n{query}\n---", query.ToText());
 
         using var connection = dbConnectionService.CreateConnection();
-        var dialect = SqlDialect.ForProvider(dbConnectionService.GetCurrentProvider(), connection);
+        var dialect = SqlDialectFactory.ForProvider(dbConnectionService.GetCurrentProvider());
         var metadataProvider = CreateMetadataProvider(domainId, dbConnectionService.GetCurrentProvider());
         ValidateQueryEntities(query, metadataProvider, domainId);
         using var context = new OQueryEngine(

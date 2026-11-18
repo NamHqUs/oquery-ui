@@ -15,7 +15,7 @@ public sealed class DbConnectionService(IConfiguration configuration, DatabaseSe
 
     DatabaseConnectionOptionsDto IDbConnectionService.GetConnectionOptions()
         => new(
-            OQuery.SqlDialectRegistry.RegisteredNames.ToArray(),
+            OQuery.Database.SqlDialectRegistry.RegisteredNames.ToArray(),
             _dbOptions.Keys.ToList(),
 
             _directConnectionsEnabled);

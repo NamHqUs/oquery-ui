@@ -1,32 +1,21 @@
 using OQuery.UI.Abstracts;
-using OQuery.UI.Abstracts.Repositories;
 using OQuery.UI.Abstracts.Dto;
-using OQuery;
-using OQuery.QueryDefinitions.Parsers;
+using OQuery.UI.Abstracts.Repositories;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 
 namespace OQuery.UI.Storage.Files.FileStorage;
 
+/// <summary>Stores query requests as JSON text; parsing them into query definitions is left to the consumer.</summary>
 public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver)
-    : FileRepositoryBase<QueryDto>(filePathResolver, FOLDER_NAME, FILE_EXTENSION),
+    : FileRepositoryBase<QueryRequestRecordDto>(filePathResolver, FOLDER_NAME, FILE_EXTENSION),
         IQueryRequestRepository
 {
     private const string FOLDER_NAME = "queries";
     private const string FILE_EXTENSION = ".json";
     private const string ID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private static readonly JsonSerializerOptions JSON_OPTIONS = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() }
-    };
-
-    static QueryRequestFileRepository()
-        => QueryDefinitionJsonParser.Configure(JSON_OPTIONS);
 
     public override string CreateId(string userSectionId)
     {
@@ -40,12 +29,12 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
         return id;
     }
 
-    public override IReadOnlyCollection<QueryDto> GetBuiltin()
+    public override IReadOnlyCollection<QueryRequestRecordDto> GetBuiltin()
         => filePathResolver.EnumerateBuiltinFiles(BuiltinDatasets.QueriesFolder, FILE_EXTENSION)
-            .Select(path => ReadQueryRequest(path, isBuiltin: true))
+            .Select(path => ReadRecord(path, isBuiltin: true))
             .ToArray();
 
-    public override IReadOnlyCollection<QueryDto> GetUserDefined(string userSectionId)
+    public override IReadOnlyCollection<QueryRequestRecordDto> GetUserDefined(string userSectionId)
     {
         var dir = GetUserStoreFolder(userSectionId);
         if (!Directory.Exists(dir))
@@ -53,30 +42,26 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
         return Directory.EnumerateFiles(dir)
             .Where(IsJsonFile)
             .OrderByDescending(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
-            .Select(path => ReadQueryRequest(path, isBuiltin: false))
+            .Select(path => ReadRecord(path, isBuiltin: false))
             .ToArray();
     }
 
-    public override QueryDto? Get(string userSectionId, string id)
+    public override QueryRequestRecordDto? Get(string userSectionId, string id)
     {
         var path = GetUserFilePath(userSectionId, id);
         return File.Exists(path)
-            ? ReadQueryRequest(path, isBuiltin: false)
+            ? ReadRecord(path, isBuiltin: false)
             : null;
     }
 
-    public override void Save(string userSectionId, QueryDto query)
+    public override void Save(string userSectionId, QueryRequestRecordDto request)
     {
-        ArgumentNullException.ThrowIfNull(query);
-        ArgumentException.ThrowIfNullOrWhiteSpace(query.Id);
-        ArgumentException.ThrowIfNullOrWhiteSpace(query.Name);
-        ArgumentException.ThrowIfNullOrWhiteSpace(query.Entity);
-        ArgumentNullException.ThrowIfNull(query.Projections);
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Json);
 
         Directory.CreateDirectory(GetUserStoreFolder(userSectionId));
-        File.WriteAllText(
-            GetUserFilePath(userSectionId, query.Id),
-            Serialize(query));
+        File.WriteAllText(GetUserFilePath(userSectionId, request.Id), request.Json);
     }
 
     public override bool Delete(string userSectionId, string id)
@@ -91,34 +76,19 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
     private static bool IsJsonFile(string path)
         => string.Equals(Path.GetExtension(path), FILE_EXTENSION, StringComparison.OrdinalIgnoreCase);
 
-    private static QueryDto ReadQueryRequest(string path, bool isBuiltin)
-        => ParseQueryRequest(File.ReadAllText(path), isBuiltin, path, Path.GetFileNameWithoutExtension(path));
-
-    public static QueryDto ParseQueryRequest(string json, bool isBuiltin, string source, string fallbackName)
+    private static QueryRequestRecordDto ReadRecord(string path, bool isBuiltin)
     {
+        var json = File.ReadAllText(path);
         if (isBuiltin)
-            json = CreateBuiltinRequestJson(json, fallbackName);
-        var parsedDefinition = QueryDefinitionJsonParser.Parse(json);
-        var requestMetadata = JsonNode.Parse(json)?.AsObject()
-            ?? throw new InvalidDataException($"Query request '{source}' is not a JSON object.");
-        requestMetadata.Remove("contexts");
-        requestMetadata.Remove("Contexts");
-        if (requestMetadata["Projections"] is null && requestMetadata["projection"] is JsonNode projection)
-            requestMetadata["Projections"] = projection.DeepClone();
-        var query = JsonSerializer.Deserialize<QueryDto>(
-            requestMetadata.ToJsonString(),
-            JSON_OPTIONS)
-            ?? throw new InvalidDataException($"Query request '{source}' is empty.");
-        query = query with { Contexts = parsedDefinition.Contexts };
-        if (query is null ||
-            string.IsNullOrWhiteSpace(query.Id) ||
-            string.IsNullOrWhiteSpace(query.Name) ||
-            string.IsNullOrWhiteSpace(query.Entity) ||
-            query.Projections is null)
-            throw new InvalidDataException($"Query request '{source}' is missing required data.");
+            json = CreateBuiltinRequestJson(json, Path.GetFileNameWithoutExtension(path));
 
-        query = query with { IsBuiltin = isBuiltin };
-        return query;
+        var root = JsonNode.Parse(json)?.AsObject()
+            ?? throw new InvalidDataException($"Query request '{path}' is not a JSON object.");
+        var id = root["id"]?.GetValue<string>() ?? root["Id"]?.GetValue<string>();
+        if (string.IsNullOrWhiteSpace(id))
+            throw new InvalidDataException($"Query request '{path}' is missing an id.");
+
+        return new QueryRequestRecordDto(id, json, isBuiltin);
     }
 
     private static string CreateBuiltinRequestJson(string json, string fallbackName)
@@ -234,7 +204,4 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
         value[newName] = value[oldName]!.DeepClone();
         value.Remove(oldName);
     }
-
-    public static string Serialize(QueryDto query)
-        => JsonSerializer.Serialize(query, JSON_OPTIONS);
 }

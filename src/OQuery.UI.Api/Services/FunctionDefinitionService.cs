@@ -3,7 +3,7 @@ using OQuery.UI.Abstracts.Application;
 using OQuery.UI.Abstracts.Repositories;
 using OQuery.UI.Abstracts.Services;
 using OQuery;
-
+using OQuery.Database;
 namespace OQuery.UI.Api.Services;
 
 public sealed class FunctionDefinitionService(
@@ -12,7 +12,7 @@ public sealed class FunctionDefinitionService(
 {
     public IReadOnlyList<FunctionDefinitionDto> GetAll()
     {
-        var userDefined = repository.GetUserDefined(userSectionManager.GetSectionId());
+        var userDefined = UserDefined(userSectionManager.GetSectionId());
         var userDefinedNames = userDefined
             .Select(definition => definition.Name)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -32,11 +32,11 @@ public sealed class FunctionDefinitionService(
     {
         var definition = BuildDefinition(dto);
         var sectionId = userSectionManager.GetSectionId();
-        if (GetAllDefinitions(repository.GetUserDefined(sectionId)).Any(existing =>
+        if (GetAllDefinitions(UserDefined(sectionId)).Any(existing =>
             string.Equals(existing.Name, definition.Name, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException($"A function named '{definition.Name}' already exists.");
 
-        repository.Save(sectionId, definition);
+        Store(sectionId, definition);
         var response = FunctionDefinitionDto.FromFunctionDefinition(definition);
         response.CanDelete = true;
         response.IsBuiltin = false;
@@ -49,12 +49,12 @@ public sealed class FunctionDefinitionService(
         var sectionId = userSectionManager.GetSectionId();
         if (IsBuiltin(functionName))
             throw new InvalidOperationException($"Built-in function '{functionName}' is read-only.");
-        if (!GetAllDefinitions(repository.GetUserDefined(sectionId)).Any(existing =>
+        if (!GetAllDefinitions(UserDefined(sectionId)).Any(existing =>
             string.Equals(existing.Name, functionName, StringComparison.OrdinalIgnoreCase)))
             throw new KeyNotFoundException($"Function '{functionName}' was not found.");
 
         var definition = BuildDefinition(dto);
-        var userDefinitions = repository.GetUserDefined(sectionId);
+        var userDefinitions = UserDefined(sectionId);
         var existing = userDefinitions.FirstOrDefault(item =>
             string.Equals(item.Name, functionName, StringComparison.OrdinalIgnoreCase));
         if (existing is null)
@@ -66,7 +66,7 @@ public sealed class FunctionDefinitionService(
             string.Equals(item.Name, definition.Name, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException($"A function named '{definition.Name}' already exists.");
 
-        repository.Save(sectionId, definition);
+        Store(sectionId, definition);
         if (!string.Equals(existing.Name, definition.Name, StringComparison.OrdinalIgnoreCase))
             repository.Delete(sectionId, existing.Name);
         var response = FunctionDefinitionDto.FromFunctionDefinition(definition);
@@ -78,7 +78,7 @@ public sealed class FunctionDefinitionService(
     public void Delete(string functionName)
     {
         var sectionId = userSectionManager.GetSectionId();
-        if (!repository.GetUserDefined(sectionId).Any(item =>
+        if (!UserDefined(sectionId).Any(item =>
             string.Equals(item.Name, functionName, StringComparison.OrdinalIgnoreCase)))
         {
             if (IsBuiltin(functionName))
@@ -92,7 +92,7 @@ public sealed class FunctionDefinitionService(
     private IReadOnlyCollection<SqlFunctionDefintion> GetAllDefinitions(
         IReadOnlyCollection<SqlFunctionDefintion> userDefined)
     {
-        var builtin = repository.GetBuiltin();
+        var builtin = BuiltinDefinitions();
         var names = builtin.Select(definition => definition.Name)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var definition in userDefined)
@@ -105,8 +105,35 @@ public sealed class FunctionDefinitionService(
     }
 
     private bool IsBuiltin(string functionName)
-        => repository.GetBuiltin().Any(definition =>
+        => BuiltinDefinitions().Any(definition =>
             string.Equals(definition.Name, functionName, StringComparison.OrdinalIgnoreCase));
+
+    private IReadOnlyCollection<SqlFunctionDefintion> UserDefined(string sectionId)
+        => repository.GetUserDefined(sectionId)
+            .Select(dto => dto.ToFunctionDefinition())
+            .ToArray();
+
+    private void Store(string sectionId, SqlFunctionDefintion definition)
+        => repository.Save(sectionId, FunctionDefinitionDto.FromFunctionDefinition(definition));
+
+    private static IReadOnlyCollection<SqlFunctionDefintion> BuiltinDefinitions()
+        => SqlDialectRegistry.CreateAllDialects()
+            .SelectMany(dialect => new FunctionProvider(dialect).GetFunctions())
+            .GroupBy(function => function.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(group =>
+            {
+                var first = group.First();
+                return new SqlFunctionDefintion(
+                    first.Name,
+                    first.Arguments,
+                    first.ResultType,
+                    first.Description,
+                    group.SelectMany(function => function.SqlTemplates)
+                        .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase),
+                    first.BindArgumentsFromEnd,
+                    first.FunctionApplyFor);
+            })
+            .ToArray();
 
     private static SqlFunctionDefintion BuildDefinition(FunctionDefinitionDto dto)
     {

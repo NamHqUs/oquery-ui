@@ -1,5 +1,6 @@
 using OQuery;
 using OQuery.Database;
+using OQuery.UI.Api.Services.DbSchemaLoaders;
 using OQuery.UI.Abstracts;
 using OQuery.UI.Abstracts.Dto;
 using OQuery.UI.Abstracts.Services;
@@ -11,9 +12,9 @@ namespace OQuery.UI.Api.Services;
 public class DatabaseService(IConfiguration configuration) : IDatabaseService, IDisposable
 {
     private readonly object _instanceLock = new();
-    private DbInstance? _currentDbInstance;
+    private DbSchemaLoader? _currentDbInstance;
 
-    private DbInstance? CurrentDbInstanceOrNull
+    private DbSchemaLoader? CurrentDbInstanceOrNull
     {
         get
         {
@@ -31,7 +32,7 @@ public class DatabaseService(IConfiguration configuration) : IDatabaseService, I
         }
     }
 
-    public DbInstance CurrentDbInstance
+    public DbSchemaLoader CurrentDbInstance
         => CurrentDbInstanceOrNull ?? throw new InvalidOperationException("A database connection is required.");
 
     public string? GetCurrentProvider()
@@ -41,7 +42,7 @@ public class DatabaseService(IConfiguration configuration) : IDatabaseService, I
     {
         ArgumentNullException.ThrowIfNull(provider);
         ArgumentNullException.ThrowIfNull(connectionString);
-        DbInstance? previous;
+        DbSchemaLoader? previous;
         lock (_instanceLock)
         {
             previous = _currentDbInstance;
@@ -59,7 +60,7 @@ public class DatabaseService(IConfiguration configuration) : IDatabaseService, I
 
     public void Dispose()
     {
-        DbInstance? previous;
+        DbSchemaLoader? previous;
         lock (_instanceLock)
         {
             previous = _currentDbInstance;
@@ -77,7 +78,7 @@ public class DatabaseService(IConfiguration configuration) : IDatabaseService, I
     public DatabaseTableDataDto GetTableData(string tableName, string? schema = null, int? limit = null)
         => CurrentDbInstance.GetTableData(tableName, schema, limit);
 
-    private DbInstance CreateDbInstance(string provider, string connectionString)
+    private DbSchemaLoader CreateDbInstance(string provider, string connectionString)
     {
         if (string.IsNullOrWhiteSpace(connectionString))
             throw new ArgumentException("A connection string is required.", nameof(connectionString));

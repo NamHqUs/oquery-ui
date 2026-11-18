@@ -20,35 +20,33 @@ public sealed class PostgresQueryRequestRepository : IQueryRequestRepository
             connectionString,
             TABLE,
             () => builtinSource.GetBuiltin()
-                .Select(query => (query.Id, QueryRequestFileRepository.Serialize(query))));
+                .Select(request => (request.Id, request.Json)));
     }
 
-    public IReadOnlyCollection<QueryDto> GetBuiltin()
+    public IReadOnlyCollection<QueryRequestRecordDto> GetBuiltin()
         => _store.List(PostgresDocumentStore.BuiltinSectionId, isBuiltin: true)
-            .Select(row => ParseRow(row.Id, row.Body, isBuiltin: true))
+            .Select(row => new QueryRequestRecordDto(row.Id, row.Body, IsBuiltin: true))
             .ToArray();
 
-    public IReadOnlyCollection<QueryDto> GetUserDefined(string userSectionId)
+    public IReadOnlyCollection<QueryRequestRecordDto> GetUserDefined(string userSectionId)
         => _store.List(userSectionId, isBuiltin: false)
             .OrderByDescending(row => row.Id, StringComparer.Ordinal)
-            .Select(row => ParseRow(row.Id, row.Body, isBuiltin: false))
+            .Select(row => new QueryRequestRecordDto(row.Id, row.Body, IsBuiltin: false))
             .ToArray();
 
-    public QueryDto? Get(string userSectionId, string id)
+    public QueryRequestRecordDto? Get(string userSectionId, string id)
     {
         var body = _store.Find(userSectionId, id);
-        return body is null ? null : ParseRow(id, body, isBuiltin: false);
+        return body is null ? null : new QueryRequestRecordDto(id, body, IsBuiltin: false);
     }
 
-    public void Save(string userSectionId, QueryDto query)
+    public void Save(string userSectionId, QueryRequestRecordDto request)
     {
-        ArgumentNullException.ThrowIfNull(query);
-        ArgumentException.ThrowIfNullOrWhiteSpace(query.Id);
-        ArgumentException.ThrowIfNullOrWhiteSpace(query.Name);
-        ArgumentException.ThrowIfNullOrWhiteSpace(query.Entity);
-        ArgumentNullException.ThrowIfNull(query.Projections);
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Json);
 
-        _store.Upsert(userSectionId, query.Id, QueryRequestFileRepository.Serialize(query));
+        _store.Upsert(userSectionId, request.Id, request.Json);
     }
 
     public bool Delete(string userSectionId, string id)
@@ -65,7 +63,4 @@ public sealed class PostgresQueryRequestRepository : IQueryRequestRepository
 
         return id;
     }
-
-    private static QueryDto ParseRow(string id, string body, bool isBuiltin)
-        => QueryRequestFileRepository.ParseQueryRequest(body, isBuiltin, id, id);
 }
