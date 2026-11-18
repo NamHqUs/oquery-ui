@@ -1,6 +1,6 @@
 # Admin Analytics and Builtin Data Management (design)
 
-Status: proposed. No code yet.
+Status: decisions confirmed (Neon, analytics only, privacy notice on first visit). Implementing phases 1 to 5 (analytics). Builtin CRUD (phase 6) and the retention job's admin-audit parts are deferred.
 
 ## 1. Goals
 
@@ -22,16 +22,21 @@ Status: proposed. No code yet.
 | Section identity | Random ID in `sessionStorage` (`sectionId`). Ends after 30 minutes without activity or when the tab closes. |
 | IP address | Not stored. Country comes from a geo header only if the host provides one; otherwise it is left empty. |
 | Query text | Not stored. Events carry counts, flags, and status codes only. |
-| Privacy notice | Open. Default: show a short notice on first visit. |
-| Retention | Raw page views and events are deleted after 180 days. Section rows are kept for 365 days. |
+| Privacy notice | Show a short notice on first visit (confirmed). |
+| Retention | Page views are deleted after 180 days. Section rows are kept for 365 days. Pruning runs when the analytics store initializes. |
+| Scope | Analytics only for this step. Builtin CRUD (phase 6) is deferred. |
+| Routes | Admin API lives under `/analytics/*` (`/analytics/events` for ingest, `/analytics/admin/*` for reads). The admin page is the SPA route `/admin`, so the two do not collide in the Render rewrite rules. |
+| Config | Connection string: `ConnectionStrings__Analytics` (empty disables analytics). Admin token: `ADMIN_TOKEN`. Both are Render environment variables. |
 
-Assumption to confirm: builtin saved queries and domains move from files to Postgres, so admin edits survive redeploys.
+Deferred with builtin CRUD: builtin saved queries and domains moving from files to Postgres, so admin edits survive redeploys.
+
+Phase 1 scope for this step: page views and sections only. The `analytics_events` table, browser/OS/device/country fields, the navigation endpoint, and rate limiting are deferred. Ingest still validates batch size and field length, and it always returns 204 so a storage failure never breaks the app.
 
 ## 3. Current state to change
 
 - `IUserSectionManager` (`src/OQuery.UI/Application/Middlewares/UserSectionManager.cs`) is a stub that always returns `"123"`. All users therefore share one user-data folder. This must be fixed before per-user analytics or per-user data can be trusted. This design replaces the stub with the section ID from the request header.
 - Builtin data is read-only and file-based. The consumer loads it from `OQuery:Seeds:BasePath` through `BuiltinDataLoader` (SetupTests) and passes it to the repositories. Admin edits never write built-in data. User-created data is saved by the active provider (File or Postgres) and Render discards file writes on redeploy.
-- Repositories are chosen in `OQuery.UI.Api/Program.cs`. `AddDemoRepositories` (Storage.Files) always registers the file-based repositories. If `OQuery:Repositories:Postgres:ConnectionString` is set, `AddPostgresRepositories` (Storage.Postgres) replaces the domain and query repositories. The API reads the built-in rows from Files and passes them in. Storage.Postgres does not reference Storage.Files.
+- Repositories are chosen in `OQuery.UI.Api/Program.cs`: `FileRepositoryProvider` by default, or `PostgresRepositoryProvider` when `OQuery:Repositories:Postgres:ConnectionString` is set. Built-in domains and queries are passed to the provider constructor and held in memory. `builder.Services.AddRepositoryProvider(provider)` registers the Domain, Query, and Function repositories. Postgres stores user rows only. Function definitions are not stored in Postgres. Storage.Postgres does not reference Storage.Files.
 - Postgres mode needs `OQuery:Repositories:Postgres:ConnectionString` (for example via the `OQuery__Repositories__Postgres__ConnectionString` environment variable on Render). Do not commit the connection string.
 - Postgres mode currently covers domains and saved queries. Metadata, function definitions, and operator definitions stay file-based.
 
@@ -47,11 +52,7 @@ create table analytics_sections (
   utm_source     text,
   utm_medium     text,
   utm_campaign   text,
-  landing_page   text,
-  browser        text,
-  os             text,
-  device_type    text,
-  country        text
+  landing_page   text
 );
 
 create table analytics_page_views (
@@ -64,19 +65,10 @@ create table analytics_page_views (
   duration_ms    integer
 );
 
-create table analytics_events (
-  id             bigserial primary key,
-  section_id     uuid not null references analytics_sections(section_id),
-  occurred_at    timestamptz not null,
-  name           text not null,        -- allowlisted, see section 5
-  page           text,
-  endpoint       text,
-  status_code    integer,
-  duration_ms    integer,
-  props          jsonb                 -- counts and flags only
-);
+-- analytics_events: deferred (see section 2).
 
--- Implemented in Demo.Repositories.Postgres/PostgresDocumentStore.cs.
+-- Builtin data tables: deferred with phase 6. The user-data layout below is implemented in
+-- OQuery.UI.Storage.Postgres/PostgresDocumentStore.cs.
 -- One table per entity type: oquery_queries and oquery_domains.
 create table oquery_queries (        -- oquery_domains has the same layout
   user_section_id text        not null,  -- '' for builtin rows
@@ -87,6 +79,7 @@ create table oquery_queries (        -- oquery_domains has the same layout
   primary key (user_section_id, id)
 );
 
+-- admin_audit: deferred with phase 6.
 create table admin_audit (
   id          bigserial primary key,
   occurred_at timestamptz not null default now(),
@@ -97,7 +90,9 @@ create table admin_audit (
 );
 ```
 
-Indexes: `analytics_sections(started_at)`, `analytics_sections(visitor_id)`, `analytics_page_views(section_id)`, `analytics_page_views(page, entered_at)`, `analytics_events(name, occurred_at)`.
+Indexes: `analytics_sections(started_at)`, `analytics_sections(visitor_id)`, `analytics_page_views(section_id)`, `analytics_page_views(page, entered_at)`.
+
+Time model: the browser measures durations only (it never sends absolute times). The server sets `entered_at = received_at - duration_ms`, and `last_seen_at` is the server time of the latest batch. A section's duration is `last_seen_at - started_at`, which is kept current by a 30-second heartbeat while the tab is visible. Time is measured in active (visible) tab time.
 
 Storing builtin data as `jsonb` keeps the existing `DomainDto` and `QueryDto` shapes, so the repository interfaces (`IDomainRepository`, `IQueryRequestRepository`) do not change.
 
@@ -107,39 +102,40 @@ Seeding: on first use, the repositories insert the file-based builtin data with 
 
 `POST /analytics/events`
 
-- Body: `{ visitorId, sectionId, referrer?, utm?, events: [...] }`, at most 50 events per request.
-- Each event: `{ type: "page" | "event", name, page, endpoint?, statusCode?, durationMs?, props? }`.
+- Body: `{ visitorId, sectionId, referrer?, utmSource?, utmMedium?, utmCampaign?, landingPage?, pageViews: [{ page, durationMs }] }`. `pageViews` may be empty (heartbeat). At most 50 page views per request.
 - Server rules:
-  - `name` must be in an allowlist, for example `page_view`, `query_executed`, `query_saved`, `domain_selected`, `export_clicked`, `api_error`, and `frontend_error`.
-  - `props` keys must be in an allowlist. String values are length-capped, and query text is rejected.
-  - The server sets `occurred_at`. Client clocks are not trusted.
-  - Requests are rate-limited per `sectionId`, and bodies are capped at 16 KB.
-- The frontend sends with `navigator.sendBeacon` on page change and on `pagehide`. It falls back to `fetch` with `keepalive: true`.
+  - `visitorId` and `sectionId` must be non-empty GUIDs.
+  - `page` is reduced to its path (query and hash removed). It must start with `/` and be at most 300 characters.
+  - `durationMs` is clamped to `[0, 4 hours]`.
+  - `referrer` is stored as its host only. Non-absolute values are dropped. UTM values are trimmed and capped at 100 characters.
+  - The server sets all timestamps. Client clocks are not trusted.
+  - Storage failures are logged and the request still returns 204.
+- The frontend sends with `navigator.sendBeacon` on page change, visibility change, `pagehide`, and every 30 seconds (heartbeat). It falls back to `fetch` with `keepalive: true`.
+- Rate limiting per `sectionId` is deferred.
 
 ## 6. Admin API (token required)
 
-All endpoints require `X-Admin-Token`, compared in constant time.
+All endpoints require `X-Admin-Token`, compared in constant time. If `ADMIN_TOKEN` is unset, they return 404. A missing or wrong token returns 401.
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /admin/analytics/summary?from&to` | Totals: visitors, sections, average section duration, sections per visitor. |
-| `GET /admin/analytics/sources?from&to` | Referrer hosts, UTM campaigns, landing pages, with counts. |
-| `GET /admin/analytics/pages?from&to` | Page views, unique sections, average time per page. |
-| `GET /admin/analytics/navigation?from&to` | Top page-to-page transitions. |
-| `GET /admin/analytics/sections?from&to&page&limit` | Section list for drill-down. |
-| `GET /admin/analytics/errors?from&to` | API errors by endpoint and status. |
-| `GET/POST/PUT/DELETE /admin/builtin/queries[/{id}]` | Builtin saved query CRUD. Each write adds an `admin_audit` row. |
-| `GET/POST/PUT/DELETE /admin/builtin/domains[/{id}]` | Builtin domain CRUD. Same audit rule. |
-| `GET /admin/audit?limit` | Recent admin changes. |
+| `GET /analytics/admin/summary?from&to` | Visitors, sections, page views, average section duration, sections per visitor. |
+| `GET /analytics/admin/pages?from&to` | Page views, unique sections, average and total time per page, most visited first. |
+| `GET /analytics/admin/visitors?from&to&limit` | Visitors with section count (frequency), total time, and last seen. |
+| `GET /analytics/admin/sources?from&to` | Referrer host, UTM source, and UTM campaign, with section counts. |
 
-Aggregations run as SQL on the summary tables. Date ranges are capped at 366 days per request.
+`from` and `to` default to the last 30 days. `from` must be before `to`, and the range is capped at 366 days. Ranges filter by section start time.
+
+Deferred: `navigation`, `sections` drill-down, `errors`, and builtin CRUD with `admin_audit`.
 
 ## 7. Frontend
 
-- **Tracker service** `src/services/analytics-service.ts`. Per repository convention, the service owns the network call. It holds the ID generation, the event queue, the batching timer, and the `sendBeacon` fallback. Redux is not involved.
-- **Router hook** records page enter and leave, and computes time on page.
-- **Admin page** `/admin`, with a token prompt that stores the token in `sessionStorage`. It has charts for visits and sources, a page-frequency table, a navigation table, a section drill-down, and editors for builtin queries and domains.
+- **Tracker service** `src/services/analytics-service.ts`. Per repository convention, the service owns the network call. It holds the ID generation, the pending page-view queue, the heartbeat timer, and the `sendBeacon` fallback. Redux is not involved.
+- Section rotation: a stored section older than 30 minutes since its last page change or heartbeat is replaced with a new section ID. Pages under `/admin` are not tracked.
+- **Router hook** in `main.tsx` calls the tracker on each pathname change.
+- **Admin page** `/admin`, with a token prompt that stores the token in `sessionStorage`. It shows summary cards, a page table, a visitor table, and a source table, with a 7/30/90-day range selector. Charts, the navigation table, the section drill-down, and builtin editors are deferred.
 - Admin service `src/services/admin-service.ts` owns admin fetches, following the same pattern.
+- The Vite dev proxy and the Render rewrite rules need an `/analytics/*` entry. See `docs/frontend/deploy.md`.
 
 ## 8. Privacy and safety
 
@@ -168,7 +164,13 @@ Aggregations run as SQL on the summary tables. Date ranges are capped at 366 day
 
 ## 11. Open questions
 
-1. Confirm builtin data moves to Postgres (assumed above).
-2. Privacy notice: show it, or track without one?
-3. Keep the 180-day retention for events and 365-day retention for sections?
-4. Should `query_executed` record the query's entity count and operator count? (Structural counts only, no text.)
+1. Builtin data moving to Postgres: deferred with phase 6.
+2. Privacy notice: resolved. Show on first visit.
+3. Retention: resolved. 180 days for page views, 365 days for sections.
+4. `query_executed` structural counts: deferred with the events table.
+
+## 12. Known gaps in this step
+
+- `UserSectionManager` is still a stub that returns `"123"`. Analytics does not depend on it, so it is not changed here.
+- Rate limiting per section is not implemented yet. The batch size cap and the 16 KB default body limit bound each request.
+- Retention runs once per process start. The daily job is not implemented.

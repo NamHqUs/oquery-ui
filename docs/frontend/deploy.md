@@ -36,6 +36,7 @@ In the static site's **Redirects/Rewrites** settings, add these rules, in this o
 | `/dynamic-query/*` | `https://oquery-ui-1.onrender.com/dynamic-query/*` | Rewrite |
 | `/query-request` | `https://oquery-ui-1.onrender.com/query-request` | Rewrite |
 | `/query-request/*` | `https://oquery-ui-1.onrender.com/query-request/*` | Rewrite |
+| `/analytics/*` | `https://oquery-ui-1.onrender.com/analytics/*` | Rewrite |
 | `/*` | `/index.html` | Rewrite |
 
 Notes:
@@ -43,7 +44,19 @@ Notes:
 - Keep the `/*` catch-all last.
 - Rules are applied on save, usually within a minute, with no rebuild.
 
-`public/_redirects` in the repo has the same rules. It is a fallback only, because the Render dashboard rules are the ones verified to take effect.
+### Analytics (API service `oquery-ui-1`)
+
+Set these environment variables on the API service. Without them, ingest returns 204 and discards events, and the admin endpoints return 503.
+
+| Variable | Purpose |
+|---|---|
+| `ConnectionStrings__Analytics` | Neon Postgres connection string. The tables are created on first use. |
+| `ADMIN_TOKEN` | Shared secret for `/admin`. If unset, the admin endpoints return 404. |
+
+The admin page is at `/admin`. Enter `ADMIN_TOKEN` there. The token is kept in `sessionStorage` for that tab only.
+
+
+The repo has no `public/_redirects` file. The Render dashboard rules are the only source of routing.
 
 ## 4. Verify
 

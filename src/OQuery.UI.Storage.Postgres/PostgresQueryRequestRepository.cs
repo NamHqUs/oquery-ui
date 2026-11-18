@@ -7,33 +7,27 @@ namespace OQuery.UI.Storage.Postgres;
 
 public sealed class PostgresQueryRequestRepository : IQueryRequestRepository
 {
-    private const string TABLE = "oquery_queries";
+    internal const string TABLE = "oquery_queries";
     private const string ID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
     private readonly PostgresDocumentStore _store;
+    private readonly IReadOnlyCollection<QueryRequestRecordDto> _builtin;
 
-    public PostgresQueryRequestRepository(string connectionString, IReadOnlyCollection<QueryRequestRecordDto> builtinQueries)
+    internal PostgresQueryRequestRepository(PostgresDocumentStore store, IReadOnlyCollection<QueryRequestRecordDto> builtinQueries)
     {
-        _store = new PostgresDocumentStore(
-            connectionString,
-            TABLE,
-            () => builtinQueries.Select(request => (request.Id, request.Json)));
+        _store = store;
+        _builtin = builtinQueries;
     }
 
-
-    public IReadOnlyCollection<QueryRequestRecordDto> GetBuiltin()
-        => _store.List(PostgresDocumentStore.BuiltinSectionId, isBuiltin: true)
-            .Select(row => new QueryRequestRecordDto(row.Id, row.Body, IsBuiltin: true))
-            .ToArray();
-
-    public IReadOnlyCollection<QueryRequestRecordDto> GetUserDefined(string userSectionId)
-        => _store.List(userSectionId, isBuiltin: false)
-            .OrderByDescending(row => row.Id, StringComparer.Ordinal)
-            .Select(row => new QueryRequestRecordDto(row.Id, row.Body, IsBuiltin: false))
-            .ToArray();
+    public IReadOnlyCollection<QueryRequestRecordDto> GetAll(string userSectionId)
+        => [.. _builtin, .. GetUserDefined(userSectionId)];
 
     public QueryRequestRecordDto? Get(string userSectionId, string id)
     {
+        var builtin = _builtin.FirstOrDefault(query => query.Id == id);
+        if (builtin is not null)
+            return builtin;
+
         var body = _store.Find(userSectionId, id);
         return body is null ? null : new QueryRequestRecordDto(id, body, IsBuiltin: false);
     }
@@ -43,12 +37,18 @@ public sealed class PostgresQueryRequestRepository : IQueryRequestRepository
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.Id);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.Json);
+        if (_builtin.Any(query => query.Id == request.Id))
+            throw new InvalidOperationException($"Built-in query '{request.Id}' is read-only.");
 
         _store.Upsert(userSectionId, request.Id, request.Json);
     }
 
     public bool Delete(string userSectionId, string id)
-        => _store.Delete(userSectionId, id);
+    {
+        if (_builtin.Any(query => query.Id == id))
+            throw new InvalidOperationException($"Built-in query '{id}' is read-only.");
+        return _store.Delete(userSectionId, id);
+    }
 
     public string CreateId(string userSectionId)
     {
@@ -61,4 +61,10 @@ public sealed class PostgresQueryRequestRepository : IQueryRequestRepository
 
         return id;
     }
+
+    private IReadOnlyCollection<QueryRequestRecordDto> GetUserDefined(string userSectionId)
+        => _store.List(userSectionId)
+            .OrderByDescending(row => row.Id, StringComparer.Ordinal)
+            .Select(row => new QueryRequestRecordDto(row.Id, row.Body, IsBuiltin: false))
+            .ToArray();
 }

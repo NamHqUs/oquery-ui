@@ -15,8 +15,7 @@ public sealed class DomainService(
     private IReadOnlyList<DomainDto> GetAllDomainsForValidation()
     {
         var sectionId = userSectionManager.GetSectionId();
-        return repository.GetBuiltin()
-            .Concat(repository.GetUserDefined(sectionId))
+        return repository.GetAll(sectionId)
             .Select(scope => new DomainDto
             {
                 Id = scope.Id,
@@ -45,10 +44,8 @@ public sealed class DomainService(
         ArgumentException.ThrowIfNullOrWhiteSpace(domainId);
         var requestedId = domainId.Trim();
         var sectionId = userSectionManager.GetSectionId();
-        var domain = repository.GetBuiltin()
-                .FirstOrDefault(scope => scope.Id.Equals(requestedId, StringComparison.OrdinalIgnoreCase))
-            ?? repository.Get(sectionId, requestedId)
-            ?? repository.GetUserDefined(sectionId)
+        var domain = repository.Get(sectionId, requestedId)
+            ?? repository.GetAll(sectionId)
                 .FirstOrDefault(scope => scope.Id.Equals(requestedId, StringComparison.OrdinalIgnoreCase));
         if (domain is null)
             throw new KeyNotFoundException($"Domain '{requestedId}' was not found.");

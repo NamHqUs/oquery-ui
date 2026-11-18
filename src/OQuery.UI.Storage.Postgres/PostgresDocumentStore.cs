@@ -3,35 +3,28 @@ using NpgsqlTypes;
 
 namespace OQuery.UI.Storage.Postgres;
 
+/// <summary>Stores user-defined documents only. Built-in data is held in memory by the repositories.</summary>
 internal sealed class PostgresDocumentStore
 {
-    internal const string BuiltinSectionId = "";
-
     private readonly string _connectionString;
     private readonly string _table;
-    private readonly Func<IEnumerable<(string Id, string Body)>> _seed;
     private readonly Lock _initLock = new();
     private volatile bool _initialized;
 
-    public PostgresDocumentStore(
-        string connectionString,
-        string table,
-        Func<IEnumerable<(string Id, string Body)>> seed)
+    public PostgresDocumentStore(string connectionString, string table)
     {
         _connectionString = connectionString;
         _table = table;
-        _seed = seed;
     }
 
-    public IReadOnlyList<(string Id, string Body)> List(string userSectionId, bool isBuiltin)
+    public IReadOnlyList<(string Id, string Body)> List(string userSectionId)
     {
         EnsureInitialized();
         using var connection = OpenConnection();
         using var command = new NpgsqlCommand(
-            $"select id, body::text from {_table} where user_section_id = @section and is_builtin = @builtin order by id",
+            $"select id, body::text from {_table} where user_section_id = @section order by id",
             connection);
         command.Parameters.AddWithValue("section", userSectionId);
-        command.Parameters.AddWithValue("builtin", isBuiltin);
 
         using var reader = command.ExecuteReader();
         var rows = new List<(string Id, string Body)>();
@@ -45,7 +38,7 @@ internal sealed class PostgresDocumentStore
         EnsureInitialized();
         using var connection = OpenConnection();
         using var command = new NpgsqlCommand(
-            $"select body::text from {_table} where user_section_id = @section and id = @id and is_builtin = false",
+            $"select body::text from {_table} where user_section_id = @section and id = @id",
             connection);
         command.Parameters.AddWithValue("section", userSectionId);
         command.Parameters.AddWithValue("id", id);
@@ -58,8 +51,8 @@ internal sealed class PostgresDocumentStore
         using var connection = OpenConnection();
         using var command = new NpgsqlCommand(
             $"""
-            insert into {_table} (user_section_id, id, is_builtin, body, updated_at)
-            values (@section, @id, false, @body, now())
+            insert into {_table} (user_section_id, id, body, updated_at)
+            values (@section, @id, @body, now())
             on conflict (user_section_id, id)
             do update set body = excluded.body, updated_at = excluded.updated_at
             """,
@@ -75,7 +68,7 @@ internal sealed class PostgresDocumentStore
         EnsureInitialized();
         using var connection = OpenConnection();
         using var command = new NpgsqlCommand(
-            $"delete from {_table} where user_section_id = @section and id = @id and is_builtin = false",
+            $"delete from {_table} where user_section_id = @section and id = @id",
             connection);
         command.Parameters.AddWithValue("section", userSectionId);
         command.Parameters.AddWithValue("id", id);
@@ -99,7 +92,6 @@ internal sealed class PostgresDocumentStore
                 create table if not exists {_table} (
                     user_section_id text not null,
                     id text not null,
-                    is_builtin boolean not null,
                     body jsonb not null,
                     updated_at timestamptz not null default now(),
                     primary key (user_section_id, id))
@@ -108,23 +100,6 @@ internal sealed class PostgresDocumentStore
                 transaction))
             {
                 create.ExecuteNonQuery();
-            }
-
-            // Builtin rows are seeded once. ON CONFLICT DO NOTHING keeps edits made later through the admin API.
-            foreach (var (id, body) in _seed())
-            {
-                using var insert = new NpgsqlCommand(
-                    $"""
-                    insert into {_table} (user_section_id, id, is_builtin, body, updated_at)
-                    values (@section, @id, true, @body, now())
-                    on conflict (user_section_id, id) do nothing
-                    """,
-                    connection,
-                    transaction);
-                insert.Parameters.AddWithValue("section", BuiltinSectionId);
-                insert.Parameters.AddWithValue("id", id);
-                insert.Parameters.Add(new NpgsqlParameter("body", NpgsqlDbType.Jsonb) { Value = body });
-                insert.ExecuteNonQuery();
             }
 
             transaction.Commit();

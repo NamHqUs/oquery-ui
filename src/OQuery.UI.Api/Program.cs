@@ -1,7 +1,10 @@
 using OQuery.UI.Storage.Files;
+using OQuery.UI.Storage.Files.FileStorage;
 using OQuery.UI.Storage.Postgres;
+using OQuery.UI.Storage.Postgres.Analytics;
 using OQuery.UI.Abstracts;
 using OQuery.UI.Abstracts.Application;
+using OQuery.UI.Abstracts.Repositories;
 using OQuery.UI.Api.Services;
 using OQuery.UI.Application;
 using OQuery.UI.Application.Middlewares;
@@ -39,19 +42,22 @@ builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Built-in data is consumer-owned: loaded once here and handed to the repositories, which only load/save user data.
+// Built-in data is consumer-owned: loaded here and passed to the selected provider. Providers only load/save.
 var dataSets = configuration.GetSection("OQuery:Seeds:DataSets").Get<string[]>()
     ?? throw new InvalidOperationException("Configuration 'OQuery:Seeds:DataSets' is missing.");
 var seeds = BuiltinDataLoader.Load(configuration["OQuery:Seeds:BasePath"], dataSets);
-builder.Services.AddDemoRepositories(seeds.Domains, seeds.Queries);
 var postgresConnection = configuration["OQuery:Repositories:Postgres:ConnectionString"];
-if (!string.IsNullOrWhiteSpace(postgresConnection))
-{
-    // Replaces the file-based domain and query repositories registered above.
-    builder.Services.AddPostgresRepositories(postgresConnection, seeds.Domains, seeds.Queries);
-}
+IRepositoryProvider repositoryProvider = string.IsNullOrWhiteSpace(postgresConnection)
+    ? new FileRepositoryProvider(new FilePathResolver(configuration), seeds.Domains, seeds.Queries)
+    : new PostgresRepositoryProvider(postgresConnection, seeds.Domains, seeds.Queries);
+builder.Services.AddRepositoryProvider(repositoryProvider);
 builder.Services.AddDemoServices();
 builder.Services.AddSingleton<IUserSectionManager, UserSectionManager>();
+
+// Analytics is optional: without ConnectionStrings:Analytics, ingest drops data and admin endpoints return 503.
+var analyticsConnection = configuration.GetConnectionString("Analytics");
+if (!string.IsNullOrWhiteSpace(analyticsConnection))
+    builder.Services.AddSingleton<IAnalyticsRepository>(new PostgresAnalyticsRepository(analyticsConnection));
 
 DialectModules.RegisterFromFolder(Path.GetFullPath(Path.Combine(
     Environment.CurrentDirectory,

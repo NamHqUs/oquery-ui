@@ -1,0 +1,88 @@
+.admin-analytics {
+  padding: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.admin-analytics-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-analytics-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-analytics-controls [aria-pressed="true"] {
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.admin-analytics-login form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 360px;
+}
+
+.admin-analytics-login label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-analytics-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.admin-analytics-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--border, #d0d7de);
+  border-radius: 8px;
+}
+
+.admin-analytics-card span {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.admin-analytics-card strong {
+  font-size: 22px;
+}
+
+.admin-analytics-table {
+  margin-top: 24px;
+  overflow-x: auto;
+}
+
+.admin-analytics-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.admin-analytics-table th,
+.admin-analytics-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border, #d0d7de);
+}
+
+.admin-analytics-error {
+  color: #b42318;
+}
+
+.admin-analytics-muted {
+  opacity: 0.7;
+}

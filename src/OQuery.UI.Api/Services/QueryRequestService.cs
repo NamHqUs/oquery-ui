@@ -96,10 +96,13 @@ public sealed class QueryRequestService(
     }
 
     private IReadOnlyList<QueryDto> Builtins()
-        => repository.GetBuiltin().Select(QueryRequestCodec.Parse).ToArray();
+        => AllQueries(userSectionManager.GetSectionId()).Where(query => query.IsBuiltin).ToArray();
 
     private IReadOnlyList<QueryDto> UserDefined(string sectionId)
-        => repository.GetUserDefined(sectionId).Select(QueryRequestCodec.Parse).ToArray();
+        => AllQueries(sectionId).Where(query => !query.IsBuiltin).ToArray();
+
+    private IReadOnlyList<QueryDto> AllQueries(string sectionId)
+        => repository.GetAll(sectionId).Select(QueryRequestCodec.Parse).ToArray();
 
     private QueryDto? Find(string sectionId, string id)
         => repository.Get(sectionId, id) is { } record ? QueryRequestCodec.Parse(record) : null;

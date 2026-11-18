@@ -109,7 +109,7 @@ public sealed class FunctionDefinitionService(
             string.Equals(definition.Name, functionName, StringComparison.OrdinalIgnoreCase));
 
     private IReadOnlyCollection<SqlFunctionDefintion> UserDefined(string sectionId)
-        => repository.GetUserDefined(sectionId)
+        => repository.GetAll(sectionId)
             .Select(dto => dto.ToFunctionDefinition())
             .ToArray();
 

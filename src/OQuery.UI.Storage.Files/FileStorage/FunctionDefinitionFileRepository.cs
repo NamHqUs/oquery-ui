@@ -11,11 +11,11 @@ namespace OQuery.UI.Storage.Files.FileStorage;
 /// Built-in functions are not stored here; the consumer supplies them from its dialects.
 /// </summary>
 public sealed class FunctionDefinitionFileRepository(FilePathResolver filePathResolver)
-    : FileRepositoryBase<FunctionDefinitionDto>(filePathResolver, FOLDER_NAME, []), IFunctionDefinitionRepository
+    : FileRepositoryBase<FunctionDefinitionDto>(filePathResolver, FOLDER_NAME), IFunctionDefinitionRepository
 {
     private const string FOLDER_NAME = "functions";
 
-    public override IReadOnlyCollection<FunctionDefinitionDto> GetUserDefined(string userSectionId)
+    public override IReadOnlyCollection<FunctionDefinitionDto> GetAll(string userSectionId)
     {
         var merged = new Dictionary<string, FunctionDefinitionDto>(StringComparer.OrdinalIgnoreCase);
         foreach (var path in GetDbTypeFolders(userSectionId).SelectMany(dir => Directory.EnumerateFiles(dir, "*.json")))
@@ -37,7 +37,7 @@ public sealed class FunctionDefinitionFileRepository(FilePathResolver filePathRe
     }
 
     public override FunctionDefinitionDto? Get(string userSectionId, string id)
-        => GetUserDefined(userSectionId).FirstOrDefault(definition =>
+        => GetAll(userSectionId).FirstOrDefault(definition =>
             string.Equals(definition.Name, id, StringComparison.OrdinalIgnoreCase));
 
     public override void Save(string userSectionId, FunctionDefinitionDto definition)

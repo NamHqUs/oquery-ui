@@ -18,7 +18,6 @@ export const apiUrls = {
     },
   },
   metadata: {
-    reset: `${backendApiUrl}/metadata/reset`,
     functions: `${backendApiUrl}/metadata/functions`,
     functionByName: (functionName: string) => `${backendApiUrl}/metadata/functions/${encodeURIComponent(functionName)}`,
     createDomain: `${backendApiUrl}/metadata/domains`,
@@ -36,6 +35,13 @@ export const apiUrls = {
     fromOQuery: `${backendApiUrl}/dynamic-query/query/from-oquery`,
     toStringText: `${backendApiUrl}/dynamic-query/query/to-string-from-text`,
     toStringContextText: (context: string) => `${backendApiUrl}/dynamic-query/query/to-string-from-text/${encodeURIComponent(context)}`,
+  },
+  analytics: {
+    events: `${backendApiUrl}/analytics/events`,
+    adminSummary: `${backendApiUrl}/analytics/admin/summary`,
+    adminPages: `${backendApiUrl}/analytics/admin/pages`,
+    adminVisitors: `${backendApiUrl}/analytics/admin/visitors`,
+    adminSources: `${backendApiUrl}/analytics/admin/sources`,
   },
   queryRequests: {
     list: `${backendApiUrl}/query-request`,

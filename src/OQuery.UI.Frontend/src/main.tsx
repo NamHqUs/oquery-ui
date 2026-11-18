@@ -13,6 +13,8 @@ import { parseWizardRoute, WIZARD_ROUTE_PATHS } from "./components/metadata-buil
 import FunctionDefinitionsWorkspace from "./components/function-definition/function-definition";
 import Home from "./components/home/home";
 import Documentation from "./components/documentation/documentation";
+import AdminAnalytics from "./components/admin/admin-analytics";
+import AnalyticsTracker from "./components/analytics/analytics-tracker";
 import { documentationSubmenu } from "./components/documentation/doc-agenda";
 import { GITHUB_URL, PRODUCT_NAME } from "./components/home/home-content";
 import { MessageBoxProvider } from "./components/message-box/message-box";
@@ -30,6 +32,8 @@ const PAGE_PATHS = {
 } as const;
 
 const LEGACY_FUNCTIONS_PATH = "/functions";
+// Not linked from the navigation. Admins open it by URL; the page asks for the admin token.
+const ADMIN_PATH = "/admin";
 const DOMAINS_PATH = "/metadata/domains";
 const DIAGRAMS_PATH = "/metadata/diagrams";
 const ENTITIES_PATH = "/metadata/entities";
@@ -390,6 +394,7 @@ function App() {
           routerNavigate(section === "domains" ? DOMAINS_PATH : section === "entities" ? ENTITIES_PATH : DIAGRAMS_PATH);
         }}
       />
+      <AnalyticsTracker />
       <div className="page-content">
         <Routes>
           <Route path={PAGE_PATHS.home} element={<div className="page-transition page-transition-no-slide"><Home onNavigateToPage={navigateToPage} onBuilderDomainSelect={navigateToBuilderDomain} onRequestConnection={requestDatabaseConnection} /></div>} />
@@ -405,6 +410,7 @@ function App() {
           <Route path={PAGE_PATHS.functions} element={null} />
           <Route path={LEGACY_FUNCTIONS_PATH} element={<Navigate to={PAGE_PATHS.functions} replace />} />
           <Route path={PAGE_PATHS.sources} element={<div className="page-transition page-transition-no-slide"><DataSources onRequestConnection={requestDatabaseConnection} /></div>} />
+          <Route path={ADMIN_PATH} element={<div className="page-transition page-transition-no-slide"><AdminAnalytics /></div>} />
           <Route path="*" element={<Navigate to={PAGE_PATHS.home} replace />} />
         </Routes>
       {connectionDialogOpen && createPortal(

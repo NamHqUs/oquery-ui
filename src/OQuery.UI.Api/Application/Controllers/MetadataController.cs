@@ -1,21 +1,15 @@
 using OQuery.UI.Abstracts.Dto;
 using OQuery.UI.Abstracts.Services;
 using Microsoft.AspNetCore.Mvc;
-using OQuery;
 
 namespace OQuery.UI.Application.Controllers;
 
 [ApiController]
 [Route("metadata")]
 public sealed class MetadataController(
-    IMetadataService metadataService,
     IDomainService domainService,
     IFunctionDefinitionService functionDefinitionService) : ControllerBase
 {
-    [HttpPost("reset")]
-    public ActionResult<IReadOnlyList<Entity>> Reset()
-        => Ok(metadataService.Reset());
-
     [HttpGet("domains/names")]
     public ActionResult<IReadOnlyList<DomainNameDto>> GetDomainNames()
         => Ok(domainService.GetAllDomainNames());
