@@ -5,10 +5,8 @@ namespace OQuery.UI.Storage.Files.FileStorage;
 
 public sealed class FilePathResolver(IConfiguration configuration)
 {
-    const string FOLDER_NAME = "UserData";
-
-    public string GetStorageRootDirectory()
-        => BuiltinDatasets.GetRootDirectory(configuration["Setup:FileStoragePath"]);
+    public string GetUserDataRootDirectory()
+        => BuiltinDatasets.GetRootDirectory(configuration["Setup:UserDataStorePath"]);
 
     public string GetBuiltinRootDirectory()
         => BuiltinDatasets.GetRootDirectory(configuration["Setup:BuiltinPath"]);
@@ -24,10 +22,10 @@ public sealed class FilePathResolver(IConfiguration configuration)
         if (string.IsNullOrWhiteSpace(userSectionId) || Path.GetFileName(userSectionId) != userSectionId)
             throw new InvalidOperationException("User section ID is not available.");
 
-        var rootDir = GetStorageRootDirectory();
+        var rootDir = GetUserDataRootDirectory();
 
         return subDir is null
-            ? Path.Combine(rootDir, FOLDER_NAME, userSectionId)
-            : Path.Combine(rootDir, FOLDER_NAME, userSectionId, subDir);
+            ? Path.Combine(rootDir, userSectionId)
+            : Path.Combine(rootDir, userSectionId, subDir);
     }
 }

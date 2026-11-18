@@ -10,31 +10,34 @@ namespace OQuery.UI.Storage.Files.FileStorage;
 public sealed class FunctionDefinitionFileRepository(FilePathResolver filePathResolver)
     : FileRepositoryBase<SqlFunctionDefintion>(filePathResolver, FOLDER_NAME), IFunctionDefinitionRepository
 {
-    private const string FOLDER_NAME = "FunctionDefinitions";
+    private const string FOLDER_NAME = "functions";
 
     public override IReadOnlyCollection<SqlFunctionDefintion> GetBuiltin() => GetBuiltInDefinitions();
 
     public override IReadOnlyCollection<SqlFunctionDefintion> GetUserDefined(string userSectionId)
     {
-        var dir = GetUserStoreFolder(userSectionId);
-        if (!Directory.Exists(dir))
-            return [];
-
         var builtInNames = GetBuiltInDefinitions()
             .Select(definition => definition.Name)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var definitions = new Dictionary<string, SqlFunctionDefintion>(StringComparer.OrdinalIgnoreCase);
-        foreach (var path in Directory.EnumerateFiles(dir, "*.json"))
+        var merged = new Dictionary<string, FunctionDefinitionDto>(StringComparer.OrdinalIgnoreCase);
+        foreach (var path in GetDbTypeFolders(userSectionId).SelectMany(dir => Directory.EnumerateFiles(dir, "*.json")))
         {
             var dto = JsonSerializer.Deserialize<FunctionDefinitionDto>(File.ReadAllText(path))
                 ?? throw new InvalidOperationException($"Failed to deserialize function definition from '{path}'.");
-            var definition = dto.ToFunctionDefinition();
-            if (builtInNames.Contains(definition.Name))
-                throw new InvalidDataException($"User function '{definition.Name}' cannot replace a built-in function.");
-            if (!definitions.TryAdd(definition.Name, definition))
-                throw new InvalidDataException($"Duplicate user function '{definition.Name}' found in '{path}'.");
+            if (builtInNames.Contains(dto.Name))
+                throw new InvalidDataException($"User function '{dto.Name}' cannot replace a built-in function.");
+            if (!merged.TryGetValue(dto.Name, out var existing))
+            {
+                merged[dto.Name] = dto;
+                continue;
+            }
+            foreach (var (dbType, template) in dto.SqlTemplates)
+            {
+                if (!existing.SqlTemplates.TryAdd(dbType, template))
+                    throw new InvalidDataException($"Duplicate SQL template for user function '{dto.Name}' and database '{dbType}' found in '{path}'.");
+            }
         }
-        return definitions.Values.ToArray();
+        return merged.Values.Select(dto => dto.ToFunctionDefinition()).ToArray();
     }
 
     public override SqlFunctionDefintion? Get(string userSectionId, string id)
@@ -43,20 +46,45 @@ public sealed class FunctionDefinitionFileRepository(FilePathResolver filePathRe
 
     public override void Save(string userSectionId, SqlFunctionDefintion definition)
     {
-        Directory.CreateDirectory(GetUserStoreFolder(userSectionId));
-        var path = GetUserFilePath(userSectionId, GetFileId(definition.Name));
-        File.WriteAllText(path, JsonSerializer.Serialize(
-            FunctionDefinitionDto.FromFunctionDefinition(definition),
-            new JsonSerializerOptions { WriteIndented = true }));
+        Delete(userSectionId, definition.Name);
+        var fileName = $"{GetFileId(definition.Name)}.json";
+        foreach (var (dbType, template) in definition.SqlTemplates)
+        {
+            var dto = FunctionDefinitionDto.FromFunctionDefinition(definition);
+            dto.SqlTemplates = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [dbType] = template };
+            var dir = GetDbTypeFolder(userSectionId, dbType);
+            Directory.CreateDirectory(dir);
+            File.WriteAllText(Path.Combine(dir, fileName), JsonSerializer.Serialize(
+                dto,
+                new JsonSerializerOptions { WriteIndented = true }));
+        }
     }
 
     public override bool Delete(string userSectionId, string id)
     {
-        var path = GetUserFilePath(userSectionId, GetFileId(id));
-        if (!File.Exists(path))
-            return false;
-        File.Delete(path);
-        return true;
+        var fileName = $"{GetFileId(id)}.json";
+        var deleted = false;
+        foreach (var path in GetDbTypeFolders(userSectionId).Select(dir => Path.Combine(dir, fileName)))
+        {
+            if (!File.Exists(path))
+                continue;
+            File.Delete(path);
+            deleted = true;
+        }
+        return deleted;
+    }
+
+    private string GetDbTypeFolder(string userSectionId, string dbType)
+    {
+        if (string.IsNullOrWhiteSpace(dbType) || Path.GetFileName(dbType) != dbType)
+            throw new ArgumentException("SQL template key is not a valid database folder name.", nameof(dbType));
+        return filePathResolver.GetUserStoreFolder(userSectionId, Path.Combine(FOLDER_NAME, dbType));
+    }
+
+    private IEnumerable<string> GetDbTypeFolders(string userSectionId)
+    {
+        var root = filePathResolver.GetUserStoreFolder(userSectionId, FOLDER_NAME);
+        return Directory.Exists(root) ? Directory.EnumerateDirectories(root) : Enumerable.Empty<string>();
     }
 
     private static IReadOnlyCollection<SqlFunctionDefintion> GetBuiltInDefinitions()

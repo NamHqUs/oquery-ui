@@ -8,7 +8,7 @@ if ($LASTEXITCODE -ne 0) {
 docker run --rm `
 	-p 21210:8080 `
 	-e DbProvider__Default=Sqlite `
-	-e Setup__FileStoragePath="../var/data" `
+	-e Setup__UserDataStorePath="../var/data/UserData" `
 	-v "${fileStoragePath}:/var/data" `
 	oquery-ui:dev
 if ($LASTEXITCODE -ne 0) {

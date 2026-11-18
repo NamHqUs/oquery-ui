@@ -29,7 +29,7 @@ internal sealed class DynamicQueryServiceTests
         => new(
             new FakeDbConnectionService(),
             new FakeDomainService(),
-            new FakeMetadataService(),
+            new FakeFunctionDefinitionService(),
             new FakeOperatorDefinitionService(),
             NullLogger<DynamicQueryService>.Instance);
 
@@ -98,12 +98,12 @@ internal sealed class DynamicQueryServiceTests
         public void Delete(string domainId) => throw new NotSupportedException();
     }
 
-    private sealed class FakeMetadataService : IMetadataService
+    private sealed class FakeFunctionDefinitionService : IFunctionDefinitionService
     {
-        public IFunctionProvider GetFunctionProvider(ISqlDialect dialect) => new FunctionProvider(dialect);
-        public IReadOnlyList<EntityDto> GetAll() => throw new NotSupportedException();
-        public IReadOnlyList<Entity> Reset() => throw new NotSupportedException();
-        public IMetadataProvider GetMetaProvider() => throw new NotSupportedException();
+        public IReadOnlyList<FunctionDefinitionDto> GetAll() => [];
+        public FunctionDefinitionDto Create(FunctionDefinitionDto dto) => throw new NotSupportedException();
+        public FunctionDefinitionDto Update(string functionName, FunctionDefinitionDto dto) => throw new NotSupportedException();
+        public void Delete(string functionName) => throw new NotSupportedException();
     }
 
     private sealed class FakeOperatorDefinitionService : IOperatorDefinitionService

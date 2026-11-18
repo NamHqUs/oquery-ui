@@ -8,5 +8,4 @@ public interface IMetadataService
     IReadOnlyList<EntityDto> GetAll();
     IReadOnlyList<Entity> Reset();
     IMetadataProvider GetMetaProvider();
-    IFunctionProvider GetFunctionProvider(ISqlDialect dialect);
 }

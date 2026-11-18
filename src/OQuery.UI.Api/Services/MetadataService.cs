@@ -9,16 +9,13 @@ namespace OQuery.UI.Api.Services;
 public sealed class MetadataService : IMetadataService
 {
     private readonly IMetadataRepository _metadataRepository;
-    private readonly IFunctionDefinitionService _functionDefinitionService;
     private readonly IUserSectionManager _userSectionManager;
 
     public MetadataService(
         IMetadataRepository metadataRepository,
-        IFunctionDefinitionService functionDefinitionService,
         IUserSectionManager userSectionManager)
     {
         _metadataRepository = metadataRepository;
-        _functionDefinitionService = functionDefinitionService;
         _userSectionManager = userSectionManager;
     }
 
@@ -39,11 +36,6 @@ public sealed class MetadataService : IMetadataService
 
     public IMetadataProvider GetMetaProvider()
         => new MetadataProvider(GetAllEntities(_userSectionManager.GetSectionId()));
-
-    public IFunctionProvider GetFunctionProvider(ISqlDialect dialect)
-        => new FunctionProvider(
-            dialect,
-            _functionDefinitionService.GetAll().Select(definition => definition.ToFunctionDefinition()));
 
     private IReadOnlyList<Entity> GetAllEntities(string userSectionId)
     {

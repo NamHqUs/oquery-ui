@@ -1,4 +1,4 @@
-using OQuery.UI.Api.Database;
+using OQuery.UI.Application;
 using NUnit.Framework;
 
 namespace OQuery.UI.Api.UnitTest;
@@ -7,5 +7,5 @@ namespace OQuery.UI.Api.UnitTest;
 public sealed class DialectRegistrationSetUp
 {
     [OneTimeSetUp]
-    public void RegisterDialects() => DialectModules.RegisterAll();
+    public void RegisterDialects() => DialectModules.RegisterFromFolder(AppContext.BaseDirectory);
 }

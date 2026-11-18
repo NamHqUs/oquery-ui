@@ -8,7 +8,7 @@ namespace OQuery.UI.Api.Services;
 public sealed class DynamicQueryService(
     IDbConnectionService dbConnectionService,
     IDomainService domainService,
-    IMetadataService metadataService,
+    IFunctionDefinitionService functionDefinitionService,
     IOperatorDefinitionService operatorDefinitionService,
     ILogger<DynamicQueryService> logger) : IDynamicQueryService
 {
@@ -31,7 +31,7 @@ public sealed class DynamicQueryService(
         using var context = new OQueryEngine(
             connection,
             metadataProvider,
-            metadataService.GetFunctionProvider(dialect),
+            CreateFunctionProvider(dialect),
             dialect);
         var preparedQuery = EnsureDefaultProjection(PrepareQuery(query, dialect, metadataProvider), metadataProvider);
         return context.Query(preparedQuery).ToSql().CommandText;
@@ -52,7 +52,7 @@ public sealed class DynamicQueryService(
         using var context = new OQueryEngine(
             connection,
             metadataProvider,
-            metadataService.GetFunctionProvider(dialect),
+            CreateFunctionProvider(dialect),
             dialect);
         var preparedQuery = EnsureDefaultProjection(PrepareQuery(query, dialect, metadataProvider), metadataProvider);
         var result = await context.Query(preparedQuery)
@@ -86,6 +86,11 @@ public sealed class DynamicQueryService(
 
     public string GetContextSqlQueryString(string text, string contextName, string domainId)
         => GetSqlQueryString(QueryDefinitionOQueryParser.Parse(text, contextName), domainId);
+
+    private IFunctionProvider CreateFunctionProvider(ISqlDialect dialect)
+        => new FunctionProvider(
+            dialect,
+            functionDefinitionService.GetAll().Select(definition => definition.ToFunctionDefinition()));
 
     private static QueryDefinition EnsureDefaultProjection(
         QueryDefinition query,

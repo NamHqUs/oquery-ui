@@ -25,3 +25,6 @@
 # OS metadata
 
 Thumbs.db
+
+# Dialect package build output (dotnet build -o dialect-packages)
+dialect-packages/

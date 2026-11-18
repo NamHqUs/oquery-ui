@@ -13,7 +13,7 @@
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
       "environmentVariables": {
         "DbProvider__Default": "Sqlite",
-        "Setup__FileStoragePath": "/tmp/file-storage"
+        "Setup__UserDataStorePath": "/tmp/file-storage/UserData"
       },
       "httpPort": 21210, /* Fixed VS port for HTTP */
       "publishAllPorts": false,
@@ -24,7 +24,7 @@
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
       "environmentVariables": {
         "DbProvider__Default": "Sqlite",
-        "Setup__FileStoragePath": "../var/data"
+        "Setup__UserDataStorePath": "../var/data/UserData"
       },
       "containerRunArguments": "-v \"{ProjectDir}/../../data-storage:/var/data\"",
       "httpPort": 21210, /* Fixed VS port for HTTP */

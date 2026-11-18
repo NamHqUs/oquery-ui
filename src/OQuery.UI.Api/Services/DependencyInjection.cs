@@ -13,6 +13,9 @@ public static class DependencyInjection
         services.AddSingleton<IOperatorDefinitionService, OperatorDefinitionService>();
         services.AddSingleton<IDynamicQueryService, DynamicQueryService>();
         services.AddSingleton<IQueryRequestService, QueryRequestService>();
+        services.AddSingleton<DatabaseService>();
+        services.AddSingleton<IDbConnectionService, DbConnectionService>();
+        services.AddSingleton<IDatabaseService>(sp => sp.GetRequiredService<DatabaseService>());
         return services;
     }
 }

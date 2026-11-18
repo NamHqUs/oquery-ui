@@ -1,8 +1,9 @@
 using OQuery.UI.Storage.Files;
 using OQuery.UI.Storage.Postgres;
-using OQuery.UI.Api.Database;
+using OQuery.UI.Abstracts;
 using OQuery.UI.Abstracts.Application;
 using OQuery.UI.Api.Services;
+using OQuery.UI.Application;
 using OQuery.UI.Application.Middlewares;
 using OQuery;
 using OQuery.QueryDefinitions.Parsers;
@@ -41,8 +42,9 @@ if (string.Equals(configuration["Setup:StorageProvider"], "Postgres", StringComp
 else
     builder.Services.AddDemoRepositories(configuration);
 builder.Services.AddDemoServices();
-builder.Services.AddDemoDbServices(configuration);
 builder.Services.AddSingleton<IUserSectionManager, UserSectionManager>();
+
+DialectModules.RegisterFromFolder(BuiltinDatasets.GetRootDirectory(configuration["Setup:DialectPackagesPath"]));
 
 var app = builder.Build();
 

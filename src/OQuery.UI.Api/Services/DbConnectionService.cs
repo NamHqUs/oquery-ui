@@ -1,8 +1,8 @@
-﻿using OQuery.UI.Abstracts.Services;
+using OQuery.UI.Abstracts.Services;
 using Microsoft.Extensions.Configuration;
 using System.Data;
 
-namespace OQuery.UI.Api.Database;
+namespace OQuery.UI.Api.Services;
 
 public sealed class DbConnectionService(IConfiguration configuration, DatabaseService dbService) : IDbConnectionService
 {
