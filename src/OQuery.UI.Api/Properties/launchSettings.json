@@ -12,8 +12,8 @@
       "commandName": "Docker",
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
       "environmentVariables": {
-        "DbProvider__Default": "Sqlite",
-        "Setup__UserDataStorePath": "/tmp/file-storage/UserData"
+        "OQuery__DbProvider__Provider": "Sqlite",
+        "OQuery__Repositories__Files__UserDataStorePath": "/tmp/file-storage/UserData"
       },
       "httpPort": 21210, /* Fixed VS port for HTTP */
       "publishAllPorts": false,
@@ -23,8 +23,8 @@
       "commandName": "Docker",
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
       "environmentVariables": {
-        "DbProvider__Default": "Sqlite",
-        "Setup__UserDataStorePath": "../var/data/UserData"
+        "OQuery__DbProvider__Provider": "Sqlite",
+        "OQuery__Repositories__Files__UserDataStorePath": "../var/data/UserData"
       },
       "containerRunArguments": "-v \"{ProjectDir}/../../data-storage:/var/data\"",
       "httpPort": 21210, /* Fixed VS port for HTTP */

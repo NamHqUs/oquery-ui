@@ -33,14 +33,11 @@ domain creation wizard is a separate page unit and owns its own Cancel, Back,
 Next, and Generate metadata controls. Its actions must not be registered by or
 shared with the Domains or Diagram pages.
 
-The Data Sources page first loads configured connection profile names from
-`GET /db/connections`. It supports server-side configured profiles and direct
-connections to SqlServer, Sqlite, Firebird, Postgres, CockroachDB,
-MySql/MariaDB, Oracle, and Db2. The core dialect/function-template UI also
-supports SAP HANA. Direct
-connections are disabled by default and must be
-explicitly enabled by the server operator in a trusted environment. Connection
-strings are never returned to the frontend. The active database instance is
+The Data Sources page first loads the detected providers from
+`GET /db/connections`, then connects directly with `PUT /db/connection`
+(provider and connection string). Providers are the dialects registered from the
+dialect DLLs. The core dialect/function-template UI also supports SAP HANA.
+Connection strings are never returned to the frontend. The active database instance is
 shared by all clients; `POST /db/disconnect` does not release or dispose it, so
 one client's disconnect cannot interrupt other clients.
 

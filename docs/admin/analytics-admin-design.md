@@ -30,8 +30,8 @@ Assumption to confirm: builtin saved queries and domains move from files to Post
 ## 3. Current state to change
 
 - `IUserSectionManager` (`src/OQuery.UI/Application/Middlewares/UserSectionManager.cs`) is a stub that always returns `"123"`. All users therefore share one user-data folder. This must be fixed before per-user analytics or per-user data can be trusted. This design replaces the stub with the section ID from the request header.
-- Builtin data is file-based (`Setup:BuiltinPath` in `appsettings.json`, read through `FilePathResolver`). Admin edits write files, which Render discards on redeploy.
-- Repositories are chosen by `Setup:StorageProvider` in `OQuery.UI/Program.cs`. `Files` calls `AddDemoRepositories` (`Demo.Repositories`). `Postgres` calls `AddPostgresRepositories` (`Demo.Repositories.Postgres`, a separate DLL). The Postgres project references `Demo.Repositories` and `Demo.Contracts`, so `Demo.Repositories` cannot reference it back. `Program.cs` therefore chooses the registration.
+- Builtin data is file-based (`OQuery:Repositories:Files:BuiltinData` in `appsettings.json`, read through `FilePathResolver`). Admin edits write files, which Render discards on redeploy.
+- Repositories are chosen in `OQuery.UI.Api/Program.cs`: Postgres when `ConnectionStrings:OQueryStore` is set, otherwise Files, which calls `AddDemoRepositories` (`Demo.Repositories`). Postgres calls `AddPostgresRepositories` (`Demo.Repositories.Postgres`, a separate DLL). The Postgres project references `Demo.Repositories` and `Demo.Contracts`, so `Demo.Repositories` cannot reference it back. `Program.cs` therefore chooses the registration.
 - Postgres mode needs `ConnectionStrings:OQueryStore` (for example via the `ConnectionStrings__OQueryStore` environment variable on Render). Do not commit the connection string.
 - Postgres mode currently covers domains and saved queries. Metadata, function definitions, and operator definitions stay file-based.
 

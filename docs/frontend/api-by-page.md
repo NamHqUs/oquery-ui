@@ -108,8 +108,8 @@ These requests are outside page ownership:
 | Request | Trigger | Purpose |
 | --- | --- | --- |
 | `GET /db/connections/provider` | Application startup | Detects the current database provider. |
-| `GET /db/connections` | Connection dialog opens | Loads providers, profiles, and direct-connection capability. |
-| `POST /db/connect` | Connection submitted | Creates a database connection. |
+| `GET /db/connections` | Connection dialog opens | Loads the detected providers. |
+| `PUT /db/connection` | Connection submitted | Connects directly with provider and connection string. |
 | `POST /db/disconnect` | User disconnects | Clears the database connection and schema state. |
 
 Redux holds the state read by components. Thunks are adapters that call a
@@ -206,7 +206,7 @@ No page-specific API request. The global provider check still runs.
 
 | API group | Service/owner |
 | --- | --- |
-| `/db/connections*`, `/db/connect`, `/db/disconnect` | Database connection flow and application shell |
+| `/db/connections*`, `/db/connection`, `/db/disconnect` | Database connection flow and application shell |
 | `/db/schema`, `/db/data/*` | `DbSchemaService` |
 | `/metadata/domains*` | `DomainService` |
 | `/metadata/functions*` | `FunctionDefinitionService` |

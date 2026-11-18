@@ -5,22 +5,17 @@ import * as dbSchemaService from "./db-schema-service";
 
 export type DatabaseConnectionOptions = {
   providers: string[];
-  profiles: string[];
-  directConnectionsEnabled: boolean;
 };
 
 export type DatabaseConnectionResult = {
   provider: string;
-  profileName: string | null;
 };
 
 export async function getConnectionOptions(): Promise<DatabaseConnectionOptions> {
   const payload = await requestJson(apiUrls.database.connections);
-  if (!payload || !Array.isArray(payload.providers) || !Array.isArray(payload.profiles)
-    || typeof payload.directConnectionsEnabled !== "boolean"
-    || payload.providers.some((provider: unknown) => typeof provider !== "string")
-    || payload.profiles.some((profile: unknown) => typeof profile !== "string")) {
-    throw new Error("Database connection API returned invalid provider or profile data.");
+  if (!payload || !Array.isArray(payload.providers)
+    || payload.providers.some((provider: unknown) => typeof provider !== "string")) {
+    throw new Error("Database connection API returned invalid provider data.");
   }
   return payload;
 }
@@ -34,13 +29,12 @@ export async function getProvider(): Promise<string | null> {
 }
 
 export async function connect(request: DatabaseConnectRequest): Promise<DatabaseConnectionResult> {
-  const payload = await requestJson(apiUrls.database.connect, {
-    method: "POST",
+  const payload = await requestJson(apiUrls.database.connection, {
+    method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
   });
-  if (!payload || typeof payload.provider !== "string"
-    || (payload.profileName !== null && typeof payload.profileName !== "string")) {
+  if (!payload || typeof payload.provider !== "string") {
     throw new Error("Database connection API returned an invalid connection result.");
   }
   dbSchemaService.invalidateSchema();

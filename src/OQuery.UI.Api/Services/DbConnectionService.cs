@@ -1,45 +1,23 @@
 using OQuery.UI.Abstracts.Services;
-using Microsoft.Extensions.Configuration;
 using System.Data;
 
 namespace OQuery.UI.Api.Services;
 
-public sealed class DbConnectionService(IConfiguration configuration, DatabaseService dbService) : IDbConnectionService
+public sealed class DbConnectionService(DatabaseService dbService) : IDbConnectionService
 {
-    private readonly IReadOnlyDictionary<string, (string Provider, string ConnectionString)> _dbOptions =
-        configuration.GetSection("ConnectionOptions")
-            .GetChildren()
-            .ToDictionary(e => e["Name"]!, e => (e["Provider"]!, e["ConnectionString"]!)) ?? [];
-
-    private readonly bool _directConnectionsEnabled = configuration.GetValue<bool>("DbProvider:AllowDirectConnections");
-
     DatabaseConnectionOptionsDto IDbConnectionService.GetConnectionOptions()
-        => new(
-            OQuery.Database.SqlDialectRegistry.RegisteredNames.ToArray(),
-            _dbOptions.Keys.ToList(),
-
-            _directConnectionsEnabled);
+        => new(OQuery.Database.SqlDialectRegistry.RegisteredNames.ToArray());
 
     string? IDbConnectionService.GetCurrentProvider()
         => dbService.GetCurrentProvider();
 
-    string IDbConnectionService.Connect(string profile)
+    void IDbConnectionService.UpdateDbConnection(string provider, string connectionString)
     {
-        var (provider, connectionString) = _dbOptions.TryGetValue(profile, out var option)
-            ? option
-            : throw new KeyNotFoundException($"Database options profile '{profile}' was not found.");
+        ArgumentException.ThrowIfNullOrWhiteSpace(provider);
+        ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
+        if (!OQuery.Database.SqlDialectRegistry.RegisteredNames.Contains(provider, StringComparer.OrdinalIgnoreCase))
+            throw new ArgumentException($"Database provider '{provider}' is not available. Add its dialect package to DialectPackagesPath.", nameof(provider));
 
-        Connect(provider, connectionString, isDirectConnection: false);
-        return provider;
-    }
-    void IDbConnectionService.Connect(string provider, string connectionString)
-        => Connect(provider, connectionString, isDirectConnection: true);
-
-    private void Connect(string provider, string connectionString, bool isDirectConnection)
-    {
-        if (isDirectConnection && !_directConnectionsEnabled)
-            throw new InvalidOperationException("Direct database connections are disabled by the server.");
-        
         dbService.Connect(provider, connectionString);
     }
 

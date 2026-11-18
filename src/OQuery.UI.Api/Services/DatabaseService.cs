@@ -22,9 +22,10 @@ public class DatabaseService(IConfiguration configuration) : IDatabaseService, I
             {
                 if (_currentDbInstance is null)
                 {
-                    var defaultOption = configuration.GetSection("DbProvider:DefaultDbOption");
-                    if (defaultOption.Exists())
-                        _currentDbInstance = CreateDbInstance(defaultOption["Provider"]!, defaultOption["ConnectionString"]!);
+                    var defaultProvider = configuration["OQuery:DbProvider:Provider"];
+                    var defaultConnectionString = configuration["OQuery:DbProvider:ConnectionString"];
+                    if (!string.IsNullOrWhiteSpace(defaultProvider) && !string.IsNullOrWhiteSpace(defaultConnectionString))
+                        _currentDbInstance = CreateDbInstance(defaultProvider, defaultConnectionString);
                 }
 
                 return _currentDbInstance;
@@ -84,18 +85,19 @@ public class DatabaseService(IConfiguration configuration) : IDatabaseService, I
             throw new ArgumentException("A connection string is required.", nameof(connectionString));
 
         var scriptFiles = GetInitializationScripts(provider);
-        var dbVersion = configuration["Setup:DBVersion"]
-            ?? throw new InvalidOperationException("Setup:DBVersion is required in the configuration.");
+        var dbVersion = configuration["OQuery:Seeds:DBVersion"]
+            ?? throw new InvalidOperationException("OQuery:Seeds:DBVersion is required in the configuration.");
         return SqlDialectRegistry.CreateDbInstance(provider, connectionString, scriptFiles, dbVersion);
     }
 
     private string[] GetInitializationScripts(string provider)
     {
-        var rootDirectory = BuiltinDatasets.GetRootDirectory(configuration["Setup:BuiltinPath"]);
-        var dataSets = configuration.GetSection("Setup:DataSets").Get<string[]>() ?? [];
-        return dataSets
-            .Select(dataSet => BuiltinDatasets.GetScriptPath(rootDirectory, dataSet, provider))
-            .Where(File.Exists)
-            .ToArray();
+        if (!configuration.GetValue<bool>("OQuery:Seeds:Enabled"))
+            return [];
+
+        var dataSetFolders = configuration.GetSection("OQuery:Seeds:DataSets").Get<string[]>() ?? [];
+        return BuiltinDatasets.EnumerateScripts(
+            dataSetFolders.Select(folder => BuiltinDatasets.GetRootDirectory(folder)),
+            provider).ToArray();
     }
 }

@@ -13,7 +13,7 @@ public static class DependencyInjection
     {
         var connectionString = configuration.GetConnectionString("OQueryStore")
             ?? throw new InvalidOperationException(
-                "ConnectionStrings:OQueryStore is required when Setup:StorageProvider is Postgres.");
+                "ConnectionStrings:OQueryStore is required for Postgres repositories.");
 
         services.AddSingleton<FilePathResolver>();
         services.AddSingleton<IMetadataRepository, MetadataFileRepository>();

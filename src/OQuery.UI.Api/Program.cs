@@ -37,14 +37,14 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-if (string.Equals(configuration["Setup:StorageProvider"], "Postgres", StringComparison.OrdinalIgnoreCase))
+if (configuration.GetConnectionString("OQueryStore") is not null)
     builder.Services.AddPostgresRepositories(configuration);
 else
-    builder.Services.AddDemoRepositories(configuration);
+    builder.Services.AddDemoRepositories();
 builder.Services.AddDemoServices();
 builder.Services.AddSingleton<IUserSectionManager, UserSectionManager>();
 
-DialectModules.RegisterFromFolder(BuiltinDatasets.GetRootDirectory(configuration["Setup:DialectPackagesPath"]));
+DialectModules.RegisterFromFolder(BuiltinDatasets.GetRootDirectory(configuration["OQuery:Repositories:Files:DialectPackagesPath"]));
 
 var app = builder.Build();
 

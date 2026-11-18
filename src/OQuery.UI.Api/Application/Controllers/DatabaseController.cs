@@ -21,28 +21,21 @@ public sealed class DatabaseController(
     public ActionResult<string?> GetDbProvider()
         => new JsonResult(connectionService.GetCurrentProvider());
 
-    [HttpPost("connect")]
-    public ActionResult<DatabaseConnectionResponseDto> Connect(
+    [HttpPut("connection")]
+    public ActionResult<DatabaseConnectionResponseDto> UpdateDbConnection(
         [FromBody] DatabaseConnectionRequestDto request)
     {
         try
         {
-            if (!string.IsNullOrWhiteSpace(request.Profile))
-            {
-                if (!string.IsNullOrWhiteSpace(request.Provider)
-                    || !string.IsNullOrWhiteSpace(request.ConnectionString))
-                    throw new ArgumentException("Select a profile or provide a direct connection, not both.", nameof(request));
-
-                var provider = connectionService.Connect(request.Profile);
-                return Ok(new DatabaseConnectionResponseDto(provider, request.Profile));
-            }
-
-            if (string.IsNullOrWhiteSpace(request.Provider)
-                || string.IsNullOrWhiteSpace(request.ConnectionString))
-                throw new ArgumentException("A profile or both provider and connection string are required.", nameof(request));
-
-            connectionService.Connect(request.Provider, request.ConnectionString);
-            return Ok(new DatabaseConnectionResponseDto(request.Provider, null));
+            connectionService.UpdateDbConnection(request.Provider, request.ConnectionString);
+            return Ok(new DatabaseConnectionResponseDto(request.Provider));
+        }
+        catch (ArgumentException exception)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Invalid database connection",
+                detail: exception.Message);
         }
         catch (DbException exception)
         {

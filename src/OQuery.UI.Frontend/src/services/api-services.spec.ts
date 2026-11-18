@@ -49,12 +49,12 @@ type Endpoint = {
 // Every endpoint used by the frontend services, with its expected method, URL and a valid reply.
 const endpoints: Endpoint[] = [
   { name: "getConnectionOptions", method: "GET", url: "/db/connections",
-    reply: { providers: ["Db2"], profiles: ["local"], directConnectionsEnabled: true },
+    reply: { providers: ["Db2"] },
     call: (s) => s.connection.getConnectionOptions() },
   { name: "getProvider", method: "GET", url: "/db/connections/provider", reply: "Db2",
     call: (s) => s.connection.getProvider() },
-  { name: "connect", method: "POST", url: "/db/connect", reply: { provider: "Db2", profileName: null },
-    call: (s) => s.connection.connect({ provider: "Db2", profileName: null } as never) },
+  { name: "connect", method: "PUT", url: "/db/connection", reply: { provider: "Db2" },
+    call: (s) => s.connection.connect({ provider: "Db2", connectionString: "Server=x" }) },
   { name: "disconnect", method: "POST", url: "/db/disconnect", call: (s) => s.connection.disconnect() },
   { name: "getSchema", method: "GET", url: "/db/schema", reply: { tables: [], relationships: [] },
     call: (s) => s.schema.getSchema() },
@@ -159,14 +159,15 @@ describe("api-client transport", () => {
 });
 
 describe("request bodies", () => {
-  it("sends the connect request as JSON and disconnect as POST", async () => {
+  it("sends the connect request as JSON via PUT", async () => {
     const services = await loadServices();
-    const calls = mockFetch(() => respond({ provider: "Db2", profileName: "local" }));
+    const calls = mockFetch(() => respond({ provider: "Db2" }));
 
-    await services.connection.connect({ provider: "Db2", profileName: "local" } as never);
+    await services.connection.connect({ provider: "Db2", connectionString: "Server=x" });
 
+    expect(calls[0].init?.method).toBe("PUT");
     expect(calls[0].init?.headers).toEqual({ "Content-Type": "application/json" });
-    expect(JSON.parse(String(calls[0].init?.body))).toEqual({ provider: "Db2", profileName: "local" });
+    expect(JSON.parse(String(calls[0].init?.body))).toEqual({ provider: "Db2", connectionString: "Server=x" });
   });
 
   it("sends OQuery text as text/plain and parses OQuery as a JSON text field", async () => {
@@ -196,15 +197,15 @@ describe("caching and invalidation", () => {
     const services = await loadServices();
     const calls = mockFetch((url) => url === "/db/schema"
       ? respond({ tables: [], relationships: [] })
-      : respond({ provider: "Db2", profileName: null }));
+      : respond({ provider: "Db2" }));
 
     await services.schema.getSchema();
     await services.schema.getSchema();
     expect(calls).toHaveLength(1);
 
-    await services.connection.connect({ provider: "Db2", profileName: null } as never);
+    await services.connection.connect({ provider: "Db2", connectionString: "Server=x" });
     await services.schema.getSchema();
-    expect(calls.map((call) => call.url)).toEqual(["/db/schema", "/db/connect", "/db/schema"]);
+    expect(calls.map((call) => call.url)).toEqual(["/db/schema", "/db/connection", "/db/schema"]);
   });
 
   it("clamps table preview rows to the maximum and truncates the reply", async () => {
@@ -275,11 +276,11 @@ describe("reply validation", () => {
     await expect(services.schema.getSchema()).rejects.toThrow("Database schema API returned invalid table or relationship metadata.");
   });
 
-  it("rejects connection options that are missing the direct-connection flag", async () => {
+  it("rejects connection options whose providers are not strings", async () => {
     const services = await loadServices();
-    mockFetch(() => respond({ providers: [], profiles: [] }));
+    mockFetch(() => respond({ providers: [1] }));
 
-    await expect(services.connection.getConnectionOptions()).rejects.toThrow("Database connection API returned invalid provider or profile data.");
+    await expect(services.connection.getConnectionOptions()).rejects.toThrow("Database connection API returned invalid provider data.");
   });
 
   it("rejects table previews whose rows are not strings", async () => {

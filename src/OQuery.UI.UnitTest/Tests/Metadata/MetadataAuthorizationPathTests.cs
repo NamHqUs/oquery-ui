@@ -438,7 +438,7 @@ public sealed class MetadataAuthorizationPathTests
             Projections = [new("Id")]
         };
 
-        Assert.ThrowsAsync<UnauthorizedAccessException>(
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
             async () => await db.Query(query).ToListAsync());
     }
 

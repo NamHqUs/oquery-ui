@@ -7,17 +7,24 @@ namespace OQuery.UI.Api.UnitTest;
 internal sealed class BuiltinDatasetsTests
 {
     private string _root = string.Empty;
+    private string _northstarQueries = string.Empty;
+    private string _unitTestQueries = string.Empty;
+    private string _northstarScripts = string.Empty;
 
     [SetUp]
     public void SetUp()
     {
         _root = Path.Combine(Path.GetTempPath(), "builtin-datasets-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(Path.Combine(_root, "northstar-demo", "queries"));
-        Directory.CreateDirectory(Path.Combine(_root, "unit-test", "queries"));
-        File.WriteAllText(Path.Combine(_root, "northstar-demo", "queries", "b.json"), "{}");
-        File.WriteAllText(Path.Combine(_root, "northstar-demo", "queries", "A.json"), "{}");
-        File.WriteAllText(Path.Combine(_root, "northstar-demo", "queries", "notes.txt"), "");
-        File.WriteAllText(Path.Combine(_root, "unit-test", "queries", "Test-1.json"), "{}");
+        _northstarQueries = Path.Combine(_root, "northstar-demo", "queries");
+        _unitTestQueries = Path.Combine(_root, "unit-test", "queries");
+        _northstarScripts = Path.Combine(_root, "northstar-demo", "scripts");
+        Directory.CreateDirectory(_northstarQueries);
+        Directory.CreateDirectory(_unitTestQueries);
+        Directory.CreateDirectory(_northstarScripts);
+        File.WriteAllText(Path.Combine(_northstarQueries, "b.json"), "{}");
+        File.WriteAllText(Path.Combine(_northstarQueries, "A.json"), "{}");
+        File.WriteAllText(Path.Combine(_northstarQueries, "notes.txt"), "");
+        File.WriteAllText(Path.Combine(_unitTestQueries, "Test-1.json"), "{}");
     }
 
     [TearDown]
@@ -28,9 +35,9 @@ internal sealed class BuiltinDatasetsTests
     }
 
     [Test]
-    public void EnumerateFilesFollowsDataSetOrderAndSortsEachDatasetByFileName()
+    public void EnumerateFilesFollowsFolderOrderAndSortsEachFolderByFileName()
     {
-        var files = BuiltinDatasets.EnumerateFiles(_root, ["northstar-demo", "unit-test"], BuiltinDatasets.QueriesFolder, ".json")
+        var files = BuiltinDatasets.EnumerateFiles([_northstarQueries, _unitTestQueries], ".json")
             .Select(Path.GetFileName)
             .ToArray();
 
@@ -38,18 +45,23 @@ internal sealed class BuiltinDatasetsTests
     }
 
     [Test]
-    public void EnumerateFilesSkipsDataSetsWithoutTheRequestedFolder()
+    public void EnumerateFilesSkipsMissingFolders()
     {
-        var files = BuiltinDatasets.EnumerateFiles(_root, ["missing-dataset"], BuiltinDatasets.QueriesFolder, ".json");
+        var files = BuiltinDatasets.EnumerateFiles([Path.Combine(_root, "missing-dataset", "queries")], ".json");
 
         Assert.That(files, Is.Empty);
     }
 
     [Test]
-    public void GetScriptPathLowercasesTheDatasetAndProviderName()
+    public void EnumerateScriptsMatchesProviderSuffixCaseInsensitively()
     {
-        var path = BuiltinDatasets.GetScriptPath(_root, "Northstar-Demo", "SQLite");
+        File.WriteAllText(Path.Combine(_northstarScripts, "northstar-demo.sqlite.sql"), "");
+        File.WriteAllText(Path.Combine(_northstarScripts, "northstar-demo.postgres.sql"), "");
 
-        Assert.That(path, Is.EqualTo(Path.Combine(_root, "Northstar-Demo", "scripts", "northstar-demo.sqlite.sql")));
+        var scripts = BuiltinDatasets.EnumerateScripts([_northstarScripts], "SQLite")
+            .Select(Path.GetFileName)
+            .ToArray();
+
+        Assert.That(scripts, Is.EqualTo(new[] { "northstar-demo.sqlite.sql" }));
     }
 }

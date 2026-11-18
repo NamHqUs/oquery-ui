@@ -30,7 +30,7 @@ public sealed class QueryRequestFileRepository(FilePathResolver filePathResolver
     }
 
     public override IReadOnlyCollection<QueryRequestRecordDto> GetBuiltin()
-        => filePathResolver.EnumerateBuiltinFiles(BuiltinDatasets.QueriesFolder, FILE_EXTENSION)
+        => PathResolver.EnumerateBuiltinFiles(BuiltinDatasets.QueriesFolder, FILE_EXTENSION)
             .Select(path => ReadRecord(path, isBuiltin: true))
             .ToArray();
 

@@ -3,9 +3,7 @@ import * as databaseConnectionService from "../../services/database-connection-s
 import * as dbSchemaService from "../../services/db-schema-service";
 import { MAX_TABLE_DATA_ROWS } from "../../services/db-schema-service";
 
-export type DatabaseConnectRequest =
-  | { profile: string }
-  | { provider: string; connectionString: string };
+export type DatabaseConnectRequest = { provider: string; connectionString: string };
 
 export const fetchDatabaseConnections = createAsyncThunk(
   "database/fetchConnections",
@@ -113,18 +111,14 @@ export const fetchDbTableData = createAsyncThunk(
 const databaseSlice = createSlice({
   name: "database",
   initialState: {
-    connectionProfiles: [] as string[],
     providers: [] as string[],
-    directConnectionsEnabled: false,
     connectionOptionsStatus: "idle",
     connectionOptionsError: "",
     providerCheckStatus: "idle",
     connectionStatus: "idle",
     connectionError: "",
     connectingProvider: "",
-    connectingProfileName: "",
     connectedProvider: "",
-    connectedProfileName: "",
     selectedTable: "",
     selectedSchema: "",
     previewTable: null as { name: string; schema: string } | null,
@@ -181,8 +175,6 @@ const databaseSlice = createSlice({
       })
       .addCase(fetchDatabaseConnections.fulfilled, (state, action) => {
         state.providers = action.payload.providers;
-        state.connectionProfiles = action.payload.profiles;
-        state.directConnectionsEnabled = action.payload.directConnectionsEnabled;
         state.connectionOptionsStatus = "succeeded";
       })
       .addCase(fetchDatabaseConnections.rejected, (state, action) => {
@@ -195,7 +187,6 @@ const databaseSlice = createSlice({
       .addCase(fetchDbProvider.fulfilled, (state, action) => {
         state.providerCheckStatus = "succeeded";
         state.connectedProvider = action.payload ?? "";
-        state.connectedProfileName = "";
         state.connectionStatus = action.payload === null ? "idle" : "succeeded";
         state.connectionError = "";
         if (action.payload === null) {
@@ -217,16 +208,13 @@ const databaseSlice = createSlice({
         state.connectionStatus = "loading";
         state.connectionError = "";
         state.connectingProvider = "provider" in action.meta.arg ? action.meta.arg.provider : "";
-        state.connectingProfileName = "profile" in action.meta.arg ? action.meta.arg.profile : "";
       })
       .addCase(connectDatabase.fulfilled, (state, action) => {
         state.connectedProvider = action.payload.provider;
-        state.connectedProfileName = action.payload.profileName || "";
         state.connectionStatus = "succeeded";
         state.providerCheckStatus = "succeeded";
         state.connectionError = "";
         state.connectingProvider = "";
-        state.connectingProfileName = "";
         state.selectedTable = "";
         state.selectedSchema = "";
         state.previewTable = null;
@@ -239,14 +227,11 @@ const databaseSlice = createSlice({
         state.connectionStatus = "failed";
         state.connectionError = action.payload || action.error.message || "Unable to connect to the database.";
         state.connectingProvider = "";
-        state.connectingProfileName = "";
       })
       .addCase(disconnectDatabase.fulfilled, (state) => {
         state.connectedProvider = "";
-        state.connectedProfileName = "";
         state.connectionStatus = "idle";
         state.connectingProvider = "";
-        state.connectingProfileName = "";
         state.selectedTable = "";
         state.selectedSchema = "";
         state.previewTable = null;

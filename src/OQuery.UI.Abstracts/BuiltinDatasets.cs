@@ -1,15 +1,14 @@
 namespace OQuery.UI.Abstracts;
 
 /// <summary>
-/// Locates built-in data under {Setup:BuiltinPath}/{dataset}/{domains|metadata|queries|scripts}.
-/// A missing dataset or folder contributes no files.
+/// Helpers for built-in data folders configured under OQuery:Repositories:Files:BuiltinData
+/// and OQuery:Seeds:DataSets. A missing folder contributes no files.
 /// </summary>
 public static class BuiltinDatasets
 {
-    public const string DomainsFolder = "domains";
-    public const string MetadataFolder = "metadata";
-    public const string QueriesFolder = "queries";
-    public const string ScriptsFolder = "scripts";
+    public const string DomainsFolder = "Domains";
+    public const string MetadataFolder = "Metadata";
+    public const string QueriesFolder = "Queries";
 
     public static string GetRootDirectory(string? fileStoragePath)
     {
@@ -19,18 +18,15 @@ public static class BuiltinDatasets
     }
 
     public static IEnumerable<string> EnumerateFiles(
-        string rootDirectory,
-        IEnumerable<string> dataSets,
-        string folder,
+        IEnumerable<string> folders,
         params string[] extensions)
     {
-        foreach (var dataSet in dataSets)
+        foreach (var folder in folders)
         {
-            var directory = Path.Combine(rootDirectory, dataSet, folder);
-            if (!Directory.Exists(directory))
+            if (!Directory.Exists(folder))
                 continue;
 
-            foreach (var path in Directory.EnumerateFiles(directory)
+            foreach (var path in Directory.EnumerateFiles(folder)
                 .Where(path => extensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
                 .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase))
             {
@@ -39,6 +35,22 @@ public static class BuiltinDatasets
         }
     }
 
-    public static string GetScriptPath(string rootDirectory, string dataSet, string provider)
-        => Path.Combine(rootDirectory, dataSet, ScriptsFolder, $"{dataSet}.{provider}.sql".ToLowerInvariant());
+    /// <summary>Finds seed scripts named "*.{provider}.sql" in each dataset folder.</summary>
+    public static IEnumerable<string> EnumerateScripts(IEnumerable<string> dataSetFolders, string provider)
+    {
+        var suffix = $".{provider}.sql";
+        foreach (var folder in dataSetFolders)
+        {
+            if (!Directory.Exists(folder))
+                continue;
+
+            foreach (var path in Directory.EnumerateFiles(folder, "*.sql")
+                .Where(path => Path.GetFileName(path).EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase))
+            {
+                yield return path;
+            }
+        }
+    }
 }
+

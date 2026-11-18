@@ -354,13 +354,13 @@ function App() {
             <button className="database-status connecting" type="button" onClick={() => setConnectionDialogOpen(true)} aria-live="polite">
               <span className="database-status-dot" />
               <Icon name={getDatabaseIconName(database.connectingProvider)} size={15} />
-              <span>Connecting{database.connectingProvider ? ` · ${database.connectingProvider}` : ""}{database.connectingProfileName ? ` · ${database.connectingProfileName}` : ""}</span>
+              <span>Connecting{database.connectingProvider ? ` · ${database.connectingProvider}` : ""}</span>
             </button>
           ) : database.connectionStatus === "succeeded" ? (
             <button className="database-status connected" type="button" onClick={() => setConnectionDialogOpen(true)} title="Change database connection">
               <span className="database-status-dot" />
               <Icon name={getDatabaseIconName(database.connectedProvider)} size={15} />
-              <span>{database.connectedProvider}{database.connectedProfileName ? ` · ${database.connectedProfileName}` : " · Connecting"}</span>
+              <span>{database.connectedProvider || "Connecting"}</span>
             </button>
           ) : (
             <button className={`database-status${database.connectionStatus === "failed" ? " failed" : ""}`} type="button" onClick={() => setConnectionDialogOpen(true)}>

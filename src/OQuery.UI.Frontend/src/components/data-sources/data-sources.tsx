@@ -20,7 +20,6 @@ export default function DataSources({ onRequestConnection }: DataSourcesProps) {
     connectionStatus,
     providerCheckStatus,
     connectedProvider,
-    connectedProfileName,
     connectionError,
   } = useSelector((state) => state.database);
   const isConnected = connectionStatus === "succeeded";

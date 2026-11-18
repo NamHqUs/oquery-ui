@@ -34,19 +34,19 @@ frontend in separate Windows Terminal tabs. The API's Swagger UI is at
 The API host and database-services project target x64 because the IBM DB2
 provider requires an x64 process.
 
-Built-in datasets live under [`oquery/data-storage`](./oquery/data-storage), one
-folder per dataset listed in `Setup:DataSets` (currently `northstar-demo` and
-`unit-test`). Each dataset has the same layout:
+Built-in datasets are configured under `OQuery` in `appsettings.json`:
 
-- `domains/` - domain JSON files
-- `metadata/` - metadata YAML/JSON files
-- `queries/` - shared, read-only saved query JSON files
-- `scripts/` - database schema and data scripts, named `{dataset}.{provider}.sql`
+- `OQuery:Repositories:Files:BuiltinData` - one entry per dataset with `Domains`
+  and `Queries` folder paths (an optional `Metadata` path is also read).
+- `OQuery:Seeds:DataSets` - `scripts/` folders. Scripts are matched by the
+  suffix `.{provider}.sql`.
+- `OQuery:Repositories:Files:UserDataStorePath` - user data root
+  (`UserData/{sectionId}/...`). Docker images include the built-in datasets
+  independently of the custom-data volume.
 
-The built-in root is set by `Setup:BuiltinPath` (default `../../oquery/data-storage`).
-User data stays under `Setup:FileStoragePath` (default `../../data-storage`) in
-`UserData/{sectionId}/...`. Docker images include the built-in datasets
-independently of the custom-data volume.
+The database is connected directly with `PUT /db/connection` (provider and
+connection string). Providers are validated against the dialect DLLs loaded from
+`OQuery:Repositories:Files:DialectPackagesPath` at startup.
 
 The API and demo projects are in `src/`; the OQuery engine is in
 `oquery/src/OQuery.Core` (engine) and `oquery/src/OQuery.Abstracts` (input and output contracts). Build the complete solution with:

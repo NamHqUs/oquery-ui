@@ -156,7 +156,7 @@ public sealed class QueryExpressionTests
         };
         var serialized = JsonSerializer.Serialize(definition, options);
         var roundTripped = QueryDefinitionJsonParser.Parse(serialized);
-        var fields = ((GroupFieldDefintion)roundTripped.Projections[0].Field).Fields;
+        var fields = ((GroupFieldDefintion)roundTripped.Projections![0].Field).Fields;
         Assert.That(fields, Has.Length.EqualTo(4));
         Assert.That(fields[1], Is.EqualTo(new FieldDefinition("CostPrice")));
         Assert.That(fields[2], Is.EqualTo(new FieldDefinition(MatchOperation.Multiply, "Id")));

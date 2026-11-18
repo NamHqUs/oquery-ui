@@ -6,7 +6,7 @@ export const apiUrls = {
   database: {
     connections: `${backendApiUrl}/db/connections`,
     provider: `${backendApiUrl}/db/connections/provider`,
-    connect: `${backendApiUrl}/db/connect`,
+    connection: `${backendApiUrl}/db/connection`,
     disconnect: `${backendApiUrl}/db/disconnect`,
     schema: `${backendApiUrl}/db/schema`,
     tableData: (tableName: string, schema?: string, limit?: number) => {

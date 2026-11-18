@@ -75,12 +75,12 @@ public sealed class FunctionDefinitionFileRepository(FilePathResolver filePathRe
     {
         if (string.IsNullOrWhiteSpace(dbType) || Path.GetFileName(dbType) != dbType)
             throw new ArgumentException("SQL template key is not a valid database folder name.", nameof(dbType));
-        return filePathResolver.GetUserStoreFolder(userSectionId, Path.Combine(FOLDER_NAME, dbType));
+        return PathResolver.GetUserStoreFolder(userSectionId, Path.Combine(FOLDER_NAME, dbType));
     }
 
     private IEnumerable<string> GetDbTypeFolders(string userSectionId)
     {
-        var root = filePathResolver.GetUserStoreFolder(userSectionId, FOLDER_NAME);
+        var root = PathResolver.GetUserStoreFolder(userSectionId, FOLDER_NAME);
         return Directory.Exists(root) ? Directory.EnumerateDirectories(root) : Enumerable.Empty<string>();
     }
 

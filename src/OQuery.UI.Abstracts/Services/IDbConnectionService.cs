@@ -8,12 +8,8 @@ public interface IDbConnectionService
 
     string? GetCurrentProvider();
 
-    string Connect(string profile);
-    void Connect(string provider, string connectionString);
+    void UpdateDbConnection(string provider, string connectionString);
     void Disconnect();
 }
 
-public sealed record DatabaseConnectionOptionsDto(
-    IReadOnlyList<string> Providers,
-    IReadOnlyList<string> Profiles,
-    bool DirectConnectionsEnabled);
+public sealed record DatabaseConnectionOptionsDto(IReadOnlyList<string> Providers);

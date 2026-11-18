@@ -249,7 +249,7 @@ public sealed class SqliteDbSchemaLoader : DbSchemaLoader, IDisposable
         }
     }
 
-    private static string QuoteIdentifier(string identifier)
+    private static new string QuoteIdentifier(string identifier)
         => $"\"{identifier.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
 
     private static string QuoteLiteral(string value)

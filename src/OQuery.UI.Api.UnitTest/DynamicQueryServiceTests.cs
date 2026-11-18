@@ -79,8 +79,7 @@ internal sealed class DynamicQueryServiceTests
         public IDbConnection CreateConnection() => new SqlConnection("Server=localhost;Database=TEST;Connect Timeout=1");
         public string? GetCurrentProvider() => "SqlServer";
         public DatabaseConnectionOptionsDto GetConnectionOptions() => throw new NotSupportedException();
-        public string Connect(string profile) => throw new NotSupportedException();
-        public void Connect(string provider, string connectionString) => throw new NotSupportedException();
+        public void UpdateDbConnection(string provider, string connectionString) => throw new NotSupportedException();
         public void Disconnect() => throw new NotSupportedException();
     }
 

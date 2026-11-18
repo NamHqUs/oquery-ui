@@ -25,8 +25,10 @@ public sealed class DynamicQueryService(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(domainId);
         using var connection = dbConnectionService.CreateConnection();
-        var dialect = SqlDialectFactory.ForProvider(dbConnectionService.GetCurrentProvider());
-        var metadataProvider = CreateMetadataProvider(domainId, dbConnectionService.GetCurrentProvider());
+        var provider = dbConnectionService.GetCurrentProvider();
+        ArgumentException.ThrowIfNullOrWhiteSpace(provider);
+        var dialect = SqlDialectFactory.ForProvider(provider);
+        var metadataProvider = CreateMetadataProvider(domainId, provider);
         ValidateQueryEntities(query, metadataProvider, domainId);
         using var context = new OQueryEngine(
             connection,
@@ -45,8 +47,10 @@ public sealed class DynamicQueryService(
         logger.LogInformation("\n---\n{query}\n---", query.ToText());
 
         using var connection = dbConnectionService.CreateConnection();
-        var dialect = SqlDialectFactory.ForProvider(dbConnectionService.GetCurrentProvider());
-        var metadataProvider = CreateMetadataProvider(domainId, dbConnectionService.GetCurrentProvider());
+        var provider = dbConnectionService.GetCurrentProvider();
+        ArgumentException.ThrowIfNullOrWhiteSpace(provider);
+        var dialect = SqlDialectFactory.ForProvider(provider);
+        var metadataProvider = CreateMetadataProvider(domainId, provider);
         ValidateQueryEntities(query, metadataProvider, domainId);
         using var context = new OQueryEngine(
             connection,

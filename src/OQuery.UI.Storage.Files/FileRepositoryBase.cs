@@ -24,6 +24,8 @@ public abstract class FileRepositoryBase<T> : IRepository<T>
         _fileExtension = fileExtension.StartsWith('.') ? fileExtension : $".{fileExtension}";
     }
 
+    protected FilePathResolver PathResolver => _filePathResolver;
+
     public abstract IReadOnlyCollection<T> GetBuiltin();
     public abstract IReadOnlyCollection<T> GetUserDefined(string userSectionId);
     public abstract T? Get(string userSectionId, string id);

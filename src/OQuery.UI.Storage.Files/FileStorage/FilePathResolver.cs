@@ -6,16 +6,19 @@ namespace OQuery.UI.Storage.Files.FileStorage;
 public sealed class FilePathResolver(IConfiguration configuration)
 {
     public string GetUserDataRootDirectory()
-        => BuiltinDatasets.GetRootDirectory(configuration["Setup:UserDataStorePath"]);
+        => BuiltinDatasets.GetRootDirectory(configuration["OQuery:Repositories:Files:UserDataStorePath"]);
 
-    public string GetBuiltinRootDirectory()
-        => BuiltinDatasets.GetRootDirectory(configuration["Setup:BuiltinPath"]);
+    /// <summary>Returns the configured built-in folders for one kind, e.g. "Domains" or "Queries".</summary>
+    public IReadOnlyCollection<string> GetBuiltinFolders(string kind)
+        => configuration.GetSection("OQuery:Repositories:Files:BuiltinData")
+            .GetChildren()
+            .Select(item => item[kind])
+            .Where(folder => !string.IsNullOrWhiteSpace(folder))
+            .Select(folder => Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, folder!)))
+            .ToArray();
 
-    public IReadOnlyCollection<string> GetDataSets()
-        => configuration.GetSection("Setup:DataSets").Get<string[]>() ?? [];
-
-    public IEnumerable<string> EnumerateBuiltinFiles(string folder, params string[] extensions)
-        => BuiltinDatasets.EnumerateFiles(GetBuiltinRootDirectory(), GetDataSets(), folder, extensions);
+    public IEnumerable<string> EnumerateBuiltinFiles(string kind, params string[] extensions)
+        => BuiltinDatasets.EnumerateFiles(GetBuiltinFolders(kind), extensions);
 
     public string GetUserStoreFolder(string userSectionId, string? subDir)
     {
