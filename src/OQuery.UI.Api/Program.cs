@@ -1,4 +1,5 @@
 using OQuery.UI.Storage.Files;
+using OQuery.UI.Storage.Files.FileStorage;
 using OQuery.UI.Storage.Postgres;
 using OQuery.UI.Abstracts;
 using OQuery.UI.Abstracts.Application;
@@ -37,10 +38,17 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-if (configuration.GetConnectionString("OQueryStore") is not null)
-    builder.Services.AddPostgresRepositories(configuration);
-else
-    builder.Services.AddDemoRepositories();
+builder.Services.AddDemoRepositories();
+var postgresConnection = configuration["OQuery:Repositories:Postgres:ConnectionString"];
+if (!string.IsNullOrWhiteSpace(postgresConnection))
+{
+    // Replaces the file-based domain and query repositories registered above.
+    var filePaths = new FilePathResolver(configuration);
+    builder.Services.AddPostgresRepositories(
+        postgresConnection,
+        new DomainFileRepository(filePaths).GetBuiltin(),
+        new QueryRequestFileRepository(filePaths).GetBuiltin());
+}
 builder.Services.AddDemoServices();
 builder.Services.AddSingleton<IUserSectionManager, UserSectionManager>();
 

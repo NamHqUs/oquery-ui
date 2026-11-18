@@ -1,6 +1,5 @@
 using OQuery.UI.Abstracts.Dto;
 using OQuery.UI.Abstracts.Repositories;
-using OQuery.UI.Storage.Files.FileStorage;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -13,15 +12,14 @@ public sealed class PostgresDomainRepository : IDomainRepository
 
     private readonly PostgresDocumentStore _store;
 
-    public PostgresDomainRepository(string connectionString, FilePathResolver filePathResolver)
+    public PostgresDomainRepository(string connectionString, IReadOnlyCollection<DomainDto> builtinDomains)
     {
-        var builtinSource = new DomainFileRepository(filePathResolver);
         _store = new PostgresDocumentStore(
             connectionString,
             TABLE,
-            () => builtinSource.GetBuiltin()
-                .Select(domain => (domain.Id, JsonSerializer.Serialize(domain))));
+            () => builtinDomains.Select(domain => (domain.Id, JsonSerializer.Serialize(domain))));
     }
+
 
     public IReadOnlyCollection<DomainDto> GetBuiltin()
         => _store.List(PostgresDocumentStore.BuiltinSectionId, isBuiltin: true)

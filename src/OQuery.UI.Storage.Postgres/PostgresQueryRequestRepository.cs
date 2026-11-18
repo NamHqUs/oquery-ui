@@ -1,6 +1,5 @@
 using OQuery.UI.Abstracts.Dto;
 using OQuery.UI.Abstracts.Repositories;
-using OQuery.UI.Storage.Files.FileStorage;
 using System.Globalization;
 using System.Security.Cryptography;
 
@@ -13,15 +12,14 @@ public sealed class PostgresQueryRequestRepository : IQueryRequestRepository
 
     private readonly PostgresDocumentStore _store;
 
-    public PostgresQueryRequestRepository(string connectionString, FilePathResolver filePathResolver)
+    public PostgresQueryRequestRepository(string connectionString, IReadOnlyCollection<QueryRequestRecordDto> builtinQueries)
     {
-        var builtinSource = new QueryRequestFileRepository(filePathResolver);
         _store = new PostgresDocumentStore(
             connectionString,
             TABLE,
-            () => builtinSource.GetBuiltin()
-                .Select(request => (request.Id, request.Json)));
+            () => builtinQueries.Select(request => (request.Id, request.Json)));
     }
+
 
     public IReadOnlyCollection<QueryRequestRecordDto> GetBuiltin()
         => _store.List(PostgresDocumentStore.BuiltinSectionId, isBuiltin: true)

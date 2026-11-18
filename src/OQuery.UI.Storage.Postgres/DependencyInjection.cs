@@ -1,27 +1,27 @@
+using OQuery.UI.Abstracts.Dto;
 using OQuery.UI.Abstracts.Repositories;
-using OQuery.UI.Storage.Files.FileStorage;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace OQuery.UI.Storage.Postgres;
 
 public static class DependencyInjection
 {
+    /// <summary>
+    /// Registers the Postgres domain and query repositories. The caller supplies the built-in rows
+    /// that are seeded once into each table.
+    /// </summary>
     public static IServiceCollection AddPostgresRepositories(
         this IServiceCollection services,
-        IConfiguration configuration)
+        string connectionString,
+        IReadOnlyCollection<DomainDto> builtinDomains,
+        IReadOnlyCollection<QueryRequestRecordDto> builtinQueries)
     {
-        var connectionString = configuration.GetConnectionString("OQueryStore")
-            ?? throw new InvalidOperationException(
-                "ConnectionStrings:OQueryStore is required for Postgres repositories.");
+        ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
-        services.AddSingleton<FilePathResolver>();
-        services.AddSingleton<IMetadataRepository, MetadataFileRepository>();
-        services.AddSingleton<IFunctionDefinitionRepository, FunctionDefinitionFileRepository>();
-        services.AddSingleton<IDomainRepository>(sp =>
-            new PostgresDomainRepository(connectionString, sp.GetRequiredService<FilePathResolver>()));
-        services.AddSingleton<IQueryRequestRepository>(sp =>
-            new PostgresQueryRequestRepository(connectionString, sp.GetRequiredService<FilePathResolver>()));
+        services.AddSingleton<IDomainRepository>(
+            new PostgresDomainRepository(connectionString, builtinDomains));
+        services.AddSingleton<IQueryRequestRepository>(
+            new PostgresQueryRequestRepository(connectionString, builtinQueries));
 
         return services;
     }

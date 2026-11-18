@@ -6,7 +6,6 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\OQuery.UI.Abstracts\OQuery.UI.Abstracts.csproj" />
-		<ProjectReference Include="..\OQuery.UI.Storage.Files\OQuery.UI.Storage.Files.csproj" />
 		<PackageReference Include="Npgsql" />
 	</ItemGroup>
 </Project>
