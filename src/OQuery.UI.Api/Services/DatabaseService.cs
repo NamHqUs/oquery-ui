@@ -1,9 +1,9 @@
 using OQuery;
 using OQuery.Database;
 using OQuery.UI.Api.Services.DbSchemaLoaders;
-using OQuery.UI.Abstracts;
 using OQuery.UI.Abstracts.Dto;
 using OQuery.UI.Abstracts.Services;
+using OQuery.UnitTest.Setup;
 using Microsoft.Extensions.Configuration;
 using System.Data;
 
@@ -95,9 +95,8 @@ public class DatabaseService(IConfiguration configuration) : IDatabaseService, I
         if (!configuration.GetValue<bool>("OQuery:Seeds:Enabled"))
             return [];
 
-        var dataSetFolders = configuration.GetSection("OQuery:Seeds:DataSets").Get<string[]>() ?? [];
-        return BuiltinDatasets.EnumerateScripts(
-            dataSetFolders.Select(folder => BuiltinDatasets.GetRootDirectory(folder)),
-            provider).ToArray();
+        var dataSets = configuration.GetSection("OQuery:Seeds:DataSets").Get<string[]>()
+            ?? throw new InvalidOperationException("OQuery:Seeds:DataSets is required in the configuration.");
+        return BuiltinDataLoader.GetScripts(configuration["OQuery:Seeds:BasePath"], dataSets, provider).ToArray();
     }
 }

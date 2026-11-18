@@ -34,19 +34,24 @@ frontend in separate Windows Terminal tabs. The API's Swagger UI is at
 The API host and database-services project target x64 because the IBM DB2
 provider requires an x64 process.
 
-Built-in datasets are configured under `OQuery` in `appsettings.json`:
+Configuration is split by responsibility under `OQuery` in `appsettings.json`:
 
-- `OQuery:Repositories:Files:BuiltinData` - one entry per dataset with `Domains`
-  and `Queries` folder paths (an optional `Metadata` path is also read).
-- `OQuery:Seeds:DataSets` - `scripts/` folders. Scripts are matched by the
-  suffix `.{provider}.sql`.
-- `OQuery:Repositories:Files:UserData` - user data root
-  (`UserData/{sectionId}/...`). Docker images include the built-in datasets
-  independently of the custom-data volume.
+- `OQuery:Seeds:BasePath` - root of the built-in data. `OQuery:Seeds:DataSets`
+  lists the dataset subfolders to load (for example `northstar-demo`,
+  `unit-test`). Each dataset may contain `domains/`, `queries/` and
+  `scripts/`. `BuiltinDataLoader` (SetupTests) reads them, and the built-in data
+  is read-only and handed to the repositories, which never seed it.
+- `OQuery:Seeds:Enabled` / `DBVersion` - control database initialization scripts
+  (`scripts/*.{provider}.sql` from the chosen datasets).
+- `OQuery:Repositories:Files:UserData` - file repository root for user data
+  (`UserData/{sectionId}/...`).
+- `OQuery:Repositories:Postgres:ConnectionString` - when set, Postgres stores
+  user Domains and Queries (built-in rows are seeded from the consumer).
+- `OQuery:DialectPackagesPath` - folder of dialect DLLs used to validate the
+  provider selected with `PUT /db/connection`.
 
 The database is connected directly with `PUT /db/connection` (provider and
-connection string). Providers are validated against the dialect DLLs loaded from
-`OQuery:Repositories:Files:DialectPackagesPath` at startup.
+connection string).
 
 The API and demo projects are in `src/`; the OQuery engine is in
 `oquery/src/OQuery.Core` (engine) and `oquery/src/OQuery.Abstracts` (input and output contracts). Build the complete solution with:

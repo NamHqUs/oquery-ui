@@ -1,4 +1,3 @@
-using OQuery.UI.Abstracts;
 using Microsoft.Extensions.Configuration;
 
 namespace OQuery.UI.Storage.Files.FileStorage;
@@ -6,19 +5,11 @@ namespace OQuery.UI.Storage.Files.FileStorage;
 public sealed class FilePathResolver(IConfiguration configuration)
 {
     public string GetUserDataRootDirectory()
-        => BuiltinDatasets.GetRootDirectory(configuration["OQuery:Repositories:Files:UserData"]);
-
-    /// <summary>Returns the configured built-in folders for one kind, e.g. "Domains" or "Queries".</summary>
-    public IReadOnlyCollection<string> GetBuiltinFolders(string kind)
-        => configuration.GetSection("OQuery:Repositories:Files:BuiltinData")
-            .GetChildren()
-            .Select(item => item[kind])
-            .Where(folder => !string.IsNullOrWhiteSpace(folder))
-            .Select(folder => Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, folder!)))
-            .ToArray();
-
-    public IEnumerable<string> EnumerateBuiltinFiles(string kind, params string[] extensions)
-        => BuiltinDatasets.EnumerateFiles(GetBuiltinFolders(kind), extensions);
+    {
+        var userData = configuration["OQuery:Repositories:Files:UserData"]
+            ?? throw new InvalidOperationException("Configuration 'OQuery:Repositories:Files:UserData' is missing.");
+        return Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, userData));
+    }
 
     public string GetUserStoreFolder(string userSectionId, string? subDir)
     {

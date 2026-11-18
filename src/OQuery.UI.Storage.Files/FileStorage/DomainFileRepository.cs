@@ -5,37 +5,9 @@ using System.Text.Json;
 
 namespace OQuery.UI.Storage.Files.FileStorage;
 
-public sealed class DomainFileRepository(FilePathResolver filePathResolver)
-    : FileRepositoryBase<DomainDto>(filePathResolver, "Domains"), IDomainRepository
+public sealed class DomainFileRepository(FilePathResolver filePathResolver, IReadOnlyCollection<DomainDto> builtinDomains)
+    : FileRepositoryBase<DomainDto>(filePathResolver, "Domains", builtinDomains), IDomainRepository
 {
-    private readonly FilePathResolver _filePathResolver = filePathResolver;
-    private IReadOnlyCollection<DomainDto>? _builtinDomains;
-
-    public override IReadOnlyCollection<DomainDto> GetBuiltin()
-    {
-        if (_builtinDomains is null)
-        {
-            var domains = new Dictionary<string, DomainDto>(StringComparer.OrdinalIgnoreCase);
-            foreach (var path in _filePathResolver.EnumerateBuiltinFiles(BuiltinDatasets.DomainsFolder, ".json"))
-            {
-                var domain = JsonSerializer.Deserialize<DomainDto>(File.ReadAllText(path))
-                    ?? throw new InvalidDataException($"Failed to deserialize built-in domain from '{path}'.");
-                if (string.IsNullOrWhiteSpace(domain.Name))
-                    throw new InvalidDataException($"Built-in domain '{path}' has no name.");
-                domain.Id = string.IsNullOrWhiteSpace(domain.Id)
-                    ? Path.GetFileNameWithoutExtension(path)
-                    : domain.Id;
-                domain.IsBuiltin = true;
-                if (!domains.TryAdd(domain.Name, domain))
-                    throw new InvalidDataException($"Duplicate built-in domain '{domain.Name}' found in '{path}'.");
-            }
-
-            _builtinDomains = domains.Values.ToArray();
-        }
-
-        return _builtinDomains;
-    }
-
     public override IReadOnlyCollection<DomainDto> GetUserDefined(string userSectionId)
     {
         var directory = GetUserStoreFolder(userSectionId);

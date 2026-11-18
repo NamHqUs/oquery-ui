@@ -11,11 +11,9 @@ namespace OQuery.UI.Storage.Files.FileStorage;
 /// Built-in functions are not stored here; the consumer supplies them from its dialects.
 /// </summary>
 public sealed class FunctionDefinitionFileRepository(FilePathResolver filePathResolver)
-    : FileRepositoryBase<FunctionDefinitionDto>(filePathResolver, FOLDER_NAME), IFunctionDefinitionRepository
+    : FileRepositoryBase<FunctionDefinitionDto>(filePathResolver, FOLDER_NAME, []), IFunctionDefinitionRepository
 {
     private const string FOLDER_NAME = "functions";
-
-    public override IReadOnlyCollection<FunctionDefinitionDto> GetBuiltin() => [];
 
     public override IReadOnlyCollection<FunctionDefinitionDto> GetUserDefined(string userSectionId)
     {

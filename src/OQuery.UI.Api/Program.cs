@@ -1,5 +1,4 @@
 using OQuery.UI.Storage.Files;
-using OQuery.UI.Storage.Files.FileStorage;
 using OQuery.UI.Storage.Postgres;
 using OQuery.UI.Abstracts;
 using OQuery.UI.Abstracts.Application;
@@ -8,6 +7,7 @@ using OQuery.UI.Application;
 using OQuery.UI.Application.Middlewares;
 using OQuery;
 using OQuery.QueryDefinitions.Parsers;
+using OQuery.UnitTest.Setup;
 using System.Text.Json.Serialization;
 
 var configuration = new ConfigurationBuilder()
@@ -38,28 +38,26 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddDemoRepositories();
+
+// Built-in data is consumer-owned: loaded once here and handed to the repositories, which only load/save user data.
+var dataSets = configuration.GetSection("OQuery:Seeds:DataSets").Get<string[]>()
+    ?? throw new InvalidOperationException("Configuration 'OQuery:Seeds:DataSets' is missing.");
+var seeds = BuiltinDataLoader.Load(configuration["OQuery:Seeds:BasePath"], dataSets);
+builder.Services.AddDemoRepositories(seeds.Domains, seeds.Queries);
 var postgresConnection = configuration["OQuery:Repositories:Postgres:ConnectionString"];
 if (!string.IsNullOrWhiteSpace(postgresConnection))
 {
     // Replaces the file-based domain and query repositories registered above.
-    var filePaths = new FilePathResolver(configuration);
-    builder.Services.AddPostgresRepositories(
-        postgresConnection,
-        new DomainFileRepository(filePaths).GetBuiltin(),
-        new QueryRequestFileRepository(filePaths).GetBuiltin());
+    builder.Services.AddPostgresRepositories(postgresConnection, seeds.Domains, seeds.Queries);
 }
 builder.Services.AddDemoServices();
 builder.Services.AddSingleton<IUserSectionManager, UserSectionManager>();
 
-DialectModules.RegisterFromFolder(BuiltinDatasets.GetRootDirectory(configuration["OQuery:Repositories:Files:DialectPackagesPath"]));
+DialectModules.RegisterFromFolder(Path.GetFullPath(Path.Combine(
+    Environment.CurrentDirectory,
+    configuration["OQuery:DialectPackagesPath"] ?? throw new InvalidOperationException("Configuration 'OQuery:DialectPackagesPath' is missing."))));
 
 var app = builder.Build();
-
-//var service = app.Services.GetRequiredService<IQueryRequestRepository>();
-//var queryRequest = service.GetBuiltin();
-//foreach (var request in queryRequest)
-//    service.Save("builtin", request);
 
 app.UseExceptionHandler();
 app.UseSwagger();

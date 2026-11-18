@@ -9,24 +9,29 @@ public abstract class FileRepositoryBase<T> : IRepository<T>
     private readonly FilePathResolver _filePathResolver;
     private readonly string _folderName;
     private readonly string _fileExtension;
+    private readonly IReadOnlyCollection<T> _builtin;
 
+    /// <param name="builtin">Read-only built-in items, supplied by the consumer. This repository never seeds or saves them.</param>
     protected FileRepositoryBase(
         FilePathResolver filePathResolver,
         string folderName,
+        IReadOnlyCollection<T> builtin,
         string fileExtension = ".json")
     {
         ArgumentNullException.ThrowIfNull(filePathResolver);
         ArgumentException.ThrowIfNullOrWhiteSpace(folderName);
+        ArgumentNullException.ThrowIfNull(builtin);
         ArgumentException.ThrowIfNullOrWhiteSpace(fileExtension);
 
         _filePathResolver = filePathResolver;
         _folderName = folderName;
+        _builtin = builtin;
         _fileExtension = fileExtension.StartsWith('.') ? fileExtension : $".{fileExtension}";
     }
 
     protected FilePathResolver PathResolver => _filePathResolver;
 
-    public abstract IReadOnlyCollection<T> GetBuiltin();
+    public IReadOnlyCollection<T> GetBuiltin() => _builtin;
     public abstract IReadOnlyCollection<T> GetUserDefined(string userSectionId);
     public abstract T? Get(string userSectionId, string id);
     public abstract void Save(string userSectionId, T item);
