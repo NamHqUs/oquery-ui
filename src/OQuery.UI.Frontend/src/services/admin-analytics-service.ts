@@ -6,7 +6,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export type AnalyticsRange = { from: string; to: string };
 export type AnalyticsDailyStat = { day: string; newUsers: number; returningUsers: number; totalVisits: number };
 export type AnalyticsSummary = { days: AnalyticsDailyStat[] };
-export type AnalyticsUrlStat = { url: string; page: string; requests: number };
+export type AnalyticsUrlStat = { url: string; requests: number };
+export type AnalyticsPageStat = { page: string; requests: number };
 
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -55,4 +56,5 @@ async function getAdmin<T>(url: string, token: string, range: AnalyticsRange, li
 export const adminAnalyticsService = {
   summary: (token: string, range: AnalyticsRange) => getAdmin<AnalyticsSummary>(apiUrls.analytics.adminSummary, token, range),
   urls: (token: string, range: AnalyticsRange, limit = 50) => getAdmin<AnalyticsUrlStat[]>(apiUrls.analytics.adminUrls, token, range, limit),
+  pages: (token: string, range: AnalyticsRange, limit = 50) => getAdmin<AnalyticsPageStat[]>(apiUrls.analytics.adminPages, token, range, limit),
 };

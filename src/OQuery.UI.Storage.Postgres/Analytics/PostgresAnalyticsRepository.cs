@@ -43,7 +43,7 @@ public sealed class PostgresAnalyticsRepository : IAnalyticsRepository
 
         await using (var command = new NpgsqlCommand(
             """
-            insert into analytics_users (user_id, first_seen_day)
+            insert into analytics_visitors (user_id, first_seen_day)
             select t.user_id, t.first_seen_day
             from unnest(@userIds::uuid[], @firstSeen::date[]) as t(user_id, first_seen_day)
             on conflict (user_id) do nothing
@@ -58,11 +58,11 @@ public sealed class PostgresAnalyticsRepository : IAnalyticsRepository
 
         await using (var command = new NpgsqlCommand(
             """
-            insert into analytics_daily_user (day, user_id, visits)
+            insert into analytics_daily_visitors (day, user_id, visits)
             select t.day, t.user_id, t.visits
             from unnest(@days::date[], @userIds::uuid[], @visits::bigint[]) as t(day, user_id, visits)
             on conflict (day, user_id)
-            do update set visits = analytics_daily_user.visits + excluded.visits
+            do update set visits = analytics_daily_visitors.visits + excluded.visits
             """,
             connection,
             transaction))
@@ -75,11 +75,11 @@ public sealed class PostgresAnalyticsRepository : IAnalyticsRepository
 
         await using (var command = new NpgsqlCommand(
             """
-            insert into analytics_daily_url (day, url, count)
+            insert into analytics_daily_backend (day, url, count)
             select t.day, t.url, t.count
             from unnest(@days::date[], @urls::text[], @counts::bigint[]) as t(day, url, count)
             on conflict (day, url)
-            do update set count = analytics_daily_url.count + excluded.count
+            do update set count = analytics_daily_backend.count + excluded.count
             """,
             connection,
             transaction))
@@ -92,11 +92,11 @@ public sealed class PostgresAnalyticsRepository : IAnalyticsRepository
 
         await using (var command = new NpgsqlCommand(
             """
-            insert into analytics_daily_page_url (day, page, url, count)
+            insert into analytics_daily_frontend (day, page, url, count)
             select t.day, t.page, t.url, t.count
             from unnest(@days::date[], @pages::text[], @urls::text[], @counts::bigint[]) as t(day, page, url, count)
             on conflict (day, page, url)
-            do update set count = analytics_daily_page_url.count + excluded.count
+            do update set count = analytics_daily_frontend.count + excluded.count
             """,
             connection,
             transaction))
@@ -122,8 +122,8 @@ public sealed class PostgresAnalyticsRepository : IAnalyticsRepository
                    count(*) filter (where u.first_seen_day = d.day)::bigint,
                    count(*) filter (where u.first_seen_day < d.day)::bigint,
                    sum(d.visits)::bigint
-            from analytics_daily_user d
-            join analytics_users u on u.user_id = d.user_id
+            from analytics_daily_visitors d
+                        join analytics_visitors u on u.user_id = d.user_id
             where d.day >= @from and d.day < @to
             group by d.day
             order by d.day
@@ -145,33 +145,48 @@ public sealed class PostgresAnalyticsRepository : IAnalyticsRepository
         return new AnalyticsSummaryDto(days);
     }
 
-    public async Task<IReadOnlyList<AnalyticsUrlStatDto>> GetUrlStatsAsync(DateOnly from, DateOnly to, int limit, CancellationToken cancellationToken = default)
-    {
-        await EnsureInitializedAsync(cancellationToken);
-        await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
-        await using var command = CreateCommand(
-            connection,
+    public Task<IReadOnlyList<AnalyticsUrlStatDto>> GetUrlStatsAsync(DateOnly from, DateOnly to, int limit, CancellationToken cancellationToken = default)
+        => QueryTopAsync(
             """
-            select url, page, sum(count)::bigint
-            from analytics_daily_page_url
+            select url, sum(count)::bigint
+            from analytics_daily_backend
             where day >= @from and day < @to
-            group by url, page
-            order by sum(count) desc, url, page
+            group by url
+            order by sum(count) desc, url
             limit @limit
             """,
             from,
             to,
-            limit);
+            limit,
+            reader => new AnalyticsUrlStatDto(Url: reader.GetString(0), Requests: reader.GetInt64(1)),
+            cancellationToken);
 
-        var rows = new List<AnalyticsUrlStatDto>();
+    public Task<IReadOnlyList<AnalyticsPageStatDto>> GetPageStatsAsync(DateOnly from, DateOnly to, int limit, CancellationToken cancellationToken = default)
+        => QueryTopAsync(
+            """
+            select page, sum(count)::bigint
+            from analytics_daily_frontend
+            where day >= @from and day < @to and page <> ''
+            group by page
+            order by sum(count) desc, page
+            limit @limit
+            """,
+            from,
+            to,
+            limit,
+            reader => new AnalyticsPageStatDto(Page: reader.GetString(0), Requests: reader.GetInt64(1)),
+            cancellationToken);
+
+    private async Task<IReadOnlyList<T>> QueryTopAsync<T>(string sql, DateOnly from, DateOnly to, int limit, Func<NpgsqlDataReader, T> map, CancellationToken cancellationToken)
+    {
+        await EnsureInitializedAsync(cancellationToken);
+        await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
+        await using var command = CreateCommand(connection, sql, from, to, limit);
+
+        var rows = new List<T>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))
-        {
-            rows.Add(new AnalyticsUrlStatDto(
-                Url: reader.GetString(0),
-                Page: reader.GetString(1),
-                Requests: reader.GetInt64(2)));
-        }
+            rows.Add(map(reader));
         return rows;
     }
 
@@ -201,20 +216,35 @@ public sealed class PostgresAnalyticsRepository : IAnalyticsRepository
 
             await using (var create = new NpgsqlCommand(
                 """
-                create table if not exists analytics_users (
+                do $$
+                begin
+                    if to_regclass('analytics_users') is not null and to_regclass('analytics_visitors') is null then
+                        alter table analytics_users rename to analytics_visitors;
+                    end if;
+                    if to_regclass('analytics_daily_user') is not null and to_regclass('analytics_daily_visitors') is null then
+                        alter table analytics_daily_user rename to analytics_daily_visitors;
+                    end if;
+                    if to_regclass('analytics_daily_url') is not null and to_regclass('analytics_daily_backend') is null then
+                        alter table analytics_daily_url rename to analytics_daily_backend;
+                    end if;
+                    if to_regclass('analytics_daily_page_url') is not null and to_regclass('analytics_daily_frontend') is null then
+                        alter table analytics_daily_page_url rename to analytics_daily_frontend;
+                    end if;
+                end $$;
+                create table if not exists analytics_visitors (
                     user_id         uuid primary key,
                     first_seen_day  date not null);
-                create table if not exists analytics_daily_user (
+                create table if not exists analytics_daily_visitors (
                     day      date   not null,
                     user_id  uuid   not null,
                     visits   bigint not null,
                     primary key (day, user_id));
-                create table if not exists analytics_daily_url (
+                create table if not exists analytics_daily_backend (
                     day    date   not null,
                     url    text   not null,
                     count  bigint not null,
                     primary key (day, url));
-                create table if not exists analytics_daily_page_url (
+                create table if not exists analytics_daily_frontend (
                     day    date   not null,
                     page   text   not null,
                     url    text   not null,
@@ -229,8 +259,8 @@ public sealed class PostgresAnalyticsRepository : IAnalyticsRepository
 
             await using (var prune = new NpgsqlCommand(
                 """
-                delete from analytics_daily_user where day < (current_date - @retentionDays::int);
-                delete from analytics_daily_url where day < (current_date - @retentionDays::int);
+                delete from analytics_daily_visitors where day < (current_date - @retentionDays::int);
+                delete from analytics_daily_backend where day < (current_date - @retentionDays::int);
                 """,
                 connection,
                 transaction))

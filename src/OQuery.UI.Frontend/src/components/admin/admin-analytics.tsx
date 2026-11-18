@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { adminAnalyticsService, datesForDays, rangeForDates, toCsv, validateDates, type AnalyticsDailyStat, type AnalyticsSummary, type AnalyticsUrlStat } from "../../services/admin-analytics-service";
+import { adminAnalyticsService, datesForDays, rangeForDates, toCsv, validateDates, type AnalyticsDailyStat, type AnalyticsPageStat, type AnalyticsSummary, type AnalyticsUrlStat } from "../../services/admin-analytics-service";
 import "./admin-analytics.css";
 
 const TOKEN_KEY = "oquery.admin.token";
@@ -14,6 +14,7 @@ const PRESETS = [
 type Data = {
   summary: AnalyticsSummary;
   urls: AnalyticsUrlStat[];
+  pages: AnalyticsPageStat[];
 };
 
 // Keeps the token for this browser tab only (sessionStorage), so it is not persisted across sessions.
@@ -37,6 +38,8 @@ export default function AdminAnalytics() {
   const [activePreset, setActivePreset] = useState<number | null>(30);
   const [reloadKey, setReloadKey] = useState(0);
   const [data, setData] = useState<Data | null>(null);
+  const [activeUrlTab, setActiveUrlTab] = useState<"api" | "frontend">("api");
+  const [urlFilter, setUrlFilter] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const dateError = validateDates(fromDay, toDay);
@@ -50,9 +53,10 @@ export default function AdminAnalytics() {
     Promise.all([
       adminAnalyticsService.summary(token, range),
       adminAnalyticsService.urls(token, range),
+      adminAnalyticsService.pages(token, range),
     ])
-      .then(([summary, urls]) => {
-        if (active) setData({ summary, urls });
+      .then(([summary, urls, pages]) => {
+        if (active) setData({ summary, urls, pages });
       })
       .catch((err: unknown) => {
         if (!active) return;
@@ -62,7 +66,7 @@ export default function AdminAnalytics() {
           writeToken("");
           setToken("");
           setError("The admin token was rejected.");
-        } else if (message.includes("(404)")) {
+        } else if (message.includes("(404)") || message.includes("Not Found")) {
           writeToken("");
           setToken("");
           setError("Admin analytics is not configured on the server. Set the ADMIN_TOKEN environment variable and restart the API.");
@@ -162,14 +166,63 @@ export default function AdminAnalytics() {
             { head: "Total visits", cell: (row) => row.totalVisits.toLocaleString() },
           ]} />
 
-          <Table title="Requests per URL" empty="No requests in this range." rows={data.urls} onDownload={() => downloadCsv(`analytics-urls-${fromDay}-${toDay}.csv`, toCsv(
-            ["API URL", "Frontend URL", "Requests"],
-            data.urls.map((row) => [row.url, row.page, row.requests]),
-          ))} columns={[
-            { head: "API URL", cell: (row) => <code>{row.url}</code> },
-            { head: "Frontend URL", cell: (row) => row.page ? <code>{row.page}</code> : <span className="admin-analytics-muted">—</span> },
-            { head: "Requests", cell: (row) => row.requests.toLocaleString() },
-          ]} />
+          <section className="admin-analytics-table admin-analytics-url-reports">
+            <div className="admin-analytics-tab-toolbar">
+              <div className="admin-analytics-tabs" role="tablist" aria-label="URL reports">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeUrlTab === "api"}
+                  aria-controls="api-url-report"
+                  id="api-url-tab"
+                  onClick={() => setActiveUrlTab("api")}
+                >
+                  API URL
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeUrlTab === "frontend"}
+                  aria-controls="frontend-url-report"
+                  id="frontend-url-tab"
+                  onClick={() => setActiveUrlTab("frontend")}
+                >
+                  Frontend URL
+                </button>
+              </div>
+              <label className="admin-analytics-url-filter">
+                Filter
+                <input
+                  type="search"
+                  value={urlFilter}
+                  onChange={(event) => setUrlFilter(event.target.value)}
+                  placeholder="Search URL"
+                  aria-label="Filter URL report"
+                />
+              </label>
+            </div>
+            {activeUrlTab === "api" ? (
+              <div role="tabpanel" id="api-url-report" aria-labelledby="api-url-tab">
+                <Table title="Requests per API URL" empty={urlFilter ? "No matching API URLs." : "No requests in this range."} rows={filterRows(data.urls, urlFilter, (row) => row.url)} onDownload={() => downloadCsv(`analytics-api-urls-${fromDay}-${toDay}.csv`, toCsv(
+                  ["API URL", "Requests"],
+                  filterRows(data.urls, urlFilter, (row) => row.url).map((row) => [row.url, row.requests]),
+                ))} columns={[
+                  { head: "API URL", cell: (row) => <code>{row.url}</code> },
+                  { head: "Requests", cell: (row) => row.requests.toLocaleString() },
+                ]} />
+              </div>
+            ) : (
+              <div role="tabpanel" id="frontend-url-report" aria-labelledby="frontend-url-tab">
+                <Table title="Requests per frontend page" empty={urlFilter ? "No matching frontend URLs." : "No requests in this range."} rows={filterRows(data.pages, urlFilter, (row) => row.page)} onDownload={() => downloadCsv(`analytics-frontend-pages-${fromDay}-${toDay}.csv`, toCsv(
+                  ["Frontend URL", "Requests"],
+                  filterRows(data.pages, urlFilter, (row) => row.page).map((row) => [row.page, row.requests]),
+                ))} columns={[
+                  { head: "Frontend URL", cell: (row) => <code>{row.page}</code> },
+                  { head: "Requests", cell: (row) => row.requests.toLocaleString() },
+                ]} />
+              </div>
+            )}
+          </section>
         </>
       )}
     </section>
@@ -188,6 +241,12 @@ function downloadCsv(fileName: string, csv: string) {
 
 function sumDays(days: AnalyticsDailyStat[], key: "newUsers" | "returningUsers" | "totalVisits"): number {
   return days.reduce((total, day) => total + day[key], 0);
+}
+
+function filterRows<T>(rows: T[], filter: string, value: (row: T) => string): T[] {
+  const normalizedFilter = filter.trim().toLocaleLowerCase();
+  if (!normalizedFilter) return rows;
+  return rows.filter((row) => value(row).toLocaleLowerCase().includes(normalizedFilter));
 }
 
 function Card({ label, value }: { label: string; value: string }) {

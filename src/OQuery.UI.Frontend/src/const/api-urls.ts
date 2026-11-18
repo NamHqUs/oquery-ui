@@ -39,6 +39,7 @@ export const apiUrls = {
   analytics: {
     adminSummary: `${backendApiUrl}/analytics/admin/summary`,
     adminUrls: `${backendApiUrl}/analytics/admin/urls`,
+    adminPages: `${backendApiUrl}/analytics/admin/pages`,
   },
   queryRequests: {
     list: `${backendApiUrl}/query-request`,

@@ -9,4 +9,6 @@ public sealed record AnalyticsDailyStatDto(DateOnly Day, long NewUsers, long Ret
 public sealed record AnalyticsSummaryDto(IReadOnlyList<AnalyticsDailyStatDto> Days);
 
 /// <summary>Total requests for a route template from a frontend page. Page is empty when the client sent none. Not tied to any user.</summary>
-public sealed record AnalyticsUrlStatDto(string Url, string Page, long Requests);
+public sealed record AnalyticsUrlStatDto(string Url, long Requests);
+
+public sealed record AnalyticsPageStatDto(string Page, long Requests);

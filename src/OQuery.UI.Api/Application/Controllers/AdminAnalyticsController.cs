@@ -37,6 +37,18 @@ public sealed class AdminAnalyticsController(IServiceProvider services) : Contro
         return Ok(rows.ToArray());
     }
 
+    [HttpGet("pages")]
+    public async Task<IActionResult> Pages([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] int limit = DefaultLimit, CancellationToken cancellationToken = default)
+    {
+        if (!TryResolveRange(from, to, out var start, out var end, out var error))
+            return error!;
+        if (!TryGetRepository(out var repository))
+            return StorageNotConfigured();
+
+        var rows = await repository.GetPageStatsAsync(start, end, Math.Clamp(limit, 1, MaxLimit), cancellationToken);
+        return Ok(rows.ToArray());
+    }
+
     private static bool TryResolveRange(DateOnly? from, DateOnly? to, out DateOnly start, out DateOnly end, out IActionResult? error)
     {
         end = to ?? DateOnly.FromDateTime(DateTime.UtcNow).AddDays(1);
