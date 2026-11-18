@@ -9,7 +9,7 @@ disagree, the file named as canonical wins.
 | Question | Open this | Status |
 |---|---|---|
 | Why does this product exist, and what is the design? | [product/product-definitions.md](./product/product-definitions.md) | spec |
-| What should the homepage say and show? | [product/homepage-spec.md](./product/homepage-spec.md) | spec |
+| What should the homepage say and show? | [product/homepage-spec.md](./product/homepage-spec.md) and its [content documents](./product/homepage/) | spec |
 | Where is the homepage built? | `src/OQuery.UI.Frontend/src/components/home/` | code |
 | How do I run the demo? | [../README.md](../README.md) | canonical |
 | How does the frontend work, page by page? | [frontend/api-by-page.md](./frontend/api-by-page.md) | canonical |
@@ -26,7 +26,7 @@ disagree, the file named as canonical wins.
 
 | Folder | Contents |
 |---|---|
-| `product/` | Product definition and homepage specification. Source for homepage copy. |
+| `product/` | Product definition and homepage content specification. Source for homepage copy. |
 | `projects/` | One guidance file per project: scope, conventions, and what to read before changing code. |
 | `frontend/` | API calls per page and the Studio user guide. |
 | `oquery/` | Index of the OQuery core documents. The documents themselves live in the `oquery` submodule. |

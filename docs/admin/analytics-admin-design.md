@@ -1,14 +1,12 @@
 # Admin Analytics and Builtin Data Management (design)
 
-Status: decisions confirmed (Neon, analytics only, privacy notice on first visit). Implementing phases 1 to 5 (analytics). Builtin CRUD (phase 6) and the retention job's admin-audit parts are deferred.
+Status: analytics implemented as a daily rollup (new users, returning users, visits, per-URL totals). No privacy notice. Builtin CRUD is deferred.
 
 ## 1. Goals
 
 1. **Analytics (admin view)**
-   - Total visits, visits per user, and sections per user (a section is one browser tab session).
-   - Duration per section, and time per page.
-   - Where users come from: referrer, UTM parameters, landing page.
-   - Page visit frequency and page-to-page navigation.
+   - Per day: new users, returning users, and total visits (not tied to any user ID in the URL totals).
+   - Total requests per URL route template.
 2. **Builtin data management (admin)**: create, update, and delete builtin saved queries and domains, with an audit log.
 3. **Reliability and feature signals** for future upgrades: API errors, feature usage, and funnel steps.
 
@@ -18,23 +16,26 @@ Status: decisions confirmed (Neon, analytics only, privacy notice on first visit
 |---|---|
 | Storage for analytics and builtin data | Neon Postgres (free tier, no expiry) |
 | Admin access | Shared token in the `ADMIN_TOKEN` environment variable, sent as `X-Admin-Token`. If unset, all `/admin/*` endpoints return 404 (fail closed). |
-| Visitor identity | Random ID in `localStorage` (`visitorId`), sent with every analytics request (page views and heartbeats). The ID is cached in memory for the page load, so a blocked storage does not change it mid-visit. No login, no cookies. Clearing site data or switching browsers creates a new visitor. |
-| Section identity | Random ID in `sessionStorage` (`sectionId`). Ends after 30 minutes without activity or when the tab closes. |
+| Section identity (persistent) | Server-issued GUID (GUIDv7) stored in a first-party cookie `oquery_uid`. The cookie is HttpOnly, `SameSite=Lax`, `Path=/`, and lasts 400 days (the browser maximum). The server reads it on every request and uses it as the saved-data partition key. If the cookie is missing or invalid, the server creates a new ID and sets the cookie. An existing valid ID is never replaced. No IP, User-Agent, or login is used. Clearing cookies or switching browsers creates a new section. The browser does not store the ID in `localStorage` or send it in a header. |
+| Browser state | The browser holds only the `oquery_uid` cookie (HttpOnly, so scripts cannot read it). No page, time, referrer, or UTM data is kept in the browser or sent by the browser. |
+| Usage capture | Server-side only and opt-in. Each routed API request is counted with the section ID from the cookie only when the frontend sends analytics consent. The `url` value is the ASP.NET Core route template (for example `/metadata/domains/{id}`), not the raw path, so IDs do not create separate rows. Capture uses ASP.NET Core request middleware after routing. |
+| Usage storage | Counts are kept in memory and flushed to Postgres every 60 seconds (upsert, `count = count + excluded.count`). The in-memory map is capped; excess keys are dropped and logged. Three tables: `analytics_users` (user ID and first-seen day), `analytics_daily_user` (day, user ID, visits), and `analytics_daily_url` (day, URL, count). The URL table has no user column. |
+| Usage questions | Per day: new users (first seen that day), returning users (seen that day, first seen earlier), and total visits. Visit = one routed API request. Per URL: total requests per route template for the range, not tied to any user ID. |
 | IP address | Not stored. Country comes from a geo header only if the host provides one; otherwise it is left empty. |
-| Query text | Not stored. Events carry counts, flags, and status codes only. |
-| Privacy notice | Informational notice on first visit, acknowledged once (stored in `localStorage`). It states what is measured and does not block tracking. There is no opt-out yet. |
-| Retention | Page views are deleted after 180 days. Section rows are kept for 365 days. Pruning runs when the analytics store initializes. |
+| Query text and results | Not stored. Only the route template, method, status-independent counts, and times are recorded. |
+| Privacy notice and consent | The footer links to the Privacy Notice and Terms of Service. A first-use notice explains the essential `oquery_uid` section cookie and optional analytics. Analytics is collected only after an explicit opt-in; users can decline or change the choice later. |
+| Retention | Daily rows are kept for 365 days. Pruning runs when the analytics store initializes. |
 | Scope | Analytics only for this step. Builtin CRUD (phase 6) is deferred. |
-| Routes | Admin API lives under `/analytics/*` (`/analytics/events` for ingest, `/analytics/admin/*` for reads). The admin page is the SPA route `/admin`, so the two do not collide in the Render rewrite rules. |
+| Routes | Admin API lives under `/analytics/admin/*`. There is no public ingest endpoint; the browser sends nothing for analytics. The admin page is the SPA route `/admin`, kept as a read-only summary of the daily rollup. |
 | Config | Connection string: `ConnectionStrings__Analytics` (empty disables analytics). Admin token: `ADMIN_TOKEN`. Both are Render environment variables. |
 
 Deferred with builtin CRUD: builtin saved queries and domains moving from files to Postgres, so admin edits survive redeploys.
 
-Phase 1 scope for this step: page views and sections only. The `analytics_events` table, browser/OS/device/country fields, the navigation endpoint, and rate limiting are deferred. Ingest still validates batch size and field length, and it always returns 204 so a storage failure never breaks the app.
+Scope for this step: server-side daily rollup only. No browser ingest, referrer, duration, or page-to-page navigation data is collected.
 
 ## 3. Current state to change
 
-- `IUserSectionManager` (`src/OQuery.UI/Application/Middlewares/UserSectionManager.cs`) is a stub that always returns `"123"`. All users therefore share one user-data folder. This must be fixed before per-user analytics or per-user data can be trusted. This design replaces the stub with the section ID from the request header.
+- `IUserSectionManager` (`src/OQuery.UI.Api/Application/Middlewares/UserSectionManager.cs`) was a stub that always returned `"123"`, so all users shared one user-data folder. It now reads the `oquery_uid` cookie (see section 2), issuing a new one when it is missing. The cookie is sent automatically by the browser on same-origin requests, so saved queries, domains, and function definitions keep the same partition key across requests.
 - Builtin data is read-only and file-based. The consumer loads it from `OQuery:Seeds:BasePath` through `BuiltinDataLoader` (SetupTests) and passes it to the repositories. Admin edits never write built-in data. User-created data is saved by the active provider (File or Postgres) and Render discards file writes on redeploy.
 - Repositories are chosen in `OQuery.UI.Api/Program.cs`: `FileRepositoryProvider` by default, or `PostgresRepositoryProvider` when `OQuery:Repositories:Postgres:ConnectionString` is set. Built-in domains and queries are passed to the provider constructor and held in memory. `builder.Services.AddRepositoryProvider(provider)` registers the Domain, Query, and Function repositories. Postgres stores user rows only. Function definitions are not stored in Postgres. Storage.Postgres does not reference Storage.Files.
 - Postgres mode needs `OQuery:Repositories:Postgres:ConnectionString` (for example via the `OQuery__Repositories__Postgres__ConnectionString` environment variable on Render). Do not commit the connection string.
@@ -42,30 +43,48 @@ Phase 1 scope for this step: page views and sections only. The `analytics_events
 
 ## 4. Data model (Postgres)
 
+Analytics tables (current design). Refreshed by the 60-second flush; never read in real time.
+
 ```sql
-create table analytics_sections (
-  section_id     uuid primary key,
-  visitor_id     uuid not null,
-  started_at     timestamptz not null,
-  last_seen_at   timestamptz not null,
-  referrer_host  text,
-  utm_source     text,
-  utm_medium     text,
-  utm_campaign   text,
-  landing_page   text
+-- First day each user ID was seen. Never pruned, so "new" stays correct after the daily rows expire.
+create table analytics_users (
+  user_id          uuid primary key,
+  first_seen_day   date not null
 );
 
-create table analytics_page_views (
-  id             bigserial primary key,
-  section_id     uuid not null references analytics_sections(section_id),
-  page           text not null,
-  previous_page  text,
-  entered_at     timestamptz not null,
-  left_at        timestamptz,
-  duration_ms    integer
+-- One row per user per UTC day. Used only to count distinct users; no user column is exposed by the API.
+create table analytics_daily_user (
+  day     date   not null,
+  user_id uuid   not null,
+  visits  bigint not null,
+  primary key (day, user_id)
 );
 
--- analytics_events: deferred (see section 2).
+-- Global per-URL totals per UTC day (route template, not raw path). No user dimension.
+create table analytics_daily_url (
+  day   date   not null,
+  url   text   not null,
+  count bigint not null,
+  primary key (day, url)
+);
+
+-- Per-URL totals split by the frontend page that sent the request (X-Client-Page header).
+-- Path only: the query string is never stored. No user dimension.
+create table analytics_daily_page_url (
+  day   date   not null,
+  page  text   not null,
+  url   text   not null,
+  count bigint not null,
+  primary key (day, page, url)
+);
+```
+
+Daily stats for day D:
+- New users = users whose `first_seen_day = D`.
+- Returning users = users with a row for D whose `first_seen_day < D`.
+- Total visits = sum of `visits` for D.
+
+Rows older than 365 days are pruned from `analytics_daily_user` and `analytics_daily_url`. `analytics_users` is kept, so a returning user is not counted as new after pruning. `analytics_daily_page_url` follows the same retention rule.
 
 -- Builtin data tables: deferred with phase 6. The user-data layout below is implemented in
 -- OQuery.UI.Storage.Postgres/PostgresDocumentStore.cs.
@@ -90,28 +109,19 @@ create table admin_audit (
 );
 ```
 
-Indexes: `analytics_sections(started_at)`, `analytics_sections(visitor_id)`, `analytics_page_views(section_id)`, `analytics_page_views(page, entered_at)`.
-
-Time model: the browser measures durations only (it never sends absolute times). The server sets `entered_at = received_at - duration_ms`, and `last_seen_at` is the server time of the latest batch. A section's duration is `last_seen_at - started_at`, which is kept current by a 30-second heartbeat while the tab is visible. Time is measured in active (visible) tab time.
+Indexes: the primary keys are `analytics_users(user_id)`, `analytics_daily_user(day, user_id)`, and `analytics_daily_url(day, url)`.
 
 Storing builtin data as `jsonb` keeps the existing `DomainDto` and `QueryDto` shapes, so the repository interfaces (`IDomainRepository`, `IQueryRequestRepository`) do not change.
 
 Seeding: on first use, the repositories insert the file-based builtin data with `ON CONFLICT DO NOTHING`. Admin edits to builtin rows survive redeploys. Later changes to the builtin JSON files do not reach an existing database and need an explicit migration.
 
-## 5. Ingest API (public, anonymous)
+## 5. Collection (server-side only)
 
-`POST /analytics/events`
-
-- Body: `{ visitorId, sectionId, referrer?, utmSource?, utmMedium?, utmCampaign?, landingPage?, pageViews: [{ page, durationMs }] }`. `pageViews` may be empty (heartbeat). At most 50 page views per request.
-- Server rules:
-  - `visitorId` and `sectionId` must be non-empty GUIDs.
-  - `page` is reduced to its path (query and hash removed). It must start with `/` and be at most 300 characters.
-  - `durationMs` is clamped to `[0, 4 hours]`.
-  - `referrer` is stored as its host only. Non-absolute values are dropped. UTM values are trimmed and capped at 100 characters.
-  - The server sets all timestamps. Client clocks are not trusted.
-  - Storage failures are logged and the request still returns 204.
-- The frontend sends with `fetch` and `keepalive: true` on page change, visibility change, `pagehide`, and every 30 seconds (heartbeat). Failed sends are requeued, up to a pending cap of 200 page views.
-- Rate limiting per `sectionId` is deferred.
+- No browser ingest endpoint. The browser sends nothing for analytics.
+- `RequestUsageMiddleware` runs after routing and counts each routed, non-`analytics/` API request by (UTC day, user ID from the `oquery_uid` cookie, route template).
+- `AnalyticsUsageFlushService` drains the in-memory counts every 60 seconds and on shutdown. Failed rows are re-added and retried.
+- The repository writes all three tables in one transaction. `analytics_users` uses `on conflict do nothing`, so the first-seen day is set once.
+- Storage failures are logged and never fail the user's request.
 
 ## 6. Admin API (token required)
 
@@ -119,58 +129,64 @@ All endpoints require `X-Admin-Token`, compared in constant time. If `ADMIN_TOKE
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /analytics/admin/summary?from&to` | Visitors, sections, page views, average section duration, sections per visitor. |
-| `GET /analytics/admin/pages?from&to` | Page views, unique sections, average and total time per page, most visited first. |
-| `GET /analytics/admin/visitors?from&to&limit` | Visitors with section count (frequency), total time, and last seen. |
-| `GET /analytics/admin/sources?from&to` | Referrer host, UTM source, and UTM campaign, with section counts. |
+| `GET /analytics/admin/summary?from&to` | One row per day: new users, returning users, total visits. |
+| `GET /analytics/admin/urls?from&to&limit` | Total requests per API route template and frontend page (`page` is empty when the client sent none) for the range, most requested first. |
 
-`from` and `to` default to the last 30 days. `from` must be before `to`, and the range is capped at 366 days. Ranges filter by section start time.
+`from` and `to` default to the last 30 days. `from` must be before `to`, and the range is capped at 366 days.
 
-Deferred: `navigation`, `sections` drill-down, `errors`, and builtin CRUD with `admin_audit`.
+Deferred: page-to-page navigation, visitor drill-down, errors, and builtin CRUD with `admin_audit`.
 
 ## 7. Frontend
 
-- **Tracker service** `src/services/analytics-service.ts`. Per repository convention, the service owns the network call. It holds the ID generation, the pending page-view queue, the heartbeat timer, and the `sendBeacon` fallback. Redux is not involved.
-- Section rotation: a stored section older than 30 minutes since its last page change or heartbeat is replaced with a new section ID. Pages under `/admin` are not tracked.
-- **Router hook** in `main.tsx` calls the tracker on each pathname change.
-- **Admin page** `/admin`, with a token prompt that stores the token in `sessionStorage`. It shows summary cards, a page table, a visitor table, and a source table, with a 7/30/90-day range selector. Charts, the navigation table, the section drill-down, and builtin editors are deferred.
+- The browser does not track analytics. There is no tracker service, no notice, and no page-view code.
+- The footer in [main.tsx](/D:/SourceCode/Github/public/oquery-ui/src/OQuery.UI.Frontend/src/main.tsx) shows the copyright line.
+- **Admin page** `/admin`, with a token prompt that stores the token in `sessionStorage`. It shows totals (new users, returning users, visits) for the range, a daily table (day, new users, returning users, total visits), and a URL table (URL, requests). It states that data refreshes every minute, not in real time.
+- **Privacy UI.** The app shows a first-use analytics notice explaining optional analytics, with `Accept`, `Decline`, and a `Privacy Notice` link. The footer always links to the Privacy Notice, Terms of Service, and analytics settings. An accepted analytics preference is stored in browser storage and sent as `X-Analytics-Consent: granted`; a declined preference is memory-only, so the notice appears again after a browser refresh. Declining or withdrawing consent sends no granted value.
+- **Range.** Presets: 7, 30, 90 days, and "To date" (366 days, which covers the 365-day retention). Two date inputs (`From`, `To`) are inclusive on screen; the request sends `to` as the day after `To`, because the API range is half-open. The range must be valid (`From` before or equal to `To`, at most 366 days), and the page validates it before calling the API.
+- **Reload.** A Reload button refetches with the current range and does not change the token.
+- **CSV.** "Download CSV" buttons export the loaded daily table and URL table. Files are built in the browser from the data already shown, so no extra API call is needed. Cells are quoted when they contain a comma, quote, or newline.
 - Admin service `src/services/admin-analytics-service.ts` owns admin fetches, following the same pattern.
 - The Vite dev proxy and the Render rewrite rules need an `/analytics/*` entry. See `docs/frontend/deploy.md`.
+- **Visual design.** The admin page uses a restrained dashboard hierarchy: a dark header surface for the page identity and controls, a soft neutral page background, elevated metric cards, and bordered data panels. Accent colors are reserved for active controls and positive metric emphasis. The layout remains responsive, with controls wrapping below the title and tables retaining horizontal scrolling on narrow screens.
 
 ## 8. Privacy and safety
 
 - No IP addresses, query text, or result data are stored.
-- Analytics is pseudonymous, not anonymous. Each visitor has a persistent random ID, which is personal data under GDPR. The notice must not describe the data as anonymous.
-- The notice is informational. Opt-out and EU consent handling are not implemented.
+- The page column stores the frontend pathname only. The query string and hash are dropped. Path segments are kept as sent, so a route that carries an ID (for example `/metadata/entities/{domainId}`) stores that ID in `analytics_daily_page_url.page`. The server accepts only values that start with `/` and are at most 200 characters. Open decision: normalize ID segments to a placeholder before storing (see section 12).
+- The analytics user ID is a pseudonymous identifier (personal data under GDPR). It is stored only in `analytics_users` and `analytics_daily_user`. The URL totals and the admin summary never expose a user ID.
+- No consent notice is shown. Legal review is needed before relying on this in the EU, because notice-only handling of a persistent identifier may not meet GDPR consent requirements.
 - `ADMIN_TOKEN` is set only in Render's environment, never committed.
 - Admin write endpoints validate the body against the existing DTO shapes.
 
 ## 9. Operations
 
-- Neon free tier: 1 GB storage per project. A section with about 5 page views and 20 events is around 2 to 3 KB, so 1 GB holds several hundred thousand sections.
-- Compute suspends after 5 minutes idle. The first request after idle is slower, so the tracker must not block the UI.
-- Retention runs at startup only. It deletes old rows in batches. The daily job is not implemented (see section 12).
+- Neon free tier: 1 GB storage per project. Daily rollup rows are small, so storage grows with distinct (day, user) and (day, URL) pairs, not with raw requests.
+- Compute suspends after 5 minutes idle. The first flush after idle is slower; the flush runs in the background and never blocks requests.
+- Retention runs at startup only and deletes daily rows older than 365 days. `analytics_users` is never pruned, so new-vs-returning stays correct.
 - Monitor storage on the Neon dashboard. Writes fail once the quota is full, so ingest must log and drop events rather than fail the app.
 
 ## 10. Phases
 
 1. Provision Neon. Add `ConnectionStrings__Analytics` as an environment variable. Add schema migrations.
-2. Replace `UserSectionManager` with the section ID from the header. Add tests that two sections get separate folders.
-3. Ingest endpoint and tracker service, with unit tests for allowlists and batching.
+2. Replace `UserSectionManager` with the cookie-based user ID. Add tests that two users get separate folders.
+3. Server-side request counting middleware and 60-second flush (done; no browser ingest).
 4. Admin auth and analytics read endpoints, with tests for token rejection.
-5. Admin page with charts.
+5. Admin page with daily totals and URL table (done).
 6. Builtin CRUD with audit log. Migrate existing builtin files into Postgres with an import script.
 7. Retention job and Render environment setup. Update `docs/frontend/deploy.md`.
 
 ## 11. Open questions
 
 1. Builtin data moving to Postgres: deferred with phase 6.
-2. Privacy notice: resolved. Show on first visit.
-3. Retention: resolved. 180 days for page views, 365 days for sections.
-4. `query_executed` structural counts: deferred with the events table.
+2. Privacy notice: resolved. None is shown; legal review is advised (section 8).
+3. Retention: resolved. 365 days for daily rows; user first-seen rows are kept.
+4. Whether Privacy Policy and Terms links belong in the footer: open, no pages exist yet.
 
 ## 12. Known gaps in this step
 
-- `UserSectionManager` is still a stub that returns `"123"`. Analytics does not depend on it, so it is not changed here.
-- Rate limiting per section is not implemented yet. The batch size cap and the 16 KB default body limit bound each request.
+- The user ID is a first-party cookie (`oquery_uid`) issued by the server. Browser JavaScript does not read or store it.
+- "Visit" means one routed API request. SPA page views are not counted, because the client router makes no API call for them.
+- Analytics refreshes every 60 seconds, so today's numbers may lag by up to a minute.
+- Rate limiting is not implemented. The 16 KB default body limit and the in-memory key cap bound memory use.
 - Retention runs once per process start. The daily job is not implemented.
+- Page paths are stored as sent. Route IDs such as `/metadata/entities/{domainId}` are not yet normalized to a placeholder; this is an open decision.

@@ -46,12 +46,14 @@ Notes:
 
 ### Analytics (API service `oquery-ui-1`)
 
-Set these environment variables on the API service. Without them, ingest returns 204 and discards events, and the admin endpoints return 503.
+Set these environment variables on the API service. Without `ConnectionStrings__Analytics`, usage counts are not saved and the admin endpoints return 503.
 
 | Variable | Purpose |
 |---|---|
-| `ConnectionStrings__Analytics` | Neon Postgres connection string. The tables are created on first use. |
+| `ConnectionStrings__Analytics` | Neon Postgres connection string. The table is created on first use. |
 | `ADMIN_TOKEN` | Shared secret for `/admin`. If unset, the admin endpoints return 404. |
+
+The API counts each routed request per day, section, and route template, and flushes the counts to the database every 60 seconds. The browser receives only the `oquery_uid` cookie, which lasts 400 days.
 
 The admin page is at `/admin`. Enter `ADMIN_TOKEN` there. The token is kept in `sessionStorage` for that tab only.
 

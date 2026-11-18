@@ -47,6 +47,9 @@ Configuration is split by responsibility under `OQuery` in `appsettings.json`:
   (`UserData/{sectionId}/...`).
 - `OQuery:Repositories:Postgres:ConnectionString` - when set, Postgres stores
   user Domains and Queries (built-in rows are seeded from the consumer).
+- `ConnectionStrings:Analytics` - local development defaults this to the same
+  Postgres connection, enabling the analytics tables; production can override
+  it with `ConnectionStrings__Analytics`.
 - `OQuery:DialectPackagesPath` - folder of dialect DLLs used to validate the
   provider selected with `PUT /db/connection`.
 
