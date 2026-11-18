@@ -39,11 +39,18 @@ function writeStorage(storage: Storage, key: string, value: string): void {
   try { storage.setItem(key, value); } catch { /* ignored: tracking is best effort */ }
 }
 
+let cachedVisitorId: string | null = null;
+
 function visitorId(): string {
+  if (cachedVisitorId) return cachedVisitorId;
   const stored = readStorage(localStorage, VISITOR_KEY);
-  if (stored) return stored;
+  if (stored) {
+    cachedVisitorId = stored;
+    return stored;
+  }
   const created = newId();
   writeStorage(localStorage, VISITOR_KEY, created);
+  cachedVisitorId = created;
   return created;
 }
 

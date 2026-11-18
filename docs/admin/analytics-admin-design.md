@@ -18,11 +18,11 @@ Status: decisions confirmed (Neon, analytics only, privacy notice on first visit
 |---|---|
 | Storage for analytics and builtin data | Neon Postgres (free tier, no expiry) |
 | Admin access | Shared token in the `ADMIN_TOKEN` environment variable, sent as `X-Admin-Token`. If unset, all `/admin/*` endpoints return 404 (fail closed). |
-| Visitor identity | Random ID in `localStorage` (`visitorId`). No login, no cookies. |
+| Visitor identity | Random ID in `localStorage` (`visitorId`), sent with every analytics request (page views and heartbeats). The ID is cached in memory for the page load, so a blocked storage does not change it mid-visit. No login, no cookies. Clearing site data or switching browsers creates a new visitor. |
 | Section identity | Random ID in `sessionStorage` (`sectionId`). Ends after 30 minutes without activity or when the tab closes. |
 | IP address | Not stored. Country comes from a geo header only if the host provides one; otherwise it is left empty. |
 | Query text | Not stored. Events carry counts, flags, and status codes only. |
-| Privacy notice | Show a short notice on first visit (confirmed). |
+| Privacy notice | Informational notice on first visit, acknowledged once (stored in `localStorage`). It states what is measured and does not block tracking. There is no opt-out yet. |
 | Retention | Page views are deleted after 180 days. Section rows are kept for 365 days. Pruning runs when the analytics store initializes. |
 | Scope | Analytics only for this step. Builtin CRUD (phase 6) is deferred. |
 | Routes | Admin API lives under `/analytics/*` (`/analytics/events` for ingest, `/analytics/admin/*` for reads). The admin page is the SPA route `/admin`, so the two do not collide in the Render rewrite rules. |
@@ -110,7 +110,7 @@ Seeding: on first use, the repositories insert the file-based builtin data with 
   - `referrer` is stored as its host only. Non-absolute values are dropped. UTM values are trimmed and capped at 100 characters.
   - The server sets all timestamps. Client clocks are not trusted.
   - Storage failures are logged and the request still returns 204.
-- The frontend sends with `navigator.sendBeacon` on page change, visibility change, `pagehide`, and every 30 seconds (heartbeat). It falls back to `fetch` with `keepalive: true`.
+- The frontend sends with `fetch` and `keepalive: true` on page change, visibility change, `pagehide`, and every 30 seconds (heartbeat). Failed sends are requeued, up to a pending cap of 200 page views.
 - Rate limiting per `sectionId` is deferred.
 
 ## 6. Admin API (token required)
@@ -134,14 +134,14 @@ Deferred: `navigation`, `sections` drill-down, `errors`, and builtin CRUD with `
 - Section rotation: a stored section older than 30 minutes since its last page change or heartbeat is replaced with a new section ID. Pages under `/admin` are not tracked.
 - **Router hook** in `main.tsx` calls the tracker on each pathname change.
 - **Admin page** `/admin`, with a token prompt that stores the token in `sessionStorage`. It shows summary cards, a page table, a visitor table, and a source table, with a 7/30/90-day range selector. Charts, the navigation table, the section drill-down, and builtin editors are deferred.
-- Admin service `src/services/admin-service.ts` owns admin fetches, following the same pattern.
+- Admin service `src/services/admin-analytics-service.ts` owns admin fetches, following the same pattern.
 - The Vite dev proxy and the Render rewrite rules need an `/analytics/*` entry. See `docs/frontend/deploy.md`.
 
 ## 8. Privacy and safety
 
 - No IP addresses, query text, or result data are stored.
-- Analytics is anonymous and keyed by random IDs that are not linked to a person.
-- The notice text and whether it blocks tracking are still open.
+- Analytics is pseudonymous, not anonymous. Each visitor has a persistent random ID, which is personal data under GDPR. The notice must not describe the data as anonymous.
+- The notice is informational. Opt-out and EU consent handling are not implemented.
 - `ADMIN_TOKEN` is set only in Render's environment, never committed.
 - Admin write endpoints validate the body against the existing DTO shapes.
 
@@ -149,7 +149,7 @@ Deferred: `navigation`, `sections` drill-down, `errors`, and builtin CRUD with `
 
 - Neon free tier: 1 GB storage per project. A section with about 5 page views and 20 events is around 2 to 3 KB, so 1 GB holds several hundred thousand sections.
 - Compute suspends after 5 minutes idle. The first request after idle is slower, so the tracker must not block the UI.
-- The retention job runs at startup and once per day. It deletes old rows in batches.
+- Retention runs at startup only. It deletes old rows in batches. The daily job is not implemented (see section 12).
 - Monitor storage on the Neon dashboard. Writes fail once the quota is full, so ingest must log and drop events rather than fail the app.
 
 ## 10. Phases

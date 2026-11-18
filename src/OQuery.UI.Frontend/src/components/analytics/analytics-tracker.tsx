@@ -13,12 +13,12 @@ export default function AnalyticsTracker() {
 
   if (!noticeOpen) return null;
   return (
-    <div className="analytics-notice" role="region" aria-label="Privacy notice">
+    <div className="analytics-notice" role="region" aria-label="Analytics notice">
       <p>
-        We record anonymous usage: a random visitor ID, the pages you view, time on each page, and the site you came from.
-        We do not collect your name, account, or contact details.
+        <strong>We use usage data to improve this site.</strong> To do this, we store a randomly generated visitor identifier in your browser,
+        the pages you view, the time spent on each page, and the site that referred you. We do not collect your name, account, or contact details.
       </p>
-      <button type="button" onClick={() => { acknowledgeAnalyticsNotice(); setNoticeOpen(false); }}>Got it</button>
+      <button type="button" onClick={() => { acknowledgeAnalyticsNotice(); setNoticeOpen(false); }}>OK</button>
     </div>
   );
 }
