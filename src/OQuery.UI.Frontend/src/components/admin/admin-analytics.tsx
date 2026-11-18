@@ -1,15 +1,19 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { adminAnalyticsService, rangeForDays, type AnalyticsPageStat, type AnalyticsSourceStat, type AnalyticsSummary, type AnalyticsVisitorStat } from "../../services/admin-analytics-service";
+import { adminAnalyticsService, datesForDays, rangeForDates, toCsv, validateDates, type AnalyticsDailyStat, type AnalyticsSummary, type AnalyticsUrlStat } from "../../services/admin-analytics-service";
 import "./admin-analytics.css";
 
 const TOKEN_KEY = "oquery.admin.token";
-const RANGE_OPTIONS = [7, 30, 90] as const;
+// "To date" covers the 365-day retention window; the API caps ranges at 366 days.
+const PRESETS = [
+  { label: "7 days", days: 7 },
+  { label: "30 days", days: 30 },
+  { label: "90 days", days: 90 },
+  { label: "To date", days: 366 },
+] as const;
 
 type Data = {
   summary: AnalyticsSummary;
-  pages: AnalyticsPageStat[];
-  visitors: AnalyticsVisitorStat[];
-  sources: AnalyticsSourceStat[];
+  urls: AnalyticsUrlStat[];
 };
 
 // Keeps the token for this browser tab only (sessionStorage), so it is not persisted across sessions.
@@ -24,41 +28,31 @@ function writeToken(token: string) {
   } catch { /* ignored: the admin page still works for this render */ }
 }
 
-export function formatSeconds(seconds: number): string {
-  if (seconds < 60) return `${Math.round(seconds)}s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
-  return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
-}
-
-function ago(iso: string): string {
-  const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60_000));
-  if (minutes < 60) return `${minutes} min ago`;
-  if (minutes < 1440) return `${Math.round(minutes / 60)} h ago`;
-  return `${Math.round(minutes / 1440)} d ago`;
-}
-
 export default function AdminAnalytics() {
   const [token, setToken] = useState(readToken);
   const [tokenInput, setTokenInput] = useState("");
-  const [days, setDays] = useState<(typeof RANGE_OPTIONS)[number]>(30);
+  const initial = datesForDays(30);
+  const [fromDay, setFromDay] = useState(initial.fromDay);
+  const [toDay, setToDay] = useState(initial.toDay);
+  const [activePreset, setActivePreset] = useState<number | null>(30);
+  const [reloadKey, setReloadKey] = useState(0);
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const dateError = validateDates(fromDay, toDay);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || validateDates(fromDay, toDay)) return;
     let active = true;
     setLoading(true);
     setError("");
-    const range = rangeForDays(days);
+    const range = rangeForDates(fromDay, toDay);
     Promise.all([
       adminAnalyticsService.summary(token, range),
-      adminAnalyticsService.pages(token, range),
-      adminAnalyticsService.visitors(token, range),
-      adminAnalyticsService.sources(token, range),
+      adminAnalyticsService.urls(token, range),
     ])
-      .then(([summary, pages, visitors, sources]) => {
-        if (active) setData({ summary, pages, visitors, sources });
+      .then(([summary, urls]) => {
+        if (active) setData({ summary, urls });
       })
       .catch((err: unknown) => {
         if (!active) return;
@@ -68,18 +62,25 @@ export default function AdminAnalytics() {
           writeToken("");
           setToken("");
           setError("The admin token was rejected.");
+        } else if (message.includes("(404)")) {
+          writeToken("");
+          setToken("");
+          setError("Admin analytics is not configured on the server. Set the ADMIN_TOKEN environment variable and restart the API.");
         } else {
           setError(message);
         }
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [token, days]);
+  }, [token, fromDay, toDay, reloadKey]);
 
   if (!token) {
     return (
       <section className="admin-analytics admin-analytics-login">
-        <h1>Analytics</h1>
+        <div className="admin-analytics-login-card">
+          <span className="admin-analytics-eyebrow">ADMIN CONSOLE</span>
+          <h1>Analytics</h1>
+          <p>Review API activity, usage trends, and the most requested routes.</p>
         <form onSubmit={(event) => {
           event.preventDefault();
           const value = tokenInput.trim();
@@ -95,6 +96,7 @@ export default function AdminAnalytics() {
           <button type="submit">Open analytics</button>
         </form>
         {error && <p className="admin-analytics-error" role="alert">{error}</p>}
+        </div>
       </section>
     );
   }
@@ -102,57 +104,90 @@ export default function AdminAnalytics() {
   return (
     <section className="admin-analytics">
       <header className="admin-analytics-header">
-        <h1>Analytics</h1>
+        <div className="admin-analytics-heading">
+          <span className="admin-analytics-eyebrow">ADMIN CONSOLE</span>
+          <h1>Analytics overview</h1>
+          <p>Monitor API usage and understand which routes your users rely on.</p>
+        </div>
         <div className="admin-analytics-controls">
           <div role="group" aria-label="Date range">
-            {RANGE_OPTIONS.map((option) => (
-              <button key={option} type="button" aria-pressed={days === option} onClick={() => setDays(option)}>
-                {option} days
+            {PRESETS.map((preset) => (
+              <button key={preset.days} type="button" aria-pressed={activePreset === preset.days} onClick={() => {
+                const dates = datesForDays(preset.days);
+                setActivePreset(preset.days);
+                setFromDay(dates.fromDay);
+                setToDay(dates.toDay);
+              }}>
+                {preset.label}
               </button>
             ))}
           </div>
+          <label className="admin-analytics-date">
+            From
+            <input type="date" value={fromDay} onChange={(event) => { setActivePreset(null); setFromDay(event.target.value); }} />
+          </label>
+          <label className="admin-analytics-date">
+            To
+            <input type="date" value={toDay} onChange={(event) => { setActivePreset(null); setToDay(event.target.value); }} />
+          </label>
+          <button type="button" onClick={() => setReloadKey((key) => key + 1)} disabled={loading}>Reload</button>
           <button type="button" onClick={() => { writeToken(""); setToken(""); setData(null); }}>Sign out</button>
         </div>
       </header>
 
+      {dateError && <p className="admin-analytics-error" role="alert">{dateError}</p>}
       {error && <p className="admin-analytics-error" role="alert">{error}</p>}
-      {loading && <p className="admin-analytics-muted">Loading…</p>}
+      {loading && <p className="admin-analytics-status" role="status">Refreshing analytics…</p>}
 
       {data && (
         <>
+          <div className="admin-analytics-range">
+            <span className="admin-analytics-range-dot" />
+            <span>Showing <strong>{fromDay}</strong> to <strong>{toDay}</strong> UTC</span>
+            <span className="admin-analytics-range-note">Updated about every minute</span>
+          </div>
           <div className="admin-analytics-cards">
-            <Card label="Visitors" value={data.summary.visitors.toLocaleString()} />
-            <Card label="Visits (sections)" value={data.summary.sections.toLocaleString()} />
-            <Card label="Page views" value={data.summary.pageViews.toLocaleString()} />
-            <Card label="Avg. visit length" value={formatSeconds(data.summary.averageSectionSeconds)} />
-            <Card label="Visits per visitor" value={data.summary.sectionsPerVisitor.toFixed(2)} />
+            <Card label="New users" value={sumDays(data.summary.days, "newUsers").toLocaleString()} />
+            <Card label="Returning users" value={sumDays(data.summary.days, "returningUsers").toLocaleString()} />
+            <Card label="Total visits" value={sumDays(data.summary.days, "totalVisits").toLocaleString()} />
           </div>
 
-          <Table title="Most visited pages" empty="No page views in this range." rows={data.pages} columns={[
-            { head: "Page", cell: (row: AnalyticsPageStat) => row.page },
-            { head: "Views", cell: (row: AnalyticsPageStat) => row.views },
-            { head: "Visits", cell: (row: AnalyticsPageStat) => row.uniqueSections },
-            { head: "Avg. time", cell: (row: AnalyticsPageStat) => formatSeconds(row.averageSeconds) },
-            { head: "Total time", cell: (row: AnalyticsPageStat) => formatSeconds(row.totalSeconds) },
+          <Table title="Daily usage (UTC)" empty="No requests in this range." rows={data.summary.days} onDownload={() => downloadCsv(`analytics-daily-${fromDay}-${toDay}.csv`, toCsv(
+            ["Day", "New users", "Returning users", "Total visits"],
+            data.summary.days.map((row) => [row.day, row.newUsers, row.returningUsers, row.totalVisits]),
+          ))} columns={[
+            { head: "Day", cell: (row) => row.day },
+            { head: "New users", cell: (row) => row.newUsers.toLocaleString() },
+            { head: "Returning users", cell: (row) => row.returningUsers.toLocaleString() },
+            { head: "Total visits", cell: (row) => row.totalVisits.toLocaleString() },
           ]} />
 
-          <Table title="Frequent visitors" empty="No visitors in this range." rows={data.visitors} columns={[
-            { head: "Visitor", cell: (row: AnalyticsVisitorStat) => <code title={row.visitorId}>{row.visitorId.slice(0, 8)}</code> },
-            { head: "Visits", cell: (row: AnalyticsVisitorStat) => row.sections },
-            { head: "Total time", cell: (row: AnalyticsVisitorStat) => formatSeconds(row.totalSeconds) },
-            { head: "Last seen", cell: (row: AnalyticsVisitorStat) => ago(row.lastSeenAt) },
-          ]} />
-
-          <Table title="Where visitors come from" empty="No traffic sources in this range." rows={data.sources} columns={[
-            { head: "Referrer", cell: (row: AnalyticsSourceStat) => row.referrerHost ?? "Direct" },
-            { head: "UTM source", cell: (row: AnalyticsSourceStat) => row.utmSource ?? "—" },
-            { head: "UTM campaign", cell: (row: AnalyticsSourceStat) => row.utmCampaign ?? "—" },
-            { head: "Visits", cell: (row: AnalyticsSourceStat) => row.sections },
+          <Table title="Requests per URL" empty="No requests in this range." rows={data.urls} onDownload={() => downloadCsv(`analytics-urls-${fromDay}-${toDay}.csv`, toCsv(
+            ["API URL", "Frontend URL", "Requests"],
+            data.urls.map((row) => [row.url, row.page, row.requests]),
+          ))} columns={[
+            { head: "API URL", cell: (row) => <code>{row.url}</code> },
+            { head: "Frontend URL", cell: (row) => row.page ? <code>{row.page}</code> : <span className="admin-analytics-muted">—</span> },
+            { head: "Requests", cell: (row) => row.requests.toLocaleString() },
           ]} />
         </>
       )}
     </section>
   );
+}
+
+// Builds the CSV in the browser from data already shown, so it needs no extra API call.
+function downloadCsv(fileName: string, csv: string) {
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function sumDays(days: AnalyticsDailyStat[], key: "newUsers" | "returningUsers" | "totalVisits"): number {
+  return days.reduce((total, day) => total + day[key], 0);
 }
 
 function Card({ label, value }: { label: string; value: string }) {
@@ -166,10 +201,13 @@ function Card({ label, value }: { label: string; value: string }) {
 
 type Column<T> = { head: string; cell: (row: T) => ReactNode };
 
-function Table<T>({ title, empty, rows, columns }: { title: string; empty: string; rows: T[]; columns: Column<T>[] }) {
+function Table<T>({ title, empty, rows, columns, onDownload }: { title: string; empty: string; rows: T[]; columns: Column<T>[]; onDownload: () => void }) {
   return (
     <section className="admin-analytics-table">
-      <h2>{title}</h2>
+      <div className="admin-analytics-table-header">
+        <h2>{title}</h2>
+        <button type="button" onClick={onDownload} disabled={rows.length === 0}>Download CSV</button>
+      </div>
       {rows.length === 0 ? <p className="admin-analytics-muted">{empty}</p> : (
         <table>
           <thead><tr>{columns.map((column) => <th key={column.head}>{column.head}</th>)}</tr></thead>

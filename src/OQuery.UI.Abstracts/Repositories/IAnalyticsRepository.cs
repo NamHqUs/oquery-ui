@@ -2,18 +2,15 @@ using OQuery.UI.Abstracts.Dto;
 
 namespace OQuery.UI.Abstracts.Repositories;
 
-/// <summary>Persists anonymous visitor analytics and answers the admin aggregate queries.</summary>
+/// <summary>Stores daily user and URL counts and answers the admin aggregate queries.</summary>
 public interface IAnalyticsRepository
 {
-    /// <summary>Upserts the section and appends its page views. Page views must already be normalized.</summary>
-    Task RecordBatchAsync(AnalyticsBatchDto batch, DateTimeOffset receivedAt, CancellationToken cancellationToken = default);
+    /// <summary>Adds (day, user, url) counts. Rows may repeat keys; they are summed.</summary>
+    Task AddUsageAsync(IReadOnlyList<AnalyticsUsageRowDto> rows, CancellationToken cancellationToken = default);
 
-    /// <summary>Counts sections that started in [from, to).</summary>
-    Task<AnalyticsSummaryDto> GetSummaryAsync(DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken = default);
+    /// <summary>Daily new, returning, and total visits for UTC days in [from, to).</summary>
+    Task<AnalyticsSummaryDto> GetSummaryAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<AnalyticsPageStatDto>> GetPageStatsAsync(DateTimeOffset from, DateTimeOffset to, int limit, CancellationToken cancellationToken = default);
-
-    Task<IReadOnlyList<AnalyticsVisitorStatDto>> GetVisitorStatsAsync(DateTimeOffset from, DateTimeOffset to, int limit, CancellationToken cancellationToken = default);
-
-    Task<IReadOnlyList<AnalyticsSourceStatDto>> GetSourceStatsAsync(DateTimeOffset from, DateTimeOffset to, int limit, CancellationToken cancellationToken = default);
+    /// <summary>Most requested URLs for UTC days in [from, to).</summary>
+    Task<IReadOnlyList<AnalyticsUrlStatDto>> GetUrlStatsAsync(DateOnly from, DateOnly to, int limit, CancellationToken cancellationToken = default);
 }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using OQuery.UI.Storage.Files;
 using OQuery.UI.Storage.Files.FileStorage;
 using OQuery.UI.Storage.Postgres;
@@ -7,6 +8,7 @@ using OQuery.UI.Abstracts.Application;
 using OQuery.UI.Abstracts.Repositories;
 using OQuery.UI.Api.Services;
 using OQuery.UI.Application;
+using OQuery.UI.Application.Analytics;
 using OQuery.UI.Application.Middlewares;
 using OQuery;
 using OQuery.QueryDefinitions.Parsers;
@@ -52,12 +54,19 @@ IRepositoryProvider repositoryProvider = string.IsNullOrWhiteSpace(postgresConne
     : new PostgresRepositoryProvider(postgresConnection, seeds.Domains, seeds.Queries);
 builder.Services.AddRepositoryProvider(repositoryProvider);
 builder.Services.AddDemoServices();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<IUserSectionManager, UserSectionManager>();
 
-// Analytics is optional: without ConnectionStrings:Analytics, ingest drops data and admin endpoints return 503.
+// Analytics is optional: without ConnectionStrings:Analytics, no requests are counted and admin endpoints return 503.
 var analyticsConnection = configuration.GetConnectionString("Analytics");
-if (!string.IsNullOrWhiteSpace(analyticsConnection))
-    builder.Services.AddSingleton<IAnalyticsRepository>(new PostgresAnalyticsRepository(analyticsConnection));
+var analyticsEnabled = !string.IsNullOrWhiteSpace(analyticsConnection);
+if (analyticsEnabled)
+{
+    builder.Services.AddSingleton<IAnalyticsRepository>(new PostgresAnalyticsRepository(analyticsConnection!));
+    builder.Services.AddSingleton<RequestUsageCollector>();
+    builder.Services.AddSingleton<RequestUsageMiddleware>();
+    builder.Services.AddHostedService<AnalyticsUsageFlushService>();
+}
 
 DialectModules.RegisterFromFolder(Path.GetFullPath(Path.Combine(
     Environment.CurrentDirectory,
@@ -72,5 +81,8 @@ app.UseSwaggerUI(options =>
     options.RoutePrefix = "swagger";
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "Dynamic SQL Demo v1");
 });
+if (analyticsEnabled)
+    app.UseMiddleware<RequestUsageMiddleware>();
+
 app.MapControllers();
 app.Run();

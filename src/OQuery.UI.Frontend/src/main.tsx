@@ -14,10 +14,10 @@ import FunctionDefinitionsWorkspace from "./components/function-definition/funct
 import Home from "./components/home/home";
 import Documentation from "./components/documentation/documentation";
 import AdminAnalytics from "./components/admin/admin-analytics";
-import AnalyticsTracker from "./components/analytics/analytics-tracker";
 import { documentationSubmenu } from "./components/documentation/doc-agenda";
 import { GITHUB_URL, PRODUCT_NAME } from "./components/home/home-content";
 import { MessageBoxProvider } from "./components/message-box/message-box";
+import { readAnalyticsConsent } from "./services/api-client";
 import * as domainService from "./services/domain-service";
 import { store, type RootState } from "./store/store";
 import "./styles.css";
@@ -34,6 +34,8 @@ const PAGE_PATHS = {
 const LEGACY_FUNCTIONS_PATH = "/functions";
 // Not linked from the navigation. Admins open it by URL; the page asks for the admin token.
 const ADMIN_PATH = "/admin";
+const PRIVACY_PATH = "/privacy";
+const TERMS_PATH = "/terms";
 const DOMAINS_PATH = "/metadata/domains";
 const DIAGRAMS_PATH = "/metadata/diagrams";
 const ENTITIES_PATH = "/metadata/entities";
@@ -60,6 +62,75 @@ const PAGE_SUBMENUS: Record<Exclude<Page, "home">, readonly string[]> = {
   documentation: [],
 };
 const QUERY_DOMAIN_TONES = ["revenue", "customer", "product", "finance", "custom"] as const;
+
+function saveAnalyticsConsent(value: "granted" | null) {
+  try {
+    if (value) window.localStorage.setItem("oquery.analytics.consent", value);
+    else window.localStorage.removeItem("oquery.analytics.consent");
+  } catch {
+    // The preference remains valid for this render when storage is unavailable.
+  }
+}
+
+function AnalyticsConsentNotice({
+  onChoose,
+  onOpenPrivacy,
+}: {
+  onChoose: (value: "granted" | "declined") => void;
+  onOpenPrivacy: () => void;
+}) {
+  return (
+    <aside className="analytics-consent" role="dialog" aria-labelledby="analytics-consent-title">
+      <div>
+        <strong id="analytics-consent-title">Help us improve Open Query</strong>
+        <p>
+          We use optional, aggregated analytics to understand API usage. Your saved data stays separate using a necessary section cookie.
+          <button type="button" className="inline-policy-link" onClick={onOpenPrivacy}>Privacy Notice</button>
+        </p>
+      </div>
+      <div className="analytics-consent-actions">
+        <button type="button" className="consent-secondary" onClick={() => onChoose("declined")}>Decline</button>
+        <button type="button" className="consent-primary" onClick={() => onChoose("granted")}>Accept</button>
+      </div>
+    </aside>
+  );
+}
+
+function PolicyPage({ kind }: { kind: "privacy" | "terms" }) {
+  const isPrivacy = kind === "privacy";
+  return (
+    <article className="policy-page">
+      <span className="eyebrow">{isPrivacy ? "PRIVACY" : "SERVICE TERMS"}</span>
+      <h1>{isPrivacy ? "Privacy Notice" : "Terms of Service"}</h1>
+      <p className="policy-lead">
+        {isPrivacy
+          ? "This notice explains how Open Query handles the information needed to provide custom data separation and optional usage analytics."
+          : "These terms describe the expected use of the Open Query preview service."}
+      </p>
+      {isPrivacy ? (
+        <>
+          <h2>Section cookie</h2>
+          <p>Open Query creates a random, pseudonymous section identifier so saved queries and other custom data remain separated between browsers. It is not an account ID and is not linked to your name or email address.</p>
+          <h2>Optional analytics</h2>
+          <p>Only after you choose “Accept analytics” do we count aggregated API activity by section and day. We record route templates and the frontend page path, not request bodies, query text, query results, IP addresses, or account details.</p>
+          <h2>Your choices</h2>
+          <p>You can decline analytics when prompted or change your choice with the Analytics settings link in the footer. Declining analytics does not prevent the core service from working.</p>
+          <h2>Storage and retention</h2>
+          <p>Custom data is stored by the configured application provider. Optional analytics is stored in the configured analytics database and daily analytics rows are retained for 365 days.</p>
+        </>
+      ) : (
+        <>
+          <h2>Use of the preview</h2>
+          <p>Use the service lawfully and do not submit secrets, personal data, or content you are not authorized to process.</p>
+          <h2>Availability</h2>
+          <p>This is a preview service. Features, availability, and stored data may change without notice.</p>
+          <h2>Questions</h2>
+          <p>Publish a support contact here before making the service generally available.</p>
+        </>
+      )}
+    </article>
+  );
+}
 
 function pageForPath(path: string): Page | null {
   if (path === DOMAINS_PATH || path === DIAGRAMS_PATH || parseWizardRoute(path)
@@ -205,6 +276,7 @@ function App() {
   const [metadataVisited, setMetadataVisited] = useState(() => location.pathname === PAGE_PATHS.metadata || pageForPath(location.pathname) === "metadata");
   const [functionDefinitionsVisited, setFunctionDefinitionsVisited] = useState(() => location.pathname === PAGE_PATHS.functions);
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
+  const [analyticsConsent, setAnalyticsConsent] = useState<"granted" | "declined" | null>(readAnalyticsConsent);
   const metadataNavigationGuard = useRef<NavigationGuard | null>(null);
   const metadataSectionNavigation = useRef<((section: MetadataSection) => void) | null>(null);
   const functionNavigationGuard = useRef<NavigationGuard | null>(null);
@@ -394,7 +466,6 @@ function App() {
           routerNavigate(section === "domains" ? DOMAINS_PATH : section === "entities" ? ENTITIES_PATH : DIAGRAMS_PATH);
         }}
       />
-      <AnalyticsTracker />
       <div className="page-content">
         <Routes>
           <Route path={PAGE_PATHS.home} element={<div className="page-transition page-transition-no-slide"><Home onNavigateToPage={navigateToPage} onBuilderDomainSelect={navigateToBuilderDomain} onRequestConnection={requestDatabaseConnection} /></div>} />
@@ -411,8 +482,19 @@ function App() {
           <Route path={LEGACY_FUNCTIONS_PATH} element={<Navigate to={PAGE_PATHS.functions} replace />} />
           <Route path={PAGE_PATHS.sources} element={<div className="page-transition page-transition-no-slide"><DataSources onRequestConnection={requestDatabaseConnection} /></div>} />
           <Route path={ADMIN_PATH} element={<div className="page-transition page-transition-no-slide"><AdminAnalytics /></div>} />
+          <Route path={PRIVACY_PATH} element={<PolicyPage kind="privacy" />} />
+          <Route path={TERMS_PATH} element={<PolicyPage kind="terms" />} />
           <Route path="*" element={<Navigate to={PAGE_PATHS.home} replace />} />
         </Routes>
+      {analyticsConsent === null && (
+        <AnalyticsConsentNotice
+          onChoose={(value) => {
+            if (value === "granted") saveAnalyticsConsent(value);
+            setAnalyticsConsent(value);
+          }}
+          onOpenPrivacy={() => routerNavigate(PRIVACY_PATH)}
+        />
+      )}
       {connectionDialogOpen && createPortal(
         <div className="database-connection-dialog-backdrop" onClick={() => setConnectionDialogOpen(false)}>
           <section
@@ -449,7 +531,19 @@ function App() {
         <FunctionDefinitionsWorkspace onNavigationGuardChange={updateFunctionNavigationGuard} />
       </div>}
       </div>
-      <footer><span><span className="footer-mark">✦</span> oQuery engine</span><span>Metadata-driven queries · Client preview</span></footer>
+      <footer>
+        <span><span className="footer-mark">✦</span> oQuery engine</span>
+        <span>Metadata-driven queries · Client preview</span>
+        <nav className="footer-links" aria-label="Legal">
+          <button type="button" onClick={() => routerNavigate(PRIVACY_PATH)}>Privacy Notice</button>
+          <button type="button" onClick={() => routerNavigate(TERMS_PATH)}>Terms</button>
+          <button type="button" onClick={() => {
+            saveAnalyticsConsent(null);
+            setAnalyticsConsent(null);
+          }}>Analytics settings</button>
+        </nav>
+        <span>© 2026 Your App</span>
+      </footer>
     </main>
   );
 }

@@ -37,11 +37,8 @@ export const apiUrls = {
     toStringContextText: (context: string) => `${backendApiUrl}/dynamic-query/query/to-string-from-text/${encodeURIComponent(context)}`,
   },
   analytics: {
-    events: `${backendApiUrl}/analytics/events`,
     adminSummary: `${backendApiUrl}/analytics/admin/summary`,
-    adminPages: `${backendApiUrl}/analytics/admin/pages`,
-    adminVisitors: `${backendApiUrl}/analytics/admin/visitors`,
-    adminSources: `${backendApiUrl}/analytics/admin/sources`,
+    adminUrls: `${backendApiUrl}/analytics/admin/urls`,
   },
   queryRequests: {
     list: `${backendApiUrl}/query-request`,

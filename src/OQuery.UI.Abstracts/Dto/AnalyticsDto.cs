@@ -1,40 +1,12 @@
 namespace OQuery.UI.Abstracts.Dto;
 
-/// <summary>One tracker flush from the browser. Durations are measured in the browser; all timestamps are set by the server.</summary>
-public sealed record AnalyticsBatchDto(
-    Guid VisitorId,
-    Guid SectionId,
-    string? Referrer,
-    string? UtmSource,
-    string? UtmMedium,
-    string? UtmCampaign,
-    string? LandingPage,
-    IReadOnlyList<AnalyticsPageViewDto>? PageViews);
+/// <summary>One aggregated row: how many API requests a section sent to a route from a frontend page on a UTC day. Page is empty when the client sent none.</summary>
+public sealed record AnalyticsUsageRowDto(DateOnly Day, Guid SectionId, string Url, string Page, long Count);
 
-public sealed record AnalyticsPageViewDto(string Page, int DurationMs);
+/// <summary>Per UTC day: users whose first visit was that day, users seen before, and total visits (routed requests).</summary>
+public sealed record AnalyticsDailyStatDto(DateOnly Day, long NewUsers, long ReturningUsers, long TotalVisits);
 
-public sealed record AnalyticsSummaryDto(
-    long Visitors,
-    long Sections,
-    long PageViews,
-    double AverageSectionSeconds,
-    double SectionsPerVisitor);
+public sealed record AnalyticsSummaryDto(IReadOnlyList<AnalyticsDailyStatDto> Days);
 
-public sealed record AnalyticsPageStatDto(
-    string Page,
-    long Views,
-    long UniqueSections,
-    double AverageSeconds,
-    double TotalSeconds);
-
-public sealed record AnalyticsVisitorStatDto(
-    Guid VisitorId,
-    long Sections,
-    double TotalSeconds,
-    DateTimeOffset LastSeenAt);
-
-public sealed record AnalyticsSourceStatDto(
-    string? ReferrerHost,
-    string? UtmSource,
-    string? UtmCampaign,
-    long Sections);
+/// <summary>Total requests for a route template from a frontend page. Page is empty when the client sent none. Not tied to any user.</summary>
+public sealed record AnalyticsUrlStatDto(string Url, string Page, long Requests);
