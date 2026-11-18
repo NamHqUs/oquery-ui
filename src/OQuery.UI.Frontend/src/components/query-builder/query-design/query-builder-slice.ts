@@ -1,9 +1,9 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { FunctionDefinition } from "../../function-definition/types";
 import * as functionDefinitionService from "../../../services/function-definition-service";
-import * as operatorDefinitionService from "../../../services/operator-definition-service";
 import * as queryService from "../../../services/query-service";
 import * as dynamicQueryService from "../../../services/dynamic-query-service";
+import { builtinFilterOperators } from "./filter-operators";
 
 export type MetadataField = {
   name: string;
@@ -1037,20 +1037,6 @@ export const fetchFunctionDefinitions = createAsyncThunk(
   },
 );
 
-export const fetchFilterOperators = createAsyncThunk(
-  "queryBuilder/fetchFilterOperators",
-  async (_, { rejectWithValue }) => {
-    try {
-      return await operatorDefinitionService.getOperators();
-    } catch (error) {
-      return rejectWithValue(error instanceof Error ? error.message : "Unable to load filter operators.");
-    }
-  },
-  {
-    condition: (_, { getState }) => getState().queryBuilder.filterOperatorsStatus !== "loading",
-  },
-);
-
 export const executeQuery = createAsyncThunk(
   "queryBuilder/execute",
   async ({ definition, domainId }: { definition: QueryDefinition; domainId: string }, { rejectWithValue }) => {
@@ -1311,8 +1297,8 @@ const queryBuilderSlice = createSlice({
     functionDefinitions: [] as FunctionDefinition[],
     functionDefinitionsStatus: "idle",
     functionDefinitionsError: "",
-    filterOperators: [] as FilterOperatorDefinition[],
-    filterOperatorsStatus: "idle",
+    filterOperators: builtinFilterOperators,
+    filterOperatorsStatus: "succeeded",
     filterOperatorsError: "",
   },
   reducers: {
@@ -1365,18 +1351,6 @@ const queryBuilderSlice = createSlice({
       .addCase(fetchFunctionDefinitions.rejected, (state, action) => {
         state.functionDefinitionsStatus = "failed";
         state.functionDefinitionsError = String(action.payload || action.error.message || "Unable to load function metadata.");
-      })
-      .addCase(fetchFilterOperators.pending, (state) => {
-        state.filterOperatorsStatus = "loading";
-        state.filterOperatorsError = "";
-      })
-      .addCase(fetchFilterOperators.fulfilled, (state, action) => {
-        state.filterOperators = action.payload;
-        state.filterOperatorsStatus = "succeeded";
-      })
-      .addCase(fetchFilterOperators.rejected, (state, action) => {
-        state.filterOperatorsStatus = "failed";
-        state.filterOperatorsError = String(action.payload || action.error.message || "Unable to load filter operators.");
       })
       .addCase(executeQuery.pending, (state) => {
         state.queryStatus = "loading";

@@ -15,7 +15,6 @@ import EntityDiagram from "./entity-diagram/entity-diagram";
 import { createDomainPath, editDomainPath, parseWizardRoute } from "./metadata-routes";
 import { EditableEntity, emptyEntity, findEntityNameProblem, findRelationProblem, pluralize, removeEntityFromRelations, renameEntitiesInRelations, renameEntityInRelations, singularize, toAbstractDataType, toEditable, toEntityPayload, toRelationPayload } from "./types";
 import FunctionDefinitionsWorkspace from "../function-definition/function-definition";
-import OperatorDefinition from "./operator-definition/operator-definition";
 import DomainList, { cloneDomain, type Domain } from "./domain/domain-list";
 import { resolveDefinitionChanges, useDefinitionUnsavedWarning } from "./definition-actions/definition-actions";
 import DefinitionActions from "./definition-actions/definition-actions";
@@ -26,7 +25,7 @@ import type { RootState } from "../../store/store";
 export * from "./types";
 
 type NavigationGuard = (continueNavigation: () => void, cancelNavigation?: () => void) => void;
-type MetadataSection = "diagram" | "entities" | "domains" | "functions" | "operators" | "explorer";
+type MetadataSection = "diagram" | "entities" | "domains" | "functions" | "explorer";
 type DatabaseRelationship = {
   name: string;
   sourceSchema: string;
@@ -133,13 +132,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const showMessageBox = useMessageBox();
   const [searchParams, setSearchParams] = useSearchParams();
   const [functionNavigationGuard, setFunctionNavigationGuard] = useState<NavigationGuard | null>(null);
-  const [operatorNavigationGuard, setOperatorNavigationGuard] = useState<NavigationGuard | null>(null);
   const updateFunctionNavigationGuard = useCallback(
     (guard: NavigationGuard | null) => setFunctionNavigationGuard(() => guard),
-    [],
-  );
-  const updateOperatorNavigationGuard = useCallback(
-    (guard: NavigationGuard | null) => setOperatorNavigationGuard(() => guard),
     [],
   );
   const [selectedName, setSelectedName] = useState("");
@@ -225,12 +219,12 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
         ? "entities"
       : searchParams.get("section");
   const domainId = (wizardRoute?.mode === "edit" ? wizardRoute.domainId : undefined) || entityRouteDomainId || searchParams.get("domain") || undefined;
-  const activeSection: MetadataSection = entityOnly ? "entities" : requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "domains" || requestedSection === "functions" || requestedSection === "operators"
+  const activeSection: MetadataSection = entityOnly ? "entities" : requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "domains" || requestedSection === "functions"
     ? requestedSection
     : "diagram";
   const entityLoadDomainId = domainId;
   useEffect(() => {
-    if (entityOnly || requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "domains" || requestedSection === "functions" || requestedSection === "operators") return;
+    if (entityOnly || requestedSection === "diagram" || requestedSection === "entities" || requestedSection === "domains" || requestedSection === "functions") return;
     if (location.pathname === "/metadata") {
       navigate(DOMAINS_PATH, { replace: true });
       return;
@@ -747,7 +741,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const resolveAllDirtyChanges = async () => {
     if (!(await resolveEntityDirtyChanges())) return false;
     if (functionNavigationGuard && !(await runNavigationGuard(functionNavigationGuard))) return false;
-    if (operatorNavigationGuard && !(await runNavigationGuard(operatorNavigationGuard))) return false;
     return true;
   };
 
@@ -764,7 +757,7 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     };
     onNavigationGuardChange?.(guard);
     return () => onNavigationGuardChange?.(null);
-  }, [onNavigationGuardChange, dirty, draft, entities, selectedName, functionNavigationGuard, operatorNavigationGuard, activeSection]);
+  }, [onNavigationGuardChange, dirty, draft, entities, selectedName, functionNavigationGuard, activeSection]);
 
   const selectEntity = async (entity: MetadataEntity) => {
     if (entity.name === selectedName || !(await resolveEntityDirtyChanges())) return;
@@ -1119,9 +1112,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       </div>
       {!entityOnly && activeSection === "functions" && <div className="metadata-workspace-panel">
         <FunctionDefinitionsWorkspace onNavigationGuardChange={updateFunctionNavigationGuard} />
-      </div>}
-      {!entityOnly && activeSection === "operators" && <div className="metadata-workspace-panel">
-        <OperatorDefinition onNavigationGuardChange={updateOperatorNavigationGuard} />
       </div>}
       {!entityOnly && <div className="metadata-workspace-panel" hidden={activeSection !== "domains" && !isEntityWizardRoute}>
         <DomainList

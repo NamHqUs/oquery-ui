@@ -21,8 +21,6 @@ export const apiUrls = {
     reset: `${backendApiUrl}/metadata/reset`,
     functions: `${backendApiUrl}/metadata/functions`,
     functionByName: (functionName: string) => `${backendApiUrl}/metadata/functions/${encodeURIComponent(functionName)}`,
-    operators: `${backendApiUrl}/metadata/operators`,
-    operatorById: (operatorId: string) => `${backendApiUrl}/metadata/operators/${encodeURIComponent(operatorId)}`,
     createDomain: `${backendApiUrl}/metadata/domains`,
     generateDomain: `${backendApiUrl}/metadata/domains/generate`,
     domainById: (domainId: string) => `${backendApiUrl}/metadata/domains/${encodeURIComponent(domainId)}`,

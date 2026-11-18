@@ -10,7 +10,6 @@ async function loadServices() {
     dynamic: await import("./dynamic-query-service"),
     query: await import("./query-service"),
     functions: await import("./function-definition-service"),
-    operators: await import("./operator-definition-service"),
     dataSource: await import("./data-source-service"),
   };
 }
@@ -106,15 +105,6 @@ const endpoints: Endpoint[] = [
     call: (s) => s.functions.saveDefinition("Upper", functionDefinition as never) },
   { name: "deleteDefinition", method: "DELETE", url: "/metadata/functions/Upper",
     call: (s) => s.functions.deleteDefinition("Upper") },
-  { name: "getOperators", method: "GET", url: "/metadata/operators",
-    reply: [{ id: "o1", name: "Equals", symbol: "=", supportedDataTypes: ["string"] }],
-    call: (s) => s.operators.getOperators() },
-  { name: "saveOperator (create)", method: "POST", url: "/metadata/operators", reply: { id: "o1" },
-    call: (s) => s.operators.saveOperator(null, {}) },
-  { name: "saveOperator (update)", method: "PUT", url: "/metadata/operators/o1", reply: { id: "o1" },
-    call: (s) => s.operators.saveOperator("o1", {}) },
-  { name: "deleteOperator", method: "DELETE", url: "/metadata/operators/o1",
-    call: (s) => s.operators.deleteOperator("o1") },
 ];
 
 beforeEach(() => {
@@ -262,18 +252,6 @@ describe("caching and invalidation", () => {
 
     expect(calls).toHaveLength(1);
     expect(first.applyFor).toBe(allScalarApplyFor);
-  });
-
-  it("caches operators and refetches after a save", async () => {
-    const services = await loadServices();
-    const calls = mockFetch(() => respond([{ id: "o1", name: "Equals", symbol: "=", supportedDataTypes: [] }]));
-
-    await services.operators.getOperators();
-    await services.operators.getOperators();
-    await services.operators.saveOperator(null, {});
-    await services.operators.getOperators();
-
-    expect(calls.filter((call) => call.url === "/metadata/operators")).toHaveLength(3);
   });
 
   it("caches saved query payloads per domain and refetches after a save", async () => {

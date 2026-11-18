@@ -37,9 +37,6 @@ disagree, the file named as canonical wins.
 | Project | File |
 |---|---|
 | `src/OQuery.UI.Abstracts` | [projects/OQuery.UI.Abstracts.md](./projects/OQuery.UI.Abstracts.md) |
-| `src/OQuery.UI.Api/Database` | [projects/OQuery.UI.Api.Database.md](./projects/OQuery.UI.Api.Database.md) |
-| `src/OQuery.UI.Frontend` | [projects/OQuery.UI.Frontend.md](./projects/OQuery.UI.Frontend.md) |
-| `src/OQuery.UI.Storage.Files` | [projects/OQuery.UI.Storage.Files.md](./projects/OQuery.UI.Storage.Files.md) |
 | `src/OQuery.UI.Api/Services` | [projects/OQuery.UI.Api.Services.md](./projects/OQuery.UI.Api.Services.md) |
 | `src/OQuery.UI.Api` | [projects/OQuery.UI.Api.md](./projects/OQuery.UI.Api.md) |
 | `oquery/` (core engine) | [../oquery/AGENT.md](../oquery/AGENT.md) |

@@ -8,22 +8,6 @@ import { resolveEntity } from "../field-builder/field-box/field-box";
 import { formatExpression } from "../field-builder/expression-builder";
 import { FunctionDefinition } from "../../../function-definition/types";
 
-const fallbackOperators = [
-  [0, "="],
-  [1, "<>"],
-  [2, "LIKE"],
-  [3, "NOT LIKE"],
-  [4, ">"],
-  [5, "<"],
-  [6, ">="],
-  [7, "<="],
-  [8, "BETWEEN"],
-  [9, "NOT BETWEEN"],
-  [10, "IN"],
-  [11, "NOT IN"],
-  [12, "IS NULL"],
-  [13, "IS NOT NULL"],
-] as const;
 const builtinOperatorOrder = [0, 1, 4, 6, 5, 7, 2, 3, 8, 9, 10, 11, 12, 13];
 const operatorHints: Record<number, string> = {
   0: "Matches this exact value",
@@ -40,23 +24,6 @@ const operatorHints: Record<number, string> = {
   11: "Matches none of the listed values",
   12: "Has no value",
   13: "Has a value",
-};
-const allDataTypes = ["string", "number", "datetime", "boolean"];
-const fallbackOperatorDataTypes: Record<number, string[]> = {
-  0: allDataTypes,
-  1: allDataTypes,
-  2: ["string"],
-  3: ["string"],
-  4: ["number", "datetime"],
-  5: ["number", "datetime"],
-  6: ["number", "datetime"],
-  7: ["number", "datetime"],
-  8: ["number", "datetime"],
-  9: ["number", "datetime"],
-  10: allDataTypes,
-  11: allDataTypes,
-  12: allDataTypes,
-  13: allDataTypes,
 };
 const nullCheckOperations = new Set<number | string>([12, 13]);
 const multiValueOperations = new Set<number | string>([8, 9, 10, 11]);
@@ -256,15 +223,6 @@ function OperatorSelect({ value, onChange, options, ariaLabel, className, groupB
                   </div>
                   : null;
               })}
-              {(() => {
-                const customOptions = options.filter(([operatorValue]) => typeof operatorValue === "string");
-                return customOptions.length
-                  ? <div className="filter-operator-group" role="group" aria-label="Custom operators">
-                    <span className="filter-operator-group-label">Custom</span>
-                    {renderOptions(customOptions)}
-                  </div>
-                  : null;
-              })()}
             </>
             : renderOptions(options)}
         </div>, document.body)
@@ -296,18 +254,9 @@ function getOperatorOptions(
     !fieldDataType || supportedDataTypes.some((dataType) =>
       dataType.toLowerCase() === fieldDataType.toLowerCase(),
     );
-  const options = operators.length
-    ? operators
-      .filter((operator) => supportsFieldDataType(operator.supportedDataTypes))
-      .map((operator): OperatorOption => {
-        const builtinId = operator.isBuiltin && operator.id.startsWith("builtin:")
-          ? Number(operator.id.slice("builtin:".length))
-          : undefined;
-        return [builtinId !== undefined && Number.isInteger(builtinId) ? builtinId : operator.id, operator.symbol];
-      })
-    : fallbackOperators.filter(([value]) =>
-      supportsFieldDataType(fallbackOperatorDataTypes[value] ?? []),
-    );
+  const options = operators
+    .filter((operator) => supportsFieldDataType(operator.supportedDataTypes))
+    .map((operator): OperatorOption => [Number(operator.id.slice("builtin:".length)), operator.symbol]);
 
   return options.sort(([leftValue, leftLabel], [rightValue, rightLabel]) => {
     const leftOrder = typeof leftValue === "number" ? builtinOperatorOrder.indexOf(leftValue) : -1;
@@ -1126,7 +1075,7 @@ export default function FilterBuilder({ metadata, functionDefinitions, functionD
             functionDefinitions={functionDefinitions}
             functionDefinitionsStatus={functionDefinitionsStatus}
             functionDefinitionsError={functionDefinitionsError}
-            operators={operators.length ? operators : []}
+            operators={operators}
             entity={entity}
             depth={0}
             path={[]}

@@ -18,7 +18,6 @@ public static class DependencyInjection
         services.AddSingleton<FilePathResolver>();
         services.AddSingleton<IMetadataRepository, MetadataFileRepository>();
         services.AddSingleton<IFunctionDefinitionRepository, FunctionDefinitionFileRepository>();
-        services.AddSingleton<IOperatorDefinitionRepository, OperatorDefinitionFileRepository>();
         services.AddSingleton<IDomainRepository>(sp =>
             new PostgresDomainRepository(connectionString, sp.GetRequiredService<FilePathResolver>()));
         services.AddSingleton<IQueryRequestRepository>(sp =>

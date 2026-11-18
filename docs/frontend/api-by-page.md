@@ -30,9 +30,8 @@ Shared transport: `src/services/api-client.ts` (`requestJson`).
 | `DomainService` | `DomainName` list, full `DomainDetails`, domain CRUD | Details cached by ID; list reconciled with details. |
 | `DbSchemaService` | Database schema and table previews | `invalidateSchema()` on connect/disconnect. |
 | `FunctionDefinitionService` | Function definitions and create/update/delete | Cache cleared on every save/delete. |
-| `OperatorDefinitionService` | Operator definitions and create/update/delete | Cache cleared on every save/delete. |
 | `QueryService` | Saved-query requests per `domainId` (fetch, save, delete) | Per-domain entry cleared on save/delete. |
-| `OQueryEditorService` | Orchestration only: dispatches the domain, function, operator and saved-query adapters for the editor | None (delegates to the services above). |
+| `OQueryEditorService` | Orchestration only: dispatches the domain, function and saved-query adapters for the editor | None (delegates to the services above). |
 | `DatabaseConnectionService` | Connection options, provider check, connect and disconnect (validated) | Schema cache is invalidated on connect and disconnect. |
 | `DynamicQueryService` | Query execution, OQuery text execution, SQL and OQuery conversion | None (results are not cached). |
 | `DataSourceService` | External datasource loading (`VITE_DATA_SOURCE_URL`) | None. |
@@ -67,20 +66,19 @@ Every OQuery editor host must provide all editor data explicitly:
 type OQueryEditorInput = {
   domain: DomainDetails;
   functionDefinitions: FunctionDefinition[];
-  operators: OperatorDefinition[];
 };
 ```
 
 Home, Query Builder, and future editor hosts must use
-`OQueryEditorService`. The editor must not fetch missing domain, function, or
-operator data.
+`OQueryEditorService`. The editor must not fetch missing domain or function
+data. Built-in filter operators are static (`query-design/filter-operators.ts`)
+and need no request.
 
 ```text
 Home / Query Builder
   -> OQueryEditorService
      -> DomainService.getDomain(domainId)
      -> FunctionDefinitionService.getDefinitions()
-     -> OperatorDefinitionService.getOperators()
 
 Query Builder saved-query bar
   -> QueryService.getQueryRequests(domainId)
@@ -195,11 +193,10 @@ schema data are loaded only for an explicit detail/edit workflow.
 Uses `FunctionDefinitionService.getDefinitions()`, `saveDefinition()` and
 `deleteDefinition()`. The page produces global function data; Home and Query Builder consume it through`OQueryEditorService`.
 
-### Operator Definitions
+### Filter operators
 
-Uses `OperatorDefinitionService.getOperators()`, `saveOperator()` and
-`deleteOperator()`. Query
-Builder consumes operators through `OQueryEditorService`.
+Built-in filter operators are static and owned by
+`query-design/filter-operators.ts`. No API request is made for them.
 
 ### Documentation (`/documentation`)
 
@@ -213,7 +210,6 @@ No page-specific API request. The global provider check still runs.
 | `/db/schema`, `/db/data/*` | `DbSchemaService` |
 | `/metadata/domains*` | `DomainService` |
 | `/metadata/functions*` | `FunctionDefinitionService` |
-| `/metadata/operators*` | `OperatorDefinitionService` |
 | `/dynamic-query/*` | `OQueryEditorService` |
 | `/query-request*` | `QueryService` |
 

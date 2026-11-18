@@ -3,8 +3,10 @@
 ## Scope
 
 This project contains application services for dynamic queries, metadata,
-functions, operators, and reports. It coordinates contracts, repositories, and
-the OQuery core engine.
+functions, operators, database connections, and reports. It coordinates
+contracts, repositories, and the OQuery core engine. Database connection
+services (`DatabaseService`, `DbConnectionService`) live here. Dialect package
+discovery (`Application/DialectModules.cs`) runs at startup from `Program.cs`.
 
 ## Before changing code
 

@@ -1,6 +1,5 @@
 import { store } from "../store/store";
 import {
-  fetchFilterOperators,
   fetchFunctionDefinitions,
   fetchQueryRequests,
 } from "../components/query-builder/query-design/query-builder-slice";
@@ -12,7 +11,6 @@ export async function load(domainId: string, options: { includeQueryRequests?: b
   const tasks: Promise<unknown>[] = [
     getDomain(domainId),
     store.dispatch(fetchFunctionDefinitions()),
-    store.dispatch(fetchFilterOperators()),
   ];
   if (options.includeQueryRequests) tasks.push(store.dispatch(fetchQueryRequests(domainId)));
   await Promise.all(tasks);

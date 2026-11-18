@@ -18,7 +18,6 @@ public static class DependencyInjection
             services.AddSingleton<IMetadataRepository, MetadataFileRepository>();
             services.AddSingleton<IDomainRepository, DomainFileRepository>();
             services.AddSingleton<IFunctionDefinitionRepository, FunctionDefinitionFileRepository>();
-            services.AddSingleton<IOperatorDefinitionRepository, OperatorDefinitionFileRepository>();
             services.AddSingleton<IQueryRequestRepository, QueryRequestFileRepository>();
         }
         else if (provider.Equals("Memory", StringComparison.OrdinalIgnoreCase))

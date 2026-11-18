@@ -9,7 +9,6 @@ public sealed class DynamicQueryService(
     IDbConnectionService dbConnectionService,
     IDomainService domainService,
     IFunctionDefinitionService functionDefinitionService,
-    IOperatorDefinitionService operatorDefinitionService,
     ILogger<DynamicQueryService> logger) : IDynamicQueryService
 {
     public string GetQueryRequestString(QueryDefinition query)
@@ -33,7 +32,7 @@ public sealed class DynamicQueryService(
             metadataProvider,
             CreateFunctionProvider(dialect),
             dialect);
-        var preparedQuery = EnsureDefaultProjection(PrepareQuery(query, dialect, metadataProvider), metadataProvider);
+        var preparedQuery = EnsureDefaultProjection(PrepareQuery(query, metadataProvider), metadataProvider);
         return context.Query(preparedQuery).ToSql().CommandText;
     }
 
@@ -54,7 +53,7 @@ public sealed class DynamicQueryService(
             metadataProvider,
             CreateFunctionProvider(dialect),
             dialect);
-        var preparedQuery = EnsureDefaultProjection(PrepareQuery(query, dialect, metadataProvider), metadataProvider);
+        var preparedQuery = EnsureDefaultProjection(PrepareQuery(query, metadataProvider), metadataProvider);
         var result = await context.Query(preparedQuery)
             .ToListWithTotalRecordsAndColumnsAsync(cancellationToken);
        
@@ -162,7 +161,7 @@ public sealed class DynamicQueryService(
         }
     }
 
-    private QueryDefinition PrepareQuery(QueryDefinition query, ISqlDialect dialect, IMetadataProvider metadataProvider)
+    private QueryDefinition PrepareQuery(QueryDefinition query, IMetadataProvider metadataProvider)
     {
         ArgumentNullException.ThrowIfNull(query);
         QueryDefinitionJsonParser.ValidateContextReferences(query, name => IsEntityName(metadataProvider, name));
@@ -170,11 +169,6 @@ public sealed class DynamicQueryService(
             && query.Contexts is not { Count: > 0 }
             && query.Joins is not { Count: > 0 })
             return query;
-
-        var customOperators = operatorDefinitionService.GetAll()
-            .Where(definition => !definition.IsBuiltin)
-            .ToDictionary(definition => definition.Id, StringComparer.OrdinalIgnoreCase);
-        var provider = dialect.Key;
 
         ConditionDefinition PrepareGroup(ConditionDefinition group)
             => new(group.LogicalOperation, System.Linq.Enumerable.Select<IConditionDefintion, IConditionDefintion>(
@@ -188,8 +182,6 @@ public sealed class DynamicQueryService(
             => condition switch
             {
                 ConditionDefinition nested => PrepareGroup(nested),
-                ConditionStatementDefinition { OperatorId: { } id } item =>
-                    PrepareOperator(item, id, customOperators, provider),
                 ConditionStatementDefinition item => item,
                 FunctionCondition function => function,
                 _ => throw new NotSupportedException(
@@ -229,20 +221,5 @@ public sealed class DynamicQueryService(
                 })
                 .ToList() ?? []
         };
-    }
-
-    private static ConditionStatementDefinition PrepareOperator(
-        ConditionStatementDefinition filter,
-        string operatorId,
-        IReadOnlyDictionary<string, OQuery.UI.Abstracts.Dto.OperatorDefinitionDto> operators,
-        string provider)
-    {
-        if (!operators.TryGetValue(operatorId, out var definition))
-            throw new KeyNotFoundException($"Custom operator '{operatorId}' was not found.");
-        if (!definition.SqlTemplates.TryGetValue(provider, out var template))
-            throw new InvalidOperationException(
-                $"Operator '{definition.Name}' has no SQL template for provider '{provider}'.");
-
-        return filter with { CustomSqlTemplate = template };
     }
 }

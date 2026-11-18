@@ -30,7 +30,6 @@ internal sealed class DynamicQueryServiceTests
             new FakeDbConnectionService(),
             new FakeDomainService(),
             new FakeFunctionDefinitionService(),
-            new FakeOperatorDefinitionService(),
             NullLogger<DynamicQueryService>.Instance);
 
     private static DomainDto CreateDomain()
@@ -104,13 +103,5 @@ internal sealed class DynamicQueryServiceTests
         public FunctionDefinitionDto Create(FunctionDefinitionDto dto) => throw new NotSupportedException();
         public FunctionDefinitionDto Update(string functionName, FunctionDefinitionDto dto) => throw new NotSupportedException();
         public void Delete(string functionName) => throw new NotSupportedException();
-    }
-
-    private sealed class FakeOperatorDefinitionService : IOperatorDefinitionService
-    {
-        public IReadOnlyList<OperatorDefinitionDto> GetAll() => [];
-        public OperatorDefinitionDto Create(OperatorDefinitionDto dto) => throw new NotSupportedException();
-        public OperatorDefinitionDto Update(string operatorId, OperatorDefinitionDto dto) => throw new NotSupportedException();
-        public void Delete(string operatorId) => throw new NotSupportedException();
     }
 }
