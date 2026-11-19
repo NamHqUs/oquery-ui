@@ -111,7 +111,7 @@ export default function AdminAnalytics() {
         <div className="admin-analytics-heading">
           <span className="admin-analytics-eyebrow">ADMIN CONSOLE</span>
           <h1>Analytics overview</h1>
-          <p>Monitor API usage and understand which routes your users rely on.</p>
+          <p>Monitor API usage and understand which routes your visitors rely on.</p>
         </div>
         <div className="admin-analytics-controls">
           <div role="group" aria-label="Date range">
@@ -151,19 +151,19 @@ export default function AdminAnalytics() {
             <span className="admin-analytics-range-note">Updated about every minute</span>
           </div>
           <div className="admin-analytics-cards">
-            <Card label="New users" value={sumDays(data.summary.days, "newUsers").toLocaleString()} />
-            <Card label="Returning users" value={sumDays(data.summary.days, "returningUsers").toLocaleString()} />
-            <Card label="Total visits" value={sumDays(data.summary.days, "totalVisits").toLocaleString()} />
+            <Card label="New visitors" value={sumDays(data.summary.days, "newUsers").toLocaleString()} />
+            <Card label="Returning visitors" value={sumDays(data.summary.days, "returningUsers").toLocaleString()} />
+            <Card label="Total visitors" value={data.summary.totalVisitors.toLocaleString()} />
           </div>
 
           <Table title="Daily usage (UTC)" empty="No requests in this range." rows={data.summary.days} onDownload={() => downloadCsv(`analytics-daily-${fromDay}-${toDay}.csv`, toCsv(
-            ["Day", "New users", "Returning users", "Total visits"],
+            ["Day", "New visitors", "Returning visitors", "Total requests"],
             data.summary.days.map((row) => [row.day, row.newUsers, row.returningUsers, row.totalVisits]),
           ))} columns={[
             { head: "Day", cell: (row) => row.day },
-            { head: "New users", cell: (row) => row.newUsers.toLocaleString() },
-            { head: "Returning users", cell: (row) => row.returningUsers.toLocaleString() },
-            { head: "Total visits", cell: (row) => row.totalVisits.toLocaleString() },
+            { head: "New visitors", cell: (row) => row.newUsers.toLocaleString() },
+            { head: "Returning visitors", cell: (row) => row.returningUsers.toLocaleString() },
+            { head: "Total requests", cell: (row) => row.totalVisits.toLocaleString() },
           ]} />
 
           <section className="admin-analytics-table admin-analytics-url-reports">

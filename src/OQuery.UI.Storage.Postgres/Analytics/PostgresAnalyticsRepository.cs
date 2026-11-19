@@ -132,17 +132,24 @@ public sealed class PostgresAnalyticsRepository : IAnalyticsRepository
             to);
 
         var days = new List<AnalyticsDailyStatDto>();
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        while (await reader.ReadAsync(cancellationToken))
         {
-            days.Add(new AnalyticsDailyStatDto(
-                Day: reader.GetFieldValue<DateOnly>(0),
-                NewUsers: reader.GetInt64(1),
-                ReturningUsers: reader.GetInt64(2),
-                TotalVisits: reader.GetInt64(3)));
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                days.Add(new AnalyticsDailyStatDto(
+                    Day: reader.GetFieldValue<DateOnly>(0),
+                    NewUsers: reader.GetInt64(1),
+                    ReturningUsers: reader.GetInt64(2),
+                    TotalVisits: reader.GetInt64(3)));
+            }
         }
 
-        return new AnalyticsSummaryDto(days);
+        await using var visitorCountCommand = new NpgsqlCommand(
+            "select count(*)::bigint from analytic.visitors",
+            connection);
+        var totalVisitors = (long)(await visitorCountCommand.ExecuteScalarAsync(cancellationToken) ?? 0L);
+
+        return new AnalyticsSummaryDto(days, totalVisitors);
     }
 
     public Task<IReadOnlyList<AnalyticsUrlStatDto>> GetUrlStatsAsync(DateOnly from, DateOnly to, int limit, CancellationToken cancellationToken = default)

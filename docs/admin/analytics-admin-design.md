@@ -5,7 +5,7 @@ Status: analytics implemented as a daily rollup (new users, returning users, vis
 ## 1. Goals
 
 1. **Analytics (admin view)**
-   - Per day: new users, returning users, and total visits (not tied to any user ID in the URL totals).
+   - Per day: new visitors, returning visitors, and total requests; the overview also reports total visitors.
    - Total requests per URL route template.
 2. **Builtin data management (admin)**: create, update, and delete builtin saved queries and domains, with an audit log.
 3. **Reliability and feature signals** for future upgrades: API errors, feature usage, and funnel steps.
@@ -20,7 +20,7 @@ Status: analytics implemented as a daily rollup (new users, returning users, vis
 | Browser state | The browser holds only the `oquery_uid` cookie (HttpOnly, so scripts cannot read it). No page, time, referrer, or UTM data is kept in the browser or sent by the browser. |
 | Usage capture | Server-side only and opt-in. Each routed API request is counted with the section ID from the cookie only when the frontend sends analytics consent. The `url` value is the ASP.NET Core route template (for example `/metadata/domains/{id}`), not the raw path, so IDs do not create separate rows. Capture uses ASP.NET Core request middleware after routing. |
 | Usage storage | Counts are kept in memory and flushed to Postgres every 60 seconds (upsert, `count = count + excluded.count`). The in-memory map is capped; excess keys are dropped and logged. In the `analytic` schema, `visitors` stores the user ID and first-seen day, `daily_visitors` stores day/user visits, `daily_backend` stores day/URL counts, and `daily_frontend` stores the same counts split by frontend page. The URL tables have no user column. |
-| Usage questions | Per day: new users (first seen that day), returning users (seen that day, first seen earlier), and total visits. Visit = one routed API request. Per URL: total requests per route template for the range, not tied to any user ID. |
+| Usage questions | Per day: new visitors (first seen that day), returning visitors (seen that day, first seen earlier), and total requests. Total visitors is the count of rows in `analytic.visitors`. Per URL: total requests per route template for the range, not tied to any visitor ID. |
 | IP address | Not stored. Country comes from a geo header only if the host provides one; otherwise it is left empty. |
 | Query text and results | Not stored. Only the route template, method, status-independent counts, and times are recorded. |
 | Privacy notice and consent | The footer links to the Privacy Notice and Terms of Service. A first-use notice explains the essential `oquery_uid` section cookie and optional analytics. Analytics is collected only after an explicit opt-in; users can decline or change the choice later. |
@@ -82,9 +82,10 @@ create table analytic.daily_frontend (
 ```
 
 Daily stats for day D:
-- New users = users whose `first_seen_day = D`.
-- Returning users = users with a row for D whose `first_seen_day < D`.
-- Total visits = sum of `visits` for D.
+- New visitors = visitors whose `first_seen_day = D`.
+- Returning visitors = visitors with a row for D whose `first_seen_day < D`.
+- Total visitors = count of rows in `analytic.visitors`.
+- Total requests = sum of `visits` for D.
 
 Rows older than 365 days are pruned from `analytic.daily_visitors` and `analytic.daily_backend`. `analytic.visitors` is kept, so a returning user is not counted as new after pruning. `analytic.daily_frontend` follows the same retention rule.
 
@@ -133,7 +134,7 @@ All endpoints require `X-Admin-Token`, compared in constant time. If `ADMIN_TOKE
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /analytics/admin/summary?from&to` | One row per day: new users, returning users, total visits. |
+| `GET /analytics/admin/summary?from&to` | Daily new/returning visitor and request totals, plus the total visitor count. |
 | `GET /analytics/admin/urls?from&to&limit` | Total requests per API route template for the range, most requested first. |
 | `GET /analytics/admin/pages?from&to&limit` | Total requests per frontend page (from `X-Client-Page`) for the range, most requested first. Requests without a page are not listed. |
 
@@ -145,7 +146,7 @@ Deferred: page-to-page navigation, visitor drill-down, errors, and builtin CRUD 
 
 - The browser does not track analytics. There is no tracker service, no notice, and no page-view code.
 - The footer in [main.tsx](/D:/SourceCode/Github/public/oquery-ui/src/OQuery.UI.Frontend/src/main.tsx) shows the copyright line.
-- **Admin page** `/admin`, with a token prompt that stores the token in `sessionStorage`. It shows totals (new users, returning users, visits) for the range, a daily table (day, new users, returning users, total visits), and a URL table (URL, requests). It states that data refreshes every minute, not in real time.
+- **Admin page** `/admin`, with a token prompt that stores the token in `sessionStorage`. It shows totals (new visitors, returning visitors, total visitors), a daily table (day, new visitors, returning visitors, total requests), and a URL table (URL, requests). It states that data refreshes every minute, not in real time.
 - **Privacy UI.** The app shows a first-use analytics notice explaining optional analytics, with `Accept`, `Decline`, and a `Privacy Notice` link. The footer always links to the Privacy Notice, Terms of Service, and analytics settings. An accepted analytics preference is stored in browser storage and sent as `X-Analytics-Consent: granted`; a declined preference is memory-only, so the notice appears again after a browser refresh. Declining or withdrawing consent sends no granted value.
 - **Range.** Presets: 7, 30, 90 days, and "To date" (366 days, which covers the 365-day retention). Two date inputs (`From`, `To`) are inclusive on screen; the request sends `to` as the day after `To`, because the API range is half-open. The range must be valid (`From` before or equal to `To`, at most 366 days), and the page validates it before calling the API.
 - **Reload.** A Reload button refetches with the current range and does not change the token.

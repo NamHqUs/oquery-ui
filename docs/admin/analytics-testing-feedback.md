@@ -5,7 +5,7 @@
 - The user ID is a first-party cookie, `oquery_uid`, issued by the API. It is a GUIDv7, HttpOnly, SameSite=Lax, Path=/, and lasts 400 days. The browser does not store or send it from JavaScript.
 - The browser sends no analytics data. The privacy notice, tracker component, and `analytics-notice` service were removed. The footer shows "© 2026 Your App".
 - The server counts routed API requests per UTC day and user, plus a global count per route template. The flush service writes every 60 seconds.
-- The admin page shows totals (new users, returning users, total visits), a daily table, and a per-URL table with no user column. It states that data is updated about every minute.
+- The admin page shows totals (new visitors, returning visitors, total visitors), a daily table, and a per-URL table with no visitor column. It states that data is updated about every minute.
 - Schema: `analytic.visitors`, `analytic.daily_visitors`, `analytic.daily_backend`, `analytic.daily_frontend`. The old `analytics_daily_usage` table is no longer created.
 
 ## Page tracking (X-Client-Page)
@@ -87,7 +87,7 @@ Covered by `RequestUsageTests`:
 
 ## Open items for the developer
 
-- "Total visits" is counted as routed API requests, one request = one visit. Please confirm this definition.
+- "Total visitors" is the count of records in `analytic.visitors`; daily "Total requests" remains the routed API request count.
 - Notice-free handling of a persistent identifier may not satisfy EU consent rules. Legal review is advised.
 - The SPA changes routes without server calls, so the URL totals count API route templates, not page views.
 - Footer Privacy Policy and Terms links were not added because no pages exist.

@@ -5,7 +5,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type AnalyticsRange = { from: string; to: string };
 export type AnalyticsDailyStat = { day: string; newUsers: number; returningUsers: number; totalVisits: number };
-export type AnalyticsSummary = { days: AnalyticsDailyStat[] };
+export type AnalyticsSummary = { days: AnalyticsDailyStat[]; totalVisitors: number };
 export type AnalyticsUrlStat = { url: string; requests: number };
 export type AnalyticsPageStat = { page: string; requests: number };
 
