@@ -7,5 +7,5 @@ namespace OQuery.UI.Api.UnitTest;
 public sealed class DialectRegistrationSetUp
 {
     [OneTimeSetUp]
-    public void RegisterDialects() => DialectModules.RegisterFromFolder(AppContext.BaseDirectory);
+    public void RegisterDialects() => DialectModules.RegisterAll();
 }

@@ -23,6 +23,7 @@ COPY ["oquery/src/OQuery.Sqlite/OQuery.Sqlite.csproj", "oquery/src/OQuery.Sqlite
 COPY ["oquery/src/OQuery.SqlServer/OQuery.SqlServer.csproj", "oquery/src/OQuery.SqlServer/"]
 COPY ["oquery/src/OQuery.Postgres/OQuery.Postgres.csproj", "oquery/src/OQuery.Postgres/"]
 COPY ["src/OQuery.UI.Storage.Postgres/OQuery.UI.Storage.Postgres.csproj", "src/OQuery.UI.Storage.Postgres/"]
+COPY ["src/OQuery.UI.SetupTests/OQuery.UI.SetupTests.csproj", "src/OQuery.UI.SetupTests/"]
 COPY ["oquery/src/Directory.Build.props", "oquery/src/"]
 COPY ["oquery/src/OQuery.Core/OQuery.Core.csproj", "oquery/src/OQuery.Core/"]
 COPY ["oquery/src/OQuery.Abstracts/OQuery.Abstracts.csproj", "oquery/src/OQuery.Abstracts/"]

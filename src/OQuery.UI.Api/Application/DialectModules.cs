@@ -1,23 +1,15 @@
-using System.Reflection;
 using OQuery.Database;
 using OQuery.UI.Api.Services.DbSchemaLoaders;
 
 namespace OQuery.UI.Application;
 
 /// <summary>
-/// Discovers dialect packages (OQuery.&lt;Db&gt;.dll) in a folder and registers each dialect with the API.
-/// A dialect module is a static class whose name ends with "DialectModule" and exposes a public static
-/// parameterless CreateDialect() method returning ISqlDialect. The provider name is the module name without the suffix;
-/// an optional public static string[] ProviderAliases property adds alternative provider names.
+/// Registers the OQuery dialects the API ships with. Each dialect is registered explicitly from its
+/// OQuery.&lt;Db&gt; project's dialect module, so adding a dialect means adding a project reference and one line here.
 /// Provisioning (DbSchemaLoader) is owned by the API, so the factories below are keyed by provider name.
-/// Packages can be added or removed without changing the API build.
 /// </summary>
 public static class DialectModules
 {
-    private const string ModuleSuffix = "DialectModule";
-    private const string CreateDialectMethodName = "CreateDialect";
-    private const string AliasesPropertyName = "ProviderAliases";
-
     private static readonly Dictionary<string, Func<string, string[], string, DbSchemaLoader>> DbInstanceFactories =
         new(StringComparer.OrdinalIgnoreCase)
         {
@@ -31,66 +23,24 @@ public static class DialectModules
             ["Firebird"] = (connectionString, scriptFiles, dbVersion) => new FirebirdDbSchemaLoader(connectionString, scriptFiles, dbVersion),
         };
 
-    public static IReadOnlyList<string> RegisterFromFolder(string folder)
+    /// <summary>Registers every dialect shipped with the API. Safe to call more than once.</summary>
+    public static void RegisterAll()
     {
-        if (!Directory.Exists(folder))
-            return [];
-
-        var loadedNames = AppDomain.CurrentDomain.GetAssemblies()
-            .Select(assembly => assembly.GetName().Name)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var registered = new List<string>();
-        foreach (var path in Directory.EnumerateFiles(folder, "*.dll").Order(StringComparer.OrdinalIgnoreCase))
-        {
-            if (loadedNames.Contains(AssemblyName.GetAssemblyName(path).Name ?? string.Empty))
-                continue;
-
-            foreach (var module in GetModuleTypes(Assembly.LoadFrom(path)))
-            {
-                try
-                {
-                    var name = module.Name[..^ModuleSuffix.Length];
-                    var createDialect = module
-                        .GetMethod(CreateDialectMethodName, BindingFlags.Public | BindingFlags.Static, Type.EmptyTypes)!
-                        .CreateDelegate<Func<ISqlDialect>>();
-                    SqlDialectRegistry.Register(new SqlDialectRegistration(
-                        name,
-                        createDialect,
-                        DbInstanceFactories.GetValueOrDefault(name),
-                        GetAliases(module)));
-                }
-                catch (TargetInvocationException ex) when (ex.InnerException is not null)
-                {
-                    throw new InvalidOperationException(
-                        $"Failed to register dialect module '{module.FullName}' from '{path}'.", ex.InnerException);
-                }
-                registered.Add(module.FullName!);
-            }
-        }
-        return registered;
+        Register("Cockroach", CockroachDialectModule.CreateDialect, CockroachDialectModule.ProviderAliases);
+        Register("Db2", Db2DialectModule.CreateDialect);
+        Register("Firebird", FirebirdDialectModule.CreateDialect);
+        Register("MySql", MySqlDialectModule.CreateDialect, MySqlDialectModule.ProviderAliases);
+        Register("Oracle", OracleDialectModule.CreateDialect);
+        Register("Postgres", PostgresDialectModule.CreateDialect, PostgresDialectModule.ProviderAliases);
+        Register("SapHana", SapHanaDialectModule.CreateDialect, SapHanaDialectModule.ProviderAliases);
+        Register("Sqlite", SqliteDialectModule.CreateDialect);
+        Register("SqlServer", SqlServerDialectModule.CreateDialect);
     }
 
-    private static IReadOnlyList<string>? GetAliases(Type module)
-        => module.GetProperty(AliasesPropertyName, BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as string[];
-
-    public static IEnumerable<Type> GetModuleTypes(Assembly assembly)
-    {
-        Type?[] types;
-        try
-        {
-            types = assembly.GetTypes();
-        }
-        catch (ReflectionTypeLoadException ex)
-        {
-            types = ex.Types;
-        }
-        return types.Where(type => type is not null && IsDialectModule(type))!;
-    }
-
-    private static bool IsDialectModule(Type type)
-        => type is { IsClass: true, IsAbstract: true, IsSealed: true }
-           && type.Name.EndsWith(ModuleSuffix, StringComparison.Ordinal)
-           && type.GetMethod(CreateDialectMethodName, BindingFlags.Public | BindingFlags.Static, Type.EmptyTypes) is { } method
-           && method.ReturnType == typeof(ISqlDialect);
+    private static void Register(string name, Func<ISqlDialect> createDialect, IReadOnlyList<string>? aliases = null)
+        => SqlDialectRegistry.Register(new SqlDialectRegistration(
+            name,
+            createDialect,
+            DbInstanceFactories.GetValueOrDefault(name),
+            aliases));
 }

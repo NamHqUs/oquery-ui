@@ -23,6 +23,15 @@
 		<ProjectReference Include="..\OQuery.UI.Storage.Files\OQuery.UI.Storage.Files.csproj" />
 		<ProjectReference Include="..\OQuery.UI.Storage.Postgres\OQuery.UI.Storage.Postgres.csproj" />
 		<ProjectReference Include="..\..\oquery\src\OQuery.Core\OQuery.Core.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.CockroachDb\OQuery.CockroachDb.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.Db2\OQuery.Db2.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.Firebird\OQuery.Firebird.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.MySql\OQuery.MySql.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.Oracle\OQuery.Oracle.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.Postgres\OQuery.Postgres.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.SapHana\OQuery.SapHana.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.Sqlite\OQuery.Sqlite.csproj" />
+		<ProjectReference Include="..\..\oquery\src\OQuery.SqlServer\OQuery.SqlServer.csproj" />
 		<ProjectReference Include="..\OQuery.UI.SetupTests\OQuery.UI.SetupTests.csproj" />
 		<PackageReference Include="Namh.Configuration.Template" />
 		<PackageReference Include="Microsoft.Data.SqlClient" />

@@ -50,8 +50,9 @@ Configuration is split by responsibility under `OQuery` in `appsettings.json`:
 - `ConnectionStrings:Analytics` - local development defaults this to the same
   Postgres connection, enabling the analytics tables; production can override
   it with `ConnectionStrings__Analytics`.
-- `OQuery:DialectPackagesPath` - folder of dialect DLLs used to validate the
-  provider selected with `PUT /db/connection`.
+- Dialects are registered explicitly in
+  `src/OQuery.UI.Api/Application/DialectModules.cs` (`DialectModules.RegisterAll`);
+  `PUT /db/connection` accepts only the registered providers.
 
 The database is connected directly with `PUT /db/connection` (provider and
 connection string).

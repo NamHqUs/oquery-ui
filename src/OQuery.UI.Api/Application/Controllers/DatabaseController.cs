@@ -11,8 +11,11 @@ namespace OQuery.UI.Application.Controllers;
 public sealed class DatabaseController(
     IDatabaseService databaseService,
     IDbConnectionService connectionService,
+    IConfiguration configuration,
     ILogger<DatabaseController> logger) : ControllerBase
 {
+    private const string AllowDirectConnectionKey = "OQuery:DbProvider:AllowDirectConnection";
+
     [HttpGet("connections")]
     public ActionResult<DatabaseConnectionOptionsDto> GetConnections()
         => Ok(connectionService.GetConnectionOptions());
@@ -25,6 +28,14 @@ public sealed class DatabaseController(
     public ActionResult<DatabaseConnectionResponseDto> UpdateDbConnection(
         [FromBody] DatabaseConnectionRequestDto request)
     {
+        if (!configuration.GetValue(AllowDirectConnectionKey, true))
+        {
+            return Problem(
+                statusCode: StatusCodes.Status403Forbidden,
+                title: "Direct database connection is disabled",
+                detail: $"Set '{AllowDirectConnectionKey}' to true to allow connecting to a new database.");
+        }
+
         try
         {
             connectionService.UpdateDbConnection(request.Provider, request.ConnectionString);

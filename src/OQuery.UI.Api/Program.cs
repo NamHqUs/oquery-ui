@@ -68,9 +68,7 @@ if (analyticsEnabled)
     builder.Services.AddHostedService<AnalyticsUsageFlushService>();
 }
 
-DialectModules.RegisterFromFolder(Path.GetFullPath(Path.Combine(
-    Environment.CurrentDirectory,
-    configuration["OQuery:DialectPackagesPath"] ?? throw new InvalidOperationException("Configuration 'OQuery:DialectPackagesPath' is missing."))));
+DialectModules.RegisterAll();
 
 var app = builder.Build();
 

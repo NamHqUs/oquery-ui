@@ -16,7 +16,7 @@ public sealed class DbConnectionService(DatabaseService dbService) : IDbConnecti
         ArgumentException.ThrowIfNullOrWhiteSpace(provider);
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
         if (!OQuery.Database.SqlDialectRegistry.RegisteredNames.Contains(provider, StringComparer.OrdinalIgnoreCase))
-            throw new ArgumentException($"Database provider '{provider}' is not available. Add its dialect package to DialectPackagesPath.", nameof(provider));
+            throw new ArgumentException($"Database provider '{provider}' is not available. Register its dialect in DialectModules.RegisterAll.", nameof(provider));
 
         dbService.Connect(provider, connectionString);
     }
