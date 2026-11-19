@@ -6,13 +6,13 @@
 - The browser sends no analytics data. The privacy notice, tracker component, and `analytics-notice` service were removed. The footer shows "© 2026 Your App".
 - The server counts routed API requests per UTC day and user, plus a global count per route template. The flush service writes every 60 seconds.
 - The admin page shows totals (new users, returning users, total visits), a daily table, and a per-URL table with no user column. It states that data is updated about every minute.
-- Schema: `analytics_visitors`, `analytics_daily_visitors`, `analytics_daily_backend`, `analytics_daily_frontend`. The old `analytics_daily_usage` table is no longer created.
+- Schema: `analytic.visitors`, `analytic.daily_visitors`, `analytic.daily_backend`, `analytic.daily_frontend`. The old `analytics_daily_usage` table is no longer created.
 
 ## Page tracking (X-Client-Page)
 
 - The frontend sends `X-Client-Page` with every API request (`window.location.pathname`, set in `api-client.ts` `send()`).
 - The API drops the query string and fragment, and accepts only values that start with `/` and are at most 200 characters.
-- Counts are kept per (day, URL, page) and upserted into `analytics_daily_frontend` by the 60 s flush. `analytics_daily_backend` is unchanged.
+- Counts are kept per (day, URL, page) and upserted into `analytic.daily_frontend` by the 60 s flush. `analytic.daily_backend` is unchanged.
 
 | Check | Result |
 |---|---|
@@ -26,7 +26,7 @@ An earlier end-to-end run stored `?x=1`. That was a sanitizer bug, now fixed. Th
 Open for the developer:
 - Route IDs stay in the page path (for example `/metadata/entities/{domainId}`). Decide whether to replace ID segments with a placeholder. See `analytics-admin-design.md` sections 8 and 12.
 - The flush interval is still hardcoded at 60 s (`AnalyticsUsageFlushService.cs`).
-- The `analytics_daily_frontend` table appears only after the first flush with data.
+- The `analytic.daily_frontend` table appears only after the first flush with data.
 
 ## Verification
 

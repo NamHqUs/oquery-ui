@@ -19,7 +19,7 @@ Status: analytics implemented as a daily rollup (new users, returning users, vis
 | Section identity (persistent) | Server-issued GUID (GUIDv7) stored in a first-party cookie `oquery_uid`. The cookie is HttpOnly, `SameSite=Lax`, `Path=/`, and lasts 400 days (the browser maximum). The server reads it on every request and uses it as the saved-data partition key. If the cookie is missing or invalid, the server creates a new ID and sets the cookie. An existing valid ID is never replaced. No IP, User-Agent, or login is used. Clearing cookies or switching browsers creates a new section. The browser does not store the ID in `localStorage` or send it in a header. |
 | Browser state | The browser holds only the `oquery_uid` cookie (HttpOnly, so scripts cannot read it). No page, time, referrer, or UTM data is kept in the browser or sent by the browser. |
 | Usage capture | Server-side only and opt-in. Each routed API request is counted with the section ID from the cookie only when the frontend sends analytics consent. The `url` value is the ASP.NET Core route template (for example `/metadata/domains/{id}`), not the raw path, so IDs do not create separate rows. Capture uses ASP.NET Core request middleware after routing. |
-| Usage storage | Counts are kept in memory and flushed to Postgres every 60 seconds (upsert, `count = count + excluded.count`). The in-memory map is capped; excess keys are dropped and logged. Three tables: `analytics_visitors` (user ID and first-seen day), `analytics_daily_visitors` (day, user ID, visits), and `analytics_daily_backend` (day, URL, count). The page table `analytics_daily_frontend` holds the same counts split by frontend page. The URL tables have no user column. |
+| Usage storage | Counts are kept in memory and flushed to Postgres every 60 seconds (upsert, `count = count + excluded.count`). The in-memory map is capped; excess keys are dropped and logged. In the `analytic` schema, `visitors` stores the user ID and first-seen day, `daily_visitors` stores day/user visits, `daily_backend` stores day/URL counts, and `daily_frontend` stores the same counts split by frontend page. The URL tables have no user column. |
 | Usage questions | Per day: new users (first seen that day), returning users (seen that day, first seen earlier), and total visits. Visit = one routed API request. Per URL: total requests per route template for the range, not tied to any user ID. |
 | IP address | Not stored. Country comes from a geo header only if the host provides one; otherwise it is left empty. |
 | Query text and results | Not stored. Only the route template, method, status-independent counts, and times are recorded. |
@@ -43,17 +43,19 @@ Scope for this step: server-side daily rollup only. No browser ingest, referrer,
 
 ## 4. Data model (Postgres)
 
-Analytics tables (current design). Refreshed by the 60-second flush; never read in real time.
+Analytics tables live in the `analytic` schema (without an `analytics_` table-name prefix). Refreshed by the 60-second flush; never read in real time.
 
 ```sql
 -- First day each user ID was seen. Never pruned, so "new" stays correct after the daily rows expire.
-create table analytics_visitors (
+create schema analytic;
+
+create table analytic.visitors (
   user_id          uuid primary key,
   first_seen_day   date not null
 );
 
 -- One row per user per UTC day. Used only to count distinct users; no user column is exposed by the API.
-create table analytics_daily_visitors (
+create table analytic.daily_visitors (
   day     date   not null,
   user_id uuid   not null,
   visits  bigint not null,
@@ -61,7 +63,7 @@ create table analytics_daily_visitors (
 );
 
 -- Global per-API-URL totals per UTC day (route template, not raw path). No user dimension.
-create table analytics_daily_backend (
+create table analytic.daily_backend (
   day   date   not null,
   url   text   not null,
   count bigint not null,
@@ -70,7 +72,7 @@ create table analytics_daily_backend (
 
 -- Per-URL totals split by the frontend page that sent the request (X-Client-Page header).
 -- Path only: the query string is never stored. No user dimension.
-create table analytics_daily_frontend (
+create table analytic.daily_frontend (
   day   date   not null,
   page  text   not null,
   url   text   not null,
@@ -84,9 +86,9 @@ Daily stats for day D:
 - Returning users = users with a row for D whose `first_seen_day < D`.
 - Total visits = sum of `visits` for D.
 
-Rows older than 365 days are pruned from `analytics_daily_visitors` and `analytics_daily_backend`. `analytics_visitors` is kept, so a returning user is not counted as new after pruning. `analytics_daily_frontend` follows the same retention rule.
+Rows older than 365 days are pruned from `analytic.daily_visitors` and `analytic.daily_backend`. `analytic.visitors` is kept, so a returning user is not counted as new after pruning. `analytic.daily_frontend` follows the same retention rule.
 
-Existing databases created with the old names (`analytics_users`, `analytics_daily_user`, `analytics_daily_url`, `analytics_daily_page_url`) are renamed in place at startup, so no data is lost.
+Existing databases created with the old names (`analytics_users`, `analytics_daily_user`, `analytics_daily_url`, `analytics_daily_page_url`, and the current `analytics_*` tables) are moved into `analytic` and renamed in place at startup, so no data is lost.
 
 -- Builtin data tables: deferred with phase 6. The user-data layout below is implemented in
 -- OQuery.UI.Storage.Postgres/PostgresDocumentStore.cs.
@@ -111,7 +113,7 @@ create table admin_audit (
 );
 ```
 
-Indexes: the primary keys are `analytics_visitors(user_id)`, `analytics_daily_visitors(day, user_id)`, and `analytics_daily_backend(day, url)`.
+Indexes: the primary keys are `analytic.visitors(user_id)`, `analytic.daily_visitors(day, user_id)`, and `analytic.daily_backend(day, url)`.
 
 Storing builtin data as `jsonb` keeps the existing `DomainDto` and `QueryDto` shapes, so the repository interfaces (`IDomainRepository`, `IQueryRequestRepository`) do not change.
 
@@ -122,7 +124,7 @@ Seeding: on first use, the repositories insert the file-based builtin data with 
 - No browser ingest endpoint. The browser sends nothing for analytics.
 - `RequestUsageMiddleware` runs after routing and counts each routed, non-`analytics/` API request by (UTC day, user ID from the `oquery_uid` cookie, route template).
 - `AnalyticsUsageFlushService` drains the in-memory counts every 60 seconds and on shutdown. Failed rows are re-added and retried.
-- The repository writes all three tables in one transaction. `analytics_visitors` uses `on conflict do nothing`, so the first-seen day is set once.
+- The repository writes all four analytics tables in one transaction. `analytic.visitors` uses `on conflict do nothing`, so the first-seen day is set once.
 - Storage failures are logged and never fail the user's request.
 
 ## 6. Admin API (token required)
@@ -155,8 +157,8 @@ Deferred: page-to-page navigation, visitor drill-down, errors, and builtin CRUD 
 ## 8. Privacy and safety
 
 - No IP addresses, query text, or result data are stored.
-- The page column stores the frontend pathname only. The query string and hash are dropped. Path segments are kept as sent, so a route that carries an ID (for example `/metadata/entities/{domainId}`) stores that ID in `analytics_daily_frontend.page`. The server accepts only values that start with `/` and are at most 200 characters. Open decision: normalize ID segments to a placeholder before storing (see section 12).
-- The analytics user ID is a pseudonymous identifier (personal data under GDPR). It is stored only in `analytics_visitors` and `analytics_daily_visitors`. The URL totals and the admin summary never expose a user ID.
+- The page column stores the frontend pathname only. The query string and hash are dropped. Path segments are kept as sent, so a route that carries an ID (for example `/metadata/entities/{domainId}`) stores that ID in `analytic.daily_frontend.page`. The server accepts only values that start with `/` and are at most 200 characters. Open decision: normalize ID segments to a placeholder before storing (see section 12).
+- The analytics user ID is a pseudonymous identifier (personal data under GDPR). It is stored only in `analytic.visitors` and `analytic.daily_visitors`. The URL totals and the admin summary never expose a user ID.
 - No consent notice is shown. Legal review is needed before relying on this in the EU, because notice-only handling of a persistent identifier may not meet GDPR consent requirements.
 - `ADMIN_TOKEN` is set only in Render's environment, never committed.
 - Admin write endpoints validate the body against the existing DTO shapes.
@@ -165,7 +167,7 @@ Deferred: page-to-page navigation, visitor drill-down, errors, and builtin CRUD 
 
 - Neon free tier: 1 GB storage per project. Daily rollup rows are small, so storage grows with distinct (day, user) and (day, URL) pairs, not with raw requests.
 - Compute suspends after 5 minutes idle. The first flush after idle is slower; the flush runs in the background and never blocks requests.
-- Retention runs at startup only and deletes daily rows older than 365 days. `analytics_visitors` is never pruned, so new-vs-returning stays correct.
+- Retention runs at startup only and deletes daily rows older than 365 days. `analytic.visitors` is never pruned, so new-vs-returning stays correct.
 - Monitor storage on the Neon dashboard. Writes fail once the quota is full, so ingest must log and drop events rather than fail the app.
 
 ## 10. Phases

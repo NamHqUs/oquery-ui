@@ -43,7 +43,7 @@ public sealed class PostgresAnalyticsRepository : IAnalyticsRepository
 
         await using (var command = new NpgsqlCommand(
             """
-            insert into analytics_visitors (user_id, first_seen_day)
+            insert into analytic.visitors (user_id, first_seen_day)
             select t.user_id, t.first_seen_day
             from unnest(@userIds::uuid[], @firstSeen::date[]) as t(user_id, first_seen_day)
             on conflict (user_id) do nothing
@@ -58,11 +58,11 @@ public sealed class PostgresAnalyticsRepository : IAnalyticsRepository
 
         await using (var command = new NpgsqlCommand(
             """
-            insert into analytics_daily_visitors (day, user_id, visits)
+            insert into analytic.daily_visitors (day, user_id, visits)
             select t.day, t.user_id, t.visits
             from unnest(@days::date[], @userIds::uuid[], @visits::bigint[]) as t(day, user_id, visits)
             on conflict (day, user_id)
-            do update set visits = analytics_daily_visitors.visits + excluded.visits
+            do update set visits = analytic.daily_visitors.visits + excluded.visits
             """,
             connection,
             transaction))
@@ -75,11 +75,11 @@ public sealed class PostgresAnalyticsRepository : IAnalyticsRepository
 
         await using (var command = new NpgsqlCommand(
             """
-            insert into analytics_daily_backend (day, url, count)
+            insert into analytic.daily_backend (day, url, count)
             select t.day, t.url, t.count
             from unnest(@days::date[], @urls::text[], @counts::bigint[]) as t(day, url, count)
             on conflict (day, url)
-            do update set count = analytics_daily_backend.count + excluded.count
+            do update set count = analytic.daily_backend.count + excluded.count
             """,
             connection,
             transaction))
@@ -92,11 +92,11 @@ public sealed class PostgresAnalyticsRepository : IAnalyticsRepository
 
         await using (var command = new NpgsqlCommand(
             """
-            insert into analytics_daily_frontend (day, page, url, count)
+            insert into analytic.daily_frontend (day, page, url, count)
             select t.day, t.page, t.url, t.count
             from unnest(@days::date[], @pages::text[], @urls::text[], @counts::bigint[]) as t(day, page, url, count)
             on conflict (day, page, url)
-            do update set count = analytics_daily_frontend.count + excluded.count
+            do update set count = analytic.daily_frontend.count + excluded.count
             """,
             connection,
             transaction))
@@ -122,8 +122,8 @@ public sealed class PostgresAnalyticsRepository : IAnalyticsRepository
                    count(*) filter (where u.first_seen_day = d.day)::bigint,
                    count(*) filter (where u.first_seen_day < d.day)::bigint,
                    sum(d.visits)::bigint
-            from analytics_daily_visitors d
-                        join analytics_visitors u on u.user_id = d.user_id
+            from analytic.daily_visitors d
+                        join analytic.visitors u on u.user_id = d.user_id
             where d.day >= @from and d.day < @to
             group by d.day
             order by d.day
@@ -149,7 +149,7 @@ public sealed class PostgresAnalyticsRepository : IAnalyticsRepository
         => QueryTopAsync(
             """
             select url, sum(count)::bigint
-            from analytics_daily_backend
+            from analytic.daily_backend
             where day >= @from and day < @to
             group by url
             order by sum(count) desc, url
@@ -165,7 +165,7 @@ public sealed class PostgresAnalyticsRepository : IAnalyticsRepository
         => QueryTopAsync(
             """
             select page, sum(count)::bigint
-            from analytics_daily_frontend
+            from analytic.daily_frontend
             where day >= @from and day < @to and page <> ''
             group by page
             order by sum(count) desc, page
@@ -216,35 +216,64 @@ public sealed class PostgresAnalyticsRepository : IAnalyticsRepository
 
             await using (var create = new NpgsqlCommand(
                 """
+                create schema if not exists analytic;
                 do $$
                 begin
-                    if to_regclass('analytics_users') is not null and to_regclass('analytics_visitors') is null then
-                        alter table analytics_users rename to analytics_visitors;
+                    if to_regclass('analytic.visitors') is null and to_regclass('analytic.analytics_visitors') is not null then
+                        alter table analytic.analytics_visitors rename to visitors;
                     end if;
-                    if to_regclass('analytics_daily_user') is not null and to_regclass('analytics_daily_visitors') is null then
-                        alter table analytics_daily_user rename to analytics_daily_visitors;
+                    if to_regclass('analytic.daily_visitors') is null and to_regclass('analytic.analytics_daily_visitors') is not null then
+                        alter table analytic.analytics_daily_visitors rename to daily_visitors;
                     end if;
-                    if to_regclass('analytics_daily_url') is not null and to_regclass('analytics_daily_backend') is null then
-                        alter table analytics_daily_url rename to analytics_daily_backend;
+                    if to_regclass('analytic.daily_backend') is null and to_regclass('analytic.analytics_daily_backend') is not null then
+                        alter table analytic.analytics_daily_backend rename to daily_backend;
                     end if;
-                    if to_regclass('analytics_daily_page_url') is not null and to_regclass('analytics_daily_frontend') is null then
-                        alter table analytics_daily_page_url rename to analytics_daily_frontend;
+                    if to_regclass('analytic.daily_frontend') is null and to_regclass('analytic.analytics_daily_frontend') is not null then
+                        alter table analytic.analytics_daily_frontend rename to daily_frontend;
+                    end if;
+                    if to_regclass('analytic.visitors') is null and to_regclass('public.analytics_visitors') is not null then
+                        alter table public.analytics_visitors set schema analytic;
+                        alter table analytic.analytics_visitors rename to visitors;
+                    elsif to_regclass('analytic.visitors') is null and to_regclass('public.analytics_users') is not null then
+                        alter table public.analytics_users set schema analytic;
+                        alter table analytic.analytics_users rename to visitors;
+                    end if;
+                    if to_regclass('analytic.daily_visitors') is null and to_regclass('public.analytics_daily_visitors') is not null then
+                        alter table public.analytics_daily_visitors set schema analytic;
+                        alter table analytic.analytics_daily_visitors rename to daily_visitors;
+                    elsif to_regclass('analytic.daily_visitors') is null and to_regclass('public.analytics_daily_user') is not null then
+                        alter table public.analytics_daily_user set schema analytic;
+                        alter table analytic.analytics_daily_user rename to daily_visitors;
+                    end if;
+                    if to_regclass('analytic.daily_backend') is null and to_regclass('public.analytics_daily_backend') is not null then
+                        alter table public.analytics_daily_backend set schema analytic;
+                        alter table analytic.analytics_daily_backend rename to daily_backend;
+                    elsif to_regclass('analytic.daily_backend') is null and to_regclass('public.analytics_daily_url') is not null then
+                        alter table public.analytics_daily_url set schema analytic;
+                        alter table analytic.analytics_daily_url rename to daily_backend;
+                    end if;
+                    if to_regclass('analytic.daily_frontend') is null and to_regclass('public.analytics_daily_frontend') is not null then
+                        alter table public.analytics_daily_frontend set schema analytic;
+                        alter table analytic.analytics_daily_frontend rename to daily_frontend;
+                    elsif to_regclass('analytic.daily_frontend') is null and to_regclass('public.analytics_daily_page_url') is not null then
+                        alter table public.analytics_daily_page_url set schema analytic;
+                        alter table analytic.analytics_daily_page_url rename to daily_frontend;
                     end if;
                 end $$;
-                create table if not exists analytics_visitors (
+                create table if not exists analytic.visitors (
                     user_id         uuid primary key,
                     first_seen_day  date not null);
-                create table if not exists analytics_daily_visitors (
+                create table if not exists analytic.daily_visitors (
                     day      date   not null,
                     user_id  uuid   not null,
                     visits   bigint not null,
                     primary key (day, user_id));
-                create table if not exists analytics_daily_backend (
+                create table if not exists analytic.daily_backend (
                     day    date   not null,
                     url    text   not null,
                     count  bigint not null,
                     primary key (day, url));
-                create table if not exists analytics_daily_frontend (
+                create table if not exists analytic.daily_frontend (
                     day    date   not null,
                     page   text   not null,
                     url    text   not null,
@@ -259,8 +288,8 @@ public sealed class PostgresAnalyticsRepository : IAnalyticsRepository
 
             await using (var prune = new NpgsqlCommand(
                 """
-                delete from analytics_daily_visitors where day < (current_date - @retentionDays::int);
-                delete from analytics_daily_backend where day < (current_date - @retentionDays::int);
+                delete from analytic.daily_visitors where day < (current_date - @retentionDays::int);
+                delete from analytic.daily_backend where day < (current_date - @retentionDays::int);
                 """,
                 connection,
                 transaction))

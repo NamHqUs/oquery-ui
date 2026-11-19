@@ -277,6 +277,7 @@ function App() {
   const [functionDefinitionsVisited, setFunctionDefinitionsVisited] = useState(() => location.pathname === PAGE_PATHS.functions);
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
   const [analyticsConsent, setAnalyticsConsent] = useState<"granted" | "declined" | null>(readAnalyticsConsent);
+  const connectionPromptShown = useRef(false);
   const metadataNavigationGuard = useRef<NavigationGuard | null>(null);
   const metadataSectionNavigation = useRef<((section: MetadataSection) => void) | null>(null);
   const functionNavigationGuard = useRef<NavigationGuard | null>(null);
@@ -305,6 +306,21 @@ function App() {
   useEffect(() => {
     void store.dispatch(fetchDbProvider());
   }, []);
+
+  useEffect(() => {
+    if (connectionPromptShown.current
+      || database.providerCheckStatus === "loading"
+      || database.providerCheckStatus === "idle"
+      || database.connectionStatus === "loading"
+      || database.connectionStatus === "succeeded"
+      || database.connectedProvider) return;
+    connectionPromptShown.current = true;
+    setConnectionDialogOpen(true);
+  }, [
+    database.connectionStatus,
+    database.connectedProvider,
+    database.providerCheckStatus,
+  ]);
 
   const blocker = useBlocker(({ currentLocation, nextLocation }) => {
     const currentPage = pageForPath(currentLocation.pathname);
