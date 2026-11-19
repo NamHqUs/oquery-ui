@@ -2,17 +2,22 @@ using OQuery.UI.Abstracts.Repositories;
 
 namespace OQuery.UI.Application.Analytics;
 
-/// <summary>Writes collected request counts to storage every minute. Failed writes are merged back for the next attempt.</summary>
+/// <summary>Writes collected request counts to storage every OQuery:Analytics:FlushIntervalSeconds (default 5). Failed writes are merged back for the next attempt.</summary>
 public sealed class AnalyticsUsageFlushService(
     RequestUsageCollector collector,
     IAnalyticsRepository repository,
+    IConfiguration configuration,
     ILogger<AnalyticsUsageFlushService> logger) : BackgroundService
 {
-    private static readonly TimeSpan Interval = TimeSpan.FromSeconds(5);
+    private const int DefaultFlushIntervalSeconds = 60;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var timer = new PeriodicTimer(Interval);
+        var intervalSeconds = configuration.GetValue("OQuery:Analytics:FlushIntervalSeconds", DefaultFlushIntervalSeconds);
+        if (intervalSeconds < 1)
+            throw new InvalidOperationException("OQuery:Analytics:FlushIntervalSeconds must be at least 1.");
+
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(intervalSeconds));
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
             await FlushAsync(stoppingToken);

@@ -44,11 +44,10 @@ Configuration is split by responsibility under `OQuery` in `appsettings.json`:
 - `OQuery:Seeds:Enabled` / `DBVersion` - control database initialization scripts
   (`scripts/*.{provider}.sql` from the chosen datasets).
 - `OQuery:Repositories:Files:UserData` - file repository root for user data
-  (`UserData/{sectionId}/...`).
-- `OQuery:Repositories:Postgres:ConnectionString` - when set, Postgres stores
-  user Domains and Queries (built-in rows are seeded from the consumer).
-- `ConnectionStrings:Analytics` - local development defaults this to the same
-  Postgres connection, enabling the analytics tables; production can override
+  (`UserData/{sectionId}/...`). Domains, Queries and Function definitions are
+  always file-based.
+- `ConnectionStrings:Analytics` - enables the Postgres analytics tables; local
+  development defaults this to the same Postgres connection, production can override
   it with `ConnectionStrings__Analytics`.
 - Dialects are registered explicitly in
   `src/OQuery.UI.Api/Application/DialectModules.cs` (`DialectModules.RegisterAll`);

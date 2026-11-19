@@ -25,7 +25,7 @@
 		<ProjectReference Include="..\OQuery.UI.SetupTests\OQuery.UI.SetupTests.csproj" />
 		<ProjectReference Include="..\OQuery.UI.Abstracts\OQuery.UI.Abstracts.csproj" />
 		
-		<!--<ProjectReference Include="..\OQuery.UI.Storage.Files\OQuery.UI.Storage.Files.csproj" />-->
+		<ProjectReference Include="..\OQuery.UI.Storage.Files\OQuery.UI.Storage.Files.csproj" />
 		<ProjectReference Include="..\OQuery.UI.Storage.Postgres\OQuery.UI.Storage.Postgres.csproj" />
 		
 		<ProjectReference Include="..\..\oquery\src\OQuery.Core\OQuery.Core.csproj" />

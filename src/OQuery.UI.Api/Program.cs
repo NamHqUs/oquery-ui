@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.HttpOverrides;
-//using OQuery.UI.Storage.Files;
-//using OQuery.UI.Storage.Files.FileStorage;
-using OQuery.UI.Storage.Postgres;
+using OQuery.UI.Storage.Files;
+using OQuery.UI.Storage.Files.FileStorage;
 using OQuery.UI.Storage.Postgres.Analytics;
 using OQuery.UI.Abstracts;
 using OQuery.UI.Abstracts.Application;
@@ -44,19 +43,13 @@ builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Built-in data is consumer-owned: loaded here and passed to the selected provider. Providers only load/save.
+// Domains, Queries and Function definitions are file-based. Built-in data is consumer-owned: loaded here and passed to the file provider.
 var dataSets = configuration.GetSection("OQuery:Seeds:DataSets").Get<string[]>()
     ?? throw new InvalidOperationException("Configuration 'OQuery:Seeds:DataSets' is missing.");
 var seeds = BuiltinDataLoader.Load(configuration["OQuery:Seeds:BasePath"], dataSets);
-var postgresConnection = configuration["OQuery:Repositories:Postgres:ConnectionString"];
 
-//IRepositoryProvider repositoryProvider = string.IsNullOrWhiteSpace(postgresConnection)
-//    ? new FileRepositoryProvider(new FilePathResolver(configuration), seeds.Domains, seeds.Queries)
-//    : new PostgresRepositoryProvider(postgresConnection, seeds.Domains, seeds.Queries);
-
-var repositoryProvider = new PostgresRepositoryProvider(postgresConnection!, seeds.Domains, seeds.Queries);
-builder.Services.AddRepositoryProvider(repositoryProvider);
-
+var fileRepositories = new FileRepositoryProvider(new FilePathResolver(configuration), seeds.Domains, seeds.Queries);
+builder.Services.AddFileRepositories(fileRepositories);
 
 builder.Services.AddDemoServices();
 builder.Services.AddHttpContextAccessor();

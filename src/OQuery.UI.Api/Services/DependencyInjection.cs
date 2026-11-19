@@ -1,13 +1,14 @@
 using OQuery.UI.Abstracts.Repositories;
 using OQuery.UI.Abstracts.Services;
+using OQuery.UI.Storage.Files;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace OQuery.UI.Api.Services;
 
 public static class DependencyInjection
 {
-    /// <summary>Registers the repositories of the selected provider (File or Postgres).</summary>
-    public static IServiceCollection AddRepositoryProvider(this IServiceCollection services, IRepositoryProvider provider)
+    /// <summary>Registers the Domain, Query and Function repositories of the file provider.</summary>
+    public static IServiceCollection AddFileRepositories(this IServiceCollection services, FileRepositoryProvider provider)
     {
         ArgumentNullException.ThrowIfNull(provider);
         services.AddSingleton<IDomainRepository>(provider.Domains);

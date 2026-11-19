@@ -8,7 +8,7 @@ namespace OQuery.UI.Storage.Files;
 /// File-based provider. Built-in domains and queries are kept in memory for the process lifetime;
 /// user-defined items are stored as JSON under the configured user data folder.
 /// </summary>
-public sealed class FileRepositoryProvider : IRepositoryProvider
+public sealed class FileRepositoryProvider
 {
     public FileRepositoryProvider(
         FilePathResolver filePathResolver,
