@@ -1,5 +1,4 @@
 using OQuery.Database;
-using OQuery.UI.Services.DbSchemaLoaders;
 using OQuery.UnitTest.Setup.DbInstances;
 
 namespace OQuery.UI.Application;

@@ -6,5 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\oquery\src\OQuery.Abstracts\OQuery.Abstracts.csproj" />
+    <ProjectReference Include="..\..\oquery\src\OQuery.Core\OQuery.Core.csproj" />
   </ItemGroup>
 </Project>
