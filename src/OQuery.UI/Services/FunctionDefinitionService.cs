@@ -131,7 +131,9 @@ public sealed class FunctionDefinitionService(
                     group.SelectMany(function => function.SqlTemplates)
                         .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase),
                     first.BindArgumentsFromEnd,
-                    first.FunctionApplyFor);
+                    first.FunctionApplyFor,
+                    first.WindowOf,
+                    first.NegatesCollection);
             })
             .ToArray();
 

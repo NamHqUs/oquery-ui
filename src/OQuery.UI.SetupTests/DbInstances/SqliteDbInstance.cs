@@ -111,7 +111,7 @@ public class SqliteDbInstance : DbInstance, IDisposable
     private static new string QuoteIdentifier(string identifier)
         => $"\"{identifier.Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
 
-    private static string NormalizeConnectionString(string connectionString)
+    public static string NormalizeConnectionString(string connectionString)
     {
         var builder = new SqliteConnectionStringBuilder(connectionString);
         if (builder.Mode == SqliteOpenMode.Memory || builder.DataSource == ":memory:")

@@ -14,6 +14,8 @@ public sealed class FunctionDefinitionDto
     public bool IsAggregate => BuiltInAggregateFunctions.Contains(Name);
     public int? ApplyFor { get; set; }
     public bool BindArgumentsFromEnd { get; set; }
+    public string? WindowOf { get; set; }
+    public bool NegatesCollection { get; set; }
     public string Description { get; set; } = "";
     public Dictionary<string, string> SqlTemplates { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
@@ -39,7 +41,9 @@ public sealed class FunctionDefinitionDto
             Description,
             SqlTemplates,
             BindArgumentsFromEnd,
-            (FunctionApplyFor)(ApplyFor ?? (int)InferApplyFor(Name, arguments)));
+            (FunctionApplyFor)(ApplyFor ?? (int)InferApplyFor(Name, arguments)),
+            WindowOf,
+            NegatesCollection);
     }
 
     public static FunctionDefinitionDto FromFunctionDefinition(SqlFunctionDefintion definition)
@@ -57,6 +61,8 @@ public sealed class FunctionDefinitionDto
             ResultType = definition.ResultType.ToString(),
             ApplyFor = (int)definition.FunctionApplyFor,
             BindArgumentsFromEnd = definition.BindArgumentsFromEnd,
+            WindowOf = definition.WindowOf,
+            NegatesCollection = definition.NegatesCollection,
             Description = definition.Description,
             SqlTemplates = new Dictionary<string, string>(definition.SqlTemplates, StringComparer.OrdinalIgnoreCase)
         };

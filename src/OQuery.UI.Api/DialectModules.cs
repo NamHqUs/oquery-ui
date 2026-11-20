@@ -14,7 +14,7 @@ public static class DialectModules
     private static readonly Dictionary<string, Func<string, string[], string, DbSchemaLoader>> DbInstanceFactories =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            ["Sqlite"] = (connectionString, scriptFiles, dbVersion) => Provision(() => new SqliteSeedDbInstance(connectionString, scriptFiles, dbVersion), () => new SqliteDbSchemaLoader(connectionString, scriptFiles)),
+            ["Sqlite"] = (connectionString, scriptFiles, dbVersion) => ProvisionSqlite(connectionString, scriptFiles, dbVersion),
             ["SqlServer"] = (connectionString, scriptFiles, dbVersion) => Provision(() => new SqlServerDbInstance(connectionString, scriptFiles, dbVersion), () => new SqlServerDbSchemaLoader(connectionString, scriptFiles)),
             ["Postgres"] = (connectionString, scriptFiles, dbVersion) => Provision(() => new PostgresDbInstance(connectionString, scriptFiles, dbVersion), () => new PostgresDbSchemaLoader(connectionString, scriptFiles)),
             ["Cockroach"] = (connectionString, scriptFiles, dbVersion) => Provision(() => new CockroachDbInstance(connectionString, scriptFiles, dbVersion), () => new CockroachDbSchemaLoader(connectionString, scriptFiles)),
@@ -36,6 +36,15 @@ public static class DialectModules
         Register("SapHana", SapHanaDialectModule.CreateDialect, SapHanaDialectModule.ProviderAliases);
         Register("Sqlite", SqliteDialectModule.CreateDialect);
         Register("SqlServer", SqlServerDialectModule.CreateDialect);
+    }
+
+    // An in-memory SQLite database gets a generated name per normalization. Normalize once so the seed and the loader share it.
+    private static DbSchemaLoader ProvisionSqlite(string connectionString, string[] scriptFiles, string dbVersion)
+    {
+        var normalized = SqliteDbInstance.NormalizeConnectionString(connectionString);
+        return Provision(
+            () => new SqliteSeedDbInstance(normalized, scriptFiles, dbVersion),
+            () => new SqliteDbSchemaLoader(normalized, scriptFiles));
     }
 
     // The DbInstance constructor runs the provisioning, so it is created for its side effect before the loader is returned.

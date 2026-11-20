@@ -25,6 +25,16 @@ internal sealed class DynamicQueryServiceTests
         Assert.That(sql, Does.Contain(expectedSql));
     }
 
+    [Test]
+    public void BuiltinCollectionPredicatesKeepTheirPolarityAfterDtoRoundTrip()
+    {
+        var notAny = new FunctionProvider(new SqliteDialect()).GetFunction("NotAny");
+
+        var restored = FunctionDefinitionDto.FromFunctionDefinition(notAny).ToFunctionDefinition();
+
+        Assert.That(restored.NegatesCollection, Is.True);
+    }
+
     private static DynamicQueryService CreateService()
         => new(
             new FakeDbConnectionService(),
