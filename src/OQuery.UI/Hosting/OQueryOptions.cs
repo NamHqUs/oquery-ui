@@ -17,8 +17,8 @@ public sealed class OQueryOptions
 
     public sealed class SecurityOptions
     {
-        /// <summary>Secret used to encrypt project connection strings. Required; set it with the OQuery__Security__SecretKey environment variable or user secrets.</summary>
-        public string? SecretKey { get; set; }
+        /// <summary>Key used to encrypt project connection strings. Required; set it with the OQuery__Security__EncryptionKey environment variable or user secrets.</summary>
+        public string? EncryptionKey { get; set; }
     }
 
     public sealed class ApiOptions

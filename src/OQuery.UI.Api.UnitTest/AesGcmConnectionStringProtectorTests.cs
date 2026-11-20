@@ -38,6 +38,6 @@ internal sealed class AesGcmConnectionStringProtectorTests
     private static AesGcmConnectionStringProtector Create(string secret)
         => new(Options.Create(new OQueryOptions
         {
-            Security = new OQueryOptions.SecurityOptions { SecretKey = secret },
+            Security = new OQueryOptions.SecurityOptions { EncryptionKey = secret },
         }));
 }

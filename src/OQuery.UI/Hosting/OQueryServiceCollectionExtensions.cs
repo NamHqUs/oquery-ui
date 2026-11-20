@@ -38,8 +38,8 @@ public static class OQueryServiceCollectionExtensions
                 "OQuery:Repositories:Files:UserData is required.")
             .Validate(options => options.Seeds.DataSets is not null,
                 "OQuery:Seeds:DataSets is required.")
-            .Validate(options => !string.IsNullOrWhiteSpace(options.Security.SecretKey),
-                "OQuery:Security:SecretKey is required to encrypt project connection strings.")
+            .Validate(options => !string.IsNullOrWhiteSpace(options.Security.EncryptionKey),
+                "OQuery:Security:EncryptionKey is required to encrypt project connection strings.")
             .ValidateOnStart();
 
         services.AddSingleton(sp => CreateFileRepositoryProvider(sp.GetRequiredService<IOptions<OQueryOptions>>().Value));

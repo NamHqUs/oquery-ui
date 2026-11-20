@@ -7,7 +7,7 @@ using System.Text;
 namespace OQuery.UI.Services;
 
 /// <summary>
-/// AES-256-GCM with the key derived from <see cref="OQueryOptions.SecurityOptions.SecretKey"/> by SHA-256.
+/// AES-256-GCM with the key derived from <see cref="OQueryOptions.SecurityOptions.EncryptionKey"/> by SHA-256.
 /// The output is base64 of nonce (12 bytes), tag (16 bytes) and ciphertext, so each value gets a fresh nonce.
 /// </summary>
 public sealed class AesGcmConnectionStringProtector : IConnectionStringProtector
@@ -18,9 +18,9 @@ public sealed class AesGcmConnectionStringProtector : IConnectionStringProtector
 
     public AesGcmConnectionStringProtector(IOptions<OQueryOptions> options)
     {
-        var secret = options.Value.Security.SecretKey
-            ?? throw new InvalidOperationException("OQuery:Security:SecretKey is required.");
-        _key = SHA256.HashData(Encoding.UTF8.GetBytes(secret));
+        var encryptionKey = options.Value.Security.EncryptionKey
+            ?? throw new InvalidOperationException("OQuery:Security:EncryptionKey is required.");
+        _key = SHA256.HashData(Encoding.UTF8.GetBytes(encryptionKey));
     }
 
     public string Protect(string connectionString)

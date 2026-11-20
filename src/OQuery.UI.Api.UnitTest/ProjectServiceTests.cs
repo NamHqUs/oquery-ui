@@ -30,7 +30,7 @@ internal sealed class ProjectServiceTests
         _loader = new FakeSchemaLoader();
         var protector = new AesGcmConnectionStringProtector(Options.Create(new OQueryOptions
         {
-            Security = new OQueryOptions.SecurityOptions { SecretKey = "test-secret" },
+            Security = new OQueryOptions.SecurityOptions { EncryptionKey = "test-secret" },
         }));
         _service = new ProjectService(_provider.Projects, new FixedSection(), new NoDatabase(), protector, _loader);
     }

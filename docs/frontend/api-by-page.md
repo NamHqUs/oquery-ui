@@ -133,7 +133,7 @@ exists, the page navigates directly to `/projects/create`.
 Fields: project name (default `Default`, editable), description (default
 `the first project`, editable), DBMS (from `GET /db/connections`), and
 connection string. Connection strings are encrypted by the server with the
-configured `OQuery:Security:SecretKey` before they are saved.
+configured `OQuery:Security:EncryptionKey` before they are saved.
 
 | Service call | Trigger | Purpose |
 | --- | --- | --- |
@@ -143,7 +143,10 @@ configured `OQuery:Security:SecretKey` before they are saved.
 
 Any failure (validation, connection, schema load, or write) keeps the user on
 this page and shows the server's error details. The server removes any partly
-written project folder before it responds.
+written project folder before it responds. An in-memory SQLite connection
+(`Data Source=:memory:`) is first provisioned with the configured seed scripts
+when `OQuery:Seeds:Enabled` is true, so test projects get tables. File databases
+are never seeded, because the seed scripts drop and recreate tables.
 
 ### Project Detail (`/projects/{projectId}?domain={domainId}`)
 

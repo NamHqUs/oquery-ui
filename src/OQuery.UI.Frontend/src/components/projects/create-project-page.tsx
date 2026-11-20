@@ -114,7 +114,7 @@ export default function CreateProjectPage() {
             required
             disabled={disabled}
           />
-          <small>Encrypted with the server secret key. It is never returned by the API.</small>
+          <small>Encrypted with the server encryption key. It is never returned by the API.</small>
         </label>
 
         {feedback && (
