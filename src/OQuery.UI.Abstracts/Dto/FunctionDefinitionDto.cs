@@ -11,7 +11,7 @@ public sealed class FunctionDefinitionDto
     public string ResultType { get; set; } = "";
     public bool CanDelete { get; set; }
     public bool IsBuiltin { get; set; }
-    public bool IsAggregate => BuiltInAggregateFunctions.Contains(Name);
+    public bool IsAggregate => BuiltinSqlFunctions.IsAggregate(Name);
     public int? ApplyFor { get; set; }
     public bool BindArgumentsFromEnd { get; set; }
     public string? WindowOf { get; set; }
@@ -88,7 +88,7 @@ public sealed class FunctionDefinitionDto
         string name,
         IReadOnlyList<SqlFunctionArgumentDefinition> arguments)
     {
-        if (BuiltInAggregateFunctions.Contains(name))
+        if (BuiltinSqlFunctions.IsAggregate(name))
             return FunctionApplyFor.DataSet;
         var firstArgument = arguments.FirstOrDefault();
         return firstArgument?.DataType switch

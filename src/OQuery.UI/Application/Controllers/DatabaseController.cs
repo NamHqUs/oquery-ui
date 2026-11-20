@@ -68,10 +68,10 @@ public sealed class DatabaseController(
     }
 
     [HttpGet("schema")]
-    public ActionResult<DatabaseSchemaDto> GetSchema() => Ok(databaseService.GetDatabaseSchema());
+    public ActionResult<DatabaseSchema> GetSchema() => Ok(databaseService.GetDatabaseSchema());
 
     [HttpGet("data/{tableName}")]
-    public ActionResult<DatabaseTableDataDto> GetTableData(
+    public ActionResult<DatabaseTableData> GetTableData(
         string tableName,
         [FromQuery] string? schema = null,
         [FromQuery] int? limit = null)

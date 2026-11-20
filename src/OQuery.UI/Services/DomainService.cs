@@ -225,7 +225,7 @@ public sealed class DomainService(
         return scope;
     }
 
-    private static Entity CreateEntity(DatabaseTableDto table, DatabaseTableSelectionDto selection)
+    private static Entity CreateEntity(DatabaseTable table, DatabaseTableSelectionDto selection)
         => new(
             string.IsNullOrWhiteSpace(selection.EntityName) ? table.Name : selection.EntityName.Trim(),
             table.Columns.Where(column => selection.Columns.Contains(column.Name, StringComparer.OrdinalIgnoreCase)).Select(column => new Field(

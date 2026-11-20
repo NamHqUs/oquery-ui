@@ -74,9 +74,9 @@ public class DatabaseService(IOptions<OQueryOptions> options) : IDatabaseService
 
     public IDbConnection CreateConnection() => CurrentDbInstance.CreateDbConnection();
 
-    public DatabaseSchemaDto GetDatabaseSchema() => CurrentDbInstance.GetDatabaseSchema();
+    public DatabaseSchema GetDatabaseSchema() => CurrentDbInstance.LoadSchema();
 
-    public DatabaseTableDataDto GetTableData(string tableName, string? schema = null, int? limit = null)
+    public DatabaseTableData GetTableData(string tableName, string? schema = null, int? limit = null)
         => CurrentDbInstance.GetTableData(tableName, schema, limit);
 
     private DbSchemaLoader CreateDbInstance(string provider, string connectionString)

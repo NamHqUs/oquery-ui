@@ -4,6 +4,6 @@ namespace OQuery.UI.Abstracts.Services;
 
 public interface IDatabaseService
 {
-    DatabaseSchemaDto GetDatabaseSchema();
-    DatabaseTableDataDto GetTableData(string tableName, string? schema = null, int? limit = null);
+    DatabaseSchema GetDatabaseSchema();
+    DatabaseTableData GetTableData(string tableName, string? schema = null, int? limit = null);
 }
