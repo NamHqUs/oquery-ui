@@ -5,67 +5,116 @@ using Microsoft.AspNetCore.Mvc;
 namespace OQuery.UI.Application.Controllers;
 
 [ApiController]
-[Route("metadata")]
+[Route("metadata/projects")]
 public sealed class MetadataController(
-    IDomainService domainService,
-    IFunctionDefinitionService functionDefinitionService) : ControllerBase
+    IProjectService projectService,
+    IFunctionDefinitionService functionDefinitionService,
+    ILogger<MetadataController> logger) : ControllerBase
 {
-    [HttpGet("domains/names")]
-    public ActionResult<IReadOnlyList<DomainNameDto>> GetDomainNames()
-        => Ok(domainService.GetAllDomainNames());
+    [HttpGet]
+    public ActionResult<IReadOnlyList<ProjectFileDto>> GetProjects()
+        => Ok(projectService.GetAll());
 
-    [HttpGet("domains/names-with-descriptions")]
-    public ActionResult<IReadOnlyList<DomainNameWithDescriptionDto>> GetDomainNamesWithDescriptions()
-        => Ok(domainService.GetAllDomainNameWithDescriptions());
-
-    [HttpGet("domains/{domainId}")]
-    public ActionResult<DomainDto> GetDomain(string domainId)
-        => Ok(domainService.GetById(domainId));
-
-    [HttpPost("domains")]
-    public ActionResult<DomainDto> CreateDomain([FromBody] DomainDto scope)
+    [HttpPost]
+    public ActionResult<ProjectDto> CreateProject([FromBody] ProjectFileDto project)
     {
-        var created = domainService.Create(scope);
-        return Created($"/metadata/domains/{Uri.EscapeDataString(created.Id)}", created);
+        var created = projectService.Create(project);
+        return Created($"/metadata/projects/{Uri.EscapeDataString(created.Id)}", created);
     }
 
-    [HttpPost("domains/generate")]
-    public ActionResult<DomainDto> GenerateDomain([FromBody] DomainGenerationRequestDto request)
+    [HttpPost("from-database")]
+    public ActionResult<ProjectDto> CreateProjectFromDatabase([FromBody] ProjectFromDatabaseRequestDto request)
     {
-        var created = domainService.Generate(request);
-        return Created($"/metadata/domains/{Uri.EscapeDataString(created.Id)}", created);
+        try
+        {
+            var created = projectService.CreateFromDatabase(request);
+            return Created($"/metadata/projects/{Uri.EscapeDataString(created.Id)}", created);
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning("Create project from database failed ({ExceptionType}).", exception.GetType().Name);
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Create project failed",
+                detail: exception.Message);
+        }
     }
 
-    [HttpPut("domains/{domainId}")]
-    public ActionResult<DomainDto> UpdateDomain(string domainId, [FromBody] DomainDto scope)
-        => Ok(domainService.Update(domainId, scope));
+    [HttpGet("{projectId}")]
+    public ActionResult<ProjectDto> GetProject(string projectId)
+        => Ok(projectService.GetById(projectId));
 
-    [HttpDelete("domains/{domainId}")]
-    public IActionResult DeleteDomain(string domainId)
+    [HttpPut("{projectId}")]
+    public ActionResult<ProjectDto> UpdateProject(string projectId, [FromBody] ProjectFileDto project)
+        => Ok(projectService.Update(projectId, project));
+
+    [HttpDelete("{projectId}")]
+    public IActionResult DeleteProject(string projectId)
     {
-        domainService.Delete(domainId);
+        projectService.Delete(projectId);
         return NoContent();
     }
 
-    [HttpGet("functions")]
-    public ActionResult<IReadOnlyList<FunctionDefinitionDto>> GetFunctionDefinitions()
-        => Ok(functionDefinitionService.GetAll());
+    [HttpPost("{projectId}/full-domain/generate")]
+    public ActionResult<FullDomainDto> GenerateFullDomain(string projectId)
+        => Ok(projectService.GenerateFullDomain(projectId));
 
-    [HttpPost("functions")]
-    public ActionResult<FunctionDefinitionDto> CreateFunctionDefinition([FromBody] FunctionDefinitionDto definition)
-        => Created($"/metadata/functions/{Uri.EscapeDataString(definition.Name)}",
-            functionDefinitionService.Create(definition));
+    [HttpGet("{projectId}/full-domain")]
+    public ActionResult<FullDomainDto> GetFullDomain(string projectId)
+        => Ok(projectService.GetFullDomain(projectId));
 
-    [HttpPut("functions/{functionName}")]
+    [HttpGet("{projectId}/domains/names")]
+    public ActionResult<IReadOnlyList<DomainNameDto>> GetDomainNames(string projectId)
+        => Ok(projectService.GetDomainNames(projectId));
+
+    [HttpGet("{projectId}/domains/{domainId}")]
+    public ActionResult<DomainDto> GetDomain(string projectId, string domainId)
+        => Ok(projectService.GetDomain(projectId, domainId));
+
+    [HttpGet("{projectId}/domains/{domainId}/resolved")]
+    public ActionResult<FullDomainDto> GetResolvedDomain(string projectId, string domainId)
+        => Ok(projectService.GetResolvedDomain(projectId, domainId));
+
+    [HttpPost("{projectId}/domains")]
+    public ActionResult<DomainDto> CreateDomain(string projectId, [FromBody] DomainDto domain)
+    {
+        var created = projectService.CreateDomain(projectId, domain);
+        return Created($"/metadata/projects/{Uri.EscapeDataString(projectId)}/domains/{Uri.EscapeDataString(created.Id)}", created);
+    }
+
+    [HttpPut("{projectId}/domains/{domainId}")]
+    public ActionResult<DomainDto> UpdateDomain(string projectId, string domainId, [FromBody] DomainDto domain)
+        => Ok(projectService.UpdateDomain(projectId, domainId, domain));
+
+    [HttpDelete("{projectId}/domains/{domainId}")]
+    public IActionResult DeleteDomain(string projectId, string domainId)
+    {
+        projectService.DeleteDomain(projectId, domainId);
+        return NoContent();
+    }
+
+    [HttpGet("{projectId}/functions")]
+    public ActionResult<IReadOnlyList<FunctionDefinitionDto>> GetFunctionDefinitions(string projectId)
+        => Ok(functionDefinitionService.GetAll(projectId));
+
+    [HttpPost("{projectId}/functions")]
+    public ActionResult<FunctionDefinitionDto> CreateFunctionDefinition(
+        string projectId,
+        [FromBody] FunctionDefinitionDto definition)
+        => Created($"/metadata/projects/{Uri.EscapeDataString(projectId)}/functions/{Uri.EscapeDataString(definition.Name)}",
+            functionDefinitionService.Create(projectId, definition));
+
+    [HttpPut("{projectId}/functions/{functionName}")]
     public ActionResult<FunctionDefinitionDto> UpdateFunctionDefinition(
+        string projectId,
         string functionName,
         [FromBody] FunctionDefinitionDto definition)
-        => Ok(functionDefinitionService.Update(functionName, definition));
+        => Ok(functionDefinitionService.Update(projectId, functionName, definition));
 
-    [HttpDelete("functions/{functionName}")]
-    public IActionResult DeleteFunctionDefinition(string functionName)
+    [HttpDelete("{projectId}/functions/{functionName}")]
+    public IActionResult DeleteFunctionDefinition(string projectId, string functionName)
     {
-        functionDefinitionService.Delete(functionName);
+        functionDefinitionService.Delete(projectId, functionName);
         return NoContent();
     }
 }

@@ -12,32 +12,32 @@ function textBody(text: string): RequestInit {
   return { method: "POST", headers: { "Content-Type": "text/plain" }, body: text };
 }
 
-function withDomain(url: string, domainId: string) {
-  return `${url}?domainId=${encodeURIComponent(domainId)}`;
+function withScope(url: string, projectId: string, domainId: string) {
+  return `${url}?projectId=${encodeURIComponent(projectId)}&domainId=${encodeURIComponent(domainId)}`;
 }
 
-export function executeDefinition(definition: object, domainId: string) {
-  return requestJson(withDomain(apiUrls.dynamicQuery.execute, domainId), jsonBody(definition));
+export function executeDefinition(definition: object, projectId: string, domainId: string) {
+  return requestJson(withScope(apiUrls.dynamicQuery.execute, projectId, domainId), jsonBody(definition));
 }
 
-export function executeOQueryText(text: string, domainId: string) {
-  return requestJson(withDomain(apiUrls.dynamicQuery.executeText, domainId), textBody(text));
+export function executeOQueryText(text: string, projectId: string, domainId: string) {
+  return requestJson(withScope(apiUrls.dynamicQuery.executeText, projectId, domainId), textBody(text));
 }
 
-export function executeOQueryContext(text: string, context: string, domainId: string) {
-  return requestJson(withDomain(apiUrls.dynamicQuery.executeContextText(context), domainId), textBody(text));
+export function executeOQueryContext(text: string, context: string, projectId: string, domainId: string) {
+  return requestJson(withScope(apiUrls.dynamicQuery.executeContextText(context), projectId, domainId), textBody(text));
 }
 
-export function definitionToSql(definition: object, domainId: string): Promise<string> {
-  return requestText(withDomain(apiUrls.dynamicQuery.toString, domainId), jsonBody(definition));
+export function definitionToSql(definition: object, projectId: string, domainId: string): Promise<string> {
+  return requestText(withScope(apiUrls.dynamicQuery.toString, projectId, domainId), jsonBody(definition));
 }
 
-export function oqueryTextToSql(text: string, domainId: string): Promise<string> {
-  return requestText(withDomain(apiUrls.dynamicQuery.toStringText, domainId), textBody(text));
+export function oqueryTextToSql(text: string, projectId: string, domainId: string): Promise<string> {
+  return requestText(withScope(apiUrls.dynamicQuery.toStringText, projectId, domainId), textBody(text));
 }
 
-export function oqueryContextToSql(text: string, context: string, domainId: string): Promise<string> {
-  return requestText(withDomain(apiUrls.dynamicQuery.toStringContextText(context), domainId), textBody(text));
+export function oqueryContextToSql(text: string, context: string, projectId: string, domainId: string): Promise<string> {
+  return requestText(withScope(apiUrls.dynamicQuery.toStringContextText(context), projectId, domainId), textBody(text));
 }
 
 export function definitionToOQuery(definition: object): Promise<string> {

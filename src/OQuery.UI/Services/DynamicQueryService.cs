@@ -8,7 +8,7 @@ namespace OQuery.UI.Services;
 
 public sealed class DynamicQueryService(
     IDbConnectionService dbConnectionService,
-    IDomainService domainService,
+    IProjectService projectService,
     IFunctionDefinitionService functionDefinitionService,
     ILogger<DynamicQueryService> logger) : IDynamicQueryService
 {
@@ -21,19 +21,20 @@ public sealed class DynamicQueryService(
         return QueryDefinitionOQueryParser.Parse(text);
     }
 
-    public string GetSqlQueryString(QueryDefinition query, string domainId)
+    public string GetSqlQueryString(QueryDefinition query, string projectId, string domainId)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
         ArgumentException.ThrowIfNullOrWhiteSpace(domainId);
         using var connection = dbConnectionService.CreateConnection();
         var provider = dbConnectionService.GetCurrentProvider();
         ArgumentException.ThrowIfNullOrWhiteSpace(provider);
         var dialect = SqlDialectFactory.ForProvider(provider);
-        var metadataProvider = CreateMetadataProvider(domainId, provider);
+        var metadataProvider = CreateMetadataProvider(projectId, domainId, provider);
         ValidateQueryEntities(query, metadataProvider, domainId);
         using var context = new OQueryEngine(
             connection,
             metadataProvider,
-            CreateFunctionProvider(dialect),
+            CreateFunctionProvider(dialect, projectId),
             dialect);
         var preparedQuery = EnsureDefaultProjection(PrepareQuery(query, metadataProvider), metadataProvider);
         return context.Query(preparedQuery).ToSql().CommandText;
@@ -41,6 +42,7 @@ public sealed class DynamicQueryService(
 
     public async Task<TableDataDto> ExecuteQueryAsync(
         QueryDefinition query,
+        string projectId,
         string domainId,
         CancellationToken cancellationToken = default)
     {
@@ -50,12 +52,12 @@ public sealed class DynamicQueryService(
         var provider = dbConnectionService.GetCurrentProvider();
         ArgumentException.ThrowIfNullOrWhiteSpace(provider);
         var dialect = SqlDialectFactory.ForProvider(provider);
-        var metadataProvider = CreateMetadataProvider(domainId, provider);
+        var metadataProvider = CreateMetadataProvider(projectId, domainId, provider);
         ValidateQueryEntities(query, metadataProvider, domainId);
         using var context = new OQueryEngine(
             connection,
             metadataProvider,
-            CreateFunctionProvider(dialect),
+            CreateFunctionProvider(dialect, projectId),
             dialect);
         var preparedQuery = EnsureDefaultProjection(PrepareQuery(query, metadataProvider), metadataProvider);
         var result = await context.Query(preparedQuery)
@@ -80,20 +82,21 @@ public sealed class DynamicQueryService(
     public Task<TableDataDto> ExecuteContextQueryAsync(
         string text,
         string contextName,
+        string projectId,
         string domainId,
         CancellationToken cancellationToken = default)
     {
         var definition = QueryDefinitionOQueryParser.Parse(text, contextName);
-        return ExecuteQueryAsync(definition, domainId, cancellationToken);
+        return ExecuteQueryAsync(definition, projectId, domainId, cancellationToken);
     }
 
-    public string GetContextSqlQueryString(string text, string contextName, string domainId)
-        => GetSqlQueryString(QueryDefinitionOQueryParser.Parse(text, contextName), domainId);
+    public string GetContextSqlQueryString(string text, string contextName, string projectId, string domainId)
+        => GetSqlQueryString(QueryDefinitionOQueryParser.Parse(text, contextName), projectId, domainId);
 
-    private IFunctionProvider CreateFunctionProvider(ISqlDialect dialect)
+    private IFunctionProvider CreateFunctionProvider(ISqlDialect dialect, string projectId)
         => new FunctionProvider(
             dialect,
-            functionDefinitionService.GetAll().Select(definition => definition.ToFunctionDefinition()));
+            functionDefinitionService.GetAll(projectId).Select(definition => definition.ToFunctionDefinition()));
 
     private static QueryDefinition EnsureDefaultProjection(
         QueryDefinition query,
@@ -109,9 +112,9 @@ public sealed class DynamicQueryService(
         return query with { Projections = projection };
     }
 
-    private MetadataProvider CreateMetadataProvider(string domainId, string? provider)
+    private MetadataProvider CreateMetadataProvider(string projectId, string domainId, string? provider)
     {
-        var entities = domainService.GetById(domainId).ToEntities();
+        var entities = projectService.ResolveMetadata(projectId, domainId).ToList();
         if (!string.Equals(provider, "Sqlite", StringComparison.OrdinalIgnoreCase))
             return new MetadataProvider(entities);
 

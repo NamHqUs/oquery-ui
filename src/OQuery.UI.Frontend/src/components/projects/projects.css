@@ -1,0 +1,39 @@
+.projects-page {
+  display: grid;
+  gap: 16px;
+  max-width: 720px;
+  margin: 32px auto;
+  padding: 24px;
+}
+
+.projects-page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.projects-page-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.projects-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.projects-card {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+}

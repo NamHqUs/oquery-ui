@@ -13,6 +13,13 @@ public sealed class OQueryOptions
     public DbProviderOptions DbProvider { get; set; } = new();
     public SeedOptions Seeds { get; set; } = new();
     public AnalyticsOptions Analytics { get; set; } = new();
+    public SecurityOptions Security { get; set; } = new();
+
+    public sealed class SecurityOptions
+    {
+        /// <summary>Secret used to encrypt project connection strings. Required; set it with the OQuery__Security__SecretKey environment variable or user secrets.</summary>
+        public string? SecretKey { get; set; }
+    }
 
     public sealed class ApiOptions
     {
@@ -38,9 +45,6 @@ public sealed class OQueryOptions
 
         /// <summary>Connection string of the default database. Both <see cref="Provider"/> and this value must be set to connect on startup.</summary>
         public string? ConnectionString { get; set; }
-
-        /// <summary>When false, PUT /db/connection is rejected.</summary>
-        public bool AllowDirectConnection { get; set; } = true;
     }
 
     public sealed class SeedOptions

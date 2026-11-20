@@ -1020,28 +1020,34 @@ function toApiSavedRequest(request: { name: string; domainId: string; rawText?: 
 }
 
 
+/** Identifies one sub-domain within one project, for keying client-side state. */
+export function queryScopeKey(projectId: string, domainId: string): string {
+  return `${projectId}/${domainId}`;
+}
+
 export const fetchFunctionDefinitions = createAsyncThunk(
   "queryBuilder/fetchFunctionDefinitions",
-  async (_, { rejectWithValue }) => {
+  async (projectId: string, { rejectWithValue }) => {
     try {
-      return await functionDefinitionService.getDefinitions();
+      return await functionDefinitionService.getDefinitions(projectId);
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : "Unable to load function metadata.");
     }
   },
   {
-    condition: (_, { getState }) => {
-      const { functionDefinitionsStatus } = getState().queryBuilder;
-      return functionDefinitionsStatus !== "loading" && functionDefinitionsStatus !== "succeeded";
+    condition: (projectId, { getState }) => {
+      const { functionDefinitionsStatus, functionDefinitionsProjectId } = getState().queryBuilder;
+      return functionDefinitionsProjectId !== projectId
+        || (functionDefinitionsStatus !== "loading" && functionDefinitionsStatus !== "succeeded");
     },
   },
 );
 
 export const executeQuery = createAsyncThunk(
   "queryBuilder/execute",
-  async ({ definition, domainId }: { definition: QueryDefinition; domainId: string }, { rejectWithValue }) => {
+  async ({ definition, projectId, domainId }: { definition: QueryDefinition; projectId: string; domainId: string }, { rejectWithValue }) => {
     try {
-      const payload = await dynamicQueryService.executeDefinition(toBackendApiQuery(createApiQuery(definition)), domainId);
+      const payload = await dynamicQueryService.executeDefinition(toBackendApiQuery(createApiQuery(definition)), projectId, domainId);
       if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows) || payload.rows.some((row) => typeof row !== "string") || typeof payload.totalRecords !== "number" || !Number.isFinite(payload.totalRecords) || payload.totalRecords < -1) {
         return rejectWithValue("Query API must return a name, an array of row strings, and a valid total record count.");
       }
@@ -1061,8 +1067,8 @@ export const executeQuery = createAsyncThunk(
 );
 
 /** Executes OQuery text without touching query-builder state. */
-export async function requestQueryResultFromText(text: string, domainId: string): Promise<QueryResult> {
-  const payload = await dynamicQueryService.executeOQueryText(text, domainId);
+export async function requestQueryResultFromText(text: string, projectId: string, domainId: string): Promise<QueryResult> {
+  const payload = await dynamicQueryService.executeOQueryText(text, projectId, domainId);
   if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows) || payload.rows.some((row: unknown) => typeof row !== "string") || typeof payload.totalRecords !== "number" || !Number.isFinite(payload.totalRecords) || payload.totalRecords < -1) {
     throw new Error("Query API must return a name, an array of row strings, and a valid total record count.");
   }
@@ -1078,8 +1084,8 @@ export async function requestQueryResultFromText(text: string, domainId: string)
 }
 
 /** Executes one OQuery context without touching query-builder state. */
-export async function requestContextResultFromText(text: string, context: string, domainId: string): Promise<QueryResult> {
-  const payload = await dynamicQueryService.executeOQueryContext(text, context, domainId);
+export async function requestContextResultFromText(text: string, context: string, projectId: string, domainId: string): Promise<QueryResult> {
+  const payload = await dynamicQueryService.executeOQueryContext(text, context, projectId, domainId);
   if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows) || typeof payload.totalRecords !== "number") {
     throw new Error("Query API returned an invalid context result.");
   }
@@ -1095,15 +1101,15 @@ export async function requestContextResultFromText(text: string, context: string
 }
 
 /** Returns the engine-generated SQL for OQuery text without touching query-builder state. */
-export function requestSqlStatementFromText(text: string, domainId: string): Promise<string> {
-  return dynamicQueryService.oqueryTextToSql(text, domainId);
+export function requestSqlStatementFromText(text: string, projectId: string, domainId: string): Promise<string> {
+  return dynamicQueryService.oqueryTextToSql(text, projectId, domainId);
 }
 
 export const executeQueryFromText = createAsyncThunk(
   "queryBuilder/executeFromText",
-  async ({ text, domainId }: { text: string; domainId: string; context?: string }, { rejectWithValue }) => {
+  async ({ text, projectId, domainId }: { text: string; projectId: string; domainId: string; context?: string }, { rejectWithValue }) => {
     try {
-      return await requestQueryResultFromText(text, domainId);
+      return await requestQueryResultFromText(text, projectId, domainId);
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : "Unable to execute query.");
     }
@@ -1112,11 +1118,11 @@ export const executeQueryFromText = createAsyncThunk(
 
 export const executeContextFromText = createAsyncThunk(
   "queryBuilder/executeContextFromText",
-  async ({ text, context, domainId }: { text: string; context: string; domainId: string }, { rejectWithValue }) => {
+  async ({ text, context, projectId, domainId }: { text: string; context: string; projectId: string; domainId: string }, { rejectWithValue }) => {
     try {
       const [payload, sql] = await Promise.all([
-        dynamicQueryService.executeOQueryContext(text, context, domainId),
-        dynamicQueryService.oqueryContextToSql(text, context, domainId).catch(() => null),
+        dynamicQueryService.executeOQueryContext(text, context, projectId, domainId),
+        dynamicQueryService.oqueryContextToSql(text, context, projectId, domainId).catch(() => null),
       ]);
       if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows)
         || typeof payload.totalRecords !== "number") {
@@ -1140,9 +1146,9 @@ export const executeContextFromText = createAsyncThunk(
 
 export const getSqlStatement = createAsyncThunk(
   "queryBuilder/getSqlStatement",
-  async ({ definition, domainId }: { definition: QueryDefinition; domainId: string }, { rejectWithValue }) => {
+  async ({ definition, projectId, domainId }: { definition: QueryDefinition; projectId: string; domainId: string }, { rejectWithValue }) => {
     try {
-      const payload = await dynamicQueryService.definitionToSql(toBackendApiQuery(createApiQuery(definition)), domainId);
+      const payload = await dynamicQueryService.definitionToSql(toBackendApiQuery(createApiQuery(definition)), projectId, domainId);
       if (typeof payload !== "string") {
         return rejectWithValue("Query API must return a SQL statement string.");
       }
@@ -1155,9 +1161,9 @@ export const getSqlStatement = createAsyncThunk(
 
 export const getSqlStatementFromText = createAsyncThunk(
   "queryBuilder/getSqlStatementFromText",
-  async ({ text, domainId }: { text: string; domainId: string }, { rejectWithValue }) => {
+  async ({ text, projectId, domainId }: { text: string; projectId: string; domainId: string }, { rejectWithValue }) => {
     try {
-      return await requestSqlStatementFromText(text, domainId);
+      return await requestSqlStatementFromText(text, projectId, domainId);
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : "Unable to generate SQL statement.");
     }
@@ -1195,9 +1201,9 @@ export const parseQueryRequestText = createAsyncThunk(
 
 export const fetchQueryRequests = createAsyncThunk(
   "queryBuilder/fetchQueryRequests",
-  async (domainId: string, { rejectWithValue }) => {
+  async ({ projectId, domainId }: { projectId: string; domainId: string }, { rejectWithValue }) => {
     try {
-      const payload = await queryService.fetchQueryRequestPayload(domainId);
+      const payload = await queryService.fetchQueryRequestPayload(projectId, domainId);
       const normalizedPayload = Array.isArray(payload)
         ? payload.map((item) => item && typeof item === "object" && !Array.isArray(item)
           ? normalizeQueryRequestProjection(item as Record<string, unknown>)
@@ -1224,9 +1230,9 @@ export const fetchQueryRequests = createAsyncThunk(
 
 export const saveQueryRequest = createAsyncThunk(
   "queryBuilder/saveQueryRequest",
-  async ({ name, domainId, rawText, definition, id }: { name: string; domainId: string; rawText?: string | null; definition: QueryDefinition; id?: string }, { rejectWithValue }) => {
+  async ({ name, projectId, domainId, rawText, definition, id }: { name: string; projectId: string; domainId: string; rawText?: string | null; definition: QueryDefinition; id?: string }, { rejectWithValue }) => {
     try {
-      const response = await queryService.saveQueryPayload(domainId, toApiSavedRequest({ name, domainId, rawText, definition, id }), id);
+      const response = await queryService.saveQueryPayload(projectId, domainId, toApiSavedRequest({ name, domainId, rawText, definition, id }), id);
       const saved = response && typeof response === "object" && !Array.isArray(response)
         ? normalizeQueryRequestProjection(response as Record<string, unknown>)
         : response;
@@ -1250,9 +1256,9 @@ export const saveQueryRequest = createAsyncThunk(
 
 export const deleteQueryRequest = createAsyncThunk(
   "queryBuilder/deleteQueryRequest",
-  async ({ id, domainId }: { id: string; domainId: string }, { rejectWithValue }) => {
+  async ({ id, projectId, domainId }: { id: string; projectId: string; domainId: string }, { rejectWithValue }) => {
     try {
-      await queryService.deleteQueryRequestById(id, domainId);
+      await queryService.deleteQueryRequestById(id, projectId, domainId);
       return id;
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : "Unable to delete query.");
@@ -1295,6 +1301,7 @@ const queryBuilderSlice = createSlice({
     queryRequestsError: "",
     debugUiEnabled: true,
     functionDefinitions: [] as FunctionDefinition[],
+    functionDefinitionsProjectId: "",
     functionDefinitionsStatus: "idle",
     functionDefinitionsError: "",
     filterOperators: builtinFilterOperators,
@@ -1331,6 +1338,7 @@ const queryBuilderSlice = createSlice({
     },
     invalidateFunctionDefinitions(state) {
       state.functionDefinitions = [];
+      state.functionDefinitionsProjectId = "";
       state.functionDefinitionsStatus = "idle";
       state.functionDefinitionsError = "";
     },
@@ -1340,11 +1348,13 @@ const queryBuilderSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchFunctionDefinitions.pending, (state) => {
+      .addCase(fetchFunctionDefinitions.pending, (state, action) => {
+        state.functionDefinitionsProjectId = action.meta.arg;
         state.functionDefinitionsStatus = "loading";
         state.functionDefinitionsError = "";
       })
       .addCase(fetchFunctionDefinitions.fulfilled, (state, action) => {
+        if (action.meta.arg !== state.functionDefinitionsProjectId) return;
         state.functionDefinitions = action.payload;
         state.functionDefinitionsStatus = "succeeded";
       })

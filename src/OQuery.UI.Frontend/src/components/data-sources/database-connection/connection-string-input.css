@@ -1,0 +1,38 @@
+.connection-string-field {
+  position: relative;
+  display: block;
+}
+
+.connection-string-field input {
+  width: 100%;
+  padding-right: 40px;
+  box-sizing: border-box;
+}
+
+.connection-string-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.connection-string-toggle:hover,
+.connection-string-toggle:focus-visible {
+  opacity: 1;
+}
+
+.connection-string-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}

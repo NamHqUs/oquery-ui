@@ -13,7 +13,7 @@ import {
   type QueryResult,
 } from "../query-builder/query-design/query-builder-slice";
 import type { RootState } from "../../store/store";
-import { getDomain } from "../../services/domain-service";
+import { getDomain } from "../../services/project-service";
 import * as oQueryEditorService from "../../services/oquery-editor-service";
 import {
   DEVELOPER_CARDS,
@@ -22,7 +22,6 @@ import {
   HOME_EXAMPLES,
   INTERFACE_CARDS,
   PRODUCT_NAME,
-  REVEAL_POINTS,
   SECURITY_POINTS,
   HERO_BENEFITS,
   HERO_FIT_GOOD,
@@ -37,7 +36,8 @@ type SuggestionData = ReturnType<typeof getOQuerySuggestionData>;
 const PREVIEW_ROWS = 12;
 const DIAGRAMS_PATH = "/metadata/diagrams";
 const DOMAINS_PATH = "/metadata/domains";
-const HOME_DOMAIN_ID = import.meta.env.VITE_HOME_DOMAIN_ID || "Sales_Domain";
+const HOME_PROJECT_ID = import.meta.env.VITE_HOME_PROJECT_ID?.trim() || "";
+const HOME_DOMAIN_ID = import.meta.env.VITE_HOME_DOMAIN_ID?.trim() || "";
 const EXAMPLES_DOMAIN_ID = "EXAMPLES_DOMAIN";
 const EXAMPLES_BASIC_REQUEST = "E01. Basic projection";
 const SQL_KEYWORDS = new Set([
@@ -74,6 +74,7 @@ function Playground({
   domain,
   suggestionData,
   editorHostRef,
+  projectId,
   domainId,
   onOpenMetadata,
 }: {
@@ -89,6 +90,7 @@ function Playground({
   };
   suggestionData: SuggestionData;
   editorHostRef?: RefObject<HTMLDivElement | null>;
+  projectId: string;
   domainId: string;
   onOpenMetadata: () => void;
 }) {
@@ -107,12 +109,12 @@ function Playground({
   const sqlIdRef = useRef(0);
 
   const loadSql = async (text: string) => {
-    if (!domainId) return;
+    if (!projectId || !domainId) return;
     const id = ++sqlIdRef.current;
     setSqlLoading(true);
     setSqlError("");
     try {
-      const statement = await requestSqlStatementFromText(text, domainId);
+      const statement = await requestSqlStatementFromText(text, projectId, domainId);
       if (id === sqlIdRef.current) setSql({ query: text, text: statement });
     } catch (reason) {
       if (id === sqlIdRef.current) setSqlError(reason instanceof Error ? reason.message : "Unable to generate SQL.");
@@ -130,8 +132,8 @@ function Playground({
     setError("");
     if (sqlOpen) void loadSql(trimmed);
     try {
-      if (!domainId) return;
-      const next = await requestQueryResultFromText(trimmed, domainId);
+      if (!projectId || !domainId) return;
+      const next = await requestQueryResultFromText(trimmed, projectId, domainId);
       if (id === runIdRef.current) setResult(next);
     } catch (reason) {
       if (id === runIdRef.current) {
@@ -146,13 +148,13 @@ function Playground({
   const runCurrent = () => void run(editorRef.current?.getText() ?? query);
 
   const runContext = async (context: string) => {
-    if (!domainId) return;
+    if (!projectId || !domainId) return;
     const text = editorRef.current?.getText() ?? query;
     const id = ++runIdRef.current;
     setRunning(true);
     setError("");
     try {
-      const next = await requestContextResultFromText(text, context, domainId);
+      const next = await requestContextResultFromText(text, context, projectId, domainId);
       if (id === runIdRef.current) setResult(next);
     } catch (reason) {
       if (id === runIdRef.current) {
@@ -165,8 +167,8 @@ function Playground({
   };
 
   useEffect(() => {
-    if (domainId) void run(initialQuery);
-  }, [domainId, initialQuery]);
+    if (projectId && domainId) void run(initialQuery);
+  }, [projectId, domainId, initialQuery]);
 
   const toggleSql = () => {
     const next = !sqlOpen;
@@ -290,14 +292,16 @@ export default function Home({
   onRequestConnection,
 }: {
   onNavigateToPage: (page: HomeDestination, fromHome?: boolean, metadataPath?: string) => void;
-  onBuilderDomainSelect: (domainId: string, requestName?: string) => void;
+  onBuilderDomainSelect: (projectId: string, domainId: string, requestName?: string) => void;
   onRequestConnection: () => void;
 }) {
   const dispatch = useDispatch();
   const { metadata, metadataRelations, metadataStatus, functionDefinitions, filterOperators } = useSelector((state: RootState) => state.queryBuilder);
   const { providers } = useSelector((state: RootState) => state.database);
-  const [domainId] = useState(HOME_DOMAIN_ID);
-  const [domainName, setDomainName] = useState(HOME_DOMAIN_ID);
+  const projectId = HOME_PROJECT_ID;
+  const domainId = HOME_DOMAIN_ID;
+  const hasScope = Boolean(projectId && domainId);
+  const [domainName, setDomainName] = useState(domainId);
   const [activeExampleId, setActiveExampleId] = useState(HOME_EXAMPLES[0]!.id);
   const heroEditorRef = useRef<HTMLDivElement>(null);
   const activeExample = HOME_EXAMPLES.find((example) => example.id === activeExampleId) ?? HOME_EXAMPLES[0]!;
@@ -307,18 +311,19 @@ export default function Home({
   const relationCount = metadataRelations.length;
 
   useEffect(() => {
-    if (domainId) oQueryEditorService.load(domainId).catch((error: unknown) => console.error(error));
-    if (domainId) getDomain(domainId).then((details) => setDomainName(details.name)).catch((error: unknown) => console.error(error));
-  }, [domainId]);
+    if (!hasScope) return;
+    oQueryEditorService.load(projectId, domainId).catch((error: unknown) => console.error(error));
+    getDomain(projectId, domainId).then((details) => setDomainName(details.name)).catch((error: unknown) => console.error(error));
+  }, [projectId, domainId, hasScope]);
   const showExample = (id: string) => {
     setActiveExampleId(id);
     scrollToSection("hp-examples");
   };
   const openBuilder = () => onNavigateToPage("builder", true);
-  const openExamplesPlayground = () => onBuilderDomainSelect(EXAMPLES_DOMAIN_ID, EXAMPLES_BASIC_REQUEST);
+  const openExamplesPlayground = () => onBuilderDomainSelect(projectId, EXAMPLES_DOMAIN_ID, EXAMPLES_BASIC_REQUEST);
   const openDocs = () => onNavigateToPage("documentation");
   const openDiagramDetails = () => onNavigateToPage("metadata", false, DIAGRAMS_PATH);
-  const openDomainDiagram = () => onNavigateToPage("metadata", false, `${DIAGRAMS_PATH}?domain=${encodeURIComponent(domainId)}`);
+  const openDomainDiagram = () => onNavigateToPage("metadata", false, `${DIAGRAMS_PATH}?project=${encodeURIComponent(projectId)}&domain=${encodeURIComponent(domainId)}`);
   return (
     <div className="hp">
       <section className="hp-hero" id="hp-playground" aria-labelledby="hp-hero-title">
@@ -343,17 +348,18 @@ export default function Home({
         <div className="hp-hero-demo">
           <span className="eyebrow">SQL EFFORTLESS</span>
           <h2 className="hp-demo-title"><span>Auto</span><s className="hp-strike">GROUP</s><s className="hp-strike">JOIN</s><s className="hp-strike">Nested query</s></h2>
-          <Playground
+          {hasScope && <Playground
             initialQuery={HERO_TEAM_QUERY}
             label="Playground"
             functionDefinitions={functionDefinitions}
             suggestionData={suggestionData}
             editorHostRef={heroEditorRef}
+            projectId={projectId}
             domainId={domainId}
             operators={filterOperators}
             domain={{ id: domainId, name: domainName, entities: metadata, relations: metadataRelations }}
             onOpenMetadata={openDomainDiagram}
-          />
+          />}
         </div>
       </section>
 
@@ -379,19 +385,20 @@ export default function Home({
               <span className="hp-example-letter">{example.letter}</span>
               <span><strong>{example.title}</strong><small>{example.summary}</small></span>
             </button>)}
-          <TextAction onClick={openExamplesPlayground}>Explore More</TextAction>
+          {hasScope && <TextAction onClick={openExamplesPlayground}>Explore More</TextAction>}
           </div>
           <div className="hp-example-panel" id="hp-example-panel" role="tabpanel" aria-labelledby={`hp-tab-${activeExample.id}`}>
-            <Playground
+            {hasScope && <Playground
               initialQuery={activeExample.query}
               label={`Example ${activeExample.letter} · ${activeExample.title}`}
               functionDefinitions={functionDefinitions}
               operators={filterOperators}
               domain={{ id: domainId, name: domainName, entities: metadata, relations: metadataRelations }}
               suggestionData={suggestionData}
+              projectId={projectId}
               domainId={domainId}
               onOpenMetadata={openDomainDiagram}
-            />
+            />}
           </div>
         </div>
       </section>
@@ -452,13 +459,13 @@ FROM "main"."Employees" t0
             </div>
           </div>
         </figure>
-        <h3 className="hp-how-connector">{`The ${domainName} Domain and how their entities connect.`}</h3>
+        {hasScope && <h3 className="hp-how-connector">{`The ${domainName} Domain and how their entities connect.`}</h3>}
         <div className="hp-how-block">
-          <div className="hp-domain-diagram">
+          {hasScope && <div className="hp-domain-diagram">
             <DiagramView tables={diagramTables} relationships={diagramRelationships} compactCards />
-          </div>
+          </div>}
           <div className="hp-how-links">
-            <TextAction onClick={openDiagramDetails}>See {domainName} Domain</TextAction>
+            {hasScope && <TextAction onClick={openDiagramDetails}>See {domainName} Domain</TextAction>}
             <TextAction onClick={() => onNavigateToPage("metadata", false, DOMAINS_PATH)}>Explore all domains</TextAction>
           </div>
         </div>

@@ -12,14 +12,14 @@ public sealed class QueryRequestService(
     IUserSectionManager userSectionManager,
     IDynamicQueryService dynamicQueryService) : IQueryRequestService
 {
-    public IReadOnlyList<QueryDto> List(string domainId)
+    public IReadOnlyList<QueryDto> List(string projectId, string domainId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(domainId);
-        var sectionId = userSectionManager.GetSectionId();
-        var builtin = Builtins();
+        var scope = Scope(projectId);
+        var builtin = Builtins(scope);
         var builtinNames = builtin.Select(query => query.Name)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var custom = UserDefined(sectionId);
+        var custom = UserDefined(scope);
         var conflict = custom.FirstOrDefault(query => builtinNames.Contains(query.Name));
         if (conflict is not null)
             throw new InvalidDataException(
@@ -30,85 +30,92 @@ public sealed class QueryRequestService(
             .ToArray();
     }
 
-    public QueryDto? Get(string id)
+    public QueryDto? Get(string projectId, string id)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
-        return Builtins().FirstOrDefault(query =>
+        var scope = Scope(projectId);
+        return Builtins(scope).FirstOrDefault(query =>
                 string.Equals(query.Id, id, StringComparison.OrdinalIgnoreCase))
-            ?? Find(userSectionManager.GetSectionId(), id);
+            ?? Find(scope, id);
     }
 
-    public QueryDto Create(QueryDto query)
+    public QueryDto Create(string projectId, QueryDto query)
     {
         query = NormalizeQuery(query);
         ValidateQuery(query);
-        var sectionId = userSectionManager.GetSectionId();
-        EnsureNameIsAvailable(sectionId, query.Name, currentId: null);
+        var scope = Scope(projectId);
+        EnsureNameIsAvailable(scope, query.Name, currentId: null);
         var created = query with
         {
-            Id = repository.CreateId(sectionId),
+            Id = repository.CreateId(scope),
             IsBuiltin = false
         };
-        Store(sectionId, created);
+        Store(scope, created);
         return created;
     }
 
-    public QueryDto? Update(string id, QueryDto query)
+    public QueryDto? Update(string projectId, string id, QueryDto query)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         query = NormalizeQuery(query);
         ValidateQuery(query);
         if (!string.Equals(query.Id, id, StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Query request ID must match the requested ID.", nameof(query));
-        if (IsBuiltin(id))
+        if (IsBuiltin(projectId, id))
             throw new InvalidOperationException($"Built-in query request '{id}' cannot be changed.");
 
-        var sectionId = userSectionManager.GetSectionId();
-        if (Find(sectionId, id) is null)
+        var scope = Scope(projectId);
+        if (Find(scope, id) is null)
             return null;
 
-        EnsureNameIsAvailable(sectionId, query.Name, id);
+        EnsureNameIsAvailable(scope, query.Name, id);
         var updated = query with { IsBuiltin = false };
-        Store(sectionId, updated);
+        Store(scope, updated);
         return updated;
     }
 
-    public bool IsBuiltin(string id)
-        => Builtins().Any(item =>
+    public bool IsBuiltin(string projectId, string id)
+        => Builtins(Scope(projectId)).Any(item =>
             string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
 
-    public bool Delete(string id)
+    public bool Delete(string projectId, string id)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
-        return !IsBuiltin(id) && repository.Delete(userSectionManager.GetSectionId(), id);
+        return !IsBuiltin(projectId, id) && repository.Delete(Scope(projectId), id);
     }
 
-    private void EnsureNameIsAvailable(string sectionId, string name, string? currentId)
+    private void EnsureNameIsAvailable(StorageScope scope, string name, string? currentId)
     {
-        if (Builtins().Any(item =>
+        if (Builtins(scope).Any(item =>
             string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException($"Built-in query request '{name}' cannot be replaced.");
 
-        if (UserDefined(sectionId).Any(item =>
+        if (UserDefined(scope).Any(item =>
             !string.Equals(item.Id, currentId, StringComparison.OrdinalIgnoreCase)
             && string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException($"A query request named '{name}' already exists.");
     }
 
-    private IReadOnlyList<QueryDto> Builtins()
-        => AllQueries(userSectionManager.GetSectionId()).Where(query => query.IsBuiltin).ToArray();
+    private IReadOnlyList<QueryDto> Builtins(StorageScope scope)
+        => AllQueries(scope).Where(query => query.IsBuiltin).ToArray();
 
-    private IReadOnlyList<QueryDto> UserDefined(string sectionId)
-        => AllQueries(sectionId).Where(query => !query.IsBuiltin).ToArray();
+    private IReadOnlyList<QueryDto> UserDefined(StorageScope scope)
+        => AllQueries(scope).Where(query => !query.IsBuiltin).ToArray();
 
-    private IReadOnlyList<QueryDto> AllQueries(string sectionId)
-        => repository.GetAll(sectionId).Select(QueryRequestCodec.Parse).ToArray();
+    private IReadOnlyList<QueryDto> AllQueries(StorageScope scope)
+        => repository.GetAll(scope).Select(QueryRequestCodec.Parse).ToArray();
 
-    private QueryDto? Find(string sectionId, string id)
-        => repository.Get(sectionId, id) is { } record ? QueryRequestCodec.Parse(record) : null;
+    private QueryDto? Find(StorageScope scope, string id)
+        => repository.Get(scope, id) is { } record ? QueryRequestCodec.Parse(record) : null;
 
-    private void Store(string sectionId, QueryDto query)
-        => repository.Save(sectionId, QueryRequestCodec.ToRecord(query));
+    private void Store(StorageScope scope, QueryDto query)
+        => repository.Save(scope, QueryRequestCodec.ToRecord(query));
+
+    private StorageScope Scope(string projectId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
+        return new StorageScope(userSectionManager.GetSectionId(), projectId);
+    }
 
     private static void ValidateQuery(QueryDto query)
     {

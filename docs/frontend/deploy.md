@@ -63,7 +63,7 @@ The repo has no `public/_redirects` file. The Render dashboard rules are the onl
 ## 4. Verify
 
 ```powershell
-curl.exe -s -o NUL -w "%{http_code} %{content_type}`n" https://<your-site>.onrender.com/metadata/domains/names-with-descriptions
+curl.exe -s -o NUL -w "%{http_code} %{content_type}`n" https://<your-site>.onrender.com/metadata/projects
 curl.exe -s -o NUL -w "%{http_code} %{content_type}`n" https://<your-site>.onrender.com/query-request
 ```
 

@@ -1,9 +1,7 @@
 using OQuery.UI.Abstracts.Services;
 using OQuery.UI.Abstracts.Dto;
 using OQuery.Database;
-using OQuery.UI.Hosting;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using System.Data.Common;
 
 namespace OQuery.UI.Application.Controllers;
@@ -13,7 +11,7 @@ namespace OQuery.UI.Application.Controllers;
 public sealed class DatabaseController(
     IDatabaseService databaseService,
     IDbConnectionService connectionService,
-    IOptions<OQueryOptions> options,
+    IProjectDatabaseSchemaLoader projectDatabaseSchemaLoader,
     ILogger<DatabaseController> logger) : ControllerBase
 {
     [HttpGet("connections")]
@@ -24,18 +22,29 @@ public sealed class DatabaseController(
     public ActionResult<string?> GetDbProvider()
         => new JsonResult(connectionService.GetCurrentProvider());
 
+    /// <summary>Opens the connection without saving it. Failures return the database error message.</summary>
+    [HttpPost("connection/test")]
+    public ActionResult<DatabaseConnectionResponseDto> TestDbConnection([FromBody] DatabaseConnectionRequestDto request)
+    {
+        try
+        {
+            projectDatabaseSchemaLoader.TestConnection(request.Provider, request.ConnectionString);
+            return Ok(new DatabaseConnectionResponseDto(request.Provider));
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning("Test connection failed ({ExceptionType}).", exception.GetType().Name);
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Database connection failed",
+                detail: exception.Message);
+        }
+    }
+
     [HttpPut("connection")]
     public ActionResult<DatabaseConnectionResponseDto> UpdateDbConnection(
         [FromBody] DatabaseConnectionRequestDto request)
     {
-        if (!options.Value.DbProvider.AllowDirectConnection)
-        {
-            return Problem(
-                statusCode: StatusCodes.Status403Forbidden,
-                title: "Direct database connection is disabled",
-                detail: "Set 'OQuery:DbProvider:AllowDirectConnection' to true to allow connecting to a new database.");
-        }
-
         try
         {
             connectionService.UpdateDbConnection(request.Provider, request.ConnectionString);

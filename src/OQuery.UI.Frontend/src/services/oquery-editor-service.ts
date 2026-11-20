@@ -3,15 +3,19 @@ import {
   fetchFunctionDefinitions,
   fetchQueryRequests,
 } from "../components/query-builder/query-design/query-builder-slice";
-import { getDomain } from "./domain-service";
+import { getDomain } from "./project-service";
 
 // Orchestrates the OQuery editor's data. Every source is loaded through its owning service;
 // the results are written to Redux so the editor components can read them.
-export async function load(domainId: string, options: { includeQueryRequests?: boolean } = {}): Promise<void> {
+export async function load(
+  projectId: string,
+  domainId: string,
+  options: { includeQueryRequests?: boolean } = {},
+): Promise<void> {
   const tasks: Promise<unknown>[] = [
-    getDomain(domainId),
-    store.dispatch(fetchFunctionDefinitions()),
+    getDomain(projectId, domainId),
+    store.dispatch(fetchFunctionDefinitions(projectId)),
   ];
-  if (options.includeQueryRequests) tasks.push(store.dispatch(fetchQueryRequests(domainId)));
+  if (options.includeQueryRequests) tasks.push(store.dispatch(fetchQueryRequests({ projectId, domainId })));
   await Promise.all(tasks);
 }

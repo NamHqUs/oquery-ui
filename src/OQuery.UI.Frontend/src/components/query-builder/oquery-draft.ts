@@ -1,27 +1,28 @@
 const OQUERY_DRAFT_STORAGE_KEY = "OQuery.query-builder.draft";
 
 type OQueryDraft = {
-  sourceDomainId: string;
+  sourceScope: string;
   text: string;
 };
 
-// A domain switch remounts the Query Builder, so the unfinished text is handed over through sessionStorage.
-export function stashOQueryDraft(sourceDomainId: string, text: string): void {
+// A scope switch remounts the Query Builder, so the unfinished text is handed over through sessionStorage.
+// A scope is `${projectId}/${domainId}`.
+export function stashOQueryDraft(sourceScope: string, text: string): void {
   if (!text.trim()) {
     clearOQueryDraft();
     return;
   }
-  const draft: OQueryDraft = { sourceDomainId, text };
+  const draft: OQueryDraft = { sourceScope, text };
   window.sessionStorage.setItem(OQUERY_DRAFT_STORAGE_KEY, JSON.stringify(draft));
 }
 
-export function readOQueryDraft(targetDomainId: string): string | null {
+export function readOQueryDraft(targetScope: string): string | null {
   const raw = window.sessionStorage.getItem(OQUERY_DRAFT_STORAGE_KEY);
   if (!raw) return null;
   try {
     const draft = JSON.parse(raw) as Partial<OQueryDraft>;
-    if (typeof draft.sourceDomainId !== "string" || typeof draft.text !== "string") return null;
-    return draft.sourceDomainId === targetDomainId ? null : draft.text;
+    if (typeof draft.sourceScope !== "string" || typeof draft.text !== "string") return null;
+    return draft.sourceScope === targetScope ? null : draft.text;
   } catch {
     return null;
   }

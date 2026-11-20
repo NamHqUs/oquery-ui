@@ -38,6 +38,8 @@ public static class OQueryServiceCollectionExtensions
                 "OQuery:Repositories:Files:UserData is required.")
             .Validate(options => options.Seeds.DataSets is not null,
                 "OQuery:Seeds:DataSets is required.")
+            .Validate(options => !string.IsNullOrWhiteSpace(options.Security.SecretKey),
+                "OQuery:Security:SecretKey is required to encrypt project connection strings.")
             .ValidateOnStart();
 
         services.AddSingleton(sp => CreateFileRepositoryProvider(sp.GetRequiredService<IOptions<OQueryOptions>>().Value));
@@ -77,13 +79,12 @@ public static class OQueryServiceCollectionExtensions
         return services;
     }
 
-    // Domains, Queries and Function definitions are file-based. Built-in data is consumer-owned: loaded here and passed to the file provider.
+    // Projects, Queries and Function definitions are file-based. Built-in queries are consumer-owned: loaded here and passed to the file provider.
     private static FileRepositoryProvider CreateFileRepositoryProvider(OQueryOptions options)
     {
         var seeds = BuiltinDataLoader.Load(options.Seeds.BasePath, options.Seeds.DataSets!);
         return new FileRepositoryProvider(
             new FilePathResolver(options.Repositories.Files.UserData!),
-            seeds.Domains,
             seeds.Queries);
     }
 }

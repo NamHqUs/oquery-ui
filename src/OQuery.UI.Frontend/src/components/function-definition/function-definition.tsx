@@ -1,10 +1,11 @@
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useSearchParams } from "react-router-dom";
 import { fetchFunctionDefinitions, invalidateFunctionDefinitions } from "../query-builder/query-design/query-builder-slice";
 import { fetchDatabaseConnections } from "../data-sources/database-slice";
 import * as functionDefinitionService from "../../services/function-definition-service";
-import type { RootState } from "../../store/store";
+import type { AppDispatch, RootState } from "../../store/store";
 import PanelSplitter from "../panel-splitter/panel-splitter";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
 import { useMessageBox } from "../message-box/message-box";
@@ -86,8 +87,12 @@ function toPayload(draft: EditableFunctionDefinition): FunctionDefinitionPayload
 }
 
 export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }: FunctionDefinitionWorkspaceProps) {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
+  const [searchParams] = useSearchParams();
+  // Function definitions belong to a project. Without a ?project= param, the home project from the env is used.
+  const projectId = searchParams.get("project")?.trim() || import.meta.env.VITE_HOME_PROJECT_ID?.trim() || "";
   const definitions = useSelector((state: RootState) => state.queryBuilder.functionDefinitions);
+  const functionDefinitionsProjectId = useSelector((state: RootState) => state.queryBuilder.functionDefinitionsProjectId);
   const functionDefinitionsStatus = useSelector((state: RootState) => state.queryBuilder.functionDefinitionsStatus);
   const providers = useSelector((state: RootState) => state.database.providers);
   const showMessageBox = useMessageBox();
@@ -110,10 +115,15 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
   }, [dispatch]);
 
   const loadDefinitions = async (selectFirst = false, preferredName = selectedName) => {
+    if (!projectId) {
+      setStatus("failed");
+      setMessage("Set a project (?project=...) to manage its function definitions.");
+      return false;
+    }
     setStatus("loading");
     setMessage("");
     try {
-      const result = await dispatch(fetchFunctionDefinitions());
+      const result = await dispatch(fetchFunctionDefinitions(projectId));
       if (!fetchFunctionDefinitions.fulfilled.match(result)) {
         throw new Error(String(result.payload || "Unable to load function definitions."));
       }
@@ -133,6 +143,15 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
   };
 
   useEffect(() => {
+    if (!projectId) {
+      setStatus("failed");
+      setMessage("Set a project (?project=...) to manage its function definitions.");
+      return;
+    }
+    if (functionDefinitionsProjectId !== projectId) {
+      void loadDefinitions(true);
+      return;
+    }
     if (functionDefinitionsStatus === "succeeded") {
       const next = definitions[0];
       setSelectedName(next?.name || "");
@@ -144,7 +163,7 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
     if (functionDefinitionsStatus === "idle" || functionDefinitionsStatus === "failed") {
       void loadDefinitions(true);
     }
-  }, [definitions, functionDefinitionsStatus]);
+  }, [projectId, definitions, functionDefinitionsProjectId, functionDefinitionsStatus]);
 
   const discardChanges = () => {
     const original = definitions.find((definition) => definition.name === selectedName);
@@ -172,7 +191,7 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
     setStatus("saving");
     setMessage("");
     try {
-      const savedDefinition = await functionDefinitionService.saveDefinition(selectedName || undefined, payload);
+      const savedDefinition = await functionDefinitionService.saveDefinition(projectId, selectedName || undefined, payload);
       dispatch(invalidateFunctionDefinitions());
       await loadDefinitions(false, savedDefinition.name);
       setSelectedName(savedDefinition.name);
@@ -230,7 +249,7 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
     setStatus("saving");
     setMessage("");
     try {
-      await functionDefinitionService.deleteDefinition(selectedName);
+      await functionDefinitionService.deleteDefinition(projectId, selectedName);
       setSelectedName("");
       dispatch(invalidateFunctionDefinitions());
       await loadDefinitions(true);

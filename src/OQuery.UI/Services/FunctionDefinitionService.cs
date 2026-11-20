@@ -10,9 +10,9 @@ public sealed class FunctionDefinitionService(
     IFunctionDefinitionRepository repository,
     IUserSectionManager userSectionManager) : IFunctionDefinitionService
 {
-    public IReadOnlyList<FunctionDefinitionDto> GetAll()
+    public IReadOnlyList<FunctionDefinitionDto> GetAll(string projectId)
     {
-        var userDefined = UserDefined(userSectionManager.GetSectionId());
+        var userDefined = UserDefined(Scope(projectId));
         var userDefinedNames = userDefined
             .Select(definition => definition.Name)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -28,33 +28,33 @@ public sealed class FunctionDefinitionService(
             .ToArray();
     }
 
-    public FunctionDefinitionDto Create(FunctionDefinitionDto dto)
+    public FunctionDefinitionDto Create(string projectId, FunctionDefinitionDto dto)
     {
         var definition = BuildDefinition(dto);
-        var sectionId = userSectionManager.GetSectionId();
-        if (GetAllDefinitions(UserDefined(sectionId)).Any(existing =>
+        var scope = Scope(projectId);
+        if (GetAllDefinitions(UserDefined(scope)).Any(existing =>
             string.Equals(existing.Name, definition.Name, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException($"A function named '{definition.Name}' already exists.");
 
-        Store(sectionId, definition);
+        Store(scope, definition);
         var response = FunctionDefinitionDto.FromFunctionDefinition(definition);
         response.CanDelete = true;
         response.IsBuiltin = false;
         return response;
     }
 
-    public FunctionDefinitionDto Update(string functionName, FunctionDefinitionDto dto)
+    public FunctionDefinitionDto Update(string projectId, string functionName, FunctionDefinitionDto dto)
     {
         ArgumentNullException.ThrowIfNull(dto);
-        var sectionId = userSectionManager.GetSectionId();
+        var scope = Scope(projectId);
         if (IsBuiltin(functionName))
             throw new InvalidOperationException($"Built-in function '{functionName}' is read-only.");
-        if (!GetAllDefinitions(UserDefined(sectionId)).Any(existing =>
+        if (!GetAllDefinitions(UserDefined(scope)).Any(existing =>
             string.Equals(existing.Name, functionName, StringComparison.OrdinalIgnoreCase)))
             throw new KeyNotFoundException($"Function '{functionName}' was not found.");
 
         var definition = BuildDefinition(dto);
-        var userDefinitions = UserDefined(sectionId);
+        var userDefinitions = UserDefined(scope);
         var existing = userDefinitions.FirstOrDefault(item =>
             string.Equals(item.Name, functionName, StringComparison.OrdinalIgnoreCase));
         if (existing is null)
@@ -66,19 +66,19 @@ public sealed class FunctionDefinitionService(
             string.Equals(item.Name, definition.Name, StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException($"A function named '{definition.Name}' already exists.");
 
-        Store(sectionId, definition);
+        Store(scope, definition);
         if (!string.Equals(existing.Name, definition.Name, StringComparison.OrdinalIgnoreCase))
-            repository.Delete(sectionId, existing.Name);
+            repository.Delete(scope, existing.Name);
         var response = FunctionDefinitionDto.FromFunctionDefinition(definition);
         response.CanDelete = true;
         response.IsBuiltin = false;
         return response;
     }
 
-    public void Delete(string functionName)
+    public void Delete(string projectId, string functionName)
     {
-        var sectionId = userSectionManager.GetSectionId();
-        if (!UserDefined(sectionId).Any(item =>
+        var scope = Scope(projectId);
+        if (!UserDefined(scope).Any(item =>
             string.Equals(item.Name, functionName, StringComparison.OrdinalIgnoreCase)))
         {
             if (IsBuiltin(functionName))
@@ -86,8 +86,11 @@ public sealed class FunctionDefinitionService(
             return;
         }
 
-        repository.Delete(sectionId, functionName);
+        repository.Delete(scope, functionName);
     }
+
+    private StorageScope Scope(string projectId)
+        => new(userSectionManager.GetSectionId(), projectId);
 
     private IReadOnlyCollection<SqlFunctionDefintion> GetAllDefinitions(
         IReadOnlyCollection<SqlFunctionDefintion> userDefined)
@@ -108,13 +111,13 @@ public sealed class FunctionDefinitionService(
         => BuiltinDefinitions().Any(definition =>
             string.Equals(definition.Name, functionName, StringComparison.OrdinalIgnoreCase));
 
-    private IReadOnlyCollection<SqlFunctionDefintion> UserDefined(string sectionId)
-        => repository.GetAll(sectionId)
+    private IReadOnlyCollection<SqlFunctionDefintion> UserDefined(StorageScope scope)
+        => repository.GetAll(scope)
             .Select(dto => dto.ToFunctionDefinition())
             .ToArray();
 
-    private void Store(string sectionId, SqlFunctionDefintion definition)
-        => repository.Save(sectionId, FunctionDefinitionDto.FromFunctionDefinition(definition));
+    private void Store(StorageScope scope, SqlFunctionDefintion definition)
+        => repository.Save(scope, FunctionDefinitionDto.FromFunctionDefinition(definition));
 
     private static IReadOnlyCollection<SqlFunctionDefintion> BuiltinDefinitions()
         => SqlDialectRegistry.CreateAllDialects()

@@ -26,27 +26,27 @@ public abstract class FileRepositoryBase<T> : IRepository<T>
 
     protected FilePathResolver PathResolver => _filePathResolver;
 
-    public abstract IReadOnlyCollection<T> GetAll(string userSectionId);
-    public abstract T? Get(string userSectionId, string id);
-    public abstract void Save(string userSectionId, T item);
-    public abstract bool Delete(string userSectionId, string id);
+    public abstract IReadOnlyCollection<T> GetAll(StorageScope scope);
+    public abstract T? Get(StorageScope scope, string id);
+    public abstract void Save(StorageScope scope, T item);
+    public abstract bool Delete(StorageScope scope, string id);
 
-    public virtual string CreateId(string userSectionId)
+    public virtual string CreateId(StorageScope scope)
     {
         string id;
         do
         {
             id = CreateFileName();
         }
-        while (File.Exists(GetUserFilePath(userSectionId, id)));
+        while (File.Exists(GetUserFilePath(scope, id)));
 
         return id;
     }
 
-    protected string GetUserStoreFolder(string userSectionId)
-        => _filePathResolver.GetUserStoreFolder(userSectionId, _folderName);
+    protected string GetStoreFolder(StorageScope scope)
+        => _filePathResolver.GetProjectStoreFolder(scope, _folderName);
 
-    protected string GetUserFilePath(string userSectionId, string id)
+    protected string GetUserFilePath(StorageScope scope, string id)
     {
         if (string.IsNullOrWhiteSpace(id) || Path.GetFileName(id) != id)
             throw new ArgumentException("Repository ID is not a valid file name.", nameof(id));
@@ -54,7 +54,7 @@ public abstract class FileRepositoryBase<T> : IRepository<T>
         var fileName = id.EndsWith(_fileExtension, StringComparison.OrdinalIgnoreCase)
             ? id
             : $"{id}{_fileExtension}";
-        var dir = GetUserStoreFolder(userSectionId);
+        var dir = GetStoreFolder(scope);
         var path = Path.GetFullPath(Path.Combine(dir, fileName));
         var root = Path.GetFullPath(dir) + Path.DirectorySeparatorChar;
         if (!path.StartsWith(root, StringComparison.OrdinalIgnoreCase))

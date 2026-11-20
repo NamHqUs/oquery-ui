@@ -25,28 +25,26 @@ internal sealed class BuiltinDataLoaderTests
     }
 
     [Test]
-    public void LoadReadsDomainsAndQueriesFromEveryDataSetAndMarksThemBuiltin()
+    public void LoadReadsQueriesFromEveryDataSetAndMarksThemBuiltin()
     {
-        WriteFile("northstar-demo", "domains", "northstar.json", """{ "Id": "northstar", "Name": "Northstar" }""");
+        WriteFile("northstar-demo", "queries", "q0.json", """{ "id": "q0", "name": "Q0" }""");
         WriteFile("unit-test", "queries", "q1.json", """{ "id": "q1", "name": "Q1" }""");
 
         var data = BuiltinDataLoader.Load(_root, DataSets);
 
-        Assert.That(data.Domains.Select(domain => domain.Name), Is.EqualTo(new[] { "Northstar" }));
-        Assert.That(data.Domains.Single().IsBuiltin, Is.True);
-        Assert.That(data.Queries.Select(query => query.Id), Is.EqualTo(new[] { "q1" }));
-        Assert.That(data.Queries.Single().IsBuiltin, Is.True);
+        Assert.That(data.Queries.Select(query => query.Id), Is.EqualTo(new[] { "q0", "q1" }));
+        Assert.That(data.Queries.All(query => query.IsBuiltin), Is.True);
     }
 
     [Test]
     public void LoadIgnoresDataSetsThatAreNotChosen()
     {
-        WriteFile("northstar-demo", "domains", "northstar.json", """{ "Id": "northstar", "Name": "Northstar" }""");
-        WriteFile("unit-test", "domains", "unit.json", """{ "Id": "unit", "Name": "Unit" }""");
+        WriteFile("northstar-demo", "queries", "q0.json", """{ "id": "q0", "name": "Q0" }""");
+        WriteFile("unit-test", "queries", "q1.json", """{ "id": "q1", "name": "Q1" }""");
 
         var data = BuiltinDataLoader.Load(_root, ["northstar-demo"]);
 
-        Assert.That(data.Domains.Select(domain => domain.Name), Is.EqualTo(new[] { "Northstar" }));
+        Assert.That(data.Queries.Select(query => query.Id), Is.EqualTo(new[] { "q0" }));
     }
 
     [Test]
@@ -54,7 +52,6 @@ internal sealed class BuiltinDataLoaderTests
     {
         var data = BuiltinDataLoader.Load(_root, DataSets);
 
-        Assert.That(data.Domains, Is.Empty);
         Assert.That(data.Queries, Is.Empty);
     }
 

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Icon, { getDatabaseIconName } from "../../icon/icon";
 import { connectDatabase, fetchDatabaseConnections } from "../database-slice";
+import ConnectionStringInput from "./connection-string-input";
 import "./database-connection.css";
 
 type DatabaseConnectionProps = {
@@ -83,11 +84,9 @@ export default function DatabaseConnection({ onConnected }: DatabaseConnectionPr
           </label>
           <label>
             <span>Connection string</span>
-            <input
-              type="password"
-              autoComplete="new-password"
+            <ConnectionStringInput
               value={connectionString}
-              onChange={(event) => setConnectionString(event.target.value)}
+              onChange={setConnectionString}
               placeholder="Enter your database connection string"
               required
               disabled={connectionStatus === "loading"}

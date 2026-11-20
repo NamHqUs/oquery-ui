@@ -11,6 +11,7 @@ export const apiUrls = {
     connections: `${backendApiUrl}/db/connections`,
     provider: `${backendApiUrl}/db/connections/provider`,
     connection: `${backendApiUrl}/db/connection`,
+    testConnection: `${backendApiUrl}/db/connection/test`,
     disconnect: `${backendApiUrl}/db/disconnect`,
     schema: `${backendApiUrl}/db/schema`,
     tableData: (tableName: string, schema?: string, limit?: number) => {
@@ -22,13 +23,20 @@ export const apiUrls = {
     },
   },
   metadata: {
-    functions: `${backendApiUrl}/metadata/functions`,
-    functionByName: (functionName: string) => `${backendApiUrl}/metadata/functions/${encodeURIComponent(functionName)}`,
-    createDomain: `${backendApiUrl}/metadata/domains`,
-    generateDomain: `${backendApiUrl}/metadata/domains/generate`,
-    domainById: (domainId: string) => `${backendApiUrl}/metadata/domains/${encodeURIComponent(domainId)}`,
-    domainNames: `${backendApiUrl}/metadata/domains/names`,
-    domainNamesWithDescriptions: `${backendApiUrl}/metadata/domains/names-with-descriptions`,
+    projects: `${backendApiUrl}/metadata/projects`,
+    createFromDatabase: `${backendApiUrl}/metadata/projects/from-database`,
+    projectById: (projectId: string) => `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}`,
+    fullDomain: (projectId: string) => `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/full-domain`,
+    generateFullDomain: (projectId: string) => `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/full-domain/generate`,
+    domainNames: (projectId: string) => `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/domains/names`,
+    domains: (projectId: string) => `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/domains`,
+    domainById: (projectId: string, domainId: string) =>
+      `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/domains/${encodeURIComponent(domainId)}`,
+    domainResolved: (projectId: string, domainId: string) =>
+      `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/domains/${encodeURIComponent(domainId)}/resolved`,
+    functions: (projectId: string) => `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/functions`,
+    functionByName: (projectId: string, functionName: string) =>
+      `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/functions/${encodeURIComponent(functionName)}`,
   },
   dynamicQuery: {
     execute: `${backendApiUrl}/dynamic-query/query`,

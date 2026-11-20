@@ -37,6 +37,20 @@ public static class DialectModules
         Register("SqlServer", SqlServerDialectModule.CreateDialect);
     }
 
+    // Schema loaders that do not provision: they only read from the database, so a project can use any database safely.
+    private static readonly Dictionary<string, Func<string, DbSchemaLoader>> SchemaLoaderFactories =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Sqlite"] = connectionString => new SqliteDbSchemaLoader(SqliteDbInstance.NormalizeConnectionString(connectionString), []),
+            ["SqlServer"] = connectionString => new SqlServerDbSchemaLoader(connectionString, []),
+            ["Postgres"] = connectionString => new PostgresDbSchemaLoader(connectionString, []),
+            ["Cockroach"] = connectionString => new CockroachDbSchemaLoader(connectionString, []),
+            ["MySql"] = connectionString => new MySqlDbSchemaLoader(connectionString, []),
+            ["Oracle"] = connectionString => new OracleDbSchemaLoader(connectionString, []),
+            ["Db2"] = connectionString => new Db2DbSchemaLoader(connectionString, []),
+            ["Firebird"] = connectionString => new FirebirdDbSchemaLoader(connectionString, []),
+        };
+
     // An in-memory SQLite database gets a generated name per normalization. Normalize once so the seed and the loader share it.
     private static DbSchemaLoader ProvisionSqlite(string connectionString, string[] scriptFiles, string dbVersion)
     {
@@ -58,7 +72,8 @@ public static class DialectModules
             name,
             createDialect,
             DbInstanceFactories.GetValueOrDefault(name),
-            aliases));
+            aliases,
+            SchemaLoaderFactories.GetValueOrDefault(name)));
 }
 
 // Sqlite seed scripts attach in-memory schemas themselves. The loader used to strip those ATTACH statements before seeding,

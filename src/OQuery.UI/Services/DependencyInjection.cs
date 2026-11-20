@@ -7,10 +7,10 @@ namespace OQuery.UI.Services;
 
 public static class DependencyInjection
 {
-    /// <summary>Registers the Domain, Query and Function repositories from the <see cref="FileRepositoryProvider"/> singleton.</summary>
+    /// <summary>Registers the Project, Query and Function repositories from the <see cref="FileRepositoryProvider"/> singleton.</summary>
     public static IServiceCollection AddFileRepositories(this IServiceCollection services)
     {
-        services.AddSingleton<IDomainRepository>(sp => sp.GetRequiredService<FileRepositoryProvider>().Domains);
+        services.AddSingleton<IProjectRepository>(sp => sp.GetRequiredService<FileRepositoryProvider>().Projects);
         services.AddSingleton<IQueryRequestRepository>(sp => sp.GetRequiredService<FileRepositoryProvider>().Queries);
         services.AddSingleton<IFunctionDefinitionRepository>(sp => sp.GetRequiredService<FileRepositoryProvider>().Functions);
         return services;
@@ -18,7 +18,9 @@ public static class DependencyInjection
 
     public static IServiceCollection AddDemoServices(this IServiceCollection services)
     {
-        services.AddSingleton<IDomainService, DomainService>();
+        services.AddSingleton<IProjectService, ProjectService>();
+        services.AddSingleton<IConnectionStringProtector, AesGcmConnectionStringProtector>();
+        services.AddSingleton<IProjectDatabaseSchemaLoader, ProjectDatabaseSchemaLoader>();
         services.AddSingleton<IFunctionDefinitionService, FunctionDefinitionService>();
         services.AddSingleton<IDynamicQueryService, DynamicQueryService>();
         services.AddSingleton<IQueryRequestService, QueryRequestService>();

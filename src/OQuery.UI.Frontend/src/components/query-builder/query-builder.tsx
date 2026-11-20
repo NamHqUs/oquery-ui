@@ -6,7 +6,7 @@ import Icon from "../icon/icon";
 import { useMessageBox } from "../message-box/message-box";
 import PanelSplitter from "../panel-splitter/panel-splitter";
 import ToastNotice from "../toast-notice/toast-notice";
-import { ApiQueryContextDefinition, clearAllInlineResults, clearInlineResult, clearQueryRequestError, clearQueryResult, createApiQuery, deleteQueryRequest, DomainRelation, EntityRelationView, executeContextFromText, executeQuery, executeQueryFromText, fetchQueryRequests, fromApiQuery, fromApiQueryDefinition, getQueryRequestText, getSqlStatement, getSqlStatementFromText, IFieldDefinition, MetadataEntity, MetadataField, parseQueryRequestText, QueryDefinition, QueryFilterGroup, QueryFilterNode, relationsForEntity, saveQueryRequest, toQueryBuilderSavedView } from "./query-design/query-builder-slice";
+import { ApiQueryContextDefinition, clearAllInlineResults, clearInlineResult, clearQueryRequestError, clearQueryResult, createApiQuery, deleteQueryRequest, DomainRelation, EntityRelationView, executeContextFromText, executeQuery, executeQueryFromText, fetchQueryRequests, fromApiQuery, fromApiQueryDefinition, getQueryRequestText, getSqlStatement, getSqlStatementFromText, IFieldDefinition, MetadataEntity, MetadataField, parseQueryRequestText, queryScopeKey, QueryDefinition, QueryFilterGroup, QueryFilterNode, relationsForEntity, saveQueryRequest, toQueryBuilderSavedView } from "./query-design/query-builder-slice";
 import { MetadataRelationsContext } from "./query-design/metadata-relations-context";
 import QueryDesign from "./query-design/query-design";
 import QueryResult from "./query-result/query-result";
@@ -21,6 +21,8 @@ import * as queryService from "../../services/query-service";
 import "./query-builder.css";
 
 type QueryBuilderProps = {
+  /** Project from the /projects/:projectId route. */
+  routeProjectId?: string;
   onBackToHome?: () => void;
   onRequestConnection: () => void;
   onNavigationGuardChange?: (guard: ((continueNavigation: () => void, cancelNavigation?: () => void) => void) | null) => void;
@@ -50,10 +52,10 @@ export function resetQueryBuilderCache() {
   window.sessionStorage.removeItem(QUERY_DEFINITION_DOMAIN_STORAGE_KEY);
 }
 
-export function setQueryBuilderDefinition(definition: QueryDefinition, domainId: string) {
+export function setQueryBuilderDefinition(definition: QueryDefinition, projectId: string, domainId: string) {
   cachedDefinition = definition;
   window.sessionStorage.setItem(QUERY_DEFINITION_STORAGE_KEY, JSON.stringify(definition));
-  window.sessionStorage.setItem(QUERY_DEFINITION_DOMAIN_STORAGE_KEY, domainId);
+  window.sessionStorage.setItem(QUERY_DEFINITION_DOMAIN_STORAGE_KEY, queryScopeKey(projectId, domainId));
 }
 
 function createDefinition(entity: string, fields: MetadataField[] = []): QueryDefinition {
@@ -99,9 +101,9 @@ function createContextEntity(
   return { name: context.name, fields };
 }
 
-// The design definition belongs to one domain; another domain starts from an empty definition.
-function loadDefinition(domainId: string): QueryDefinition {
-  if (window.sessionStorage.getItem(QUERY_DEFINITION_DOMAIN_STORAGE_KEY) !== domainId) {
+// The design definition belongs to one project and sub-domain; another scope starts from an empty definition.
+function loadDefinition(scope: string): QueryDefinition {
+  if (window.sessionStorage.getItem(QUERY_DEFINITION_DOMAIN_STORAGE_KEY) !== scope) {
     return createDefinition("");
   }
   if (!cachedDefinition) {
@@ -407,20 +409,23 @@ function reconcileDefinition(definition: QueryDefinition, entity: MetadataEntity
   };
 }
 
-export default function QueryBuilder({ onBackToHome, onRequestConnection, onNavigationGuardChange }: QueryBuilderProps) {
+export default function QueryBuilder({ routeProjectId, onBackToHome, onRequestConnection, onNavigationGuardChange }: QueryBuilderProps) {
   const dispatch = useDispatch<AppDispatch>();
   const showMessageBox = useMessageBox();
   const [searchParams, setSearchParams] = useSearchParams();
+  const projectId = routeProjectId?.trim() || searchParams.get("project")?.trim() || "";
   const domainId = searchParams.get("domain")?.trim() || "";
+  const hasScope = Boolean(projectId && domainId);
+  const scope = hasScope ? queryScopeKey(projectId, domainId) : "";
   const savedQueriesPanel = useResizablePanel("query-builder-saved-queries");
   const { metadata, metadataRelations, metadataStatus, metadataError, result, sqlStatement, resultView, queryStatus, queryError, functionDefinitions, functionDefinitionsStatus, functionDefinitionsError, filterOperators, filterOperatorsStatus, filterOperatorsError, queryRequests, queryRequestsStatus, queryRequestsError, debugUiEnabled, inlineResults } = useSelector((state: RootState) => state.queryBuilder);
   const { connectedProvider, connectionStatus } = useSelector((state: RootState) => state.database);
-  const [definition, setDefinition] = useState<QueryDefinition>(() => loadDefinition(domainId));
+  const [definition, setDefinition] = useState<QueryDefinition>(() => loadDefinition(scope));
   const [requestName, setRequestName] = useState("");
-  const [carriedDraft] = useState(() => readOQueryDraft(domainId));
+  const [carriedDraft] = useState(() => readOQueryDraft(scope));
   const [oqueryText, setOqueryText] = useState(() => carriedDraft ?? "");
   const carriedDraftPendingRef = useRef(carriedDraft !== null);
-  const [loadedDomainId, setLoadedDomainId] = useState("");
+  const [loadedScope, setLoadedScope] = useState("");
   const [carriedDraftHighlightPending, setCarriedDraftHighlightPending] = useState(carriedDraft !== null);
   const [oqueryMarker, setOqueryMarker] = useState<{ text: string; message: string } | null>(null);
   const [oqueryStatus, setOqueryStatus] = useState<"idle" | "loading" | "applying">("idle");
@@ -468,7 +473,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection, onNavi
   );
   useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   const updateDefinition = (nextDefinition: QueryDefinition) => {
-    setQueryBuilderDefinition(nextDefinition, domainId);
+    setQueryBuilderDefinition(nextDefinition, projectId, domainId);
     setDefinition(nextDefinition);
   };
   const updateContextDefinition = (contextIndex: number, contextDefinition: QueryDefinition) => {
@@ -566,14 +571,14 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection, onNavi
   }, [editorMode, selectedRequestName, activeContextIndex, selectedRequestRawText]);
   useEffect(() => clearOQueryDraft(), []);
   useEffect(() => {
-    if (!carriedDraftHighlightPending || loadedDomainId !== domainId
+    if (!carriedDraftHighlightPending || loadedScope !== scope
       || metadataStatus !== "succeeded" || functionDefinitionsStatus !== "succeeded" || filterOperatorsStatus !== "succeeded") return;
     setCarriedDraftHighlightPending(false);
     const message = oqueryText.trim()
       ? getOquerySyntaxError(oqueryText, functionDefinitions, filterOperators, suggestionEntities, definition.entity)
       : null;
     setOqueryMarker({ text: oqueryText, message: message ?? "" });
-  }, [carriedDraftHighlightPending, loadedDomainId, domainId, metadataStatus, functionDefinitionsStatus, filterOperatorsStatus, functionDefinitions, filterOperators, suggestionEntities, oqueryText, definition.entity]);
+  }, [carriedDraftHighlightPending, loadedScope, scope, metadataStatus, functionDefinitionsStatus, filterOperatorsStatus, functionDefinitions, filterOperators, suggestionEntities, oqueryText, definition.entity]);
   const displayedOqueryError = oqueryError || (oqueryMarker?.text === oqueryText ? oqueryMarker.message : "");
   const applyOquery = async (reportSuccess = false) => {
     if (!oqueryText.trim() || oqueryStatus !== "idle") return;
@@ -730,11 +735,11 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection, onNavi
     setSearchParams(nextSearchParams);
   };
   useEffect(() => {
-    if (!domainId) return;
-    oQueryEditorService.load(domainId, { includeQueryRequests: true })
-      .then(() => setLoadedDomainId(domainId))
+    if (!hasScope) return;
+    oQueryEditorService.load(projectId, domainId, { includeQueryRequests: true })
+      .then(() => setLoadedScope(scope))
       .catch((error: unknown) => console.error(error));
-  }, [domainId]);
+  }, [projectId, domainId, scope, hasScope]);
 
   useEffect(() => {
     const selectedEntity = entity;
@@ -751,7 +756,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection, onNavi
   }, [metadata, metadataRelations, definition.entity, definition.contextCatalog, definition.contexts]);
 
   const runQuery = async () => {
-    if (!domainId) return;
+    if (!hasScope) return;
     const textToExecute = selectedOQueryTextRef.current.trim() || oqueryText;
     if (editorMode === "oquery" ? textToExecute.trim() : activeDefinition.entity.trim() && activeDefinition.columns.length) {
       if (!connectedProvider || connectionStatus !== "succeeded") {
@@ -762,8 +767,8 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection, onNavi
       if (activeContextIndex !== null) {
         updateDefinition(updateContextDefinition(activeContextIndex, activeDefinition));
       }
-      if (editorMode === "oquery") dispatch(executeQueryFromText({ text: textToExecute, domainId }));
-      else dispatch(executeQuery({ definition: activeDefinition, domainId }));
+      if (editorMode === "oquery") dispatch(executeQueryFromText({ text: textToExecute, projectId, domainId }));
+      else dispatch(executeQuery({ definition: activeDefinition, projectId, domainId }));
     }
   };
   const runEditorQuery = () => {
@@ -773,7 +778,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection, onNavi
     void runQuery();
   };
   const runOQueryContext = (contextName: string) => {
-    if (!domainId) return;
+    if (!hasScope) return;
     const text = oqueryText;
     if (!text.trim()) return;
     if (!connectedProvider || connectionStatus !== "succeeded") {
@@ -781,21 +786,21 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection, onNavi
       return;
     }
     setOqueryError("");
-    dispatch(executeContextFromText({ text, context: contextName, domainId }));
+    dispatch(executeContextFromText({ text, context: contextName, projectId, domainId }));
   };
   const runOQuerySelection = (text: string, contextName?: string) => {
-    if (!domainId) return;
+    if (!hasScope) return;
     if (!text.trim()) return;
     if (!connectedProvider || connectionStatus !== "succeeded") {
       onRequestConnection();
       return;
     }
     setOqueryError("");
-    dispatch(executeQueryFromText({ text, domainId, context: contextName }));
+    dispatch(executeQueryFromText({ text, projectId, domainId, context: contextName }));
   };
 
   const changePage = (page: number) => {
-    if (!domainId) return;
+    if (!hasScope) return;
     if (!activeDefinition.entity.trim() || !activeDefinition.columns.length) return;
     if (!connectedProvider || connectionStatus !== "succeeded") {
       onRequestConnection();
@@ -806,24 +811,24 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection, onNavi
       ? nextActiveDefinition
       : updateContextDefinition(activeContextIndex, nextActiveDefinition);
     updateDefinition(nextDefinition);
-    dispatch(executeQuery({ definition: nextActiveDefinition, domainId }));
+    dispatch(executeQuery({ definition: nextActiveDefinition, projectId, domainId }));
   };
 
   const getSql = () => {
-    if (!domainId) return;
+    if (!hasScope) return;
     const textToExecute = selectedOQueryTextRef.current.trim() || oqueryText;
     if (editorMode === "oquery" ? textToExecute.trim() : activeDefinition.entity.trim() && activeDefinition.columns.length) {
       if (!connectedProvider || connectionStatus !== "succeeded") {
         onRequestConnection();
         return;
       }
-      if (editorMode === "oquery") dispatch(getSqlStatementFromText({ text: textToExecute, domainId }));
-      else dispatch(getSqlStatement({ definition: activeDefinition, domainId }));
+      if (editorMode === "oquery") dispatch(getSqlStatementFromText({ text: textToExecute, projectId, domainId }));
+      else dispatch(getSqlStatement({ definition: activeDefinition, projectId, domainId }));
     }
   };
 
   const persistCurrentRequest = async (currentDefinition: QueryDefinition) => {
-    if (!domainId) return false;
+    if (!hasScope) return false;
     const name = requestName.trim();
     if (!name) {
       setRequestNameError("Enter a query name before saving.");
@@ -835,6 +840,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection, onNavi
     try {
       const resultAction = await dispatch(saveQueryRequest({
         name,
+        projectId,
         domainId,
         rawText: editorMode === "oquery" ? oqueryText : null,
         definition: currentDefinition,
@@ -970,7 +976,7 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection, onNavi
       ],
     });
     if (action !== "delete") return;
-    const resultAction = await dispatch(deleteQueryRequest({ id: selectedRequestId, domainId }));
+    const resultAction = await dispatch(deleteQueryRequest({ id: selectedRequestId, projectId, domainId }));
     if (deleteQueryRequest.fulfilled.match(resultAction)) {
       updateRequestRoute(null);
       setSelectedRequestName(null);
@@ -1045,14 +1051,15 @@ export default function QueryBuilder({ onBackToHome, onRequestConnection, onNavi
               error={queryRequestsError}
               onSelectRequest={selectSavedRequest}
               onRetry={() => {
-                queryService.invalidate(domainId);
-                dispatch(fetchQueryRequests(domainId));
+                queryService.invalidate(projectId, domainId);
+                dispatch(fetchQueryRequests({ projectId, domainId }));
               }}
             />
             <PanelSplitter panel={savedQueriesPanel} label="saved queries panel" />
             <div className="query-design-area">
               <MetadataRelationsContext.Provider value={metadataRelations}>
               <QueryDesign
+                projectId={projectId}
                 domainId={domainId}
                 savedRequestBound={selectedRequestId !== null}
                 metadata={metadata}

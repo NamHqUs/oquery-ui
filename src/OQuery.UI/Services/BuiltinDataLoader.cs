@@ -5,42 +5,31 @@ using System.Text.Json.Nodes;
 namespace OQuery.UI.Services;
 
 /// <summary>Read-only built-in data loaded by the consumer (API and tests) and handed to the repositories.</summary>
-public sealed record BuiltinData(
-    IReadOnlyCollection<DomainDto> Domains,
-    IReadOnlyCollection<QueryRequestRecordDto> Queries);
+public sealed record BuiltinData(IReadOnlyCollection<QueryRequestRecordDto> Queries);
 
 /// <summary>
-/// Loads built-in data from "{basePath}/{dataSet}/{domains|queries|scripts}".
+/// Loads built-in data from "{basePath}/{dataSet}/{queries|scripts}".
 /// The consumer chooses the dataset folders; a missing folder contributes nothing.
 /// </summary>
 public static class BuiltinDataLoader
 {
-    private const string DomainsFolder = "domains";
     private const string QueriesFolder = "queries";
     private const string ScriptsFolder = "scripts";
 
     public static BuiltinData Load(string? basePath, IEnumerable<string> dataSets)
     {
         var root = ResolveBasePath(basePath);
-        var domains = new Dictionary<string, DomainDto>(StringComparer.OrdinalIgnoreCase);
         var queries = new List<QueryRequestRecordDto>();
 
         foreach (var dataSet in dataSets)
         {
             var dataSetRoot = Path.Combine(root, dataSet);
 
-            foreach (var path in EnumerateFiles(Path.Combine(dataSetRoot, DomainsFolder), ".json"))
-            {
-                var domain = ReadDomain(path);
-                if (!domains.TryAdd(domain.Name, domain))
-                    throw new InvalidDataException($"Duplicate built-in domain '{domain.Name}' found in '{path}'.");
-            }
-
             foreach (var path in EnumerateFiles(Path.Combine(dataSetRoot, QueriesFolder), ".json"))
                 queries.Add(ReadQueryRequest(path));
         }
 
-        return new BuiltinData(domains.Values.ToArray(), queries.ToArray());
+        return new BuiltinData(queries.ToArray());
     }
 
     /// <summary>Finds seed scripts named "*.{provider}.sql" in each chosen dataset's scripts folder.</summary>
@@ -69,19 +58,6 @@ public static class BuiltinDataLoader
         return Directory.EnumerateFiles(folder)
             .Where(path => extensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
             .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase);
-    }
-
-    private static DomainDto ReadDomain(string path)
-    {
-        var domain = JsonSerializer.Deserialize<DomainDto>(File.ReadAllText(path))
-            ?? throw new InvalidDataException($"Failed to deserialize built-in domain from '{path}'.");
-        if (string.IsNullOrWhiteSpace(domain.Name))
-            throw new InvalidDataException($"Built-in domain '{path}' has no name.");
-        domain.Id = string.IsNullOrWhiteSpace(domain.Id)
-            ? Path.GetFileNameWithoutExtension(path)
-            : domain.Id;
-        domain.IsBuiltin = true;
-        return domain;
     }
 
     private static QueryRequestRecordDto ReadQueryRequest(string path)

@@ -6,7 +6,7 @@ async function loadServices() {
   return {
     connection: await import("./database-connection-service"),
     schema: await import("./db-schema-service"),
-    domain: await import("./domain-service"),
+    project: await import("./project-service"),
     dynamic: await import("./dynamic-query-service"),
     query: await import("./query-service"),
     functions: await import("./function-definition-service"),
@@ -61,50 +61,48 @@ const endpoints: Endpoint[] = [
   { name: "getTablePreview", method: "GET", url: "/db/data/Users?schema=dbo&limit=10",
     reply: { name: "Users", columns: ["Id"], rows: [["1"]] },
     call: (s) => s.schema.getTablePreview("Users", "dbo") },
-  { name: "listDomainNames", method: "GET", url: "/metadata/domains/names-with-descriptions",
-    reply: [{ id: "d1", name: "Demo", description: "x" }],
-    call: (s) => s.domain.listDomainNames() },
-  { name: "getDomain", method: "GET", url: "/metadata/domains/d1", reply: domainResponse,
-    call: (s) => s.domain.getDomain("d1") },
-  { name: "createDomain", method: "POST", url: "/metadata/domains", reply: { id: "d1" },
-    call: (s) => s.domain.createDomain({ name: "Demo" }) },
-  { name: "generateDomain", method: "POST", url: "/metadata/domains/generate", reply: { id: "d1" },
-    call: (s) => s.domain.generateDomain({ name: "Demo" }) },
-  { name: "updateDomain", method: "PUT", url: "/metadata/domains/d1", reply: domainResponse,
-    call: (s) => s.domain.updateDomain("d1", { name: "Demo" }) },
-  { name: "deleteDomain", method: "DELETE", url: "/metadata/domains/d1", call: (s) => s.domain.deleteDomain("d1") },
-  { name: "executeDefinition", method: "POST", url: "/dynamic-query/query?domainId=d1", reply: { rows: [] },
-    call: (s) => s.dynamic.executeDefinition({}, "d1") },
-  { name: "executeOQueryText", method: "POST", url: "/dynamic-query/query/from-text?domainId=d1", reply: { rows: [] },
-    call: (s) => s.dynamic.executeOQueryText("Users:", "d1") },
-  { name: "executeOQueryContext", method: "POST", url: "/dynamic-query/query/from-text/Managers?domainId=d1", reply: { rows: [] },
-    call: (s) => s.dynamic.executeOQueryContext("Managers:", "Managers", "d1") },
-  { name: "definitionToSql", method: "POST", url: "/dynamic-query/query/to-string?domainId=d1", reply: "SELECT 1", text: true,
-    call: (s) => s.dynamic.definitionToSql({}, "d1") },
-  { name: "oqueryTextToSql", method: "POST", url: "/dynamic-query/query/to-string-from-text?domainId=d1", reply: "SELECT 1", text: true,
-    call: (s) => s.dynamic.oqueryTextToSql("Users:", "d1") },
-  { name: "oqueryContextToSql", method: "POST", url: "/dynamic-query/query/to-string-from-text/Managers?domainId=d1", reply: "SELECT 1", text: true,
-    call: (s) => s.dynamic.oqueryContextToSql("Managers:", "Managers", "d1") },
+  { name: "listDomainNames", method: "GET", url: "/metadata/projects/p1/domains/names",
+    reply: [{ id: "d1", name: "Demo" }],
+    call: (s) => s.project.listDomainNames("p1") },
+  { name: "getDomainConfig", method: "GET", url: "/metadata/projects/p1/domains/d1", reply: domainResponse,
+    call: (s) => s.project.getDomainConfig("p1", "d1") },
+  { name: "createDomain", method: "POST", url: "/metadata/projects/p1/domains", reply: { id: "d1" },
+    call: (s) => s.project.createDomain("p1", { name: "Demo" }) },
+  { name: "updateDomain", method: "PUT", url: "/metadata/projects/p1/domains/d1", reply: domainResponse,
+    call: (s) => s.project.updateDomain("p1", "d1", { name: "Demo" }) },
+  { name: "deleteDomain", method: "DELETE", url: "/metadata/projects/p1/domains/d1", call: (s) => s.project.deleteDomain("p1", "d1") },
+  { name: "executeDefinition", method: "POST", url: "/dynamic-query/query?projectId=p1&domainId=d1", reply: { rows: [] },
+    call: (s) => s.dynamic.executeDefinition({}, "p1", "d1") },
+  { name: "executeOQueryText", method: "POST", url: "/dynamic-query/query/from-text?projectId=p1&domainId=d1", reply: { rows: [] },
+    call: (s) => s.dynamic.executeOQueryText("Users:", "p1", "d1") },
+  { name: "executeOQueryContext", method: "POST", url: "/dynamic-query/query/from-text/Managers?projectId=p1&domainId=d1", reply: { rows: [] },
+    call: (s) => s.dynamic.executeOQueryContext("Managers:", "Managers", "p1", "d1") },
+  { name: "definitionToSql", method: "POST", url: "/dynamic-query/query/to-string?projectId=p1&domainId=d1", reply: "SELECT 1", text: true,
+    call: (s) => s.dynamic.definitionToSql({}, "p1", "d1") },
+  { name: "oqueryTextToSql", method: "POST", url: "/dynamic-query/query/to-string-from-text?projectId=p1&domainId=d1", reply: "SELECT 1", text: true,
+    call: (s) => s.dynamic.oqueryTextToSql("Users:", "p1", "d1") },
+  { name: "oqueryContextToSql", method: "POST", url: "/dynamic-query/query/to-string-from-text/Managers?projectId=p1&domainId=d1", reply: "SELECT 1", text: true,
+    call: (s) => s.dynamic.oqueryContextToSql("Managers:", "Managers", "p1", "d1") },
   { name: "definitionToOQuery", method: "POST", url: "/dynamic-query/query/to-oquery", reply: "Users:", text: true,
     call: (s) => s.dynamic.definitionToOQuery({}) },
   { name: "parseOQuery", method: "POST", url: "/dynamic-query/query/from-oquery", reply: {},
     call: (s) => s.dynamic.parseOQuery("Users:") },
-  { name: "fetchQueryRequestPayload", method: "GET", url: "/query-request?domainId=d1", reply: [],
-    call: (s) => s.query.fetchQueryRequestPayload("d1") },
-  { name: "saveQueryPayload (create)", method: "POST", url: "/query-request", reply: { id: "q1" },
-    call: (s) => s.query.saveQueryPayload("d1", {}) },
-  { name: "saveQueryPayload (update)", method: "PUT", url: "/query-request/q1", reply: { id: "q1" },
-    call: (s) => s.query.saveQueryPayload("d1", {}, "q1") },
-  { name: "deleteQueryRequestById", method: "DELETE", url: "/query-request/q1",
-    call: (s) => s.query.deleteQueryRequestById("q1", "d1") },
-  { name: "getDefinitions", method: "GET", url: "/metadata/functions", reply: [functionDefinition],
-    call: (s) => s.functions.getDefinitions() },
-  { name: "saveDefinition (create)", method: "POST", url: "/metadata/functions", reply: functionDefinition,
-    call: (s) => s.functions.saveDefinition(undefined, functionDefinition as never) },
-  { name: "saveDefinition (update)", method: "PUT", url: "/metadata/functions/Upper", reply: functionDefinition,
-    call: (s) => s.functions.saveDefinition("Upper", functionDefinition as never) },
-  { name: "deleteDefinition", method: "DELETE", url: "/metadata/functions/Upper",
-    call: (s) => s.functions.deleteDefinition("Upper") },
+  { name: "fetchQueryRequestPayload", method: "GET", url: "/query-request?projectId=p1&domainId=d1", reply: [],
+    call: (s) => s.query.fetchQueryRequestPayload("p1", "d1") },
+  { name: "saveQueryPayload (create)", method: "POST", url: "/query-request?projectId=p1", reply: { id: "q1" },
+    call: (s) => s.query.saveQueryPayload("p1", "d1", {}) },
+  { name: "saveQueryPayload (update)", method: "PUT", url: "/query-request/q1?projectId=p1", reply: { id: "q1" },
+    call: (s) => s.query.saveQueryPayload("p1", "d1", {}, "q1") },
+  { name: "deleteQueryRequestById", method: "DELETE", url: "/query-request/q1?projectId=p1",
+    call: (s) => s.query.deleteQueryRequestById("q1", "p1", "d1") },
+  { name: "getDefinitions", method: "GET", url: "/metadata/projects/p1/functions", reply: [functionDefinition],
+    call: (s) => s.functions.getDefinitions("p1") },
+  { name: "saveDefinition (create)", method: "POST", url: "/metadata/projects/p1/functions", reply: functionDefinition,
+    call: (s) => s.functions.saveDefinition("p1", undefined, functionDefinition as never) },
+  { name: "saveDefinition (update)", method: "PUT", url: "/metadata/projects/p1/functions/Upper", reply: functionDefinition,
+    call: (s) => s.functions.saveDefinition("p1", "Upper", functionDefinition as never) },
+  { name: "deleteDefinition", method: "DELETE", url: "/metadata/projects/p1/functions/Upper",
+    call: (s) => s.functions.deleteDefinition("p1", "Upper") },
 ];
 
 beforeEach(() => {
@@ -174,7 +172,7 @@ describe("request bodies", () => {
     const services = await loadServices();
     const calls = mockFetch((url) => url.includes("from-oquery") ? respond({}) : respond("SELECT 1", 200, true));
 
-    await services.dynamic.oqueryTextToSql("Users:", "d1");
+    await services.dynamic.oqueryTextToSql("Users:", "p1", "d1");
     await services.dynamic.parseOQuery("Users:");
 
     expect(calls[0].init?.headers).toEqual({ "Content-Type": "text/plain" });
@@ -182,13 +180,22 @@ describe("request bodies", () => {
     expect(JSON.parse(String(calls[1].init?.body))).toEqual({ text: "Users:" });
   });
 
-  it("encodes the domain id in query-request URLs", async () => {
+  it("encodes the project and domain ids in query-request URLs", async () => {
     const services = await loadServices();
     const calls = mockFetch(() => respond([]));
 
-    await services.query.fetchQueryRequestPayload("my domain");
+    await services.query.fetchQueryRequestPayload("my project", "my domain");
 
-    expect(calls[0].url).toBe("/query-request?domainId=my%20domain");
+    expect(calls[0].url).toBe("/query-request?projectId=my%20project&domainId=my%20domain");
+  });
+
+  it("encodes the project id in function definition URLs", async () => {
+    const services = await loadServices();
+    const calls = mockFetch(() => respond([functionDefinition]));
+
+    await services.functions.getDefinitions("my project");
+
+    expect(calls[0].url).toBe("/metadata/projects/my%20project/functions");
   });
 });
 
@@ -219,52 +226,69 @@ describe("caching and invalidation", () => {
     expect(preview.rows).toHaveLength(services.schema.MAX_TABLE_DATA_ROWS);
   });
 
-  it("caches domain names and refetches after a domain is created", async () => {
+  it("caches sub-domain metadata per project and invalidates it after an update", async () => {
     const services = await loadServices();
-    const calls = mockFetch((url) => url.endsWith("names-with-descriptions")
-      ? respond([{ id: "d1", name: "Demo" }])
-      : respond({ id: "d1" }));
+    const calls = mockFetch((url) => {
+      if (url.endsWith("/resolved")) return respond({ entities: [], relations: [] });
+      if (url.endsWith("/domains/names")) return respond([{ id: "d1", name: "Demo" }]);
+      return respond(domainResponse);
+    });
 
-    await services.domain.listDomainNames();
-    await services.domain.listDomainNames();
-    await services.domain.createDomain({ name: "Demo" });
-    await services.domain.listDomainNames();
+    await services.project.getDomain("p1", "d1");
+    await services.project.getDomain("p1", "d1");
+    await services.project.updateDomain("p1", "d1", { name: "Renamed" });
+    await services.project.getDomain("p1", "d1");
 
-    expect(calls.filter((call) => call.url.endsWith("names-with-descriptions"))).toHaveLength(2);
+    expect(calls.map((call) => call.url)).toEqual([
+      "/metadata/projects/p1/domains/d1/resolved",
+      "/metadata/projects/p1/domains/names",
+      "/metadata/projects/p1/domains/d1",
+      "/metadata/projects/p1/domains/d1/resolved",
+      "/metadata/projects/p1/domains/names",
+    ]);
   });
 
-  it("serves domain details from cache after an update", async () => {
+  it("keeps sub-domain metadata separate for the same domain id in another project", async () => {
     const services = await loadServices();
-    const calls = mockFetch(() => respond(domainResponse));
+    const calls = mockFetch((url) => url.endsWith("/resolved")
+      ? respond({ entities: [], relations: [] })
+      : respond([{ id: "d1", name: "Demo" }]));
 
-    await services.domain.getDomain("d1");
-    await services.domain.updateDomain("d1", { name: "Renamed" });
-    await services.domain.getDomain("d1");
+    await services.project.getDomain("p1", "d1");
+    await services.project.getDomain("p2", "d1");
 
-    expect(calls).toHaveLength(2);
+    expect(calls.filter((call) => call.url.endsWith("/resolved")).map((call) => call.url)).toEqual([
+      "/metadata/projects/p1/domains/d1/resolved",
+      "/metadata/projects/p2/domains/d1/resolved",
+    ]);
   });
 
-  it("caches function definitions and applies the scalar default receiver", async () => {
+  it("caches function definitions per project and applies the scalar default receiver", async () => {
     const services = await loadServices();
     const calls = mockFetch(() => respond([functionDefinition]));
 
-    const [first] = await services.functions.getDefinitions();
-    await services.functions.getDefinitions();
+    const [first] = await services.functions.getDefinitions("p1");
+    await services.functions.getDefinitions("p1");
+    await services.functions.getDefinitions("p2");
 
-    expect(calls).toHaveLength(1);
+    expect(calls.map((call) => call.url)).toEqual([
+      "/metadata/projects/p1/functions",
+      "/metadata/projects/p2/functions",
+    ]);
     expect(first.applyFor).toBe(allScalarApplyFor);
   });
 
-  it("caches saved query payloads per domain and refetches after a save", async () => {
+  it("caches saved query payloads per project and domain and refetches after a save", async () => {
     const services = await loadServices();
     const calls = mockFetch((url, init) => init?.method === "POST" ? respond({ id: "q1" }) : respond([]));
 
-    await services.query.fetchQueryRequestPayload("d1");
-    await services.query.fetchQueryRequestPayload("d1");
-    await services.query.saveQueryPayload("d1", {});
-    await services.query.fetchQueryRequestPayload("d1");
+    await services.query.fetchQueryRequestPayload("p1", "d1");
+    await services.query.fetchQueryRequestPayload("p1", "d1");
+    await services.query.fetchQueryRequestPayload("p2", "d1");
+    await services.query.saveQueryPayload("p1", "d1", {});
+    await services.query.fetchQueryRequestPayload("p1", "d1");
 
-    expect(calls.filter((call) => call.init?.method === undefined)).toHaveLength(2);
+    expect(calls.filter((call) => call.init?.method === undefined)).toHaveLength(3);
   });
 });
 
@@ -294,7 +318,7 @@ describe("reply validation", () => {
     const services = await loadServices();
     mockFetch(() => respond(undefined));
 
-    await expect(services.functions.saveDefinition("Upper", functionDefinition as never))
+    await expect(services.functions.saveDefinition("p1", "Upper", functionDefinition as never))
       .rejects.toThrow("Function definition API did not return the saved definition.");
   });
 });

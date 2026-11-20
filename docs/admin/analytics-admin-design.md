@@ -18,7 +18,7 @@ Status: analytics implemented as a daily rollup (new users, returning users, vis
 | Admin access | Shared token in the `ADMIN_TOKEN` environment variable, sent as `X-Admin-Token`. If unset, all `/admin/*` endpoints return 404 (fail closed). |
 | Section identity (persistent) | Server-issued GUID (GUIDv7) stored in a first-party cookie `oquery_uid`. The cookie is HttpOnly, `SameSite=Lax`, `Path=/`, and lasts 400 days (the browser maximum). The server reads it on every request and uses it as the saved-data partition key. If the cookie is missing or invalid, the server creates a new ID and sets the cookie. An existing valid ID is never replaced. No IP, User-Agent, or login is used. Clearing cookies or switching browsers creates a new section. The browser does not store the ID in `localStorage` or send it in a header. |
 | Browser state | The browser holds only the `oquery_uid` cookie (HttpOnly, so scripts cannot read it). No page, time, referrer, or UTM data is kept in the browser or sent by the browser. |
-| Usage capture | Server-side only and opt-in. Each routed API request is counted with the section ID from the cookie only when the frontend sends analytics consent. The `url` value is the ASP.NET Core route template (for example `/metadata/domains/{id}`), not the raw path, so IDs do not create separate rows. Capture uses ASP.NET Core request middleware after routing. |
+| Usage capture | Server-side only and opt-in. Each routed API request is counted with the section ID from the cookie only when the frontend sends analytics consent. The `url` value is the ASP.NET Core route template (for example `/metadata/projects/{projectId}/domains/{domainId}`), not the raw path, so IDs do not create separate rows. Capture uses ASP.NET Core request middleware after routing. |
 | Usage storage | Counts are kept in memory and flushed to Postgres every 60 seconds (upsert, `count = count + excluded.count`). The in-memory map is capped; excess keys are dropped and logged. In the `analytic` schema, `visitors` stores the user ID and first-seen day, `daily_visitors` stores day/user visits, `daily_backend` stores day/URL counts, and `daily_frontend` stores the same counts split by frontend page. The URL tables have no user column. |
 | Usage questions | Per day: new visitors (first seen that day), returning visitors (seen that day, first seen earlier), and total requests. Total visitors is the count of rows in `analytic.visitors`. Per URL: total requests per route template for the range, not tied to any visitor ID. |
 | IP address | Not stored. Country comes from a geo header only if the host provides one; otherwise it is left empty. |
@@ -37,9 +37,9 @@ Scope for this step: server-side daily rollup only. No browser ingest, referrer,
 
 - `IUserSectionManager` (`src/OQuery.UI.Api/Application/Middlewares/UserSectionManager.cs`) was a stub that always returned `"123"`, so all users shared one user-data folder. It now reads the `oquery_uid` cookie (see section 2), issuing a new one when it is missing. The cookie is sent automatically by the browser on same-origin requests, so saved queries, domains, and function definitions keep the same partition key across requests.
 - Builtin data is read-only and file-based. The consumer loads it from `OQuery:Seeds:BasePath` through `BuiltinDataLoader` (SetupTests) and passes it to the repositories. Admin edits never write built-in data. User-created data is saved by the active provider (File or Postgres) and Render discards file writes on redeploy.
-- Repositories are wired in `OQuery.UI.Api/Program.cs`: `FileRepositoryProvider` supplies the Domain, Query, and Function repositories (`builder.Services.AddFileRepositories(provider)`). Built-in domains and queries are passed to the provider constructor and held in memory. Postgres is used only for analytics (`ConnectionStrings:Analytics`). Storage.Postgres does not reference Storage.Files.
+- Repositories are wired in `OQuery.UI.Api/Program.cs`: `FileRepositoryProvider` supplies the Project, Query, and Function repositories (`builder.Services.AddFileRepositories(provider)`). Projects are stored as folders (`projects/{projectId}/`), and queries and functions live inside each project folder. Built-in queries are passed to the provider constructor and held in memory. Postgres is used only for analytics (`ConnectionStrings:Analytics`). Storage.Postgres does not reference Storage.Files.
 - Postgres mode needs `OQuery:Repositories:Postgres:ConnectionString` (for example via the `OQuery__Repositories__Postgres__ConnectionString` environment variable on Render). Do not commit the connection string.
-- Postgres mode currently covers domains and saved queries. Metadata, function definitions, and operator definitions stay file-based.
+- Postgres mode is removed for domains and saved queries. Projects, queries, and function definitions are file-based.
 
 ## 4. Data model (Postgres)
 
@@ -116,7 +116,7 @@ create table admin_audit (
 
 Indexes: the primary keys are `analytic.visitors(user_id)`, `analytic.daily_visitors(day, user_id)`, and `analytic.daily_backend(day, url)`.
 
-Storing builtin data as `jsonb` keeps the existing `DomainDto` and `QueryDto` shapes, so the repository interfaces (`IDomainRepository`, `IQueryRequestRepository`) do not change.
+Storing builtin data as `jsonb` keeps the existing `ProjectDto` and `QueryDto` shapes, so the repository interfaces (`IProjectRepository`, `IQueryRequestRepository`) do not change.
 
 Seeding: on first use, the repositories insert the file-based builtin data with `ON CONFLICT DO NOTHING`. Admin edits to builtin rows survive redeploys. Later changes to the builtin JSON files do not reach an existing database and need an explicit migration.
 

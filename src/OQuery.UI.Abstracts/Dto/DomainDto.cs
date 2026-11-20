@@ -5,51 +5,39 @@ namespace OQuery.UI.Abstracts.Dto;
 public sealed record DomainNameDto(string Id, string Name);
 public sealed record DomainNameWithDescriptionDto(string Id, string Name, string Description);
 
+/// <summary>All entities, fields and relations generated from the database schema. Relations use physical columns.</summary>
+public sealed class FullDomainDto
+{
+    public List<EntityDto> Entities { get; set; } = [];
+    public List<RelationDto> Relations { get; set; } = [];
+}
+
+/// <summary>
+/// A sub-domain: exposes a chosen set of FullDomain entities. Overrides are keyed by original names.
+/// Only names can change; physical columns and raw SQL are never overridden.
+/// </summary>
 public sealed class DomainDto
 {
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";
-    public List<EntityDto> Entities { get; set; } = [];
-    public List<RelationDto> Relations { get; set; } = [];
-    public bool CanDelete { get; set; }
-    public bool IsBuiltin { get; set; }
-
-    public List<OQuery.Entity> ToEntities()
-    {
-        var entities = Entities
-            .Select(entity => new OQuery.Entity(
-                entity.Name,
-                entity.Fields,
-                entity.DbSchema,
-                entity.DbTable ?? entity.RawSql,
-                [],
-                entity.IsRawSql))
-            .ToDictionary(entity => entity.Name, StringComparer.OrdinalIgnoreCase);
-
-        foreach (var relation in Relations)
-        {
-            if (!entities.TryGetValue(relation.SourceEntity, out var source)
-                || !entities.TryGetValue(relation.TargetEntity, out var target))
-                continue;
-
-            source.Relations?.Add(new Relation(
-                relation.SourceRelationName,
-                relation.TargetEntity,
-                RelationType.Lookup,
-                relation.SourceFields.Zip(relation.TargetFields, (sourceField, targetField) =>
-                    new RelationItem(sourceField, targetField)).ToList()));
-            target.Relations?.Add(new Relation(
-                relation.TargetRelationName,
-                relation.SourceEntity,
-                RelationType.Collection,
-                relation.TargetFields.Zip(relation.SourceFields, (targetField, sourceField) =>
-                    new RelationItem(targetField, sourceField)).ToList()));
-        }
-
-        return entities.Values.ToList();
-    }
+    /// <summary>Only listed entities are exposed.</summary>
+    public List<SubDomainEntityDto> Entities { get; set; } = [];
 }
+
+/// <summary>An exposed entity, identified by its original name in FullDomain.</summary>
+public sealed record SubDomainEntityDto(string Entity)
+{
+    public string? EntityName { get; init; }
+    public List<SubDomainFieldDto> FieldNames { get; init; } = [];
+    public List<string> ExcludedFields { get; init; } = [];
+    public List<SubDomainRelationDto> RelationNames { get; init; } = [];
+}
+
+public sealed record SubDomainFieldDto(string Field, string FieldName);
+
+/// <summary>Renames a relation side owned by the entity, identified by the original relation name.</summary>
+public sealed record SubDomainRelationDto(string Relation, string RelationName);
 
 public sealed record EntityDto(
     string Name,

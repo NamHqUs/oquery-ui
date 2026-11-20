@@ -6,6 +6,38 @@ This project defines the UI/demo contracts: DTOs, repository interfaces,
 service interfaces, and application abstractions. It targets .NET 10 and
 references the OQuery core library through the parent `oquery` submodule.
 
+## Project model
+
+A `ProjectDto` is the unit of metadata. Projects are stored as files only.
+
+```text
+projects/{projectId}/
+  project.json        Id, Name, Description, DbConnectionProfile (name only)
+  domains/
+    fulldomain.json   FullDomain: every entity, field, and relation from the DB schema
+    {subDomain}.json  one SubDomain per file
+  queries/            as before
+  functions/          as before
+```
+
+- `FullDomain` is generated from `LoadDatabaseSchema`. Entity and field names
+  are the original physical names.
+- A `SubDomain` lists only the entities it exposes. An entity that is not
+  listed is excluded. A listed entity with no changes carries only its name.
+- Overrides are keyed by original names:
+  - `EntityName` renames an entity.
+  - `Fields` maps an original field name to a new `Name`; `ExcludedFields`
+    hides fields.
+  - `Relations` keeps relation names on both sides. Relations are defined by
+    physical column pairs (`RefKeys`), so excluding a field does not change a
+    relation, and an entity without a reference field still joins.
+  - Only `Name` can be overridden for entities, fields, and relations.
+    `DbColumn`, raw SQL statements (`RawSqlEntity`, `RawField`), and reference
+    DB columns stay as in the `FullDomain`.
+- `MetadataProvider` resolves a request by starting from `FullDomain` and
+  applying the chosen `SubDomain`.
+- Security and permissions are out of scope for this model.
+
 ## Before changing code
 
 - Read the interface and DTO files in the same namespace before adding a type.

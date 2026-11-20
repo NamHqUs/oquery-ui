@@ -24,21 +24,21 @@ public sealed class QueryRequestFileRepository : FileRepositoryBase<QueryRequest
         _builtin = builtinQueries;
     }
 
-    public override string CreateId(string userSectionId)
+    public override string CreateId(StorageScope scope)
     {
         string id;
         do
         {
             id = $"{DateTime.UtcNow.ToString("yy-MM-dd-HH-mm-ss", CultureInfo.InvariantCulture)}-{RandomNumberGenerator.GetString(ID_CHARACTERS, 8)}";
         }
-        while (File.Exists(GetUserFilePath(userSectionId, id)));
+        while (File.Exists(GetUserFilePath(scope, id)));
 
         return id;
     }
 
-    public override IReadOnlyCollection<QueryRequestRecordDto> GetAll(string userSectionId)
+    public override IReadOnlyCollection<QueryRequestRecordDto> GetAll(StorageScope scope)
     {
-        var dir = GetUserStoreFolder(userSectionId);
+        var dir = GetStoreFolder(scope);
         var users = !Directory.Exists(dir)
             ? []
             : Directory.EnumerateFiles(dir)
@@ -49,19 +49,19 @@ public sealed class QueryRequestFileRepository : FileRepositoryBase<QueryRequest
         return [.. _builtin, .. users];
     }
 
-    public override QueryRequestRecordDto? Get(string userSectionId, string id)
+    public override QueryRequestRecordDto? Get(StorageScope scope, string id)
     {
         var builtin = _builtin.FirstOrDefault(query => query.Id == id);
         if (builtin is not null)
             return builtin;
 
-        var path = GetUserFilePath(userSectionId, id);
+        var path = GetUserFilePath(scope, id);
         return File.Exists(path)
             ? ReadRecord(path)
             : null;
     }
 
-    public override void Save(string userSectionId, QueryRequestRecordDto request)
+    public override void Save(StorageScope scope, QueryRequestRecordDto request)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.Id);
@@ -69,16 +69,16 @@ public sealed class QueryRequestFileRepository : FileRepositoryBase<QueryRequest
         if (_builtin.Any(query => query.Id == request.Id))
             throw new InvalidOperationException($"Built-in query '{request.Id}' is read-only.");
 
-        Directory.CreateDirectory(GetUserStoreFolder(userSectionId));
-        File.WriteAllText(GetUserFilePath(userSectionId, request.Id), request.Json);
+        Directory.CreateDirectory(GetStoreFolder(scope));
+        File.WriteAllText(GetUserFilePath(scope, request.Id), request.Json);
     }
 
-    public override bool Delete(string userSectionId, string id)
+    public override bool Delete(StorageScope scope, string id)
     {
         if (_builtin.Any(query => query.Id == id))
             throw new InvalidOperationException($"Built-in query '{id}' is read-only.");
 
-        var path = GetUserFilePath(userSectionId, id);
+        var path = GetUserFilePath(scope, id);
         if (!File.Exists(path))
             return false;
         File.Delete(path);

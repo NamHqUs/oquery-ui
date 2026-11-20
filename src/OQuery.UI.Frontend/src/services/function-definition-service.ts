@@ -2,8 +2,8 @@ import { apiUrls } from "../const/api-urls";
 import { allScalarApplyFor, type FunctionApplyFor, type FunctionDefinition, type FunctionDefinitionPayload } from "../components/function-definition/types";
 import { requestJson } from "./api-client";
 
-let definitionsCache: FunctionDefinition[] | null = null;
-let definitionsRequest: Promise<FunctionDefinition[]> | null = null;
+let definitionsCache = new Map<string, FunctionDefinition[]>();
+let definitionsRequests = new Map<string, Promise<FunctionDefinition[]>>();
 
 function toFunctionDefinitions(payload: unknown): FunctionDefinition[] {
   if (!Array.isArray(payload) || payload.some((definition) =>
@@ -35,38 +35,44 @@ function toFunctionDefinitions(payload: unknown): FunctionDefinition[] {
   }));
 }
 
-export function getDefinitions(): Promise<FunctionDefinition[]> {
-  if (definitionsCache) return Promise.resolve(definitionsCache);
-  if (!definitionsRequest) {
-    definitionsRequest = requestJson(apiUrls.metadata.functions).then((payload) => {
-      definitionsCache = toFunctionDefinitions(payload);
-      return definitionsCache;
+export function getDefinitions(projectId: string): Promise<FunctionDefinition[]> {
+  const key = projectId.trim();
+  const cached = definitionsCache.get(key);
+  if (cached) return Promise.resolve(cached);
+  let request = definitionsRequests.get(key);
+  if (!request) {
+    request = requestJson(apiUrls.metadata.functions(key)).then((payload) => {
+      const definitions = toFunctionDefinitions(payload);
+      definitionsCache.set(key, definitions);
+      return definitions;
     }).finally(() => {
-      definitionsRequest = null;
+      definitionsRequests.delete(key);
     });
+    definitionsRequests.set(key, request);
   }
-  return definitionsRequest;
+  return request;
 }
 
-export async function saveDefinition(name: string | undefined, payload: FunctionDefinitionPayload): Promise<FunctionDefinition> {
+export async function saveDefinition(projectId: string, name: string | undefined, payload: FunctionDefinitionPayload): Promise<FunctionDefinition> {
   const saved: FunctionDefinition | null = await requestJson(
-    name ? apiUrls.metadata.functionByName(name) : apiUrls.metadata.functions,
+    name ? apiUrls.metadata.functionByName(projectId, name) : apiUrls.metadata.functions(projectId),
     {
       method: name ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     },
   );
-  invalidate();
+  invalidate(projectId);
   if (!saved) throw new Error("Function definition API did not return the saved definition.");
   return saved;
 }
 
-export async function deleteDefinition(name: string): Promise<void> {
-  await requestJson(apiUrls.metadata.functionByName(name), { method: "DELETE" });
-  invalidate();
+export async function deleteDefinition(projectId: string, name: string): Promise<void> {
+  await requestJson(apiUrls.metadata.functionByName(projectId, name), { method: "DELETE" });
+  invalidate(projectId);
 }
 
-export function invalidate() {
-  definitionsCache = null;
+export function invalidate(projectId?: string) {
+  if (projectId) definitionsCache.delete(projectId.trim());
+  else definitionsCache.clear();
 }

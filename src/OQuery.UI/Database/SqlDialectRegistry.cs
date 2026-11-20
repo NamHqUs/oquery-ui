@@ -5,7 +5,8 @@ public sealed record SqlDialectRegistration(
     string Name,
     Func<ISqlDialect> CreateDialect,
     Func<string, string[], string, DbSchemaLoader>? CreateDbInstance = null,
-    IReadOnlyList<string>? Aliases = null);
+    IReadOnlyList<string>? Aliases = null,
+    Func<string, DbSchemaLoader>? CreateSchemaLoader = null);
 
 public static class SqlDialectRegistry
 {
@@ -55,6 +56,16 @@ public static class SqlDialectRegistry
         return (registration.CreateDbInstance ?? throw new ArgumentException(
                 $"Database '{provider}' does not support provisioning.", nameof(provider)))
             (connectionString, scriptFiles, dbVersion);
+    }
+
+    /// <summary>Creates a schema loader without provisioning. Use it for databases that OQuery must not write to.</summary>
+    public static DbSchemaLoader CreateSchemaLoader(string provider, string connectionString)
+    {
+        var registration = FindByProvider(provider)
+            ?? throw new ArgumentException($"Unsupported database '{provider}'.", nameof(provider));
+        return (registration.CreateSchemaLoader ?? throw new ArgumentException(
+                $"Database '{provider}' does not support schema loading.", nameof(provider)))
+            (connectionString);
     }
 
     private static SqlDialectRegistration? FindByProvider(string provider)

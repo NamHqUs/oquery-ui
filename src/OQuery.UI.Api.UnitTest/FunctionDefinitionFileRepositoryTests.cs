@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using NUnit.Framework;
 using OQuery;
 using OQuery.UI.Abstracts.Dto;
+using OQuery.UI.Abstracts.Repositories;
 using OQuery.UI.Storage.Files.FileStorage;
 
 namespace OQuery.UI.Api.UnitTest;
@@ -11,6 +12,7 @@ internal sealed class FunctionDefinitionFileRepositoryTests
 {
     private const string Section = "section-1";
     private const string FunctionName = "TestDouble";
+    private static readonly StorageScope Scope = new(Section, "project-1");
 
     private string _root = string.Empty;
     private string _functionsRoot = string.Empty;
@@ -20,7 +22,7 @@ internal sealed class FunctionDefinitionFileRepositoryTests
     public void SetUp()
     {
         _root = Path.Combine(Path.GetTempPath(), "function-definitions-" + Guid.NewGuid().ToString("N"));
-        _functionsRoot = Path.Combine(_root, Section, "functions");
+        _functionsRoot = Path.Combine(_root, Section, "projects", "project-1", "functions");
         _repository = new FunctionDefinitionFileRepository(new FilePathResolver(_root));
     }
 
@@ -34,7 +36,7 @@ internal sealed class FunctionDefinitionFileRepositoryTests
     [Test]
     public void SaveWritesOneFilePerDatabaseFolderAndGetMergesTheTemplates()
     {
-        _repository.Save(Section, CreateFunction(new Dictionary<string, string>
+        _repository.Save(Scope, CreateFunction(new Dictionary<string, string>
         {
             ["Sqlite"] = "{value} * 2",
             ["SqlServer"] = "{value} * 2",
@@ -43,7 +45,7 @@ internal sealed class FunctionDefinitionFileRepositoryTests
         var folders = Directory.GetDirectories(_functionsRoot).Select(Path.GetFileName);
         Assert.That(folders, Is.EquivalentTo(new[] { "Sqlite", "SqlServer" }));
 
-        var definition = _repository.Get(Section, FunctionName);
+        var definition = _repository.Get(Scope, FunctionName);
         Assert.That(definition, Is.Not.Null);
         Assert.That(definition!.SqlTemplates.Keys, Is.EquivalentTo(new[] { "Sqlite", "SqlServer" }));
     }
@@ -51,14 +53,14 @@ internal sealed class FunctionDefinitionFileRepositoryTests
     [Test]
     public void DeleteRemovesTheFunctionFromEveryDatabaseFolder()
     {
-        _repository.Save(Section, CreateFunction(new Dictionary<string, string>
+        _repository.Save(Scope, CreateFunction(new Dictionary<string, string>
         {
             ["Sqlite"] = "{value} * 2",
             ["SqlServer"] = "{value} * 2",
         }));
 
-        Assert.That(_repository.Delete(Section, FunctionName), Is.True);
-        Assert.That(_repository.Get(Section, FunctionName), Is.Null);
+        Assert.That(_repository.Delete(Scope, FunctionName), Is.True);
+        Assert.That(_repository.Get(Scope, FunctionName), Is.Null);
         Assert.That(Directory.EnumerateFiles(_functionsRoot, "*.json", SearchOption.AllDirectories), Is.Empty);
     }
 

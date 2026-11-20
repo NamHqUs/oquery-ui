@@ -1,141 +1,146 @@
-import type { DomainRelation, MetadataEntity, MetadataField } from "../query-builder/query-design/query-builder-slice";
+import type { DomainRelation, MetadataField } from "../query-builder/query-design/query-builder-slice";
+import type { FullDomain, SubDomainConfig, SubDomainEntity } from "../../services/project-service";
 
-export type { DomainRelation } from "../query-builder/query-design/query-builder-slice";
-
-let nextFieldId = 1;
-export const createFieldId = () => `f_${nextFieldId++}`;
-
-export type EditableField = MetadataField & { id?: string };
-export type EditableEntity = MetadataEntity & { schema: string; rawSql: string; fields: EditableField[] };
-
-export function toAbstractDataType(databaseType?: string, columnName?: string): string {
-  const type = databaseType?.trim().toLowerCase() || "";
-  const name = columnName?.trim().toLowerCase() || "";
-  if (/^(is|has|can|should)[a-z0-9_]/.test(name) || /(bool|boolean|flag)$/.test(name)) return "Boolean";
-  if (/(birth|date|time|created|updated|deleted)/.test(name)) return "Datetime";
-  if (/(bool|boolean|bit)/.test(type)) return "Boolean";
-  if (/(date|time|timestamp)/.test(type)) return "Datetime";
-  if (/(bigint|smallint|tinyint|int|numeric|decimal|number|money|float|double|real|serial)/.test(type)) return "Number";
-  return "String";
-}
-
-export const emptyField = (): EditableField => ({ id: createFieldId(), name: "", dbColumn: "", dataType: "String", isRawSql: false });
-
-export function toEditable(entity: MetadataEntity): EditableEntity {
-  return {
-    ...entity,
-    schema: entity.schema || "dbo",
-    rawSql: entity.rawSql || entity.dbTable || "",
-    fields: entity.fields.map((field) => ({ ...field, id: createFieldId() })),
-  };
-}
-
-export function emptyEntity(): EditableEntity {
-  return { name: "", schema: "dbo", rawSql: "", fields: [] };
-}
-
-export function toEntityPayload(entity: MetadataEntity) {
-  return {
-    name: entity.name,
-    dbSchema: entity.schema || undefined,
-    dbTable: entity.dbTable || entity.rawSql || entity.name,
-    rawSql: entity.rawSql || entity.name,
-    fields: entity.fields.map((field) => ({
-      name: field.name,
-      dbColumn: field.dbColumn,
-      dataType: field.dataType,
-      isRawSql: field.isRawSql,
-    })),
-  };
-}
-
-export function toRelationPayload(relations: DomainRelation[]): DomainRelation[] {
-  return relations.map((relation) => ({
-    sourceEntity: relation.sourceEntity.trim(),
-    sourceRelationName: relation.sourceRelationName.trim(),
-    sourceFields: relation.sourceFields.map((field) => field.trim()),
-    targetEntity: relation.targetEntity.trim(),
-    targetRelationName: relation.targetRelationName.trim(),
-    targetFields: relation.targetFields.map((field) => field.trim()),
-  }));
-}
-
-export function renameEntitiesInRelations(relations: DomainRelation[], renames: ReadonlyMap<string, string>): DomainRelation[] {
-  if (!renames.size) return relations;
-  const rename = (name: string) => renames.get(name) ?? name;
-  return relations.map((relation) => ({
-    ...relation,
-    sourceEntity: rename(relation.sourceEntity),
-    targetEntity: rename(relation.targetEntity),
-  }));
-}
-
-export function renameEntityInRelations(relations: DomainRelation[], from: string, to: string): DomainRelation[] {
-  return renameEntitiesInRelations(relations, new Map([[from, to]]));
-}
-
-export function removeEntityFromRelations(relations: DomainRelation[], name: string): DomainRelation[] {
-  return relations.filter((relation) => relation.sourceEntity !== name && relation.targetEntity !== name);
-}
-
-export function findEntityNameProblem(entities: Pick<MetadataEntity, "name">[]): string | null {
-  const names = new Set<string>();
-  for (const entity of entities) {
-    const name = entity.name.trim();
-    const normalizedName = name.toLowerCase();
-    if (!name) return "Every entity must have a name.";
-    if (names.has(normalizedName)) return `An entity named "${name}" already exists in this domain.`;
-    names.add(normalizedName);
-  }
-  return null;
-}
-
-export function singularize(value: string): string {
-  return value.endsWith("ies") ? `${value.slice(0, -3)}y` : value.endsWith("s") && !value.endsWith("ss") ? value.slice(0, -1) : value;
-}
-
-export function pluralize(value: string): string {
-  return value.endsWith("y") ? `${value.slice(0, -1)}ies` : value.endsWith("s") ? value : `${value}s`;
-}
-
-export type RelationSideChanges = {
-  name?: string;
-  refEntity?: string;
-  fromFields?: string[];
-  toFields?: string[];
+export type RelationSide = {
+  relation: string;
+  refEntity: string;
+  keyColumns: string[];
 };
 
-export function updateRelationSide(relation: DomainRelation, side: "source" | "target", changes: RelationSideChanges): DomainRelation {
-  if (side === "source") {
-    return {
-      ...relation,
-      sourceRelationName: changes.name ?? relation.sourceRelationName,
-      targetEntity: changes.refEntity ?? relation.targetEntity,
-      sourceFields: changes.fromFields ?? relation.sourceFields,
-      targetFields: changes.toFields ?? relation.targetFields,
-    };
-  }
+export function relationSidesFor(entity: string, relations: DomainRelation[]): RelationSide[] {
+  return relations.flatMap((relation) => [
+    ...(relation.sourceEntity === entity
+      ? [{ relation: relation.sourceRelationName, refEntity: relation.targetEntity, keyColumns: relation.sourceFields }]
+      : []),
+    ...(relation.targetEntity === entity
+      ? [{ relation: relation.targetRelationName, refEntity: relation.sourceEntity, keyColumns: relation.targetFields }]
+      : []),
+  ]);
+}
+
+export function referenceKeys(sides: RelationSide[]): Set<string> {
+  return new Set(sides.flatMap((side) => side.keyColumns.map((column) => column.trim().toLowerCase())));
+}
+
+export function isReferenceField(field: MetadataField, keys: Set<string>): boolean {
+  return keys.has(field.name.trim().toLowerCase()) || Boolean(field.dbColumn && keys.has(field.dbColumn.trim().toLowerCase()));
+}
+
+export function emptySubDomain(): SubDomainConfig {
+  return { id: "", name: "", description: "", entities: [] };
+}
+
+export function findOverride(config: SubDomainConfig, entity: string): SubDomainEntity | undefined {
+  return config.entities.find((item) => item.entity === entity);
+}
+
+export function setEntityExposed(config: SubDomainConfig, entity: string, exposed: boolean): SubDomainConfig {
+  if (!exposed) return { ...config, entities: config.entities.filter((item) => item.entity !== entity) };
+  if (findOverride(config, entity)) return config;
   return {
-    ...relation,
-    targetRelationName: changes.name ?? relation.targetRelationName,
-    sourceEntity: changes.refEntity ?? relation.sourceEntity,
-    targetFields: changes.fromFields ?? relation.targetFields,
-    sourceFields: changes.toFields ?? relation.sourceFields,
+    ...config,
+    entities: [...config.entities, { entity, entityName: null, fieldNames: [], excludedFields: [], relationNames: [] }],
   };
 }
 
-export function findRelationProblem(entities: Pick<MetadataEntity, "name">[], relations: DomainRelation[]): string | null {
-  const entityNames = new Set(entities.map((entity) => entity.name.trim()));
-  for (const relation of relations) {
-    const sourceEntity = relation.sourceEntity.trim();
-    const targetEntity = relation.targetEntity.trim();
-    if (!sourceEntity || !targetEntity) return "Every relation must have a source and a target entity.";
-    if (!entityNames.has(sourceEntity) || !entityNames.has(targetEntity)) return "Every relation must reference entities in this domain.";
-    if (!relation.sourceRelationName.trim() || !relation.targetRelationName.trim()) return "Every relation must have a name on both sides.";
-    if (!relation.sourceFields.length
-      || relation.sourceFields.length !== relation.targetFields.length
-      || [...relation.sourceFields, ...relation.targetFields].some((field) => !field.trim())) {
-      return "Every relation must map equal, non-empty From and To columns.";
+export function updateOverride(
+  config: SubDomainConfig,
+  entity: string,
+  update: (item: SubDomainEntity) => SubDomainEntity,
+): SubDomainConfig {
+  return { ...config, entities: config.entities.map((item) => (item.entity === entity ? update(item) : item)) };
+}
+
+export function setFieldName(item: SubDomainEntity, field: string, fieldName: string): SubDomainEntity {
+  const exists = item.fieldNames.some((rename) => rename.field === field);
+  return {
+    ...item,
+    fieldNames: exists
+      ? item.fieldNames.map((rename) => (rename.field === field ? { field, fieldName } : rename))
+      : [...item.fieldNames, { field, fieldName }],
+  };
+}
+
+export function setFieldExcluded(item: SubDomainEntity, field: string, excluded: boolean): SubDomainEntity {
+  const others = item.excludedFields.filter((name) => name !== field);
+  return { ...item, excludedFields: excluded ? [...others, field] : others };
+}
+
+export function setRelationName(item: SubDomainEntity, relation: string, relationName: string): SubDomainEntity {
+  const exists = item.relationNames.some((rename) => rename.relation === relation);
+  return {
+    ...item,
+    relationNames: exists
+      ? item.relationNames.map((rename) => (rename.relation === relation ? { relation, relationName } : rename))
+      : [...item.relationNames, { relation, relationName }],
+  };
+}
+
+export function exposedEntityName(item: SubDomainEntity): string {
+  return item.entityName?.trim() || item.entity;
+}
+
+export function effectiveFieldName(item: SubDomainEntity, field: string): string {
+  return item.fieldNames.find((rename) => rename.field === field)?.fieldName ?? field;
+}
+
+export function effectiveRelationName(item: SubDomainEntity, relation: string): string {
+  return item.relationNames.find((rename) => rename.relation === relation)?.relationName ?? relation;
+}
+
+export function toSubDomainPayload(config: SubDomainConfig) {
+  return {
+    name: config.name.trim(),
+    description: config.description.trim(),
+    entities: config.entities.map((item) => {
+      const entityName = item.entityName?.trim() ?? "";
+      return {
+        entity: item.entity,
+        entityName: entityName && entityName !== item.entity ? entityName : null,
+        fieldNames: item.fieldNames
+          .map((rename) => ({ field: rename.field, fieldName: rename.fieldName.trim() }))
+          .filter((rename) => rename.fieldName && rename.fieldName !== rename.field && !item.excludedFields.includes(rename.field)),
+        excludedFields: item.excludedFields,
+        relationNames: item.relationNames
+          .map((rename) => ({ relation: rename.relation, relationName: rename.relationName.trim() }))
+          .filter((rename) => rename.relationName && rename.relationName !== rename.relation),
+      };
+    }),
+  };
+}
+
+export function findSubDomainProblem(config: SubDomainConfig, fullDomain: FullDomain): string | null {
+  if (!config.name.trim()) return "Every sub-domain needs a name.";
+  const exposedOriginals = new Set(config.entities.map((item) => item.entity));
+  const exposedNames = new Set<string>();
+
+  for (const item of config.entities) {
+    if (!fullDomain.entities.some((entity) => entity.name === item.entity)) {
+      return `Entity "${item.entity}" is not part of the full domain.`;
+    }
+    const exposedName = exposedEntityName(item).toLowerCase();
+    if (exposedNames.has(exposedName)) return `More than one entity is named "${exposedEntityName(item)}".`;
+    exposedNames.add(exposedName);
+  }
+
+  for (const item of config.entities) {
+    const source = fullDomain.entities.find((entity) => entity.name === item.entity);
+    const fieldNames = new Set<string>();
+    for (const field of source?.fields ?? []) {
+      if (item.excludedFields.includes(field.name)) continue;
+      const name = effectiveFieldName(item, field.name).trim();
+      if (!name) return `Field "${field.name}" on "${exposedEntityName(item)}" needs a name.`;
+      if (fieldNames.has(name.toLowerCase())) return `Entity "${exposedEntityName(item)}" has duplicate field names.`;
+      fieldNames.add(name.toLowerCase());
+    }
+
+    const relationNames = new Set<string>();
+    for (const side of relationSidesFor(item.entity, fullDomain.relations)) {
+      if (!exposedOriginals.has(side.refEntity)) continue;
+      const name = effectiveRelationName(item, side.relation).trim();
+      if (!name) return `Relation "${side.relation}" on "${exposedEntityName(item)}" needs a name.`;
+      if (relationNames.has(name.toLowerCase())) return `Entity "${exposedEntityName(item)}" has duplicate relation names.`;
+      relationNames.add(name.toLowerCase());
     }
   }
   return null;

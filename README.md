@@ -38,14 +38,15 @@ Configuration is split by responsibility under `OQuery` in `appsettings.json`:
 
 - `OQuery:Seeds:BasePath` - root of the built-in data. `OQuery:Seeds:DataSets`
   lists the dataset subfolders to load (for example `northstar-demo`,
-  `unit-test`). Each dataset may contain `domains/`, `queries/` and
-  `scripts/`. `BuiltinDataLoader` (SetupTests) reads them, and the built-in data
-  is read-only and handed to the repositories, which never seed it.
+  `unit-test`). Each dataset may contain `queries/` and `scripts/`.
+  `BuiltinDataLoader` (SetupTests) reads them, and the built-in queries are
+  read-only and handed to the repositories, which never seed them. Built-in
+  projects are not supported; projects are created from a connected database.
 - `OQuery:Seeds:Enabled` / `DBVersion` - control database initialization scripts
   (`scripts/*.{provider}.sql` from the chosen datasets).
 - `OQuery:Repositories:Files:UserData` - file repository root for user data
-  (`UserData/{sectionId}/...`). Domains, Queries and Function definitions are
-  always file-based.
+  (`UserData/{sectionId}/projects/{projectId}/...`). Projects, the queries and
+  function definitions inside each project are always file-based.
 - `ConnectionStrings:Analytics` - enables the Postgres analytics tables; local
   development defaults this to the same Postgres connection, production can override
   it with `ConnectionStrings__Analytics`.

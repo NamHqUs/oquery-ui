@@ -2,14 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { Provider, useSelector } from "react-redux";
-import { createBrowserRouter, Navigate, Route, RouterProvider, Routes, useBlocker, useLocation, useNavigate } from "react-router-dom";
+import { createBrowserRouter, Navigate, Route, RouterProvider, Routes, useBlocker, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import Icon, { getDatabaseIconName } from "./components/icon/icon";
 import DataSources from "./components/data-sources/data-sources";
 import DatabaseConnection from "./components/data-sources/database-connection/database-connection";
 import { fetchDbProvider } from "./components/data-sources/database-slice";
 import QueryBuilder from "./components/query-builder/query-builder";
 import MetadataBuilder from "./components/metadata-builder/metadata-builder";
-import { parseWizardRoute, WIZARD_ROUTE_PATHS } from "./components/metadata-builder/metadata-routes";
 import FunctionDefinitionsWorkspace from "./components/function-definition/function-definition";
 import Home from "./components/home/home";
 import Documentation from "./components/documentation/documentation";
@@ -18,33 +17,41 @@ import { documentationSubmenu } from "./components/documentation/doc-agenda";
 import { GITHUB_URL, PRODUCT_NAME } from "./components/home/home-content";
 import { MessageBoxProvider } from "./components/message-box/message-box";
 import { readAnalyticsConsent } from "./services/api-client";
-import * as domainService from "./services/domain-service";
+import ProjectOnboarding from "./components/metadata-builder/project/project-onboarding";
+import CreateProjectPage from "./components/projects/create-project-page";
+import WorkspacePage from "./components/workspace/workspace-page";
+import { getProject, listProjects, type ProjectSummary } from "./services/project-service";
 import { store, type RootState } from "./store/store";
 import "./styles.css";
 
 const PAGE_PATHS = {
   home: "/",
-  builder: "/query-builder",
+  builder: "/projects/:projectId",
   metadata: "/metadata",
   sources: "/data-sources",
   functions: "/function-definitions",
+  security: "/security",
   documentation: "/documentation",
 } as const;
 
 const LEGACY_FUNCTIONS_PATH = "/functions";
+// The Query Builder moved from /query-builder to /projects/:projectId. The old URL redirects.
+const LEGACY_BUILDER_PATH = "/query-builder";
+const WORKSPACE_PATH = "/workspace";
+const PROJECT_CREATE_PATH = "/projects/create";
+const LAST_BUILDER_PROJECT_STORAGE_KEY = "oquery.builder.last-project";
 // Not linked from the navigation. Admins open it by URL; the page asks for the admin token.
 const ADMIN_PATH = "/admin";
 const PRIVACY_PATH = "/privacy";
 const TERMS_PATH = "/terms";
 const DOMAINS_PATH = "/metadata/domains";
 const DIAGRAMS_PATH = "/metadata/diagrams";
-const ENTITIES_PATH = "/metadata/entities";
 const DATABASE_EXPLORER_PATH = "/metadata/explorer";
 const METADATA_LAST_ROUTE_STORAGE_KEY = "oquery.metadata.last-route";
 
 type Page = keyof typeof PAGE_PATHS;
 type NavigationGuard = (continueNavigation: () => void, cancelNavigation?: () => void) => void;
-type MetadataSection = "diagram" | "entities" | "domains" | "explorer";
+type MetadataSection = "diagram" | "domains" | "explorer";
 
 const HOME_SUBMENU = [
   { label: "Playground", target: "hp-playground" },
@@ -57,8 +64,9 @@ const HOME_SUBMENU = [
 const PAGE_SUBMENUS: Record<Exclude<Page, "home">, readonly string[]> = {
   builder: [],
   sources: ["Connections", "Tables", "Schema"],
-  metadata: ["Domains", "Diagram", "Entity definitions", "Explore database"],
+  metadata: ["Projects", "Diagram", "Explore database"],
   functions: [],
+  security: ["Policies", "Query limits", "Audit log"],
   documentation: [],
 };
 const QUERY_DOMAIN_TONES = ["revenue", "customer", "product", "finance", "custom"] as const;
@@ -132,10 +140,30 @@ function PolicyPage({ kind }: { kind: "privacy" | "terms" }) {
   );
 }
 
+function builderProjectIdOf(pathname: string) {
+  if (!pathname.startsWith("/projects/") || pathname === PROJECT_CREATE_PATH) return "";
+  return decodeURIComponent(pathname.slice("/projects/".length).split("/")[0]);
+}
+
+function builderPath(projectId: string, domainId = "", from = "") {
+  const params = new URLSearchParams();
+  if (domainId) params.set("domain", domainId);
+  if (from) params.set("from", from);
+  const query = params.toString();
+  return `/projects/${encodeURIComponent(projectId)}${query ? `?${query}` : ""}`;
+}
+
+function LegacyQueryBuilderRedirect() {
+  const [params] = useSearchParams();
+  const projectId = params.get("project")?.trim() ?? "";
+  if (!projectId) return <Navigate to={WORKSPACE_PATH} replace />;
+  return <Navigate to={builderPath(projectId, params.get("domain")?.trim() ?? "")} replace />;
+}
+
 function pageForPath(path: string): Page | null {
-  if (path === DOMAINS_PATH || path === DIAGRAMS_PATH || parseWizardRoute(path)
-    || path === ENTITIES_PATH || path.startsWith(`${ENTITIES_PATH}/`)
-    || path === DATABASE_EXPLORER_PATH) return "metadata";
+  if (builderProjectIdOf(path)) return "builder";
+  if (path === DOMAINS_PATH || path === DIAGRAMS_PATH || path === DATABASE_EXPLORER_PATH) return "metadata";
+  if (path === PAGE_PATHS.security) return "security";
   return (Object.keys(PAGE_PATHS) as Page[]).find((page) => PAGE_PATHS[page] === path) ?? null;
 }
 
@@ -151,21 +179,34 @@ function PageSubnav({
 }: {
   page: Page | null;
   onNavigateToPage: (nextPage: Page) => void;
-  onBuilderDomainSelect: (domainId: string) => void;
+  onBuilderDomainSelect: (projectId: string, domainId: string, requestName?: string) => void;
   onMetadataSectionSelect: (section: MetadataSection) => void;
 }) {
   const location = useLocation();
+  const [queryProjects, setQueryProjects] = useState<ProjectSummary[]>([]);
   const [queryDomains, setQueryDomains] = useState<{ id: string; name: string }[]>([]);
   useEffect(() => {
     if (page !== "builder") return;
     let active = true;
-    domainService.listDomainNames()
-      .then((domains) => {
-        if (active) {
-          setQueryDomains(domains);
-          if (!new URLSearchParams(location.search).get("domain") && domains[0]) {
-            onBuilderDomainSelect(domains[0].id);
-          }
+    const params = new URLSearchParams(location.search);
+    const requestedProject = builderProjectIdOf(location.pathname);
+    const requestedDomain = params.get("domain");
+    listProjects()
+      .then(async (projects) => {
+        const projectId = projects.find((project) => project.id === requestedProject)?.id ?? projects[0]?.id;
+        if (!active) return;
+        setQueryProjects(projects);
+        if (!projectId) {
+          setQueryDomains([]);
+          return;
+        }
+        const details = await getProject(projectId);
+        if (!active) return;
+        const domains = details.domains.map((domain) => ({ id: domain.id, name: domain.name }));
+        setQueryDomains(domains);
+        const domainId = domains.find((domain) => domain.id === requestedDomain)?.id ?? domains[0]?.id;
+        if (domainId && (requestedProject !== projectId || requestedDomain !== domainId)) {
+          onBuilderDomainSelect(projectId, domainId);
         }
       })
       .catch((error: unknown) => {
@@ -174,20 +215,15 @@ function PageSubnav({
     return () => {
       active = false;
     };
-  }, [location.search, onBuilderDomainSelect, page]);
-  const wizardRoute = parseWizardRoute(location.pathname);
-  const metadataSection = wizardRoute
-    ? wizardRoute.section
-    : location.pathname === DOMAINS_PATH
+  }, [location.pathname, location.search, onBuilderDomainSelect, page]);
+  const metadataSection = location.pathname === DOMAINS_PATH
     ? "domains"
-    : location.pathname === ENTITIES_PATH
-      || location.pathname.startsWith(`${ENTITIES_PATH}/`)
-      ? "entities"
     : location.pathname === DATABASE_EXPLORER_PATH
       ? "explorer"
-    : location.pathname === DIAGRAMS_PATH
-      ? "diagram"
-      : new URLSearchParams(location.search).get("section") ?? "diagram";
+      : location.pathname === DIAGRAMS_PATH
+        ? "diagram"
+        : new URLSearchParams(location.search).get("section") ?? "diagram";
+  const currentProjectId = builderProjectIdOf(location.pathname) || new URLSearchParams(location.search).get("project") || queryProjects[0]?.id || "";
   if (!page) return null;
 
   if (page === "home") {
@@ -199,7 +235,7 @@ function PageSubnav({
           <button type="button" onClick={() => onNavigateToPage("documentation")}>Documentation</button>
           <a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub</a>
         </div>
-        <button className="button primary hp-subnav-cta" type="button" onClick={() => onBuilderDomainSelect("EXAMPLES_DOMAIN")}><Icon name="play" size={11} /> Try Playground</button>
+        <button className="button primary hp-subnav-cta" type="button" onClick={() => onNavigateToPage("builder")}><Icon name="play" size={11} /> Try Playground</button>
       </nav>
     );
   }
@@ -218,7 +254,7 @@ function PageSubnav({
               <button key={item.target} type="button" onClick={() => scrollToSection(item.target)}>{item.label}</button>
             ))}
             {PAGE_SUBMENUS[page].map((item) => {
-            const itemSection = item === "Diagram" ? "diagram" : item === "Entity definitions" ? "entities" : item === "Domains" ? "domains" : undefined;
+            const itemSection = item === "Diagram" ? "diagram" : item === "Projects" ? "domains" : undefined;
             const metadataItemSection = itemSection ?? (item === "Explore database" ? "explorer" : undefined);
             const isActive = page === "metadata" && metadataItemSection === metadataSection;
             return <button
@@ -245,26 +281,325 @@ function PageSubnav({
       {page === "builder" && <div className="query-builder-domain-bar diagram-toolbar">
         <div>
           <span className="section-kicker">QUERY DOMAINS</span>
-          <p>Choose a domain to plan a query against its metadata.</p>
+          <p>Choose a project and sub-domain to plan a query against its metadata.</p>
         </div>
-        <nav className="diagram-group-switch query-builder-domain-list" aria-label="Query domains">
-          {queryDomains.map((domain, index) => {
-            const isActive = new URLSearchParams(location.search).get("domain") === domain.id;
-            return <button
-              key={domain.id}
-              type="button"
-              className={`diagram-group-button tone-${QUERY_DOMAIN_TONES[index % QUERY_DOMAIN_TONES.length]}${isActive ? " active" : ""}`}
-              aria-pressed={isActive}
-              aria-current={isActive ? "page" : undefined}
-              onClick={() => onBuilderDomainSelect(domain.id)}
-            >
-              <span className="diagram-group-mark" aria-hidden="true" />
-              <strong>{domain.name}</strong>
-            </button>;
-          })}
-        </nav>
+        <div className="query-builder-domain-picker">
+          <select
+            aria-label="Project"
+            value={currentProjectId}
+            onChange={(event) => onBuilderDomainSelect(event.target.value, "")}
+          >
+            {queryProjects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+          </select>
+          <nav className="diagram-group-switch query-builder-domain-list" aria-label="Query domains">
+            {queryDomains.map((domain, index) => {
+              const isActive = new URLSearchParams(location.search).get("domain") === domain.id;
+              return <button
+                key={domain.id}
+                type="button"
+                className={`diagram-group-button tone-${QUERY_DOMAIN_TONES[index % QUERY_DOMAIN_TONES.length]}${isActive ? " active" : ""}`}
+                aria-pressed={isActive}
+                aria-current={isActive ? "page" : undefined}
+                onClick={() => onBuilderDomainSelect(currentProjectId, domain.id)}
+              >
+                <span className="diagram-group-mark" aria-hidden="true" />
+                <strong>{domain.name}</strong>
+              </button>;
+            })}
+          </nav>
+        </div>
       </div>}
     </>
+  );
+}
+
+function WorkspaceContextBar({
+  page,
+  projects,
+  onNavigate,
+}: {
+  page: Page | null;
+  projects: ProjectSummary[] | null;
+  onNavigate: (path: string) => void;
+}) {
+  const location = useLocation();
+  const [project, setProject] = useState<Awaited<ReturnType<typeof getProject>> | null>(null);
+  const params = new URLSearchParams(location.search);
+  const requestedProjectId = builderProjectIdOf(location.pathname) || params.get("project") || "";
+  const domainId = params.get("domain") ?? "";
+  // The project must be chosen explicitly; an unknown or missing ID is never replaced by a default.
+  const projectId = projects?.some((item) => item.id === requestedProjectId) ? requestedProjectId : "";
+
+  useEffect(() => {
+    if (!projectId) {
+      setProject(null);
+      return;
+    }
+    let active = true;
+    getProject(projectId)
+      .then((details) => {
+        if (active) setProject(details);
+      })
+      .catch(() => {
+        if (active) setProject(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [projectId, location.search]);
+
+  if (!page || page === "home" || page === "documentation") return null;
+
+  const selectProject = (nextProjectId: string) => {
+    if (!nextProjectId) return;
+    if (page === "builder") {
+      onNavigate(builderPath(nextProjectId));
+      return;
+    }
+    onNavigate(`${location.pathname}?${new URLSearchParams({ project: nextProjectId }).toString()}`);
+  };
+  const selectDomain = (nextDomainId: string) => {
+    if (!projectId || !nextDomainId) return;
+    onNavigate(builderPath(projectId, nextDomainId));
+  };
+
+  return (
+    <section className="workspace-context" aria-label="Workspace context">
+      <div className="workspace-context-main">
+        <span className="workspace-context-kicker">CURRENT PROJECT</span>
+        <label className="workspace-context-select">
+          <Icon name="folder" size={15} />
+          <select aria-label="Current project" value={projectId} onChange={(event) => selectProject(event.target.value)}>
+            {projects && projects.length === 0 && <option value="">No projects yet</option>}
+            {projects && projects.length > 0 && !projectId && <option value="">Choose a project</option>}
+            {projects?.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+        </label>
+      </div>
+      <span className="workspace-context-divider" aria-hidden="true" />
+      <div className="workspace-context-main workspace-context-domain">
+        <span className="workspace-context-kicker">ACTIVE DOMAIN</span>
+        <label className="workspace-context-select">
+          <Icon name="table" size={15} />
+          <select aria-label="Active sub-domain" value={domainId} onChange={(event) => selectDomain(event.target.value)} disabled={!project?.domains.length}>
+            {!project?.domains.length && <option value="">{projectId ? "Create a sub-domain to query" : "Choose a project first"}</option>}
+            {project?.domains.map((domain) => <option key={domain.id} value={domain.id}>{domain.name}</option>)}
+          </select>
+        </label>
+      </div>
+      <div className="workspace-context-actions">
+        <span className="workspace-context-status"><span className="workspace-context-status-dot" /> Project workspace</span>
+        <button type="button" className="workspace-context-create" onClick={() => onNavigate(`${DOMAINS_PATH}${projectId ? `?project=${encodeURIComponent(projectId)}` : ""}`)}>
+          <Icon name="plus" size={13} /> Manage domains
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function useWorkspaceProjects(refreshKey: string) {
+  const [state, setState] = useState<{ projects: ProjectSummary[] | null; failed: boolean }>({ projects: null, failed: false });
+  useEffect(() => {
+    let active = true;
+    listProjects()
+      .then((projects) => {
+        if (active) setState({ projects, failed: false });
+      })
+      .catch(() => {
+        if (active) setState({ projects: null, failed: true });
+      });
+    return () => {
+      active = false;
+    };
+  }, [refreshKey]);
+  return state;
+}
+
+function WorkspaceGate({
+  projects,
+  failed,
+  onSelectProject,
+  onProjectCreated,
+}: {
+  projects: ProjectSummary[] | null;
+  failed: boolean;
+  onSelectProject: (projectId: string) => void;
+  onProjectCreated: (projectId: string, domainId: string) => void;
+}) {
+  const [creating, setCreating] = useState(false);
+
+  if (failed) {
+    return <section className="workspace-gate"><p className="metadata-alert" role="alert">Unable to load projects. Check the API connection and reload the page.</p></section>;
+  }
+  if (!projects) {
+    return <section className="workspace-gate"><p className="metadata-message">Loading projects…</p></section>;
+  }
+  if (projects.length === 0 || creating) {
+    return (
+      <section className="workspace-gate">
+        <ProjectOnboarding onCompleted={onProjectCreated} onCancel={projects.length ? () => setCreating(false) : undefined} />
+      </section>
+    );
+  }
+  return (
+    <section className="workspace-gate">
+      <div className="workspace-gate-head">
+        <div>
+          <span className="section-kicker">CHOOSE A PROJECT</span>
+          <h2>Open a project workspace</h2>
+          <p>Playground, domains, and custom functions all run inside one project.</p>
+        </div>
+        <button className="button primary" type="button" onClick={() => setCreating(true)}><Icon name="plus" size={14} /> Create project</button>
+      </div>
+      <div className="workspace-gate-grid">
+        {projects.map((item) => (
+          <button key={item.id} type="button" className="workspace-gate-card" onClick={() => onSelectProject(item.id)}>
+            <Icon name="folder" size={18} />
+            <strong>{item.name}</strong>
+            <small>{item.dbConnectionProfile || "No connection profile"}</small>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function WorkspaceNavigation({
+  page,
+  onNavigate,
+}: {
+  page: Page | null;
+  onNavigate: (path: string) => void;
+}) {
+  const location = useLocation();
+  if (!page || page === "home" || page === "documentation") return null;
+
+  const projectId = builderProjectIdOf(location.pathname) || new URLSearchParams(location.search).get("project");
+  const domainId = new URLSearchParams(location.search).get("domain");
+  const withProject = (path: string, includeDomain = false) => {
+    const params = new URLSearchParams();
+    if (projectId) params.set("project", projectId);
+    if (includeDomain && domainId) params.set("domain", domainId);
+    const query = params.toString();
+    return query ? `${path}?${query}` : path;
+  };
+  const builderLink = projectId ? builderPath(projectId, domainId ?? "") : WORKSPACE_PATH;
+  const items = [
+    {
+      group: "BUILD",
+      links: [
+        { label: "Overview", hint: "Project health", icon: "folder", path: withProject(DOMAINS_PATH) },
+        { label: "Playground", hint: "Run OQuery", icon: "play", path: builderLink, active: page === "builder" },
+        { label: "Queries", hint: "Saved requests", icon: "file-text", path: builderLink, active: page === "builder" },
+      ],
+    },
+    {
+      group: "DOMAIN STUDIO",
+      links: [
+        { label: "Full domain", hint: "Entities and relations", icon: "schema", path: withProject(DOMAINS_PATH), active: page === "metadata" && location.pathname === DOMAINS_PATH },
+        { label: "Schema diagram", hint: "Visual map", icon: "schema", path: withProject(DIAGRAMS_PATH), active: page === "metadata" && location.pathname === DIAGRAMS_PATH },
+        { label: "Database explorer", hint: "Source tables", icon: "database", path: withProject(DATABASE_EXPLORER_PATH), active: page === "metadata" && location.pathname === DATABASE_EXPLORER_PATH },
+      ],
+    },
+    {
+      group: "EXTEND",
+      links: [
+        { label: "Custom functions", hint: "Business vocabulary", icon: "function", path: PAGE_PATHS.functions, active: page === "functions" },
+        { label: "Security", hint: "Policies and controls", icon: "sliders", path: PAGE_PATHS.security, active: page === "security" },
+      ],
+    },
+  ] as const;
+
+  return (
+    <nav className="workspace-navigation" aria-label="Project workspace">
+      {items.map((section) => (
+        <div className="workspace-navigation-group" key={section.group}>
+          <span className="workspace-navigation-label">{section.group}</span>
+          <div className="workspace-navigation-links">
+            {section.links.map((item) => (
+              <button
+                type="button"
+                key={item.label}
+                className={`workspace-navigation-link${item.active ? " active" : ""}`}
+                aria-current={item.active ? "page" : undefined}
+                onClick={() => onNavigate(item.path)}
+              >
+                <Icon name={item.icon} size={15} />
+                <span><strong>{item.label}</strong><small>{item.hint}</small></span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+function SecurityPage() {
+  const controls = [
+    {
+      title: "Access policies",
+      description: "Define who can use a project and which domains each role can query.",
+      status: "Design ready",
+      icon: "sliders",
+      tone: "purple",
+    },
+    {
+      title: "Query limits",
+      description: "Set row limits, execution timeouts, and allowed query operations.",
+      status: "Coming next",
+      icon: "schema",
+      tone: "blue",
+    },
+    {
+      title: "Audit log",
+      description: "Review query activity and policy decisions for this project.",
+      status: "Coming next",
+      icon: "chart-line",
+      tone: "green",
+    },
+  ] as const;
+
+  return (
+    <section className="security-page">
+      <header className="page-heading security-heading">
+        <div>
+          <span className="eyebrow">PROJECT SECURITY</span>
+          <h1>Security and access</h1>
+          <p>Keep authorization close to the project and domain that it protects.</p>
+        </div>
+        <span className="security-preview-badge">UI preview</span>
+      </header>
+      <div className="security-intro">
+        <div className="security-intro-mark"><Icon name="sliders" size={22} /></div>
+        <div>
+          <strong>One policy boundary for every query</strong>
+          <p>Policies will be evaluated after the project, domain, and query metadata are resolved—before SQL is generated.</p>
+        </div>
+        <button type="button" className="button primary" disabled><Icon name="plus" size={14} /> Create policy</button>
+      </div>
+      <div className="security-grid">
+        {controls.map((control) => (
+          <article className={`security-card security-card-${control.tone}`} key={control.title}>
+            <div className="security-card-icon"><Icon name={control.icon} size={18} /></div>
+            <span className="security-card-status">{control.status}</span>
+            <h2>{control.title}</h2>
+            <p>{control.description}</p>
+            <button type="button" className="security-card-link" disabled>Configure <span aria-hidden="true">→</span></button>
+          </article>
+        ))}
+      </div>
+      <div className="security-scope">
+        <div>
+          <span className="section-kicker">RECOMMENDED SCOPE</span>
+          <h2>Start with project access, then narrow by domain</h2>
+          <p>A project is the trust boundary. Sub-domains are the safe surface that users and applications query.</p>
+        </div>
+        <div className="security-scope-flow">
+          <span>Project</span><b>→</b><span>Sub-domain</span><b>→</b><span>Query</span>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -273,6 +608,11 @@ function App() {
   const routerNavigate = useNavigate();
   const database = useSelector((state: RootState) => state.database);
   const page = pageForPath(location.pathname);
+  const workspaceProjects = useWorkspaceProjects(`${location.pathname}${location.search}`);
+  const workspaceProjectId = builderProjectIdOf(location.pathname) || new URLSearchParams(location.search).get("project") || "";
+  const workspaceNeedsProject = page === "builder" || page === "metadata" || page === "functions" || page === "security";
+  const showWorkspaceGate = workspaceNeedsProject
+    && !workspaceProjects.projects?.some((item) => item.id === workspaceProjectId);
   const [metadataVisited, setMetadataVisited] = useState(() => location.pathname === PAGE_PATHS.metadata || pageForPath(location.pathname) === "metadata");
   const [functionDefinitionsVisited, setFunctionDefinitionsVisited] = useState(() => location.pathname === PAGE_PATHS.functions);
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
@@ -288,7 +628,7 @@ function App() {
     metadataNavigationGuard.current = guard;
   }, []);
   const updateMetadataSectionNavigation = useCallback((handler: ((section: MetadataSection) => void) | null) => {
-    metadataSectionNavigation.current = handler ?? undefined;
+    metadataSectionNavigation.current = handler;
   }, []);
   const updateFunctionNavigationGuard = useCallback((guard: NavigationGuard | null) => {
     functionNavigationGuard.current = guard;
@@ -347,8 +687,7 @@ function App() {
   }, [location.pathname]);
   useEffect(() => {
     if (page !== "metadata"
-      || location.pathname === PAGE_PATHS.metadata
-      || parseWizardRoute(location.pathname)) return;
+      || location.pathname === PAGE_PATHS.metadata) return;
     window.sessionStorage.setItem(
       METADATA_LAST_ROUTE_STORAGE_KEY,
       `${location.pathname}${location.search}${location.hash}`,
@@ -357,13 +696,20 @@ function App() {
 
   const requestDatabaseConnection = useCallback(() => setConnectionDialogOpen(true), []);
   const navigateToBuilderDomain = useCallback(
-    (domainId: string, requestName?: string) => {
-      const params = new URLSearchParams({ domain: domainId });
+    (projectId: string, domainId: string, requestName?: string) => {
+      const params = new URLSearchParams();
+      if (domainId) params.set("domain", domainId);
       if (requestName) params.set("request", requestName);
-      routerNavigate(`${PAGE_PATHS.builder}?${params.toString()}`);
+      const query = params.toString();
+      routerNavigate(`${builderPath(projectId)}${query ? `?${query}` : ""}`);
     },
     [routerNavigate],
   );
+
+  useEffect(() => {
+    const projectId = builderProjectIdOf(location.pathname);
+    if (projectId) window.sessionStorage.setItem(LAST_BUILDER_PROJECT_STORAGE_KEY, projectId);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!connectionDialogOpen) return;
@@ -377,8 +723,9 @@ function App() {
   const navigateToPage = (nextPage: Page, fromHome = false, metadataPath?: string) => {
     if (nextPage === page && !(nextPage === "builder" && fromHome) && !(nextPage === "metadata" && metadataPath)) return;
     const rememberedMetadataRoute = window.sessionStorage.getItem(METADATA_LAST_ROUTE_STORAGE_KEY);
-    const destination = nextPage === "builder" && fromHome
-      ? `${PAGE_PATHS.builder}?from=home`
+    const lastBuilderProject = window.sessionStorage.getItem(LAST_BUILDER_PROJECT_STORAGE_KEY) ?? "";
+    const destination = nextPage === "builder"
+      ? (lastBuilderProject ? builderPath(lastBuilderProject, "", fromHome ? "home" : "") : WORKSPACE_PATH)
       : nextPage === "metadata"
         ? metadataPath ?? (rememberedMetadataRoute?.startsWith(`${PAGE_PATHS.metadata}/`)
           ? rememberedMetadataRoute
@@ -418,16 +765,17 @@ function App() {
     else continueNavigation();
   }, [blocker, page]);
 
+  const navigateWorkspace = useCallback((path: string) => routerNavigate(path), [routerNavigate]);
+
   return (
-    <main className="app-shell">
+    <main className={`app-shell${page === "home" ? " home-shell" : " workspace-shell"}`}>
       <header className="topbar">
         <div className="header-brand-group">
           <button className="brand" type="button" aria-label="Open Query home" onClick={() => navigateToPage("home")}><img className="brand-logo" src="/brand-concepts/23-oquery-orbit-core.svg" alt="" /></button>
           <span className="header-product-tag">DATA QUERY ENGINE</span>
         </div>
-        <div className="topnav-wrap">
-          <span className="topnav-label">WORKSPACE</span>
-          <nav className="topnav" aria-label="Primary navigation"><button className={page === "metadata" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("metadata")}><Icon name="schema" /> Metadata</button><button className={page === "builder" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("builder")}><Icon name="query" /> Playground</button><button className={page === "functions" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("functions")}><Icon name="function" /> Function definitions</button><button className={page === "documentation" ? "nav-item active" : "nav-item"} onClick={() => navigateToPage("documentation")}><Icon name="file-text" /> Docs</button></nav>
+        <div className="topbar-workspace-context">
+          <WorkspaceContextBar page={page} projects={workspaceProjects.projects} onNavigate={navigateWorkspace} />
         </div>
         <div className="top-actions">
           {database.providerCheckStatus === "loading" ? (
@@ -465,6 +813,7 @@ function App() {
         </div>
       </header>
 
+      <WorkspaceNavigation page={page} onNavigate={navigateWorkspace} />
       <PageSubnav
         page={page}
         onNavigateToPage={navigateToPage}
@@ -479,22 +828,33 @@ function App() {
           metadataSectionNavigation.current(section);
           return;
           }
-          routerNavigate(section === "domains" ? DOMAINS_PATH : section === "entities" ? ENTITIES_PATH : DIAGRAMS_PATH);
+          routerNavigate(section === "domains" ? DOMAINS_PATH : DIAGRAMS_PATH);
         }}
       />
       <div className="page-content">
+        {showWorkspaceGate && (
+          <WorkspaceGate
+            projects={workspaceProjects.projects}
+            failed={workspaceProjects.failed}
+            onSelectProject={(projectId) => navigateWorkspace(page === "builder"
+              ? builderPath(projectId)
+              : `${location.pathname}?${new URLSearchParams({ project: projectId }).toString()}`)}
+            onProjectCreated={(projectId, domainId) => navigateWorkspace(`${DOMAINS_PATH}?${new URLSearchParams({ project: projectId, domain: domainId }).toString()}`)}
+          />
+        )}
         <Routes>
           <Route path={PAGE_PATHS.home} element={<div className="page-transition page-transition-no-slide"><Home onNavigateToPage={navigateToPage} onBuilderDomainSelect={navigateToBuilderDomain} onRequestConnection={requestDatabaseConnection} /></div>} />
           <Route path={PAGE_PATHS.documentation} element={<div className="page-transition page-transition-no-slide"><Documentation /></div>} />
           <Route path={PAGE_PATHS.builder} element={null} />
+          <Route path={LEGACY_BUILDER_PATH} element={<LegacyQueryBuilderRedirect />} />
+          <Route path={WORKSPACE_PATH} element={<div className="page-transition page-transition-no-slide"><WorkspacePage /></div>} />
+          <Route path={PROJECT_CREATE_PATH} element={<div className="page-transition page-transition-no-slide"><CreateProjectPage /></div>} />
           <Route path={PAGE_PATHS.metadata} element={null} />
           <Route path={DOMAINS_PATH} element={null} />
           <Route path={DIAGRAMS_PATH} element={null} />
-          {WIZARD_ROUTE_PATHS.map((path) => <Route key={path} path={path} element={null} />)}
-          <Route path={ENTITIES_PATH} element={null} />
-          <Route path={`${ENTITIES_PATH}/:domainId`} element={null} />
           <Route path={DATABASE_EXPLORER_PATH} element={null} />
           <Route path={PAGE_PATHS.functions} element={null} />
+          <Route path={PAGE_PATHS.security} element={showWorkspaceGate ? null : <div className="page-transition page-transition-no-slide"><SecurityPage /></div>} />
           <Route path={LEGACY_FUNCTIONS_PATH} element={<Navigate to={PAGE_PATHS.functions} replace />} />
           <Route path={PAGE_PATHS.sources} element={<div className="page-transition page-transition-no-slide"><DataSources onRequestConnection={requestDatabaseConnection} /></div>} />
           <Route path={ADMIN_PATH} element={<div className="page-transition page-transition-no-slide"><AdminAnalytics /></div>} />
@@ -533,17 +893,18 @@ function App() {
         </div>,
         document.body,
       )}
-      {page === "builder" && <QueryBuilder
+      {page === "builder" && !showWorkspaceGate && <QueryBuilder
         key={new URLSearchParams(location.search).get("domain") || "query-builder"}
+        routeProjectId={builderProjectIdOf(location.pathname)}
         onRequestConnection={requestDatabaseConnection}
         onNavigationGuardChange={updateBuilderNavigationGuard}
         onBackToHome={new URLSearchParams(location.search).get("from") === "home"
           ? () => navigateToPage("home")
           : undefined}
       />}
-      {metadataVisited && page === "metadata" && location.pathname !== DATABASE_EXPLORER_PATH && <div className="page-transition page-transition-no-slide"><MetadataBuilder onNavigationGuardChange={updateMetadataNavigationGuard} onSectionNavigationChange={updateMetadataSectionNavigation} /></div>}
-      {metadataVisited && page === "metadata" && location.pathname === DATABASE_EXPLORER_PATH && <DataSources onRequestConnection={requestDatabaseConnection} />}
-      {functionDefinitionsVisited && <div hidden={page !== "functions"} className={page === "functions" ? "page-transition page-transition-no-slide" : undefined}>
+      {metadataVisited && page === "metadata" && !showWorkspaceGate && location.pathname !== DATABASE_EXPLORER_PATH && <div className="page-transition page-transition-no-slide"><MetadataBuilder onNavigationGuardChange={updateMetadataNavigationGuard} onSectionNavigationChange={updateMetadataSectionNavigation} /></div>}
+      {metadataVisited && page === "metadata" && !showWorkspaceGate && location.pathname === DATABASE_EXPLORER_PATH && <DataSources onRequestConnection={requestDatabaseConnection} />}
+      {functionDefinitionsVisited && !showWorkspaceGate && <div hidden={page !== "functions"} className={page === "functions" ? "page-transition page-transition-no-slide" : undefined}>
         <FunctionDefinitionsWorkspace onNavigationGuardChange={updateFunctionNavigationGuard} />
       </div>}
       </div>
@@ -564,7 +925,9 @@ function App() {
   );
 }
 
-const router = createBrowserRouter([{ path: "*", element: <App /> }], { basename: new URL(document.baseURI).pathname.replace(/\/$/, "") });
+// Without a host-provided <base href>, document.baseURI is the current deep link, which would hide the route.
+const routerBasename = document.querySelector("base") ? new URL(document.baseURI).pathname.replace(/\/$/, "") : "";
+const router = createBrowserRouter([{ path: "*", element: <App /> }], { basename: routerBasename });
 
 createRoot(document.getElementById("root")!).render(
   <Provider store={store}>

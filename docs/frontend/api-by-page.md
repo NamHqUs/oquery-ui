@@ -27,28 +27,31 @@ Shared transport: `src/services/api-client.ts` (`requestJson`).
 
 | Service | Owns (fetch + validate + cache) | Invalidation |
 | --- | --- | --- |
-| `DomainService` | `DomainName` list, full `DomainDetails`, domain CRUD | Details cached by ID; list reconciled with details. |
+| `ProjectService` (`project-service.ts`) | Project list and CRUD, FullDomain generate/read, sub-domain CRUD and the resolved `DomainDetails` per project and sub-domain | Resolved details cached per project and sub-domain; list reconciled with details. |
 | `DbSchemaService` | Database schema and table previews | `invalidateSchema()` on connect/disconnect. |
-| `FunctionDefinitionService` | Function definitions and create/update/delete | Cache cleared on every save/delete. |
-| `QueryService` | Saved-query requests per `domainId` (fetch, save, delete) | Per-domain entry cleared on save/delete. |
+| `FunctionDefinitionService` | Function definitions per project and create/update/delete | Per-project cache cleared on every save/delete. |
+| `QueryService` | Saved-query requests per project and sub-domain (fetch, save, delete) | Per-scope entry cleared on save/delete. |
 | `OQueryEditorService` | Orchestration only: dispatches the domain, function and saved-query adapters for the editor | None (delegates to the services above). |
 | `DatabaseConnectionService` | Connection options, provider check, connect and disconnect (validated) | Schema cache is invalidated on connect and disconnect. |
-| `DynamicQueryService` | Query execution, OQuery text execution, SQL and OQuery conversion | None (results are not cached). |
+| `DynamicQueryService` | Query execution, OQuery text execution, SQL and OQuery conversion (both `projectId` and `domainId` are sent) | None (results are not cached). |
 | `DataSourceService` | External datasource loading (`VITE_DATA_SOURCE_URL`) | None. |
 
 Duplicate protection (same for every service): a cached value is returned if
 present; a pending request is shared by all callers; a failed request clears
 the pending entry so the next call can retry.
 
-### Domain data
+### Project data
 
-Domain details are global application data and are loaded by ID on demand.
-`DomainService.listDomainNames()` supplies the lightweight selector list;
-`DomainService.getDomain(id)` supplies the source-of-truth detail.
+Project and sub-domain data are loaded on demand by ID. `ProjectService`
+(`project-service.ts`) lists projects (`listProjects()`) and sub-domain names
+(`listDomainNames(projectId)`). `getDomain(projectId, domainId)` returns the
+resolved sub-domain, with overrides applied, and is the source for the query
+editor and diagram.
 
-Metadata pages produce domain data through `DomainService`. Home and Query
-Builder consume it through `OQueryEditorService`. A component must not
-implement a second domain cache or resolve list/detail conflicts itself.
+Metadata pages produce project data through `ProjectService`. Home and Query
+Builder consume the resolved sub-domain through `OQueryEditorService`. A
+component must not implement a second project or domain cache or resolve
+list/detail conflicts itself.
 
 ### Database schema
 
@@ -77,24 +80,23 @@ and need no request.
 ```text
 Home / Query Builder
   -> OQueryEditorService
-     -> DomainService.getDomain(domainId)
-     -> FunctionDefinitionService.getDefinitions()
+     -> ProjectService.getDomain(projectId, domainId)
+     -> FunctionDefinitionService.getDefinitions(projectId)
 
 Query Builder saved-query bar
-  -> QueryService.getQueryRequests(domainId)
+  -> QueryService.fetchQueryRequestPayload(projectId, domainId)
 
-Query Builder domain selector
-  -> DomainService.listDomainNames()
+Query Builder project and sub-domain selector
+  -> ProjectService.listProjects()
+  -> ProjectService.listDomainNames(projectId)
 
-Metadata > Diagram / Entity Definition
-  -> DomainService.listDomainNames()
-  -> DomainService.getDomain(domainId)
-  -> DbSchemaService.getSchema()
-     // relation selection and database-table mapping
-  -> DomainService.create/update/delete(...)
-
-Metadata > Domains
-  -> DomainService.listDomainNames()
+Metadata > Projects (project, FullDomain, sub-domains)
+  -> ProjectService.listProjects()
+  -> ProjectService.getProject(projectId)
+  -> ProjectService.generateFullDomain(projectId) / getFullDomain(projectId)
+  -> ProjectService.createDomain/updateDomain/deleteDomain(...)
+  -> ProjectService.getDomain(projectId, domainId)   // diagram
+  -> DbSchemaService.getSchema()                       // FullDomain generation source
 
 Metadata > Database Explorer
   -> DbSchemaService.getSchema()
@@ -117,69 +119,82 @@ service and store its result; they must not contain `fetch` calls.
 
 ## Page API contract
 
-### Home (`/`)
+### Workspace (`/workspace`)
 
-Home does not load a domain-name list and does not call domain or function
-APIs directly. It uses `HomePage:DomainId` from `appsettings.json` (for
-example, `Sales_Domain`) through `OQueryEditorService`.
+Lists every saved project and opens the New project page. When no project
+exists, the page navigates directly to `/projects/create`.
 
 | Service call | Trigger | Purpose |
 | --- | --- | --- |
-| `OQueryEditorService` with configured domain ID | Page load | Provides the domain, functions, and operators required by the editor. |
+| `ProjectService.listProjects()` | Page load | Lists project IDs, names and descriptions. Ciphertext is never returned. |
 
-### Query Builder (`/query-builder`)
+### Create Project (`/projects/create`)
+
+Fields: project name (default `Default`, editable), description (default
+`the first project`, editable), DBMS (from `GET /db/connections`), and
+connection string. Connection strings are encrypted by the server with the
+configured `OQuery:Security:SecretKey` before they are saved.
+
+| Service call | Trigger | Purpose |
+| --- | --- | --- |
+| `GET /db/connections` via the database connection service | Page load | Fills the DBMS list from the dialects registered in DI. |
+| `ProjectService.testProjectConnection(provider, connectionString)` (`POST /metadata/projects/test-connection`) | Test Connection | Opens the connection and returns a success result or the error details. Nothing is saved. |
+| `ProjectService.createProjectFromDatabase(...)` (`POST /metadata/projects/from-database`) | Create Project | Creates the project, FullDomain and `Main` domain in one server call, then navigates to `/projects/{projectId}`. |
+
+Any failure (validation, connection, schema load, or write) keeps the user on
+this page and shows the server's error details. The server removes any partly
+written project folder before it responds.
+
+### Project Detail (`/projects/{projectId}?domain={domainId}`)
+
+This route replaces `/query-builder`, and the page content is unchanged. The
+old `/query-builder` URL redirects here. The project's `Main` domain
+(`domainId = main`) is the default sub-domain. Its queries use the same
+`/dynamic-query/*` and `/query-request*` APIs listed under Query Builder below.
+
+### Home (`/`)
+
+Home does not load a project list and does not call function APIs directly. It
+uses `VITE_HOME_PROJECT_ID` and `VITE_HOME_DOMAIN_ID` (the sub-domain) through
+`OQueryEditorService`. When either is unset, Home makes no metadata request.
+
+| Service call | Trigger | Purpose |
+| --- | --- | --- |
+| `OQueryEditorService` with configured project and sub-domain IDs | Page load | Provides the resolved sub-domain, functions, and operators required by the editor. |
+
+### Query Builder (`/projects/{projectId}?domain={domainId}`, formerly `/query-builder`)
 
 | Service call or API action | Trigger | Purpose |
 | --- | --- | --- |
-| `DomainService.listDomainNames()` | Domain selector load | Provides selector options. |
-| `OQueryEditorService` | Domain selection | Provides domain, functions, and operators. |
-| `QueryService` via `OQueryEditorService` (saved queries) | Saved-query panel load/revisit | Provides cached saved queries for the selected domain. |
-| `POST /dynamic-query/query?domainId={domainId}` | Structured query execution | Executes the current definition. |
-| `POST /dynamic-query/query/from-text?domainId={domainId}` | OQuery execution | Parses and executes text. |
-| `POST /dynamic-query/query/from-text/{context}?domainId={domainId}` | Context execution | Executes text for a selected context. |
-| `POST /dynamic-query/query/to-string` | SQL preview | Converts a definition to SQL. |
-| `POST /dynamic-query/query/to-string-from-text?domainId={domainId}` | Text SQL preview | Converts OQuery text to SQL. |
+| `ProjectService.listDomainNames(projectId)` | Sub-domain selector load | Provides selector options. |
+| `OQueryEditorService` | Sub-domain selection | Provides the resolved sub-domain, functions, and operators. |
+| `QueryService` via `OQueryEditorService` (saved queries) | Saved-query panel load/revisit | Provides cached saved queries for the selected project and sub-domain. |
+| `POST /dynamic-query/query?projectId={projectId}&domainId={domainId}` | Structured query execution | Executes the current definition. |
+| `POST /dynamic-query/query/from-text?projectId={projectId}&domainId={domainId}` | OQuery execution | Parses and executes text. |
+| `POST /dynamic-query/query/from-text/{context}?projectId={projectId}&domainId={domainId}` | Context execution | Executes text for a selected context. |
+| `POST /dynamic-query/query/to-string?projectId={projectId}&domainId={domainId}` | SQL preview | Converts a definition to SQL. |
+| `POST /dynamic-query/query/to-string-from-text?projectId={projectId}&domainId={domainId}` | Text SQL preview | Converts OQuery text to SQL. |
 | `POST /dynamic-query/query/to-oquery` | OQuery conversion | Converts a definition to OQuery text. |
 | `POST /dynamic-query/query/from-oquery` | OQuery loading | Converts OQuery text to a definition. |
-| `QueryService.fetch/save/delete(...)` | Saved-query load and mutation | Fetches, saves and deletes through the service; per-domain cache updated on save/delete. |
+| `QueryService.fetch/save/delete(...)` | Saved-query load and mutation | Fetches, saves and deletes through the service; per-scope cache updated on save/delete. |
 
 `QueryService` owns the underlying `/query-request*` API and caches requests
-by domain. Query Builder must not directly call
-`GET /query-request?domainId={domainId}`.
+by project and sub-domain. Query Builder must not directly call
+`GET /query-request?projectId={projectId}&domainId={domainId}`.
 
-### Metadata: Diagram (`/metadata/diagrams`)
+### Metadata: Projects (`/metadata`)
 
-| Service call | Trigger | Purpose |
-| --- | --- | --- |
-| `DomainService.listDomainNames()` | Page load | Provides domain selector/group names. |
-| `DomainService.getDomain(domainId)` | Domain resolved/changed | Loads the selected domain detail. |
-| `DbSchemaService.getSchema()` | Schema or relation logic needed | Provides tables and relationships. |
-| `DomainService.create/update/delete(...)` | Metadata mutation | Persists changes and reconciles domain caches. |
-
-### Metadata: Entity Definition
-
-Routes:
-
-- `/metadata/entities`
-- `/metadata/entities/{domainId}`
-- `/metadata/entities/create`
-- `/metadata/entities/edit/{domainId}`
-
-Uses `DomainService.listDomainNames()`, `DomainService.getDomain(id)`,
-`DbSchemaService.getSchema()` for table/relation selection, and
-`DomainService.create/update(...)` for persistence.
-
-### Metadata: Domains (`/metadata/domains`)
-
-The initial list requires only `DomainService.listDomainNames()`. Detail and
-schema data are loaded only for an explicit detail/edit workflow.
+The initial list requires only `ProjectService.listProjects()`. Project detail,
+sub-domain detail and the FullDomain are loaded only for the selected project.
 
 | Service call | Trigger | Purpose |
 | --- | --- | --- |
-| `DomainService.listDomainNames()` | Page load | Lists domain IDs, names, and descriptions. |
-| `DomainService.getDomain(id)` | Detail/edit workflow | Loads full domain details. |
-| `DbSchemaService.getSchema()` | Database-backed editing | Provides tables and relationships. |
-| `DomainService.create/generate/update/delete(...)` | Domain mutation | Persists changes and reconciles caches. |
+| `ProjectService.listProjects()` | Page load | Lists project IDs, names and descriptions. |
+| `ProjectService.getProject(id)` | Project selected | Loads the project and its sub-domain configuration. |
+| `ProjectService.generateFullDomain(id)` / `getFullDomain(id)` | Full domain panel | Generates or reads the FullDomain. |
+| `ProjectService.createDomain/updateDomain/deleteDomain(...)` | Sub-domain mutation | Persists the sub-domain and reconciles caches. |
+| `ProjectService.getDomain(projectId, domainId)` | Diagram / query builder | Loads the resolved sub-domain. |
+| `DbSchemaService.getSchema()` | Database-backed editing | Provides tables and relationships for the FullDomain generate action. |
 
 ### Metadata: Database Explorer (`/metadata/explorer`)
 
@@ -208,8 +223,8 @@ No page-specific API request. The global provider check still runs.
 | --- | --- |
 | `/db/connections*`, `/db/connection`, `/db/disconnect` | Database connection flow and application shell |
 | `/db/schema`, `/db/data/*` | `DbSchemaService` |
-| `/metadata/domains*` | `DomainService` |
-| `/metadata/functions*` | `FunctionDefinitionService` |
+| `/metadata/projects*` (projects, FullDomain, sub-domains, functions) | `ProjectService`, `FunctionDefinitionService` |
+| `/metadata/projects/test-connection`, `/metadata/projects/from-database` | `ProjectService` (Create Project page) |
 | `/dynamic-query/*` | `OQueryEditorService` |
 | `/query-request*` | `QueryService` |
 

@@ -13,8 +13,9 @@ public sealed class DynamicQueryController(
     [HttpPost("to-string")]
     public IActionResult GetSqlQueryString(
         [FromBody] QueryDefinition query,
+        [FromQuery] string projectId,
         [FromQuery] string domainId)
-        => Content(dynamicQueryService.GetSqlQueryString(query, domainId), "text/plain");
+        => Content(dynamicQueryService.GetSqlQueryString(query, projectId, domainId), "text/plain");
 
     [HttpPost("to-oquery")]
     public IActionResult GetQueryRequestString([FromBody] QueryDefinition query)
@@ -32,52 +33,57 @@ public sealed class DynamicQueryController(
     [HttpPost]
     public async Task<IActionResult> ExecuteQuery(
         [FromBody] QueryDefinition query,
+        [FromQuery] string projectId,
         [FromQuery] string domainId,
         CancellationToken cancellationToken)
-        => Ok(await dynamicQueryService.ExecuteQueryAsync(query, domainId, cancellationToken));
+        => Ok(await dynamicQueryService.ExecuteQueryAsync(query, projectId, domainId, cancellationToken));
 
     [HttpPost("to-string-from-text")]
     public async Task<IActionResult> GetSqlQueryStringFromText(
+        [FromQuery] string projectId,
         [FromQuery] string domainId,
         CancellationToken cancellationToken)
     {
         using var reader = new StreamReader(Request.Body, Encoding.UTF8);
         var text = await reader.ReadToEndAsync(cancellationToken);
         var query = dynamicQueryService.ParseQueryRequestString(text);
-        return Content(dynamicQueryService.GetSqlQueryString(query, domainId), "text/plain");
+        return Content(dynamicQueryService.GetSqlQueryString(query, projectId, domainId), "text/plain");
     }
 
     [HttpPost("to-string-from-text/{contextName}")]
     public async Task<IActionResult> GetContextSqlQueryStringFromText(
         [FromRoute] string contextName,
+        [FromQuery] string projectId,
         [FromQuery] string domainId,
         CancellationToken cancellationToken)
     {
         using var reader = new StreamReader(Request.Body, Encoding.UTF8);
         var text = await reader.ReadToEndAsync(cancellationToken);
-        return Content(dynamicQueryService.GetContextSqlQueryString(text, contextName, domainId), "text/plain");
+        return Content(dynamicQueryService.GetContextSqlQueryString(text, contextName, projectId, domainId), "text/plain");
     }
 
     [HttpPost("from-text")]
     public async Task<IActionResult> ExecuteQueryFromText(
+        [FromQuery] string projectId,
         [FromQuery] string domainId,
         CancellationToken cancellationToken)
     {
         using var reader = new StreamReader(Request.Body, Encoding.UTF8);
         var text = await reader.ReadToEndAsync(cancellationToken);
         var query = dynamicQueryService.ParseQueryRequestString(text);
-        return Ok(await dynamicQueryService.ExecuteQueryAsync(query, domainId, cancellationToken));
+        return Ok(await dynamicQueryService.ExecuteQueryAsync(query, projectId, domainId, cancellationToken));
     }
 
     [HttpPost("from-text/{contextName}")]
     public async Task<IActionResult> ExecuteContextFromText(
         [FromRoute] string contextName,
+        [FromQuery] string projectId,
         [FromQuery] string domainId,
         CancellationToken cancellationToken)
     {
         using var reader = new StreamReader(Request.Body, Encoding.UTF8);
         var text = await reader.ReadToEndAsync(cancellationToken);
-        return Ok(await dynamicQueryService.ExecuteContextQueryAsync(text, contextName, domainId, cancellationToken));
+        return Ok(await dynamicQueryService.ExecuteContextQueryAsync(text, contextName, projectId, domainId, cancellationToken));
     }
 
 

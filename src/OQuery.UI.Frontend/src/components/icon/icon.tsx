@@ -27,6 +27,8 @@ const paths = {
   sqlserver: <><ellipse cx="12" cy="5" rx="8" ry="3" /><path d="M4 5v4c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 9v5c0 1.7 3.6 3 8 3s8-1.3 8-3V9M4 14v5c0 1.7 3.6 3 8 3s8-1.3 8-3v-5" /></>,
   sqlite: <><path d="M5 19c4-1 6-5 8-9 1-2 3-4 6-5-1 3-3 5-5 6-2 1-3 3-4 5-1 2-2 3-5 3Z" /><path d="m11 15 3-1m-1-3 3-1m-7 6-1 3" /></>,
   sliders: <><path d="M4 6h16M4 18h16M8 3v6M16 15v6" /><circle cx="8" cy="6" r="2" /><circle cx="16" cy="18" r="2" /></>,
+  eye: <><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>,
+  "eye-off": <><path d="M3 3l18 18M10.6 5.1A9.7 9.7 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a9.6 9.6 0 0 0 5.4-1.6" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></>,
   play: <path d="m8 5 11 7-11 7V5Z" fill="currentColor" stroke="none" />,
   code: <><path d="m9 7-5 5 5 5M15 7l5 5-5 5" /></>,
   chart: <><path d="M4 19V5M4 19h17" /><path d="m7 14 4-4 3 2 5-6" /><circle cx="7" cy="14" r="1" /><circle cx="11" cy="10" r="1" /><circle cx="14" cy="12" r="1" /><circle cx="19" cy="6" r="1" /></>,

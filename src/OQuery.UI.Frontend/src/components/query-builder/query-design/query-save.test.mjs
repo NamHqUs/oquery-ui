@@ -34,14 +34,15 @@ test("saving, reloading, and saving again preserve null and explicit joins", asy
       },
     });
     const payloads = [];
-    t.mock.method(globalThis, "fetch", async (_url, options) => {
+    t.mock.method(globalThis, "fetch", async (url, options) => {
       const payload = JSON.parse(options.body);
+      assert.equal(url, "/query-request?projectId=p1");
       payloads.push(payload);
       return new Response(JSON.stringify({ ...payload, id: "saved" }), {
         headers: { "Content-Type": "application/json" },
       });
     });
-    const save = (query) => saveQueryRequest({ name: "Saved joins", definition: query })(
+    const save = (query) => saveQueryRequest({ name: "Saved joins", projectId: "p1", domainId: "d1", definition: query })(
       () => {}, () => ({}), undefined,
     );
     const first = await save(definition);

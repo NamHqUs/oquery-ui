@@ -125,6 +125,16 @@
   color: #f0a6ae;
 }
 
+.connection-message.success {
+  color: #9be3b4;
+}
+
+.connection-message-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .connection-options-status {
   display: flex;
   min-height: 28px;

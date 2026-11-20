@@ -6,9 +6,9 @@ namespace OQuery.UI.Abstracts.Repositories;
 /// </summary>
 public interface IRepository<T>
 {
-    /// <summary>Returns built-in items (if this repository holds any) followed by the user's items.</summary>
-    IReadOnlyCollection<T> GetAll(string userSectionId);
-    T? Get(string userSectionId, string id);
-    void Save(string userSectionId, T item);
-    bool Delete(string userSectionId, string id);
+    /// <summary>Returns built-in items (if this repository holds any) followed by the user's items in the scope.</summary>
+    IReadOnlyCollection<T> GetAll(StorageScope scope);
+    T? Get(StorageScope scope, string id);
+    void Save(StorageScope scope, T item);
+    bool Delete(StorageScope scope, string id);
 }

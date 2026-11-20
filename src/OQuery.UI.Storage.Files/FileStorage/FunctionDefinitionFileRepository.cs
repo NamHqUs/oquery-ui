@@ -15,10 +15,10 @@ public sealed class FunctionDefinitionFileRepository(FilePathResolver filePathRe
 {
     private const string FOLDER_NAME = "functions";
 
-    public override IReadOnlyCollection<FunctionDefinitionDto> GetAll(string userSectionId)
+    public override IReadOnlyCollection<FunctionDefinitionDto> GetAll(StorageScope scope)
     {
         var merged = new Dictionary<string, FunctionDefinitionDto>(StringComparer.OrdinalIgnoreCase);
-        foreach (var path in GetDbTypeFolders(userSectionId).SelectMany(dir => Directory.EnumerateFiles(dir, "*.json")))
+        foreach (var path in GetDbTypeFolders(scope).SelectMany(dir => Directory.EnumerateFiles(dir, "*.json")))
         {
             var dto = JsonSerializer.Deserialize<FunctionDefinitionDto>(File.ReadAllText(path))
                 ?? throw new InvalidOperationException($"Failed to deserialize function definition from '{path}'.");
@@ -36,18 +36,18 @@ public sealed class FunctionDefinitionFileRepository(FilePathResolver filePathRe
         return merged.Values.ToArray();
     }
 
-    public override FunctionDefinitionDto? Get(string userSectionId, string id)
-        => GetAll(userSectionId).FirstOrDefault(definition =>
+    public override FunctionDefinitionDto? Get(StorageScope scope, string id)
+        => GetAll(scope).FirstOrDefault(definition =>
             string.Equals(definition.Name, id, StringComparison.OrdinalIgnoreCase));
 
-    public override void Save(string userSectionId, FunctionDefinitionDto definition)
+    public override void Save(StorageScope scope, FunctionDefinitionDto definition)
     {
-        Delete(userSectionId, definition.Name);
+        Delete(scope, definition.Name);
         var fileName = $"{GetFileId(definition.Name)}.json";
         foreach (var (dbType, template) in definition.SqlTemplates)
         {
             var dto = WithSingleTemplate(definition, dbType, template);
-            var dir = GetDbTypeFolder(userSectionId, dbType);
+            var dir = GetDbTypeFolder(scope, dbType);
             Directory.CreateDirectory(dir);
             File.WriteAllText(Path.Combine(dir, fileName), JsonSerializer.Serialize(
                 dto,
@@ -55,11 +55,11 @@ public sealed class FunctionDefinitionFileRepository(FilePathResolver filePathRe
         }
     }
 
-    public override bool Delete(string userSectionId, string id)
+    public override bool Delete(StorageScope scope, string id)
     {
         var fileName = $"{GetFileId(id)}.json";
         var deleted = false;
-        foreach (var path in GetDbTypeFolders(userSectionId).Select(dir => Path.Combine(dir, fileName)))
+        foreach (var path in GetDbTypeFolders(scope).Select(dir => Path.Combine(dir, fileName)))
         {
             if (!File.Exists(path))
                 continue;
@@ -69,16 +69,16 @@ public sealed class FunctionDefinitionFileRepository(FilePathResolver filePathRe
         return deleted;
     }
 
-    private string GetDbTypeFolder(string userSectionId, string dbType)
+    private string GetDbTypeFolder(StorageScope scope, string dbType)
     {
         if (string.IsNullOrWhiteSpace(dbType) || Path.GetFileName(dbType) != dbType)
             throw new ArgumentException("SQL template key is not a valid database folder name.", nameof(dbType));
-        return PathResolver.GetUserStoreFolder(userSectionId, Path.Combine(FOLDER_NAME, dbType));
+        return PathResolver.GetProjectStoreFolder(scope, Path.Combine(FOLDER_NAME, dbType));
     }
 
-    private IEnumerable<string> GetDbTypeFolders(string userSectionId)
+    private IEnumerable<string> GetDbTypeFolders(StorageScope scope)
     {
-        var root = PathResolver.GetUserStoreFolder(userSectionId, FOLDER_NAME);
+        var root = PathResolver.GetProjectStoreFolder(scope, FOLDER_NAME);
         return Directory.Exists(root) ? Directory.EnumerateDirectories(root) : Enumerable.Empty<string>();
     }
 

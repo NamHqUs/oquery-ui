@@ -4,5 +4,5 @@ namespace OQuery.UI.Abstracts.Repositories;
 
 public interface IQueryRequestRepository : IRepository<QueryRequestRecordDto>
 {
-    string CreateId(string userSectionId);
+    string CreateId(StorageScope scope);
 }

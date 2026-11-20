@@ -26,12 +26,9 @@ contain page state. Button visibility, disabled state, dirty state, and action
 handlers belong to the page that renders the buttons.
 
 Pages must not reuse another page's toolbar action component or action state.
-The Domains page renders only its **Create domain** toolbar action. The Diagram
-page owns its separate **Save domain**, **Delete domain**, **Reload domain**, and
-**Create domain** actions, with **Create domain** always rendered last. The
-domain creation wizard is a separate page unit and owns its own Cancel, Back,
-Next, and Generate metadata controls. Its actions must not be registered by or
-shared with the Domains or Diagram pages.
+The Projects page owns the **Create project** action and the project's
+sub-domain actions. The Diagram page owns its own **Reload domain** and
+sub-domain actions. Neither page shares action state with the other.
 
 The Data Sources page first loads the detected providers from
 `GET /db/connections`, then connects directly with `PUT /db/connection`
@@ -41,40 +38,37 @@ Connection strings are never returned to the frontend. The active database insta
 shared by all clients; `POST /db/disconnect` does not release or dispose it, so
 one client's disconnect cannot interrupt other clients.
 
-## Domain identity and routing
+## Project and sub-domain identity and routing
 
-Domain names are display labels only. Every domain lookup, metadata request,
-selection, edit flow, and URL route must use the persisted domain `id`; never
-use the display `name` as a domain identifier.
+Project and sub-domain names are display labels only. Every project lookup,
+metadata request, selection, edit flow, and URL route must use the persisted
+`id`; never use the display `name` as an identifier.
 
-The domain list endpoint returns both values:
-
-```json
-{ "id": "<domain-id>", "name": "HR" }
-```
-
-Use the `id` for API and route operations:
+A project owns one FullDomain (every entity, field and relation from the
+database schema) and any number of sub-domains. A sub-domain exposes a chosen
+set of FullDomain entities and may rename entities, fields and relations. The
+metadata API uses both IDs:
 
 ```text
-GET /metadata/domains/{domain-id}
-PUT /metadata/domains/{domain-id}
-/metadata?section=diagram&domain={domain-id}
+GET    /metadata/projects/{project-id}
+GET    /metadata/projects/{project-id}/domains/names
+GET    /metadata/projects/{project-id}/domains/{domain-id}
+GET    /metadata/projects/{project-id}/domains/{domain-id}/resolved
+/metadata?section=diagram&project={project-id}&domain={domain-id}
 ```
 
-The frontend may render `name` in domain bars, selectors, and headings, but it
-must resolve that display value back to the canonical `id` before retrieving
-metadata or navigating. This keeps domain names renameable without breaking
-domain identity or loading the wrong domain.
-Diagram first loads the domain names. If no domain is selected, or the current
-ID no longer exists, it selects the first returned domain before loading its
-graph. The last valid Diagram domain ID is retained in session storage and
-restored when returning to Diagram. Switching from Entity definitions to
-Diagram also retains the selected domain ID in the Diagram URL.
-The create-domain wizard does not resolve or load a Diagram domain.
-After creation, it returns to the page that opened the wizard; direct wizard
-navigation falls back to the Domains page.
-The main Metadata navigation remembers the last stable Metadata submenu route,
-including the selected Diagram domain, when returning from another main page.
+`resolved` returns the sub-domain metadata after overrides, which is what
+queries and the diagram use. The frontend may render names in bars, selectors and
+headings, but it must resolve them back to IDs before loading metadata or
+navigating.
+
+Diagram first loads the sub-domain names for the selected project. If no
+sub-domain is selected, or the current ID no longer exists, it selects the first
+returned sub-domain before loading its graph. The last valid project and
+sub-domain IDs are retained in session storage and restored when returning to
+Diagram.
+The project page shows the FullDomain read-only and owns the generate action.
+Sub-domain editing never changes physical columns, raw SQL or reference columns.
 
 After connecting, the Data View groups tables by schema, displays column and relationship metadata, and previews up to 10 rows. Schema and relationship metadata come from `GET /db/schema`; preview data comes from `GET /db/data/{tableName}` with `schema` and `limit=10` query parameters. The schema Diagram remains available as the metadata-builder view.
 
