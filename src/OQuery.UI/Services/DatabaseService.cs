@@ -1,15 +1,16 @@
 using OQuery;
 using OQuery.Database;
-using OQuery.UI.Api.Services.DbSchemaLoaders;
+using OQuery.UI.Services.DbSchemaLoaders;
 using OQuery.UI.Abstracts.Dto;
 using OQuery.UI.Abstracts.Services;
-using OQuery.UnitTest.Setup;
-using Microsoft.Extensions.Configuration;
+using OQuery.UI.Hosting;
+using OQuery.UI.Services;
+using Microsoft.Extensions.Options;
 using System.Data;
 
-namespace OQuery.UI.Api.Services;
+namespace OQuery.UI.Services;
 
-public class DatabaseService(IConfiguration configuration) : IDatabaseService, IDisposable
+public class DatabaseService(IOptions<OQueryOptions> options) : IDatabaseService, IDisposable
 {
     private readonly object _instanceLock = new();
     private DbSchemaLoader? _currentDbInstance;
@@ -22,8 +23,8 @@ public class DatabaseService(IConfiguration configuration) : IDatabaseService, I
             {
                 if (_currentDbInstance is null)
                 {
-                    var defaultProvider = configuration["OQuery:DbProvider:Provider"];
-                    var defaultConnectionString = configuration["OQuery:DbProvider:ConnectionString"];
+                    var defaultProvider = options.Value.DbProvider.Provider;
+                    var defaultConnectionString = options.Value.DbProvider.ConnectionString;
                     if (!string.IsNullOrWhiteSpace(defaultProvider) && !string.IsNullOrWhiteSpace(defaultConnectionString))
                         _currentDbInstance = CreateDbInstance(defaultProvider, defaultConnectionString);
                 }
@@ -85,18 +86,19 @@ public class DatabaseService(IConfiguration configuration) : IDatabaseService, I
             throw new ArgumentException("A connection string is required.", nameof(connectionString));
 
         var scriptFiles = GetInitializationScripts(provider);
-        var dbVersion = configuration["OQuery:Seeds:DBVersion"]
+        var dbVersion = options.Value.Seeds.DBVersion
             ?? throw new InvalidOperationException("OQuery:Seeds:DBVersion is required in the configuration.");
         return SqlDialectRegistry.CreateDbInstance(provider, connectionString, scriptFiles, dbVersion);
     }
 
     private string[] GetInitializationScripts(string provider)
     {
-        if (!configuration.GetValue<bool>("OQuery:Seeds:Enabled"))
+        var seeds = options.Value.Seeds;
+        if (!seeds.Enabled)
             return [];
 
-        var dataSets = configuration.GetSection("OQuery:Seeds:DataSets").Get<string[]>()
+        var dataSets = seeds.DataSets
             ?? throw new InvalidOperationException("OQuery:Seeds:DataSets is required in the configuration.");
-        return BuiltinDataLoader.GetScripts(configuration["OQuery:Seeds:BasePath"], dataSets, provider).ToArray();
+        return BuiltinDataLoader.GetScripts(seeds.BasePath, dataSets, provider).ToArray();
     }
 }

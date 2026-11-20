@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using OQuery;
 using OQuery.QueryDefinitions.Parsers;
 
-namespace OQuery.UI.Api.Services;
+namespace OQuery.UI.Services;
 
 public sealed class DynamicQueryService(
     IDbConnectionService dbConnectionService,

@@ -9,10 +9,10 @@ using OQuery.UnitTest.Setup;
 
 namespace OQuery.UnitTest.Setup.DbInstances;
 
-public sealed class SqliteDbInstance : DbInstance, IDisposable
+public class SqliteDbInstance : DbInstance, IDisposable
 {
 
-    private static readonly Regex MemoryDatabaseAttachment = new(
+    protected static readonly Regex MemoryDatabaseAttachment = new(
         """ATTACH\s+DATABASE\s+':memory:'\s+AS\s+(?<schema>"(?:""|[^"])+"|[A-Za-z_][A-Za-z0-9_]*)\s*;""",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 

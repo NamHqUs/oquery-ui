@@ -1,12 +1,11 @@
 ﻿using Npgsql;
 using System.Data;
-using OQuery.Database.Scripts;
 
 using OQuery.Database;
 
-namespace OQuery.UI.Api.Services.DbSchemaLoaders;
+namespace OQuery.UI.Services.DbSchemaLoaders;
 
-public class PostgresDbSchemaLoader(string connectionString, string[] scriptFiles, string dbVersion) : DbSchemaLoader("Postgres", connectionString, scriptFiles, dbVersion, new PostgresScriptSql())
+public class PostgresDbSchemaLoader(string connectionString, string[] initializationScripts) : DbSchemaLoader("Postgres", connectionString, initializationScripts, "\"", "\"")
 {
     protected override string SqlGetColumns => """
         SELECT

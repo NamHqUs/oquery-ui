@@ -1,7 +1,7 @@
 using System.Data;
 using OQuery.UI.Abstracts.Dto;
 using OQuery.UI.Abstracts.Services;
-using OQuery.UI.Api.Services;
+using OQuery.UI.Services;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;

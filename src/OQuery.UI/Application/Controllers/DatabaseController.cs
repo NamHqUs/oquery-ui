@@ -1,7 +1,9 @@
 using OQuery.UI.Abstracts.Services;
 using OQuery.UI.Abstracts.Dto;
 using OQuery.Database;
+using OQuery.UI.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using System.Data.Common;
 
 namespace OQuery.UI.Application.Controllers;
@@ -11,11 +13,9 @@ namespace OQuery.UI.Application.Controllers;
 public sealed class DatabaseController(
     IDatabaseService databaseService,
     IDbConnectionService connectionService,
-    IConfiguration configuration,
+    IOptions<OQueryOptions> options,
     ILogger<DatabaseController> logger) : ControllerBase
 {
-    private const string AllowDirectConnectionKey = "OQuery:DbProvider:AllowDirectConnection";
-
     [HttpGet("connections")]
     public ActionResult<DatabaseConnectionOptionsDto> GetConnections()
         => Ok(connectionService.GetConnectionOptions());
@@ -28,12 +28,12 @@ public sealed class DatabaseController(
     public ActionResult<DatabaseConnectionResponseDto> UpdateDbConnection(
         [FromBody] DatabaseConnectionRequestDto request)
     {
-        if (!configuration.GetValue(AllowDirectConnectionKey, true))
+        if (!options.Value.DbProvider.AllowDirectConnection)
         {
             return Problem(
                 statusCode: StatusCodes.Status403Forbidden,
                 title: "Direct database connection is disabled",
-                detail: $"Set '{AllowDirectConnectionKey}' to true to allow connecting to a new database.");
+                detail: "Set 'OQuery:DbProvider:AllowDirectConnection' to true to allow connecting to a new database.");
         }
 
         try

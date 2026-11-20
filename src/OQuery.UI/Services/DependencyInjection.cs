@@ -3,17 +3,16 @@ using OQuery.UI.Abstracts.Services;
 using OQuery.UI.Storage.Files;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace OQuery.UI.Api.Services;
+namespace OQuery.UI.Services;
 
 public static class DependencyInjection
 {
-    /// <summary>Registers the Domain, Query and Function repositories of the file provider.</summary>
-    public static IServiceCollection AddFileRepositories(this IServiceCollection services, FileRepositoryProvider provider)
+    /// <summary>Registers the Domain, Query and Function repositories from the <see cref="FileRepositoryProvider"/> singleton.</summary>
+    public static IServiceCollection AddFileRepositories(this IServiceCollection services)
     {
-        ArgumentNullException.ThrowIfNull(provider);
-        services.AddSingleton<IDomainRepository>(provider.Domains);
-        services.AddSingleton<IQueryRequestRepository>(provider.Queries);
-        services.AddSingleton<IFunctionDefinitionRepository>(provider.Functions);
+        services.AddSingleton<IDomainRepository>(sp => sp.GetRequiredService<FileRepositoryProvider>().Domains);
+        services.AddSingleton<IQueryRequestRepository>(sp => sp.GetRequiredService<FileRepositoryProvider>().Queries);
+        services.AddSingleton<IFunctionDefinitionRepository>(sp => sp.GetRequiredService<FileRepositoryProvider>().Functions);
         return services;
     }
 

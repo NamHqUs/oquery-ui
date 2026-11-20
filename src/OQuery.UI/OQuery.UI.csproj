@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<PlatformTarget>x64</PlatformTarget>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<IsPackable>true</IsPackable>
+		<PackageId>OQuery.UI</PackageId>
+		<Description>OQuery UI backend API and embedded frontend. Host it with AddOQuery / UseOQuery / UseOQueryUI.</Description>
+
+		<!-- Set BuildOQueryUI=true to build the React SPA (npm run build) and embed it as static resources.
+		     Off by default so backend-only builds do not require Node.js. -->
+		<BuildOQueryUI Condition="'$(BuildOQueryUI)' == ''">false</BuildOQueryUI>
+		<OQueryUIProjectDir>$(MSBuildThisFileDirectory)..\OQuery.UI.Frontend\</OQueryUIProjectDir>
+		<OQueryUIBuildDir>$(OQueryUIProjectDir)dist\</OQueryUIBuildDir>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(BuildOQueryUI)' == 'true'">
+		<GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Namh.Configuration.Template" />
+		<PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\OQuery.UI.Abstracts\OQuery.UI.Abstracts.csproj" />
+		<ProjectReference Include="..\OQuery.UI.Storage.Files\OQuery.UI.Storage.Files.csproj" />
+
+		<ProjectReference Include="..\..\oquery\src\OQuery.Core\OQuery.Core.csproj" />
+	</ItemGroup>
+
+	<!-- Build the frontend and embed its output under the "ui" manifest prefix. -->
+	<Target Name="BuildOQueryUIFrontend" BeforeTargets="PrepareForBuild" Condition="'$(BuildOQueryUI)' == 'true'">
+		<Exec WorkingDirectory="$(OQueryUIProjectDir)" Command="npm ci" Condition="!Exists('$(OQueryUIProjectDir)node_modules')" />
+		<Exec WorkingDirectory="$(OQueryUIProjectDir)" Command="npm run build" />
+	</Target>
+
+	<Target Name="IncludeOQueryUIAssets" BeforeTargets="PrepareForBuild" Condition="'$(BuildOQueryUI)' == 'true'" DependsOnTargets="BuildOQueryUIFrontend">
+		<ItemGroup>
+			<OQueryUIFile Include="$(OQueryUIBuildDir)**\*.*" />
+			<EmbeddedResource Include="@(OQueryUIFile)" LogicalName="ui/%(OQueryUIFile.RecursiveDir)%(OQueryUIFile.Filename)%(OQueryUIFile.Extension)" />
+		</ItemGroup>
+	</Target>
+
+</Project>

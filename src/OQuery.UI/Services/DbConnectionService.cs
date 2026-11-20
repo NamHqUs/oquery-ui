@@ -1,7 +1,7 @@
 using OQuery.UI.Abstracts.Services;
 using System.Data;
 
-namespace OQuery.UI.Api.Services;
+namespace OQuery.UI.Services;
 
 public sealed class DbConnectionService(DatabaseService dbService) : IDbConnectionService
 {
@@ -16,7 +16,7 @@ public sealed class DbConnectionService(DatabaseService dbService) : IDbConnecti
         ArgumentException.ThrowIfNullOrWhiteSpace(provider);
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
         if (!OQuery.Database.SqlDialectRegistry.RegisteredNames.Contains(provider, StringComparer.OrdinalIgnoreCase))
-            throw new ArgumentException($"Database provider '{provider}' is not available. Register its dialect in DialectModules.RegisterAll.", nameof(provider));
+            throw new ArgumentException($"Database provider '{provider}' is not available. Register its dialect with SqlDialectRegistry before use.", nameof(provider));
 
         dbService.Connect(provider, connectionString);
     }

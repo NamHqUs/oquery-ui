@@ -1,5 +1,5 @@
 using NUnit.Framework;
-using OQuery.UnitTest.Setup;
+using OQuery.UI.Services;
 
 namespace OQuery.UI.Api.UnitTest;
 

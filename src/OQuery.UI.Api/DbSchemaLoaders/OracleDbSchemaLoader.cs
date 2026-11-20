@@ -1,12 +1,11 @@
 using System.Data;
 using Oracle.ManagedDataAccess.Client;
-using OQuery.Database.Scripts;
 
 using OQuery.Database;
 
-namespace OQuery.UI.Api.Services.DbSchemaLoaders;
+namespace OQuery.UI.Services.DbSchemaLoaders;
 
-public sealed class OracleDbSchemaLoader(string connectionString, string[] scriptFiles, string dbVersion) : DbSchemaLoader("Oracle", connectionString, scriptFiles, dbVersion, new OracleScriptSql())
+public sealed class OracleDbSchemaLoader(string connectionString, string[] initializationScripts) : DbSchemaLoader("Oracle", connectionString, initializationScripts, "\"", "\"")
 {
     protected override string SqlGetColumns => """
         SELECT

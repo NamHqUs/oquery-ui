@@ -1,12 +1,11 @@
 ﻿using Microsoft.Data.SqlClient;
 using System.Data;
-using OQuery.Database.Scripts;
 
 using OQuery.Database;
 
-namespace OQuery.UI.Api.Services.DbSchemaLoaders;
+namespace OQuery.UI.Services.DbSchemaLoaders;
 
-public class SqlServerDbSchemaLoader(string connectionString, string[] scriptFiles, string dbVersion) : DbSchemaLoader("SqlServer", connectionString, scriptFiles, dbVersion, new SqlServerScriptSql())
+public class SqlServerDbSchemaLoader(string connectionString, string[] initializationScripts) : DbSchemaLoader("SqlServer", connectionString, initializationScripts, "[", "]")
 {
     protected override string SqlGetColumns => """
         SELECT

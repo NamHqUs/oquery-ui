@@ -5,7 +5,7 @@ using OQuery.UI.Abstracts.Services;
 using OQuery;
 using OQuery.Database;
 
-namespace OQuery.UI.Api.Services;
+namespace OQuery.UI.Services;
 
 public sealed class DomainService(
     IDomainRepository repository,

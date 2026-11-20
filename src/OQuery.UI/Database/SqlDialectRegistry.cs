@@ -1,4 +1,4 @@
-using OQuery.UI.Api.Services.DbSchemaLoaders;
+using OQuery.UI.Services.DbSchemaLoaders;
 
 namespace OQuery.Database;
 

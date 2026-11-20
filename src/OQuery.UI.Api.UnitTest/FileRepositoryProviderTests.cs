@@ -19,11 +19,8 @@ internal sealed class FileRepositoryProviderTests
     public void SetUp()
     {
         _root = Path.Combine(Path.GetTempPath(), "file-provider-" + Guid.NewGuid().ToString("N"));
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["OQuery:Repositories:Files:UserData"] = _root })
-            .Build();
         _provider = new FileRepositoryProvider(
-            new FilePathResolver(configuration),
+            new FilePathResolver(_root),
             [CreateDomain(BuiltinId, "Builtin", isBuiltin: true)],
             []);
     }

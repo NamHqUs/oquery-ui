@@ -564,7 +564,7 @@ function App() {
   );
 }
 
-const router = createBrowserRouter([{ path: "*", element: <App /> }]);
+const router = createBrowserRouter([{ path: "*", element: <App /> }], { basename: new URL(document.baseURI).pathname.replace(/\/$/, "") });
 
 createRoot(document.getElementById("root")!).render(
   <Provider store={store}>

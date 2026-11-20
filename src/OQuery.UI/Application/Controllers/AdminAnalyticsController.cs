@@ -1,13 +1,15 @@
-using Microsoft.AspNetCore.Mvc;
 using OQuery.UI.Abstracts.Repositories;
+using Microsoft.Extensions.Options;
 using OQuery.UI.Application.Analytics;
+using OQuery.UI.Hosting;
+using System.Diagnostics.CodeAnalysis;
 
 namespace OQuery.UI.Application.Controllers;
 
 [ApiController]
 [Route("analytics/admin")]
 [AdminToken]
-public sealed class AdminAnalyticsController(IServiceProvider services) : ControllerBase
+public sealed class AdminAnalyticsController(IServiceProvider services, IOptions<OQueryOptions> options) : ControllerBase
 {
     private const int DefaultRangeDays = 30;
     private const int MaxRangeDays = 366;
@@ -64,9 +66,9 @@ public sealed class AdminAnalyticsController(IServiceProvider services) : Contro
         return message is null;
     }
 
-    private bool TryGetRepository(out IAnalyticsRepository repository)
+    private bool TryGetRepository([NotNullWhen(true)] out IAnalyticsRepository? repository)
     {
-        repository = services.GetService<IAnalyticsRepository>()!;
+        repository = options.Value.Analytics.IsEnabled ? services.GetService<IAnalyticsRepository>() : null;
         return repository is not null;
     }
 

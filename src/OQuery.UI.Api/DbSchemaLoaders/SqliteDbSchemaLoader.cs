@@ -4,12 +4,11 @@ using System.Data.Common;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using OQuery.Database.Scripts;
 using OQuery.UI.Abstracts.Dto;
 
 using OQuery.Database;
 
-namespace OQuery.UI.Api.Services.DbSchemaLoaders;
+namespace OQuery.UI.Services.DbSchemaLoaders;
 
 public sealed class SqliteDbSchemaLoader : DbSchemaLoader, IDisposable
 {
@@ -25,16 +24,13 @@ public sealed class SqliteDbSchemaLoader : DbSchemaLoader, IDisposable
     private bool InMemory => _inMemory ??= ConnectionString.Contains(":memory:");
     private SqliteConnection? _keepAliveConnection;
 
-    public SqliteDbSchemaLoader(string connectionString, string[] scriptFiles, string dbVersion)
-        : base("Sqlite", NormalizeConnectionString(connectionString), scriptFiles, dbVersion, new SqliteScriptSql())
+    public SqliteDbSchemaLoader(string connectionString, string[] initializationScripts)
+        : base("Sqlite", NormalizeConnectionString(connectionString), initializationScripts, "\"", "\"")
     {
     }
 
     protected override string SqlGetColumns => "SELECT NULL AS SchemaName, NULL AS TableName, NULL AS ColumnName, NULL AS DataType, 0 AS IsNullable, 0 AS IsPrimaryKey WHERE 1 = 0;";
     protected override string SqlGetRelationships => "SELECT NULL AS RelationName, NULL AS SourceSchema, NULL AS SourceTable, NULL AS SourceColumn, NULL AS TargetSchema, NULL AS TargetTable, NULL AS TargetColumn, 0 AS Ordinal, 0 AS IsUnique WHERE 1 = 0;";
-
-    protected override string PrepareInitializationScript(string script)
-        => MemoryDatabaseAttachment.Replace(script, string.Empty);
 
     public override bool TestConnection()
     {

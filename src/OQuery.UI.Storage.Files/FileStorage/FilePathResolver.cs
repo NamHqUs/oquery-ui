@@ -1,15 +1,10 @@
-using Microsoft.Extensions.Configuration;
-
 namespace OQuery.UI.Storage.Files.FileStorage;
 
-public sealed class FilePathResolver(IConfiguration configuration)
+/// <param name="userDataDirectory">Relative paths resolve against the current directory.</param>
+public sealed class FilePathResolver(string userDataDirectory)
 {
     public string GetUserDataRootDirectory()
-    {
-        var userData = configuration["OQuery:Repositories:Files:UserData"]
-            ?? throw new InvalidOperationException("Configuration 'OQuery:Repositories:Files:UserData' is missing.");
-        return Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, userData));
-    }
+        => Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, userDataDirectory));
 
     public string GetUserStoreFolder(string userSectionId, string? subDir)
     {

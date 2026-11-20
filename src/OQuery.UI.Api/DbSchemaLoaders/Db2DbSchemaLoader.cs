@@ -1,13 +1,12 @@
 using IBM.Data.Db2;
 using System.Data;
-using OQuery.Database.Scripts;
 
 using OQuery.Database;
 
-namespace OQuery.UI.Api.Services.DbSchemaLoaders;
+namespace OQuery.UI.Services.DbSchemaLoaders;
 
-public sealed class Db2DbSchemaLoader(string connectionString, string[] scriptFiles, string dbVersion)
-    : DbSchemaLoader("Db2", connectionString, scriptFiles, dbVersion, new Db2ScriptSql())
+public sealed class Db2DbSchemaLoader(string connectionString, string[] initializationScripts)
+    : DbSchemaLoader("Db2", connectionString, initializationScripts, "\"", "\"")
 {
     protected override string SqlGetColumns => """
         SELECT

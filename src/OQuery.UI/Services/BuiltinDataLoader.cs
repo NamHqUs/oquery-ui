@@ -2,7 +2,7 @@ using OQuery.UI.Abstracts.Dto;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace OQuery.UnitTest.Setup;
+namespace OQuery.UI.Services;
 
 /// <summary>Read-only built-in data loaded by the consumer (API and tests) and handed to the repositories.</summary>
 public sealed record BuiltinData(

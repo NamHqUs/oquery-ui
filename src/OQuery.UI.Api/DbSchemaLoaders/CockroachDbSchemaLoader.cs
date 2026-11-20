@@ -1,12 +1,11 @@
 using Npgsql;
 using System.Data;
-using OQuery.Database.Scripts;
 
 using OQuery.Database;
 
-namespace OQuery.UI.Api.Services.DbSchemaLoaders;
+namespace OQuery.UI.Services.DbSchemaLoaders;
 
-public sealed class CockroachDbSchemaLoader(string connectionString, string[] scriptFiles, string dbVersion) : DbSchemaLoader("Cockroach", connectionString, scriptFiles, dbVersion, new PostgresScriptSql())
+public sealed class CockroachDbSchemaLoader(string connectionString, string[] initializationScripts) : DbSchemaLoader("Cockroach", connectionString, initializationScripts, "\"", "\"")
 {
     protected override string SqlGetColumns => """
         SELECT

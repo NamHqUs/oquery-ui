@@ -1,12 +1,11 @@
 using System.Data;
 using FirebirdSql.Data.FirebirdClient;
-using OQuery.Database.Scripts;
 
 using OQuery.Database;
 
-namespace OQuery.UI.Api.Services.DbSchemaLoaders;
+namespace OQuery.UI.Services.DbSchemaLoaders;
 
-public sealed class FirebirdDbSchemaLoader(string connectionString, string[] scriptFiles, string dbVersion) : DbSchemaLoader("Firebird", connectionString, scriptFiles, dbVersion, new FirebirdScriptSql())
+public sealed class FirebirdDbSchemaLoader(string connectionString, string[] initializationScripts) : DbSchemaLoader("Firebird", connectionString, initializationScripts, "\"", "\"")
 {
     protected override string SqlGetColumns => """
         SELECT

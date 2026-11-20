@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 using OQuery.QueryDefinitions.Parsers;
 using OQuery.UI.Abstracts.Dto;
 
-namespace OQuery.UI.Api.Services;
+namespace OQuery.UI.Services;
 
 /// <summary>Converts stored query request JSON to and from QueryDto using the OQuery query definition parser.</summary>
 internal static class QueryRequestCodec

@@ -1,21 +1,69 @@
 using System.Data;
 using System.Data.Common;
 using System.Globalization;
-using OQuery.Database.Scripts;
 using OQuery.UI.Abstracts.Dto;
 
 using OQuery.Database;
 
-namespace OQuery.UI.Api.Services.DbSchemaLoaders;
+namespace OQuery.UI.Services.DbSchemaLoaders;
 
-public abstract class DbSchemaLoader : ScriptDbInstance
+/// <summary>
+/// Reads schema and table data from a provider database. Provisioning (version table, seed scripts) is owned by the host.
+/// </summary>
+public abstract class DbSchemaLoader
 {
+    private readonly string _identifierQuotePrefix;
+    private readonly string _identifierQuoteSuffix;
+
     protected abstract string SqlGetColumns { get; }
     protected abstract string SqlGetRelationships { get; }
 
-    protected DbSchemaLoader(string provider, string connectionString, string[] scriptFiles, string dbVersion, ScriptSql sql)
-        : base(provider, connectionString, scriptFiles, dbVersion, sql)
+    protected DbSchemaLoader(
+        string provider,
+        string connectionString,
+        string[] initializationScripts,
+        string identifierQuotePrefix,
+        string identifierQuoteSuffix)
     {
+        Provider = provider;
+        ConnectionString = connectionString;
+        InitializationScripts = initializationScripts;
+        _identifierQuotePrefix = identifierQuotePrefix;
+        _identifierQuoteSuffix = identifierQuoteSuffix;
+    }
+
+    public string Provider { get; }
+
+    protected string ConnectionString { get; }
+
+    protected string[] InitializationScripts { get; }
+
+    public abstract IDbConnection CreateDbConnection();
+
+    public virtual bool TestConnection()
+    {
+        try
+        {
+            using var connection = CreateDbConnection();
+            connection.Open();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    protected string QuoteIdentifier(string identifier)
+        => $"{_identifierQuotePrefix}{identifier.Replace(_identifierQuoteSuffix, _identifierQuoteSuffix + _identifierQuoteSuffix, StringComparison.Ordinal)}{_identifierQuoteSuffix}";
+
+    protected static T ExecuteRawSql<T>(IDbConnection connection, string sql, Func<IDbCommand, T> execute)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        if (connection.State != ConnectionState.Open)
+            connection.Open();
+        return execute(command);
     }
 
     public virtual DatabaseSchemaDto GetDatabaseSchema()

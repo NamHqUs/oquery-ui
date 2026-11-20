@@ -1,13 +1,12 @@
 using System.Data;
 using MySqlConnector;
-using OQuery.Database.Scripts;
 
 using OQuery.Database;
 
-namespace OQuery.UI.Api.Services.DbSchemaLoaders;
+namespace OQuery.UI.Services.DbSchemaLoaders;
 
-public sealed class MySqlDbSchemaLoader(string connectionString, string[] scriptFiles, string dbVersion)
-    : DbSchemaLoader("MySql", connectionString, scriptFiles, dbVersion, new MySqlScriptSql())
+public sealed class MySqlDbSchemaLoader(string connectionString, string[] initializationScripts)
+    : DbSchemaLoader("MySql", connectionString, initializationScripts, "`", "`")
 {
     protected override string SqlGetColumns => """
         SELECT
