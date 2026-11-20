@@ -52,6 +52,10 @@ public static class OQueryServiceCollectionExtensions
         services.AddSingleton<RequestUsageMiddleware>();
         services.AddHostedService<AnalyticsUsageFlushService>();
 
+        services.AddOptions<MvcOptions>()
+            .Configure<IOptions<OQueryOptions>>((mvc, options) =>
+                ApiRoutePrefix.Apply(mvc, ApiRoutePrefix.Normalize(options.Value.Api.BasePath)));
+
         services
             .AddControllers()
             .AddApplicationPart(typeof(OQueryServiceCollectionExtensions).Assembly)

@@ -1,4 +1,8 @@
-const backendApiUrl = import.meta.env.VITE_BACKEND_API_URL || "";
+type OQueryRuntimeConfig = { apiBasePath?: string };
+
+// The embedded host injects window.__OQUERY_CONFIG__; the Vite dev server falls back to VITE_BACKEND_API_URL.
+const runtimeConfig = (window as Window & { __OQUERY_CONFIG__?: OQueryRuntimeConfig }).__OQUERY_CONFIG__;
+const backendApiUrl = runtimeConfig?.apiBasePath ?? import.meta.env.VITE_BACKEND_API_URL ?? "";
 
 export const apiUrls = {
   backend: backendApiUrl,

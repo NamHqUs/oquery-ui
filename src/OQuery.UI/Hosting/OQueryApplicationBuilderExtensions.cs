@@ -6,6 +6,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OQuery.UI.Application.Analytics;
+using System.Text.Json;
 
 namespace OQuery.UI.Hosting;
 
@@ -31,10 +32,9 @@ public static class OQueryApplicationBuilderExtensions
         app.MapControllers();
         return app;
     }
-
     /// <summary>
     /// Serves the embedded OQuery frontend at <see cref="OQueryUIOptions.BasePath"/> (default <c>/oquery</c>).
-    /// The API stays at the root, so the frontend's root-relative requests keep working.
+    /// The API base path (<c>OQuery:Api:BasePath</c>) is injected into the page so the frontend calls the same prefix.
     /// </summary>
     public static IApplicationBuilder UseOQueryUI(this IApplicationBuilder app, Action<OQueryUIOptions>? configure = null)
     {
@@ -43,6 +43,10 @@ public static class OQueryApplicationBuilderExtensions
         var ui = new OQueryUIOptions();
         configure?.Invoke(ui);
         var basePath = NormalizeBasePath(ui.BasePath);
+
+        var apiBasePath = ApiRoutePrefix.Normalize(app.ApplicationServices.GetRequiredService<IOptions<OQueryOptions>>().Value.Api.BasePath);
+        if (apiBasePath == basePath || apiBasePath.StartsWith(basePath + "/", StringComparison.Ordinal))
+            throw new InvalidOperationException($"OQuery:Api:BasePath '{apiBasePath}' must not be inside the UI base path '{basePath}'.");
 
         var assembly = typeof(OQueryApplicationBuilderExtensions).Assembly;
         var files = assembly.GetManifestResourceNames().Contains(EmbeddedManifestName)
@@ -57,7 +61,7 @@ public static class OQueryApplicationBuilderExtensions
             return app;
         }
 
-        var indexHtml = ReadIndexWithBaseHref(indexFile, basePath + "/");
+        var indexHtml = ReadIndexWithBaseHref(indexFile, basePath + "/", apiBasePath);
 
         app.Map(basePath, branch =>
         {
@@ -100,7 +104,7 @@ public static class OQueryApplicationBuilderExtensions
         return trimmed;
     }
 
-    private static string ReadIndexWithBaseHref(IFileInfo indexFile, string baseHref)
+    private static string ReadIndexWithBaseHref(IFileInfo indexFile, string baseHref, string apiBasePath)
     {
         using var stream = indexFile.CreateReadStream();
         using var reader = new StreamReader(stream);
@@ -110,7 +114,9 @@ public static class OQueryApplicationBuilderExtensions
         if (headIndex < 0)
             throw new InvalidOperationException("The embedded index.html has no <head> element.");
 
+        // "<" is escaped so the JSON cannot close the script element.
+        var runtimeConfig = JsonSerializer.Serialize(new { apiBasePath }).Replace("<", "\\u003C", StringComparison.Ordinal);
         var insertAt = headIndex + BaseHrefPlaceholder.Length;
-        return html.Insert(insertAt, $"<base href=\"{baseHref}\" />");
+        return html.Insert(insertAt, $"<base href=\"{baseHref}\" /><script>window.__OQUERY_CONFIG__ = {runtimeConfig};</script>");
     }
 }

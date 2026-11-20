@@ -9,9 +9,16 @@ public sealed class OQueryOptions
     public const string ConfigurationSection = "OQuery";
 
     public RepositoryOptions Repositories { get; set; } = new();
+    public ApiOptions Api { get; set; } = new();
     public DbProviderOptions DbProvider { get; set; } = new();
     public SeedOptions Seeds { get; set; } = new();
     public AnalyticsOptions Analytics { get; set; } = new();
+
+    public sealed class ApiOptions
+    {
+        /// <summary>Path prefix of every API route, for example "/oquery-api". Empty serves the API at the root. Must not be inside the UI base path.</summary>
+        public string? BasePath { get; set; }
+    }
 
     public sealed class RepositoryOptions
     {
