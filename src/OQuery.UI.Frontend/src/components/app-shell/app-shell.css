@@ -1,0 +1,88 @@
+/* Sidebar layout for project workspace routes. Colors reuse the purple tokens from styles.css. */
+.workspace-shell:has(> .workspace-navigation) {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-areas:
+    "top top"
+    "nav subnav"
+    "nav content"
+    "foot foot";
+  max-width: 1600px;
+  padding: 0;
+}
+.workspace-shell:has(> .workspace-navigation) > .query-builder-domain-bar {
+  grid-area: subnav;
+  margin: 0;
+  padding: 12px 28px;
+  border-right: 0;
+  border-left: 0;
+}
+.workspace-shell:has(> .workspace-navigation) > .topbar {
+  grid-area: top;
+  margin: 0;
+  padding: 0 28px;
+}
+.workspace-shell:has(> .workspace-navigation) > .workspace-navigation {
+  grid-area: nav;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin: 0;
+  padding: 22px 14px;
+  border-right: 1px solid var(--line);
+  border-bottom: 0;
+  background: linear-gradient(180deg, #0c0f16, #090b11);
+}
+.workspace-shell:has(> .workspace-navigation) > .page-content {
+  grid-area: content;
+  min-width: 0;
+  padding: 0 28px 28px;
+}
+.workspace-shell:has(> .workspace-navigation) > footer {
+  grid-area: foot;
+}
+.workspace-shell:has(> .workspace-navigation) .workspace-navigation-group {
+  display: grid;
+  gap: 6px;
+}
+.workspace-shell:has(> .workspace-navigation) .workspace-navigation-label {
+  padding-left: 12px;
+}
+.workspace-shell:has(> .workspace-navigation) .workspace-navigation-links {
+  display: grid;
+  gap: 4px;
+}
+.workspace-shell:has(> .workspace-navigation) .workspace-navigation-link {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+}
+
+@media (max-width: 860px) {
+  .workspace-shell:has(> .workspace-navigation) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "top"
+      "nav"
+      "subnav"
+      "content"
+      "foot";
+  }
+  .workspace-shell:has(> .workspace-navigation) > .query-builder-domain-bar {
+    padding: 12px 16px;
+  }
+  .workspace-shell:has(> .workspace-navigation) > .topbar {
+    padding: 0 16px;
+  }
+  .workspace-shell:has(> .workspace-navigation) > .workspace-navigation {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 14px 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .workspace-shell:has(> .workspace-navigation) > .page-content {
+    padding: 0 16px 24px;
+  }
+}

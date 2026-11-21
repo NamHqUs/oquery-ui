@@ -46,7 +46,7 @@ export default function WorkspacePage() {
         <ul className="projects-list" aria-label="Projects">
           {state.projects.map((project) => (
             <li key={project.id}>
-              <Link className="projects-card" to={`/projects/${encodeURIComponent(project.id)}`}>
+              <Link className="projects-card" to={`/playground/${encodeURIComponent(project.id)}`}>
                 <Icon name="folder" size={18} />
                 <strong>{project.name}</strong>
                 <small>{project.description || "No description"}</small>

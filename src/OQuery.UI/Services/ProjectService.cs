@@ -24,6 +24,9 @@ public sealed class ProjectService(
     public ProjectDto GetById(string projectId)
     {
         var project = RequireProject(projectId);
+        if (project.Connection is not null)
+            databaseService.Connect(project.Connection.Provider, connectionStringProtector.Unprotect(project.Connection.EncryptedConnectionString));
+
         return new ProjectDto
         {
             Id = project.Id,
@@ -76,6 +79,7 @@ public sealed class ProjectService(
             repository.Save(SectionId(), project);
             repository.SaveFullDomain(SectionId(), project.Id, fullDomain);
             repository.SaveDomain(SectionId(), project.Id, MainDomain(fullDomain));
+            databaseService.Connect(provider, connectionString);
         }
         catch
         {

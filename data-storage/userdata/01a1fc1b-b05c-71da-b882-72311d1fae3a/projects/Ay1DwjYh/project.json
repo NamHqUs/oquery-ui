@@ -1,0 +1,10 @@
+{
+  "Id": "Ay1DwjYh",
+  "Name": "Default",
+  "Description": "the first project",
+  "DbConnectionProfile": "",
+  "Connection": {
+    "Provider": "Sqlite",
+    "EncryptedConnectionString": "4osklLTvRWG4Fg7V8hZ4QDMWpaefSjLbrbWV4ptNTo12umstQIAqv62lPWKUMFTl"
+  }
+}

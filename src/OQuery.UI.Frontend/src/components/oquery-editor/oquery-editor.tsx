@@ -40,6 +40,7 @@ type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onCh
   showGutter?: boolean;
   showLineNumbers?: boolean;
   showFoldControls?: boolean;
+  gutterWidth?: number;
   onBlur?: FocusEventHandler<HTMLElement>;
   onSelectionChange?: (text: string) => void;
   onExecuteSelectedText?: (text: string, contextName?: string) => void;
@@ -109,7 +110,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
   const {
     textOverride, disabled = false, onBlur,
     functionDefinitions, errorFunctionName = "", errorPosition = null, errorMessage = "",
-    compact = false, showGutter = true, showLineNumbers = true, showFoldControls = true,
+    compact = false, showGutter = true, showLineNumbers = true, showFoldControls = true, gutterWidth = 16,
     onExecuteContext, suggestionEntitiesMetadata, inlineResults, onClearInlineResult,
   } = props;
   const instanceId = useId().replace(/[^A-Za-z0-9_-]/g, "");
@@ -320,9 +321,10 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       readOnly: current.disabled ?? false,
       ariaLabel: current["aria-label"] ?? "OQuery text editor",
       lineNumbers: current.showLineNumbers === false || current.showGutter === false ? "off" : "on",
+      lineNumbersMinChars: 2,
       folding: (current.showFoldControls ?? true) && current.showGutter !== false,
       glyphMargin: Boolean(current.onExecuteContext),
-      lineDecorationsWidth: current.showGutter === false ? 0 : 16,
+      lineDecorationsWidth: current.showGutter === false ? 0 : current.gutterWidth ?? 16,
       // Clicking a line number would otherwise select the whole row.
       selectOnLineNumbers: false,
       minimap: { enabled: false },
@@ -505,11 +507,11 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       readOnly: disabled,
       lineNumbers: showLineNumbers && showGutter ? "on" : "off",
       folding: showFoldControls && showGutter,
-      lineDecorationsWidth: showGutter ? 16 : 0,
+      lineDecorationsWidth: showGutter ? gutterWidth : 0,
       glyphMargin: hasRunContext,
     });
     syncPlaceholderRef.current();
-  }, [disabled, showLineNumbers, showFoldControls, showGutter, hasRunContext]);
+  }, [disabled, showLineNumbers, showFoldControls, showGutter, gutterWidth, hasRunContext]);
 
   useEffect(() => {
     const model = modelRef.current;

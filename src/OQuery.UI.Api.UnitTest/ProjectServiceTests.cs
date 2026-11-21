@@ -177,6 +177,7 @@ internal sealed class ProjectServiceTests
 
     private sealed class NoDatabase : IDatabaseService
     {
+        public void Connect(string provider, string connectionString) { }
         public DatabaseSchema GetDatabaseSchema() => throw new NotSupportedException();
         public DatabaseTableData GetTableData(string tableName, string? schema = null, int? limit = null) => throw new NotSupportedException();
     }

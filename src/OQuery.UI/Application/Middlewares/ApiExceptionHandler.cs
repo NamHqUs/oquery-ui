@@ -35,9 +35,7 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) : I
         {
             Status = statusCode,
             Title = title,
-            Detail = exception is DbException
-                ? "The database operation failed."
-                : exception.Message,
+            Detail = exception.Message,
             Instance = httpContext.Request.Path
         };
         await httpContext.Response.WriteAsJsonAsync(problem, cancellationToken);

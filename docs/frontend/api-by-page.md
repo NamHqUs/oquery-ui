@@ -139,7 +139,7 @@ configured `OQuery:Security:EncryptionKey` before they are saved.
 | --- | --- | --- |
 | `GET /db/connections` via the database connection service | Page load | Fills the DBMS list from the dialects registered in DI. |
 | `ProjectService.testProjectConnection(provider, connectionString)` (`POST /metadata/projects/test-connection`) | Test Connection | Opens the connection and returns a success result or the error details. Nothing is saved. |
-| `ProjectService.createProjectFromDatabase(...)` (`POST /metadata/projects/from-database`) | Create Project | Creates the project, FullDomain and `Main` domain in one server call, then navigates to `/projects/{projectId}`. |
+| `ProjectService.createProjectFromDatabase(...)` (`POST /metadata/projects/from-database`) | Create Project | Creates the project, FullDomain and `Main` domain in one server call, then navigates to `/playground/{projectId}/main`. |
 
 Any failure (validation, connection, schema load, or write) keeps the user on
 this page and shows the server's error details. The server removes any partly
@@ -148,12 +148,15 @@ written project folder before it responds. An in-memory SQLite connection
 when `OQuery:Seeds:Enabled` is true, so test projects get tables. File databases
 are never seeded, because the seed scripts drop and recreate tables.
 
-### Project Detail (`/projects/{projectId}?domain={domainId}`)
+### Playground (`/playground/{projectId}/{domainId}/{queryId}`)
 
-This route replaces `/query-builder`, and the page content is unchanged. The
-old `/query-builder` URL redirects here. The project's `Main` domain
-(`domainId = main`) is the default sub-domain. Its queries use the same
-`/dynamic-query/*` and `/query-request*` APIs listed under Query Builder below.
+The playground is the prototype workspace component (`prototype-workspace.tsx`)
+shown in the content area. `domainId` and `queryId` are optional trailing
+segments. The header's Current Project and Active Domain selects change the
+URL, and the connection button reuses the topbar `database-status` style. The
+old `/projects/{projectId}?domain={domainId}` URL redirects here, and
+`/query-builder` redirects through it as well.
+
 
 ### Home (`/`)
 
@@ -165,7 +168,7 @@ uses `VITE_HOME_PROJECT_ID` and `VITE_HOME_DOMAIN_ID` (the sub-domain) through
 | --- | --- | --- |
 | `OQueryEditorService` with configured project and sub-domain IDs | Page load | Provides the resolved sub-domain, functions, and operators required by the editor. |
 
-### Query Builder (`/projects/{projectId}?domain={domainId}`, formerly `/query-builder`)
+### Query Builder (`/playground/{projectId}/{domainId}`, formerly `/query-builder`)
 
 | Service call or API action | Trigger | Purpose |
 | --- | --- | --- |

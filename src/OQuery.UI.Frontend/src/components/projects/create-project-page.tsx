@@ -27,6 +27,7 @@ export default function CreateProjectPage() {
   const [busy, setBusy] = useState<"test" | "create" | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [optionsError, setOptionsError] = useState("");
+  const [providersLoading, setProvidersLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -38,15 +39,20 @@ export default function CreateProjectPage() {
       })
       .catch((error: unknown) => {
         if (active) setOptionsError(messageOf(error));
+      })
+      .finally(() => {
+        if (active) setProvidersLoading(false);
       });
     return () => {
       active = false;
     };
   }, []);
 
-  const hasRequiredFields = Boolean(provider && connectionString.trim());
-
   const testConnection = async () => {
+    if (!provider || !connectionString.trim()) {
+      setFeedback({ tone: "error", message: "Select a DBMS and enter a connection string before testing." });
+      return;
+    }
     setBusy("test");
     setFeedback(null);
     try {
@@ -61,6 +67,14 @@ export default function CreateProjectPage() {
 
   const createProject = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!name.trim()) {
+      setFeedback({ tone: "error", message: "Project name is required." });
+      return;
+    }
+    if (!provider || !connectionString.trim()) {
+      setFeedback({ tone: "error", message: "Select a DBMS and enter a connection string before creating the project." });
+      return;
+    }
     setBusy("create");
     setFeedback(null);
     try {
@@ -70,7 +84,7 @@ export default function CreateProjectPage() {
         provider,
         connectionString,
       });
-      navigate(`/projects/${encodeURIComponent(project.id)}`);
+      navigate(`/playground/${encodeURIComponent(project.id)}`);
     } catch (error) {
       setFeedback({ tone: "error", message: messageOf(error) });
       setBusy(null);
@@ -78,6 +92,9 @@ export default function CreateProjectPage() {
   };
 
   const disabled = busy !== null;
+  const providerMessage = optionsError || (!providersLoading && providers.length === 0
+    ? "No database providers are available. Start the API and reload this page."
+    : "");
 
   return (
     <section className="projects-page connection-card" aria-labelledby="create-project-title">
@@ -88,12 +105,12 @@ export default function CreateProjectPage() {
         The connection string is encrypted before it is saved.
       </p>
 
-      {optionsError && <p className="connection-message error" role="alert">{optionsError}</p>}
+      {providerMessage && <p className="connection-message error" role="alert">{providerMessage}</p>}
 
       <form className="connection-form" onSubmit={createProject}>
         <label>
           <span>Project name</span>
-          <input type="text" value={name} onChange={(event) => setName(event.target.value)} required disabled={disabled} />
+          <input type="text" value={name} onChange={(event) => setName(event.target.value)} aria-required="true" disabled={disabled} />
         </label>
         <label>
           <span>Description</span>
@@ -101,7 +118,7 @@ export default function CreateProjectPage() {
         </label>
         <label>
           <span>DBMS</span>
-          <select value={provider} onChange={(event) => setProvider(event.target.value)} disabled={disabled || providers.length === 0} required>
+          <select value={provider} onChange={(event) => setProvider(event.target.value)} disabled={disabled || providersLoading || providers.length === 0} aria-required="true">
             {providers.map((item) => <option value={item} key={item}>{item}</option>)}
           </select>
         </label>
@@ -111,7 +128,7 @@ export default function CreateProjectPage() {
             value={connectionString}
             onChange={setConnectionString}
             placeholder="Enter your database connection string"
-            required
+            aria-required="true"
             disabled={disabled}
           />
           <small>Encrypted with the server encryption key. It is never returned by the API.</small>
@@ -128,10 +145,10 @@ export default function CreateProjectPage() {
         )}
 
         <div className="projects-page-actions">
-          <button className="button secondary" type="button" onClick={testConnection} disabled={disabled || !hasRequiredFields}>
+          <button className="button secondary" type="button" onClick={testConnection} disabled={disabled}>
             <Icon name="database" size={14} /> {busy === "test" ? "Testing…" : "Test Connection"}
           </button>
-          <button className="connection-submit" type="submit" disabled={disabled || !hasRequiredFields || !name.trim()}>
+          <button className="connection-submit" type="submit" disabled={disabled}>
             <Icon name="check" size={14} /> {busy === "create" ? "Creating project…" : "Create Project"}
           </button>
         </div>

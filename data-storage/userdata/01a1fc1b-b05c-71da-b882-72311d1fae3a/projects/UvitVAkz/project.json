@@ -1,0 +1,10 @@
+{
+  "Id": "UvitVAkz",
+  "Name": "Default1",
+  "Description": "the first project",
+  "DbConnectionProfile": "",
+  "Connection": {
+    "Provider": "Sqlite",
+    "EncryptedConnectionString": "olZItenV6URkH0v/CdHTGQn1nMUTI37TCPDgKLPw90fHN5UYGOI32hM2j1NVdCxm"
+  }
+}

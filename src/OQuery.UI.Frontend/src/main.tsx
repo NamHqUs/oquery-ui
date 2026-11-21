@@ -23,10 +23,12 @@ import WorkspacePage from "./components/workspace/workspace-page";
 import { getProject, listProjects, type ProjectSummary } from "./services/project-service";
 import { store, type RootState } from "./store/store";
 import "./styles.css";
+import "./components/app-shell/app-shell.css";
+import PlaygroundWorkspace from "./components/prototype-workspace/prototype-workspace";
 
 const PAGE_PATHS = {
   home: "/",
-  builder: "/projects/:projectId",
+  builder: "/playground/:projectId",
   metadata: "/metadata",
   sources: "/data-sources",
   functions: "/function-definitions",
@@ -35,7 +37,9 @@ const PAGE_PATHS = {
 } as const;
 
 const LEGACY_FUNCTIONS_PATH = "/functions";
-// The Query Builder moved from /query-builder to /projects/:projectId. The old URL redirects.
+// Playground URL: /playground/:projectId/:domainId/:queryId (domain and query segments are optional).
+const PLAYGROUND_PATH = "/playground";
+// The Query Builder moved from /query-builder to /playground/:projectId. The old URLs redirect.
 const LEGACY_BUILDER_PATH = "/query-builder";
 const WORKSPACE_PATH = "/workspace";
 const PROJECT_CREATE_PATH = "/projects/create";
@@ -104,6 +108,26 @@ function AnalyticsConsentNotice({
   );
 }
 
+function ConnectionDialog({ onClose }: { onClose: () => void }) {
+  return createPortal(
+    <div className="database-connection-dialog-backdrop" onClick={onClose}>
+      <section
+        className="database-connection-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="connection-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button className="database-connection-dialog-close" type="button" aria-label="Close database connection" onClick={onClose}>
+          <Icon name="close" size={16} />
+        </button>
+        <DatabaseConnection onConnected={onClose} />
+      </section>
+    </div>,
+    document.body,
+  );
+}
+
 function PolicyPage({ kind }: { kind: "privacy" | "terms" }) {
   const isPrivacy = kind === "privacy";
   return (
@@ -140,17 +164,35 @@ function PolicyPage({ kind }: { kind: "privacy" | "terms" }) {
   );
 }
 
+type PlaygroundRoute = { projectId: string; domainId: string; queryId: string };
+
+function playgroundRouteOf(pathname: string): PlaygroundRoute | null {
+  if (!pathname.startsWith(`${PLAYGROUND_PATH}/`)) return null;
+  const [projectId = "", domainId = "", queryId = ""] = pathname
+    .slice(PLAYGROUND_PATH.length + 1)
+    .split("/")
+    .map((segment) => decodeURIComponent(segment));
+  return { projectId, domainId, queryId };
+}
+
 function builderProjectIdOf(pathname: string) {
+  return playgroundRouteOf(pathname)?.projectId ?? "";
+}
+
+function builderDomainIdOf(pathname: string) {
+  return playgroundRouteOf(pathname)?.domainId ?? "";
+}
+
+// Old /projects/:projectId?domain=... links are redirected to the playground URL.
+function legacyProjectIdOf(pathname: string) {
   if (!pathname.startsWith("/projects/") || pathname === PROJECT_CREATE_PATH) return "";
   return decodeURIComponent(pathname.slice("/projects/".length).split("/")[0]);
 }
 
 function builderPath(projectId: string, domainId = "", from = "") {
-  const params = new URLSearchParams();
-  if (domainId) params.set("domain", domainId);
-  if (from) params.set("from", from);
-  const query = params.toString();
-  return `/projects/${encodeURIComponent(projectId)}${query ? `?${query}` : ""}`;
+  const segments = [projectId, domainId].filter(Boolean).map(encodeURIComponent).join("/");
+  const query = from ? `?${new URLSearchParams({ from }).toString()}` : "";
+  return `${PLAYGROUND_PATH}/${segments}${query}`;
 }
 
 function LegacyQueryBuilderRedirect() {
@@ -190,7 +232,7 @@ function PageSubnav({
     let active = true;
     const params = new URLSearchParams(location.search);
     const requestedProject = builderProjectIdOf(location.pathname);
-    const requestedDomain = params.get("domain");
+    const requestedDomain = builderDomainIdOf(location.pathname);
     listProjects()
       .then(async (projects) => {
         const projectId = projects.find((project) => project.id === requestedProject)?.id ?? projects[0]?.id;
@@ -326,7 +368,7 @@ function WorkspaceContextBar({
   const [project, setProject] = useState<Awaited<ReturnType<typeof getProject>> | null>(null);
   const params = new URLSearchParams(location.search);
   const requestedProjectId = builderProjectIdOf(location.pathname) || params.get("project") || "";
-  const domainId = params.get("domain") ?? "";
+  const domainId = builderDomainIdOf(location.pathname) || params.get("domain") || "";
   // The project must be chosen explicitly; an unknown or missing ID is never replaced by a default.
   const projectId = projects?.some((item) => item.id === requestedProjectId) ? requestedProjectId : "";
 
@@ -475,7 +517,7 @@ function WorkspaceNavigation({
   if (!page || page === "home" || page === "documentation") return null;
 
   const projectId = builderProjectIdOf(location.pathname) || new URLSearchParams(location.search).get("project");
-  const domainId = new URLSearchParams(location.search).get("domain");
+  const domainId = builderDomainIdOf(location.pathname) || new URLSearchParams(location.search).get("domain");
   const withProject = (path: string, includeDomain = false) => {
     const params = new URLSearchParams();
     if (projectId) params.set("project", projectId);
@@ -673,7 +715,7 @@ function App() {
     // Switching domain stays on the builder page, so it is guarded separately from page changes.
     const isBuilderDomainSwitch = currentPage === "builder"
       && nextPage === "builder"
-      && new URLSearchParams(currentLocation.search).get("domain") !== new URLSearchParams(nextLocation.search).get("domain");
+      && builderDomainIdOf(currentLocation.pathname) !== builderDomainIdOf(nextLocation.pathname);
     if (isBuilderDomainSwitch) return builderNavigationGuard.current !== null;
     return currentPage !== null
       && nextPage !== null
@@ -766,6 +808,32 @@ function App() {
   }, [blocker, page]);
 
   const navigateWorkspace = useCallback((path: string) => routerNavigate(path), [routerNavigate]);
+
+  if (legacyProjectIdOf(location.pathname)) {
+    return <Navigate to={builderPath(legacyProjectIdOf(location.pathname), new URLSearchParams(location.search).get("domain")?.trim() ?? "")} replace />;
+  }
+
+  const playgroundRoute = playgroundRouteOf(location.pathname);
+  if (playgroundRoute?.projectId) {
+    if (workspaceProjects.projects && !workspaceProjects.projects.some((project) => project.id === playgroundRoute.projectId)) {
+      return <Navigate to={workspaceProjects.projects.length === 0 ? PROJECT_CREATE_PATH : WORKSPACE_PATH} replace />;
+    }
+    return (
+      <>
+        <PlaygroundWorkspace
+          projectId={playgroundRoute.projectId}
+          domainId={playgroundRoute.domainId}
+          queryId={playgroundRoute.queryId}
+          projects={workspaceProjects.projects ?? []}
+          connectionStatus={database.connectionStatus}
+          provider={database.connectedProvider}
+          onNavigate={navigateWorkspace}
+          onOpenConnection={requestDatabaseConnection}
+        />
+        {connectionDialogOpen && <ConnectionDialog onClose={() => setConnectionDialogOpen(false)} />}
+      </>
+    );
+  }
 
   return (
     <main className={`app-shell${page === "home" ? " home-shell" : " workspace-shell"}`}>
@@ -871,30 +939,9 @@ function App() {
           onOpenPrivacy={() => routerNavigate(PRIVACY_PATH)}
         />
       )}
-      {connectionDialogOpen && createPortal(
-        <div className="database-connection-dialog-backdrop" onClick={() => setConnectionDialogOpen(false)}>
-          <section
-            className="database-connection-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="connection-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              className="database-connection-dialog-close"
-              type="button"
-              aria-label="Close database connection"
-              onClick={() => setConnectionDialogOpen(false)}
-            >
-              <Icon name="close" size={16} />
-            </button>
-            <DatabaseConnection onConnected={() => setConnectionDialogOpen(false)} />
-          </section>
-        </div>,
-        document.body,
-      )}
+      {connectionDialogOpen && <ConnectionDialog onClose={() => setConnectionDialogOpen(false)} />}
       {page === "builder" && !showWorkspaceGate && <QueryBuilder
-        key={new URLSearchParams(location.search).get("domain") || "query-builder"}
+        key={builderDomainIdOf(location.pathname) || "query-builder"}
         routeProjectId={builderProjectIdOf(location.pathname)}
         onRequestConnection={requestDatabaseConnection}
         onNavigationGuardChange={updateBuilderNavigationGuard}
