@@ -17,7 +17,7 @@
   display: grid;
   flex: 1;
   align-items: stretch;
-  min-height: 0;
+  min-height: 280px;
 }
 
 .pg-eyebrow {
@@ -28,16 +28,20 @@
   text-transform: uppercase;
 }
 
-/* Stretches to the editor section, so the entity list ends at the section's bottom edge. */
+/* The grid cell (.pg-entities-slot) keeps the column in layout. The panel is positioned in the viewport
+   from playground.tsx: fixed at the screen top once the layout scrolls above it, and in flow otherwise.
+   Its height is capped at the layout row's bottom, so it never extends past its parent. */
+.pg-entities-slot {
+  min-width: 0;
+  align-self: stretch;
+}
+
 .pg-entities {
-  position: sticky;
-  top: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  height: auto;
+  height: 100%;
   min-width: 0;
-  min-height: 280px;
   overflow: hidden;
 }
 

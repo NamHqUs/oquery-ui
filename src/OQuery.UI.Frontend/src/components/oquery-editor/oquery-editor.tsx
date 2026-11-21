@@ -59,6 +59,7 @@ const COMPACT_LINE_HEIGHT = 20.8;
 const COMPACT_CHROME_HEIGHT = 34;
 
 type ScrollSnapshot = { element: Element | Window; left: number; top: number }[];
+type InlineZoneLayout = { id: string; afterLineNumber: number; heightInPx: number; domNode: HTMLElement };
 
 // Focusing the editor reveals its caret, which can be far below the viewport when the text was bound from a saved query.
 function captureScrollPositions(host: HTMLElement): ScrollSnapshot {
@@ -125,6 +126,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
   const anchorIdsRef = useRef(new Map<string, string>());
   const inlineZoneIdsRef = useRef<string[]>([]);
   const inlineZoneContextsRef = useRef(new Map<string, string>());
+  const inlineZoneLayoutRef = useRef(new Map<string, InlineZoneLayout>());
   const externalWriteRef = useRef(false);
   const syncPlaceholderRef = useRef<() => void>(() => undefined);
   const latestRef = useRef(props);
@@ -277,12 +279,30 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       inlineModesRef.current.clear();
       inlineCollapsedRef.current.clear();
     }
+    // Only zones whose anchor, height, or host changed are removed and re-added. Untouched zones keep
+    // their Monaco id, so typing does not detach and re-insert every grid.
+    const previousLayout = inlineZoneLayoutRef.current;
+    const kept = new Map<string, InlineZoneLayout>();
+    const pending: typeof zones = [];
+    for (const zone of zones) {
+      const existing = previousLayout.get(zone.contextName);
+      if (existing && existing.afterLineNumber === zone.afterLineNumber && existing.heightInPx === zone.heightInPx && existing.domNode === zone.domNode) {
+        kept.set(zone.contextName, existing);
+      } else {
+        pending.push(zone);
+      }
+    }
+    const stale = [...previousLayout.entries()].filter(([name]) => !kept.has(name)).map(([, layout]) => layout.id);
+    if (stale.length === 0 && pending.length === 0) return;
     editor.changeViewZones((accessor) => {
-      inlineZoneIdsRef.current.forEach((id) => accessor.removeZone(id));
-      const ids = zones.map(({ contextName, ...zone }) => ({ contextName, id: accessor.addZone(zone) }));
-      inlineZoneIdsRef.current = ids.map((item) => item.id);
-      inlineZoneContextsRef.current = new Map(ids.map((item) => [item.id, item.contextName]));
+      stale.forEach((id) => accessor.removeZone(id));
+      for (const { contextName, ...zone } of pending) {
+        kept.set(contextName, { id: accessor.addZone(zone), afterLineNumber: zone.afterLineNumber, heightInPx: zone.heightInPx, domNode: zone.domNode });
+      }
     });
+    inlineZoneLayoutRef.current = kept;
+    inlineZoneIdsRef.current = [...kept.values()].map((layout) => layout.id);
+    inlineZoneContextsRef.current = new Map([...kept].map(([name, layout]) => [layout.id, name]));
   };
 
   // Ctrl+Enter and the gutter Run glyph share one behavior: a non-empty selection runs as-is,
@@ -489,7 +509,9 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       decorationsRef.current = null;
       inlineViewsRef.current.clear();
       inlineZoneIdsRef.current = [];
-      inlineZoneContextsRef.current.clear();      editor.dispose();
+      inlineZoneContextsRef.current.clear();
+      inlineZoneLayoutRef.current.clear();
+      editor.dispose();
       model.dispose();
       editorRef.current = null;
       modelRef.current = null;

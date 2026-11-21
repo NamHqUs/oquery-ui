@@ -203,6 +203,8 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
   const editorRef = useRef<OQueryEditorHandle>(null);
   const nextTabNumber = useRef(2);
   const copilotSlotRef = useRef<HTMLDivElement>(null);
+  const entitiesRef = useRef<HTMLElement>(null);
+  const entitiesSlotRef = useRef<HTMLDivElement>(null);
   const [tabs, setTabs] = useState<EditorTab[]>(() => [{ id: "tab-1", title: queryId || "Untitled query", text: "" }]);
   const [activeTabId, setActiveTabId] = useState("tab-1");
   const [message, setMessage] = useState("");
@@ -212,6 +214,34 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
   const [copilotCollapsed, setCopilotCollapsed] = useState(false);
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
   const suggestionData = useMemo(() => getOQuerySuggestionData(metadata, metadataRelations), [metadata, metadataRelations]);
+
+  // The entity panel's top sticks to the screen top once the layout scrolls above it, and its bottom always stays
+  // inside the layout row. The list shrinks as the row's bottom moves up. Capping at the row keeps the row from growing
+  // with the panel, so the page height does not change while scrolling.
+  useLayoutEffect(() => {
+    const slot = entitiesSlotRef.current;
+    const panel = entitiesRef.current;
+    const layout = slot?.parentElement;
+    if (!slot || !panel || !layout) return;
+    const update = () => {
+      const rect = slot.getBoundingClientRect();
+      const pinned = rect.top < 0;
+      const top = pinned ? 0 : rect.top;
+      const bottom = Math.min(window.innerHeight, layout.getBoundingClientRect().bottom);
+      panel.style.position = pinned ? "fixed" : "";
+      panel.style.top = pinned ? "0px" : "";
+      panel.style.left = pinned ? `${rect.left}px` : "";
+      panel.style.width = pinned ? `${rect.width}px` : "";
+      panel.style.height = `${Math.max(0, bottom - top)}px`;
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
 
   // The slot is pinned to the screen top and sized to the viewport bottom, so the panel and its message box stay inside it.
   // The top comes from the grid row, which sticky does not move, so it recovers when scrolling back up.
@@ -284,9 +314,11 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
     <div className="pg-main">
       <PlaygroundHeading />
       <div className="pg-layout" style={{ gridTemplateColumns: `${entityWidth}px 6px minmax(0,1fr)` }}>
-    <aside className={`pg-entities${entityWidth < ENTITY_HIDDEN_WIDTH ? " is-collapsed" : ""}`}>
-      <EntityExplorer entities={metadata} relations={metadataRelations} error={loadError} />
-    </aside>
+    <div ref={entitiesSlotRef} className="pg-entities-slot">
+      <aside ref={entitiesRef} className={`pg-entities${entityWidth < ENTITY_HIDDEN_WIDTH ? " is-collapsed" : ""}`}>
+        <EntityExplorer entities={metadata} relations={metadataRelations} error={loadError} />
+      </aside>
+    </div>
     <Splitter minimized={entityWidth <= ENTITY_HIDDEN_WIDTH} label="Resize available entities" onDrag={(delta) => setEntityWidth((width) => clamp(width + delta, ENTITY_WIDTH.min, ENTITY_WIDTH.max))} />
     <section className="pg-editor-area">
       <div className="pg-tabs" role="tablist">
