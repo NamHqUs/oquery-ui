@@ -8,7 +8,7 @@ import { getOqueryEnterEdit } from "./oquery-editor-enter";
 import { normalizeOqueryEditorText } from "./oquery-editor-text";
 import { getMinimalTextEdit, getOqueryContextBlocks, getOqueryContextLenses, getOqueryErrorRange } from "./oquery-monaco-adapters";
 import { createOqueryModel, ensureOqueryLanguage, monaco, OQUERY_THEME_ID, registerOqueryEditorSource } from "./oquery-monaco-setup";
-import { buildInlineResultView, INLINE_RESULT_MARGIN, type InlineResultMode, type InlineResultView } from "./oquery-inline-result";
+import { buildInlineResultView, type InlineResultMode, type InlineResultView } from "./oquery-inline-result";
 import type { OQueryErrorPosition } from "./oquery-validation";
 
 type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onChange" | "value" | "onBlur"> & {
@@ -199,8 +199,8 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     // View zones are sized to the editor's full content width, so the result is sized explicitly
     // to the visible width. Otherwise its right edge and body scrollbar are clipped by the editor.
     const layout = editor.getLayoutInfo();
-    const marginRight = layout.verticalScrollbarWidth + INLINE_RESULT_MARGIN;
-    const nodeWidth = Math.max(0, layout.contentWidth - INLINE_RESULT_MARGIN - marginRight);
+    const marginRight = layout.verticalScrollbarWidth;
+    const nodeWidth = Math.max(0, layout.contentWidth - marginRight);
     for (const block of getOqueryContextBlocks(model.getValue())) {
       if (anchored.has(block.contextName)) continue;
       anchored.add(block.contextName);

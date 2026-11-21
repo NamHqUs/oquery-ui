@@ -96,7 +96,7 @@ function rowAt(offsets: number[], y: number) {
 }
 
 function PlaygroundHeading() {
-  return <div className="pg-heading"><div><span className="pg-heading-icon"><Icon name="play" size={23} /></span><span><h1>Query playground</h1><p>Ask questions across your business data</p></span></div><div className="pg-heading-actions"><button type="button"><Icon name="code" size={13} />Format</button><button type="button"><Icon name="save" size={13} />Save</button></div></div>;
+  return <div className="pg-heading"><div><span className="pg-heading-icon"><Icon name="query" size={23} /></span><span><h1>Query playground</h1><p>Ask questions across your business data</p></span></div><div className="pg-heading-actions"><button type="button"><Icon name="code" size={13} />Format</button><button type="button"><Icon name="save" size={13} />Save</button></div></div>;
 }
 
 function Splitter({ label, hidden = false, onDrag }: { label: string; hidden?: boolean; onDrag: (delta: number) => void }) {

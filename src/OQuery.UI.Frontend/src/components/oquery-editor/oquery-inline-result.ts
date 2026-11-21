@@ -4,7 +4,6 @@ import "./oquery-inline-result.css";
 export const INLINE_ROW_HEIGHT = 22;
 export const INLINE_HEAD_HEIGHT = 28;
 export const INLINE_MAX_ROWS = 8;
-export const INLINE_RESULT_MARGIN = 16;
 
 export type InlineResultMode = "data" | "sql";
 export type InlineResultView = { node: HTMLElement; height: number };

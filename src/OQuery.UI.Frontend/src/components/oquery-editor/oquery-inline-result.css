@@ -7,7 +7,7 @@
   box-sizing: border-box;
   overflow: hidden;
   z-index: 2;
-  margin-left: 16px;
+  margin-left: 0;
   border-left: 3px solid #2f7ae5;
   background: #1b2030;
   font-family: "Cascadia Mono", Consolas, ui-monospace, monospace;
@@ -38,7 +38,7 @@
   display: inline-flex;
   flex: none;
   border: 1px solid #3a4560;
-  border-radius: 3px;
+  border-radius: 2px;
   overflow: hidden;
 }
 
