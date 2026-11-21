@@ -202,6 +202,7 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
   const dispatch = useDispatch();
   const editorRef = useRef<OQueryEditorHandle>(null);
   const nextTabNumber = useRef(2);
+  const copilotSlotRef = useRef<HTMLDivElement>(null);
   const [tabs, setTabs] = useState<EditorTab[]>(() => [{ id: "tab-1", title: queryId || "Untitled query", text: "" }]);
   const [activeTabId, setActiveTabId] = useState("tab-1");
   const [message, setMessage] = useState("");
@@ -211,6 +212,22 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
   const [copilotCollapsed, setCopilotCollapsed] = useState(false);
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
   const suggestionData = useMemo(() => getOQuerySuggestionData(metadata, metadataRelations), [metadata, metadataRelations]);
+
+  // The slot is pinned to the screen top and sized to the viewport bottom, so the panel and its message box stay inside it.
+  // The top comes from the grid row, which sticky does not move, so it recovers when scrolling back up.
+  useLayoutEffect(() => {
+    const slot = copilotSlotRef.current;
+    const row = slot?.parentElement;
+    if (!slot || !row) return;
+    const update = () => slot.style.setProperty("--pg-copilot-top", `${Math.max(0, row.getBoundingClientRect().top)}px`);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
 
   useEffect(() => {
     if (!projectId || !domainId) return;
@@ -307,6 +324,8 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
       </div>
     </div>
     <Splitter hidden={copilotCollapsed} label="Resize AI assistant" onDrag={(delta) => setCopilotWidth((width) => clamp(width - delta, COPILOT_WIDTH.min, COPILOT_WIDTH.max))} />
-    <CopilotAside collapsed={copilotCollapsed} onToggle={() => setCopilotCollapsed((collapsed) => !collapsed)} />
+    <div ref={copilotSlotRef} className="pg-copilot-slot">
+      <CopilotAside collapsed={copilotCollapsed} onToggle={() => setCopilotCollapsed((collapsed) => !collapsed)} />
+    </div>
   </div>;
 }

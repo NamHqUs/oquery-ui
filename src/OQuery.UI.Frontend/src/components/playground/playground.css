@@ -423,18 +423,25 @@
   font-size: 9px;
 }
 
-/* Pins the panel to the viewport's bottom-right: top = 100vh - height - 16px. */
-.pg-copilot {
+/* The slot is the sticky box: it pins to the screen top and spans to the viewport bottom, and the panel fills it,
+   so the message box always stays inside the slot. Playground sets --pg-copilot-top from the grid row's position. */
+.pg-copilot-slot {
   position: sticky;
-  top: calc(100vh - (100vh - 160px) - 16px);
+  top: var(--pg-copilot-top, 0px);
   align-self: start;
+  height: calc(100vh - 12px - var(--pg-copilot-top, 0px));
+  min-width: 0;
+}
+
+.pg-copilot-slot > .pg-copilot {
+  height: 100%;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  height: calc(100vh - 160px);
   min-width: 0;
   overflow: hidden;
-  padding: 14px 14px 0;
+  padding: 0 14px;
   border: 0;
   border-radius: 0;
   background: linear-gradient(135deg, #11141c, #0f1218);
