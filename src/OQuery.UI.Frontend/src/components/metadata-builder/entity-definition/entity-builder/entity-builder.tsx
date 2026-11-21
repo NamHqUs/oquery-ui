@@ -1,0 +1,258 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import Icon from "../../../icon/icon";
+import { MetadataEntity, type DomainRelation } from "../../../query-builder/query-design/query-builder-slice";
+import { EditableEntity } from "../../types";
+import FieldsBuilder from "./fields-builder/fields-builder";
+import RelationsBuilder from "./relations-builder/relations-builder";
+import PanelSplitter from "../../../panel-splitter/panel-splitter";
+import { useResizablePanel } from "../../../../utils/use-resizable-panel";
+import "./entity-builder.css";
+
+type EntityBuilderProps = {
+  draft: EditableEntity | null;
+  canEdit: boolean;
+  message: string;
+  messageKind?: "error" | "success";
+  allEntities: MetadataEntity[];
+  domainRelations: DomainRelation[];
+  onDraftChange: (updater: (draft: EditableEntity) => EditableEntity) => void;
+  onRelationsChange: (updater: (relations: DomainRelation[]) => DomainRelation[]) => void;
+  databaseOptions?: string[];
+  databaseTables?: DatabaseTableOption[];
+  selectedTable?: DatabaseTableOption;
+  onSelectTable?: (table: DatabaseTableOption) => void;
+  onSelectRawSql?: () => void;
+  compact?: boolean;
+  showFieldsRelationsSplitter?: boolean;
+};
+
+export type DatabaseTableOption = {
+  schema: string;
+  name: string;
+  columns: { name: string; dataType?: string; isPrimaryKey?: boolean }[];
+};
+
+export default function EntityBuilder({
+  draft,
+  canEdit,
+  message,
+  messageKind = "error",
+  allEntities,
+  domainRelations,
+  onDraftChange,
+  onRelationsChange,
+  databaseOptions = [],
+  databaseTables = [],
+  selectedTable,
+  onSelectTable,
+  onSelectRawSql,
+  compact = false,
+  showFieldsRelationsSplitter = true,
+}: EntityBuilderProps) {
+  const [tablePickerOpen, setTablePickerOpen] = useState(false);
+  const [tableSearch, setTableSearch] = useState("");
+  const [rawSqlMode, setRawSqlMode] = useState(false);
+  const splitPanel = useResizablePanel("metadata-entity-fields-width", 340, 240, 640);
+  const tablePickerRef = useRef<HTMLDivElement>(null);
+  const rawSql = draft?.rawSql.trim() || "";
+  const entityName = draft?.name.trim() || "";
+  const selectedTableName = selectedTable?.name.trim() || "";
+  const hasRawSqlField = draft?.fields.some((field) => field.isRawSql) ?? false;
+  const isRawSqlEntity = Boolean(rawSql && !selectedTableName && (rawSql !== entityName || hasRawSqlField));
+  const showRawSql = isRawSqlEntity || (rawSqlMode && !selectedTableName);
+
+  const filteredTables = useMemo(() => {
+    const query = tableSearch.trim().toLowerCase();
+    return databaseTables.filter((table) =>
+      `${table.schema} ${table.name}`.toLowerCase().includes(query),
+    );
+  }, [databaseTables, tableSearch]);
+  const selectedTableColumns = selectedTable?.columns ?? [];
+  useEffect(() => {
+    function handleOutsidePointerDown(event: PointerEvent) {
+      if (!tablePickerRef.current?.contains(event.target as Node)) {
+        setTablePickerOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handleOutsidePointerDown);
+    return () => document.removeEventListener("pointerdown", handleOutsidePointerDown);
+  }, []);
+
+  return (
+    <div className={`metadata-editor-content${compact ? " metadata-editor-compact" : ""}`}>
+      {!draft
+        ? <div className="metadata-empty">
+            <Icon name="table" size={32} />
+          </div>
+        : <>
+          {message && (
+            <p className={`metadata-alert${messageKind === "success" ? " success" : ""}`} role="alert">
+              {message}
+            </p>
+          )}
+          <div className="metadata-form">
+            <fieldset className="metadata-form-fieldset" disabled={!canEdit}>
+        <div className="metadata-form-grid">
+        <label>
+          Entity name
+          <input
+            spellCheck={false}
+            value={draft.name}
+            onChange={(event) =>
+              onDraftChange((entity) => ({ ...entity, name: event.target.value }))
+            }
+            placeholder="e.g. Customers"
+          />
+        </label>
+        {showRawSql ? (
+          <label className="metadata-raw-sql-field">
+            <span className="metadata-raw-sql-label">
+              <span>SQL Statement</span>
+              <button
+                type="button"
+                className="metadata-raw-sql-mode-button"
+                onClick={() => {
+                  setRawSqlMode(false);
+                  onDraftChange((entity) => ({ ...entity, rawSql: "" }));
+                }}
+                aria-label="Switch to table selection"
+                title="Switch to table selection"
+              >
+                <Icon name="table" size={14} />
+              </button>
+            </span>
+            <textarea
+              autoFocus
+              rows={4}
+              value={draft.rawSql}
+              spellCheck={false}
+              disabled={!canEdit}
+              onChange={(event) =>
+                onDraftChange((entity) => ({ ...entity, rawSql: event.target.value }))
+              }
+              placeholder="SELECT column1, column2 FROM table_name"
+            />
+          </label>
+        ) : onSelectTable && (
+          <div
+            ref={tablePickerRef}
+            className={`metadata-table-picker${tablePickerOpen ? " open" : ""}`}
+          >
+            <label>
+              Table
+              <button
+                type="button"
+                className="metadata-table-picker-trigger"
+                onClick={() => setTablePickerOpen((open) => !open)}
+                aria-expanded={tablePickerOpen}
+              >
+                <span>
+                  {selectedTable
+                    ? `${selectedTable.schema || "dbo"}.${selectedTable.name}`
+                    : "Select a table"}
+                </span>
+              </button>
+            </label>
+            {tablePickerOpen && (
+              <div
+                className="metadata-dropdown-menu metadata-table-picker-menu"
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    setTablePickerOpen(false);
+                  }
+                }}
+              >
+                {!selectedTable && (
+                  <button
+                    type="button"
+                    className="metadata-dropdown-item metadata-raw-sql-menu-item"
+                    onClick={() => {
+                      setRawSqlMode(true);
+                      onSelectRawSql?.();
+                      setTablePickerOpen(false);
+                    }}
+                  >
+                    Raw SQL Statement
+                  </button>
+                )}
+                <input
+                  autoFocus
+                  spellCheck={false}
+                  value={tableSearch}
+                  onChange={(event) => setTableSearch(event.target.value)}
+                  placeholder="Select a table"
+                  aria-label="Search database tables"
+                />
+                {filteredTables.map((table) => (
+                  <button
+                    type="button"
+                    className="metadata-dropdown-item"
+                    key={`${table.schema}.${table.name}`}
+                    onClick={() => {
+                      onSelectTable(table);
+                      setTablePickerOpen(false);
+                      setTableSearch("");
+                    }}
+                  >
+                    <strong>{table.name}</strong>
+                    <small>{table.schema || "Default schema"}</small>
+                  </button>
+                ))}
+                {!filteredTables.length && <span className="metadata-table-picker-empty">No tables match your search.</span>}
+              </div>
+            )}
+          </div>
+        )}
+        {!showRawSql && onSelectTable && (
+          <label>
+            Schema
+            <input
+              spellCheck={false}
+              value={draft.schema}
+              onChange={(event) =>
+                onDraftChange((entity) => ({ ...entity, schema: event.target.value }))
+              }
+              placeholder="dbo"
+            />
+          </label>
+        )}
+        </div>
+
+        <div className={`entity-split split-workspace${showFieldsRelationsSplitter ? "" : " entity-split-stacked"}`} style={splitPanel.style}>
+          <div className="entity-fields-pane">
+            <FieldsBuilder
+              fields={draft.fields}
+              selectedTableColumns={selectedTableColumns}
+              allowDataTypeEdit
+              onChange={(fieldsUpdater) =>
+                onDraftChange((entity) => ({
+                  ...entity,
+                  fields: fieldsUpdater(entity.fields),
+                }))
+              }
+            />
+          </div>
+
+          {showFieldsRelationsSplitter && (
+            <PanelSplitter panel={splitPanel} label="fields and relations" collapsible={false} />
+          )}
+
+          <div className="entity-relations-pane">
+            <RelationsBuilder
+              domainRelations={domainRelations}
+              currentEntity={draft}
+              allEntities={allEntities}
+              databaseTables={databaseTables}
+              selectedTable={selectedTable}
+              onRelationsChange={onRelationsChange}
+            />
+          </div>
+        </div>
+            </fieldset>
+          </div>
+        </>}
+    </div>
+  );
+}
