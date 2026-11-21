@@ -41,11 +41,14 @@
 .query-oquery-run-glyph::before {
   width: 0;
   height: 0;
-  border-top: 7px solid transparent;
-  border-bottom: 7px solid transparent;
-  border-left: 11px solid #86efac;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid #86efac;
   content: "";
 }
+
+/* Folding chevrons are sized to match the smaller run glyph. */
+.query-oquery-monaco .cldr.codicon { font-size: 11px; }
 
 /* The host always fits the content, so Monaco's vertical slider is never needed. The viewport minimum keeps the horizontal scrollbar at the bottom of the screen even for short queries. */
 .query-oquery-monaco-host.query-oquery-auto-height { min-height: 100vh; }

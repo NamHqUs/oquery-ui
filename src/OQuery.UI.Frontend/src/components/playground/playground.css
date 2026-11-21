@@ -16,6 +16,7 @@
 .pg-layout {
   display: grid;
   flex: 1;
+  align-items: start;
   min-height: 0;
 }
 
@@ -27,11 +28,16 @@
   text-transform: uppercase;
 }
 
+/* Pinned to the viewport so the entity browser keeps its own virtualized scroll while the page scrolls. */
 .pg-entities {
+  position: sticky;
+  top: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  height: calc(100vh - 200px);
   min-width: 0;
+  min-height: 280px;
   overflow: hidden;
 }
 
@@ -417,10 +423,15 @@
   font-size: 9px;
 }
 
+/* Pins the panel to the viewport's bottom-right: top = 100vh - height - 16px. */
 .pg-copilot {
+  position: sticky;
+  top: calc(100vh - (100vh - 160px) - 16px);
+  align-self: start;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  height: calc(100vh - 160px);
   min-width: 0;
   overflow: hidden;
   padding: 14px 14px 0;
@@ -455,6 +466,62 @@
   flex: 0 0 auto;
   padding-top: 2px;
   background: #11141c;
+}
+
+.pg-chat {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.pg-chat-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.pg-chat-message {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: #c8ced9;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.pg-chat-message-user {
+  margin-left: 24px;
+  color: #e9edf4;
+  background: #1b2030;
+}
+
+.pg-chat-message-assistant {
+  margin-right: 12px;
+  background: #151923;
+}
+
+.pg-chat-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding-bottom: 14px;
+}
+
+.pg-chat-composer textarea {
+  flex: 1;
+  min-height: 36px;
+  max-height: 120px;
+  padding: 8px 10px;
+  border: 1px solid #1d5d9e;
+  border-radius: 6px;
+  outline: 0;
+  color: #dff0ff;
+  background: #06162f;
+  font: inherit;
+  font-size: 12px;
+  resize: none;
 }
 
 .pg-copilot-title {

@@ -16,6 +16,7 @@ import {
   type MetadataEntity,
   type MetadataField,
 } from "../query-builder/query-design/query-builder-slice";
+import CopilotThread from "./copilot-chat/copilot-thread";
 import "./playground.css";
 
 const ENTITY_ROW_HEIGHT = 28;
@@ -26,13 +27,6 @@ const ENTITY_WIDTH = { default: 150, min: 0, max: 420 };
 const ENTITY_HIDDEN_WIDTH = 48;
 const COPILOT_WIDTH = { default: 250, min: 200, max: 460 };
 const COPILOT_COLLAPSED_WIDTH = 36;
-const suggestions: Array<[string, IconName]> = [
-  ["Add a date filter", "type-datetime"],
-  ["Add a revenue threshold", "chart-line"],
-  ["Explain this query", "file-text"],
-  ["Create a visualization", "chart-bar"],
-];
-
 type EditorTab = { id: string; title: string; text: string };
 type ExplorerRow =
   | { kind: "entity"; key: string; entity: MetadataEntity; open: boolean }
@@ -199,16 +193,7 @@ function CopilotAside({ collapsed, onToggle }: { collapsed: boolean; onToggle: (
       <span className="pg-copilot-title"><Icon name="function" size={16} /><span className="pg-eyebrow">AI assistant</span></span>
       <button type="button" className="pg-icon-button" aria-label="Collapse AI assistant" onClick={onToggle}><Icon name="chevron-right" size={14} /></button>
     </header>
-    <div className="pg-copilot-content">
-      <p className="pg-copilot-intro">Get help, suggestions, and generate queries with natural language.</p>
-      <h3>Quick suggestions</h3>
-      {suggestions.map(([label, icon]) => <button type="button" className="pg-suggestion" key={label}><Icon name={icon} size={14} />{label}<Icon name="chevron-right" size={13} /></button>)}
-    </div>
-    <div className="pg-copilot-question">
-      <h3>Ask a question</h3>
-      <textarea placeholder="e.g. Show top customers by revenue" />
-      <button className="pg-primary" type="button"><Icon name="function" size={13} /> Generate query</button>
-    </div>
+    <CopilotThread />
   </aside>;
 }
 
@@ -235,12 +220,11 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
   }, [projectId, domainId]);
 
   const updateTabText = (id: string, text: string) => setTabs((current) => current.map((tab) => (tab.id === id ? { ...tab, text } : tab)));
-  // Inline results are keyed by context name, so they are cleared when the visible document changes.
+  // Results stay until the user clears them, so opening or switching tabs never wipes a grid.
   const selectTab = (id: string) => {
     if (id === activeTabId) return;
     setActiveTabId(id);
     setMessage("");
-    dispatch(clearAllInlineResults());
   };
   const addTab = () => {
     const number = nextTabNumber.current++;
@@ -311,7 +295,7 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
           suggestionFields={suggestionData.fields}
           suggestionEntities={suggestionData.entities}
           suggestionEntitiesMetadata={suggestionData.entitiesMetadata}
-          gutterWidth={7}
+          gutterWidth={2}
           onExecuteQuery={runEntry}
           onExecuteContext={runContext}
           inlineResults={inlineResults}

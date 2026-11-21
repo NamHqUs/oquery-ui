@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@assistant-ui/react": "^0.15.37",
     "@reduxjs/toolkit": "^2.9.0",
     "elkjs": "^0.12.1",
     "monaco-editor": "^0.57.0",

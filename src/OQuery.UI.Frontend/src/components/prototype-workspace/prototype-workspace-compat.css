@@ -517,13 +517,8 @@
   padding-bottom: 0;
 }
 
+/* The page scrolls; the editor stretches to its content instead of scrolling itself. */
 .root-body.playground-body {
-  height: calc(100vh - 119px);
-  min-height: 0;
-  overflow: hidden;
-}
-
-.root-body.playground-body > main {
-  overflow: hidden;
+  min-height: calc(100vh - 119px);
 }
 
