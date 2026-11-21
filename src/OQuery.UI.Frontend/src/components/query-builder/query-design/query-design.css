@@ -41,14 +41,14 @@
 .query-oquery-run-glyph::before {
   width: 0;
   height: 0;
-  border-top: 6px solid transparent;
-  border-bottom: 6px solid transparent;
-  border-left: 9px solid #86efac;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 7px solid #86efac;
   content: "";
 }
 
-/* Folding chevrons are sized smaller than the run glyph. */
-.query-oquery-monaco .cldr.codicon { font-size: 8px; }
+/* Folding chevrons are sized smaller than the run glyph. The extra class beats Monaco's own 140% folding rule. */
+.query-oquery-monaco .margin-view-overlays .cldr.codicon { font-size: 11px; }
 
 /* The host always fits the content, so Monaco's vertical slider is never needed. The viewport minimum keeps the horizontal scrollbar at the bottom of the screen even for short queries. */
 .query-oquery-monaco-host.query-oquery-auto-height { min-height: 100vh; }

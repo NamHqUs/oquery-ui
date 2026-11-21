@@ -276,6 +276,7 @@
 
 .pg-splitter {
   position: relative;
+  align-self: stretch;
   cursor: col-resize;
 }
 
