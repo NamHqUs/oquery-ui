@@ -216,7 +216,7 @@
 .pg-heading h1 {
   margin: 0 0 3px;
   color: #e9edf4;
-  font-size: 24px;
+  font-size: 20px;
 }
 
 .pg-heading p {
@@ -391,16 +391,10 @@
   margin-right: 16px;
 }
 
-.pg-heading-actions > button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
-  border: 1px solid #252b38;
-  border-radius: 3px;
-  color: #bbc3cf;
-  background: #151923;
+.pg-heading-actions .button {
+  padding: 6px 10px;
   font-size: 11px;
+  gap: 6px;
 }
 
 .pg-editor-host {
@@ -528,7 +522,7 @@
   border-radius: 6px;
   outline: 0;
   color: #dff0ff;
-  background: #06162f;
+  background: #0e1117;
   font: inherit;
   font-size: 11px;
   line-height: 1.5;
