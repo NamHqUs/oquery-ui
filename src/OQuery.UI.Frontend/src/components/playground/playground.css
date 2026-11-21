@@ -460,7 +460,6 @@
   align-items: center;
   justify-content: space-between;
   flex: 0 0 auto;
-  padding-top: 10px;
 }
 
 .pg-copilot-content {
@@ -497,7 +496,7 @@
   padding: 8px 10px;
   border-radius: 6px;
   color: #c8ced9;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.5;
 }
 
@@ -514,15 +513,16 @@
 
 .pg-chat-composer {
   display: flex;
-  align-items: flex-end;
-  gap: 8px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
   padding-bottom: 14px;
 }
 
-.pg-chat-composer textarea {
-  flex: 1;
-  min-height: 36px;
-  max-height: 120px;
+.pg-copilot .pg-chat-composer textarea {
+  width: 100%;
+  min-height: 96px;
+  max-height: 220px;
   padding: 8px 10px;
   border: 1px solid #1d5d9e;
   border-radius: 6px;
@@ -530,8 +530,15 @@
   color: #dff0ff;
   background: #06162f;
   font: inherit;
-  font-size: 12px;
-  resize: none;
+  font-size: 11px;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.pg-chat-composer .pg-primary {
+  align-self: flex-end;
+  font-size: 11px;
 }
 
 .pg-copilot-title {

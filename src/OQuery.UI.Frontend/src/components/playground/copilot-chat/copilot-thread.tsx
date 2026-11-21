@@ -19,7 +19,7 @@ export default function CopilotThread() {
         </ThreadPrimitive.Messages>
       </ThreadPrimitive.Viewport>
       <ComposerPrimitive.Root className="pg-chat-composer">
-        <ComposerPrimitive.Input placeholder="e.g. Show top customers by revenue" rows={1} />
+        <ComposerPrimitive.Input placeholder="e.g. Show top customers by revenue" rows={4} />
         <ComposerPrimitive.Send className="pg-primary">Send</ComposerPrimitive.Send>
       </ComposerPrimitive.Root>
     </ThreadPrimitive.Root>
