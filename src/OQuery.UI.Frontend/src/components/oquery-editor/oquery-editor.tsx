@@ -122,6 +122,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
   const inlineViewsRef = useRef(new Map<string, { entry: InlineQueryResult; mode: InlineResultMode; collapsed: boolean; view: InlineResultView; host: HTMLElement }>());
   const inlineModesRef = useRef(new Map<string, InlineResultMode>());
   const inlineCollapsedRef = useRef(new Set<string>());
+  const anchorIdsRef = useRef(new Map<string, string>());
   const inlineZoneIdsRef = useRef<string[]>([]);
   const inlineZoneContextsRef = useRef(new Map<string, string>());
   const externalWriteRef = useRef(false);
@@ -185,6 +186,28 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     decorationsRef.current?.set([...unknownEntityDecorations, ...contextDecorations, ...errorDecorations, ...runDecorations]);
   };
 
+  // The grid anchor is a model decoration, so edits above or below it move it with the text.
+  const getAnchorLine = (contextName: string): number | undefined => {
+    const model = modelRef.current;
+    const id = anchorIdsRef.current.get(contextName);
+    if (!model || !id) return undefined;
+    return model.getDecorationRange(id)?.startLineNumber;
+  };
+  const setAnchorLine = (contextName: string, lineNumber: number) => {
+    const model = modelRef.current;
+    if (!model) return;
+    const previous = anchorIdsRef.current.get(contextName);
+    const range = new monaco.Range(lineNumber, 1, lineNumber, model.getLineMaxColumn(lineNumber));
+    const [id] = model.deltaDecorations(previous ? [previous] : [], [{ range, options: { description: "oquery-result-anchor" } }]);
+    anchorIdsRef.current.set(contextName, id!);
+  };
+  const removeAnchor = (contextName: string) => {
+    const model = modelRef.current;
+    const id = anchorIdsRef.current.get(contextName);
+    if (model && id) model.deltaDecorations([id], []);
+    anchorIdsRef.current.delete(contextName);
+  };
+
   // Results sit under the last line of their context block. Zones are re-anchored on every
   // text change, so a result follows its block as lines are added or removed above it.
   const syncInlineZones = () => {
@@ -194,6 +217,9 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
     const latest = latestRef.current;
     const results = latest.inlineResults ?? {};
     const views = inlineViewsRef.current;
+    for (const contextName of [...anchorIdsRef.current.keys()]) {
+      if (!results[contextName]) removeAnchor(contextName);
+    }
     const anchored = new Set<string>();
     const zones: { afterLineNumber: number; heightInPx: number; domNode: HTMLElement; suppressMouseDown: boolean; contextName: string }[] = [];
     // View zones are sized to the editor's full content width, so the result is sized explicitly
@@ -227,13 +253,13 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       }
       cached.view.node.style.marginRight = `${marginRight}px`;
       cached.view.node.style.width = `${nodeWidth}px`;
-      // Blank lines typed after the block belong above the result, so the result stays at the document's end.
+      // A new result starts under its block; afterwards only Enter and Alt+Enter move the anchor.
       const lineCount = model.getLineCount();
-      const trailingText = block.endLine < lineCount
-        ? model.getValueInRange({ startLineNumber: block.endLine + 1, startColumn: 1, endLineNumber: lineCount, endColumn: model.getLineMaxColumn(lineCount) })
-        : "";
+      const storedAnchor = getAnchorLine(contextName);
+      const anchorLine = storedAnchor ?? block.endLine;
+      if (storedAnchor === undefined) setAnchorLine(contextName, anchorLine);
       zones.push({
-        afterLineNumber: trailingText.trim() === "" ? lineCount : block.endLine,
+        afterLineNumber: Math.min(lineCount, anchorLine),
         heightInPx: cached.view.height,
         domNode: cached.host,
         suppressMouseDown: true,
@@ -274,7 +300,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       latest.onExecuteSelectedText?.(model.getValueInRange(selection), selectionContext);
       return;
     }
-    const cursorLine = selection?.getPosition().lineNumber ?? 0;
+    const cursorLine = selection?.getStartPosition().lineNumber ?? 0;
     const cursorContext = contextName ?? blocks.find((block) => block.startLine <= cursorLine && cursorLine <= block.endLine)?.contextName;
     if (cursorContext) latest.onExecuteContext?.(cursorContext);
     else latest.onExecuteQuery?.();
@@ -534,9 +560,43 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       const editor = editorRef.current;
       const model = modelRef.current;
       if (!editor || !model || latestRef.current.disabled) return;
-      if (event.key !== "Enter" || event.altKey || event.shiftKey) return;
+      if (event.key !== "Enter" || event.shiftKey) return;
       const selection = editor.getSelection();
       if (!selection) return;
+      if (event.altKey) {
+        const cursorLine = selection.getStartPosition().lineNumber;
+        // The owner is the nearest header above the caret, so a caret on a blank line below the header still works.
+        const context = getOqueryContextBlocks(model.getValue())
+          .filter((block) => block.startLine <= cursorLine)
+          .pop();
+        if (!context || !latestRef.current.inlineResults?.[context.contextName]) return;
+        event.preventDefault();
+        event.stopPropagation();
+        // The new row goes directly under the grid, so existing text below the grid stays below it.
+        const anchor = getAnchorLine(context.contextName) ?? context.endLine;
+        setAnchorLine(context.contextName, anchor);
+        const lineCount = model.getLineCount();
+        const targetLine = anchor + 1;
+        const targetContent = targetLine <= lineCount
+          ? model.getValueInRange({
+            startLineNumber: targetLine,
+            startColumn: 1,
+            endLineNumber: targetLine,
+            endColumn: model.getLineMaxColumn(targetLine),
+          })
+          : "";
+        if (targetLine > lineCount || targetContent.trim() !== "") {
+          const endColumn = model.getLineMaxColumn(anchor);
+          const end = new monaco.Selection(anchor, endColumn, anchor, endColumn);
+          editor.executeEdits("oquery-enter-below-result", [{ range: end, text: "\n" }], [
+            new monaco.Selection(targetLine, 1, targetLine, 1),
+          ]);
+        } else {
+          editor.setPosition({ lineNumber: targetLine, column: 1 });
+          syncInlineZones();
+        }
+        return;
+      }
       if (event.ctrlKey || event.metaKey) {
         event.preventDefault();
         event.stopPropagation();
@@ -546,6 +606,12 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       if (wrapper.querySelector(".suggest-widget.visible")) return;
       event.preventDefault();
       event.stopPropagation();
+      const owner = getOqueryContextBlocks(model.getValue())
+        .filter((block) => block.startLine <= selection.getStartPosition().lineNumber)
+        .pop();
+      // Enter on the grid's anchor line moves the grid under the new line. Enter anywhere else leaves the anchor in place, so lines below the grid stay below it.
+      const anchorLine = owner ? getAnchorLine(owner.contextName) : undefined;
+      const movesAnchor = anchorLine !== undefined && selection.getStartPosition().lineNumber === anchorLine;
       const text = model.getValue();
       const edit = getOqueryEnterEdit(
         text,
@@ -566,6 +632,10 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
         }], [caret]);
       } else {
         editor.setSelection(caret);
+      }
+      if (owner && movesAnchor) {
+        setAnchorLine(owner.contextName, caret.startLineNumber);
+        syncInlineZones();
       }
     };
     wrapper.addEventListener("keydown", onKeyDown, { capture: true });

@@ -36,6 +36,10 @@ class FakeModel {
     return this.value.split("\n").length;
   }
 
+  getLineMaxColumn(lineNumber: number) {
+    return (this.value.split("\n")[lineNumber - 1] ?? "").length + 1;
+  }
+
   getOffsetAt({ lineNumber, column }: Position) {
     const lines = this.value.split("\n");
     let offset = 0;
@@ -67,6 +71,22 @@ class FakeModel {
 
   dispose() {
     this.disposed = true;
+  }
+
+  private readonly decorations = new Map<string, Range>();
+  private decorationCount = 0;
+
+  deltaDecorations(oldIds: string[], added: { range: Range }[]) {
+    oldIds.forEach((id) => this.decorations.delete(id));
+    return added.map(({ range }) => {
+      const id = `decoration-${++this.decorationCount}`;
+      this.decorations.set(id, range);
+      return id;
+    });
+  }
+
+  getDecorationRange(id: string): Range | null {
+    return this.decorations.get(id) ?? null;
   }
 }
 
@@ -144,9 +164,14 @@ class FakeEditor {
     return { dispose: () => undefined };
   }
 
-  changeViewZones<T>(callback: (accessor: { addZone: (zone: unknown) => string; removeZone: (id: string) => void }) => T): T {
+  readonly viewZones: { afterLineNumber: number }[] = [];
+
+  changeViewZones<T>(callback: (accessor: { addZone: (zone: { afterLineNumber: number }) => string; removeZone: (id: string) => void }) => T): T {
     return callback({
-      addZone: () => `zone-${++this.zoneCount}`,
+      addZone: (zone) => {
+        this.viewZones.push({ afterLineNumber: zone.afterLineNumber });
+        return `zone-${++this.zoneCount}`;
+      },
       removeZone: () => undefined,
     });
   }

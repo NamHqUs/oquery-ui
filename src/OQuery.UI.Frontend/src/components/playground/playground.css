@@ -1,6 +1,7 @@
 .pg-root {
   display: grid;
-  height: calc(100vh - 150px);
+  flex: 1;
+  height: auto;
   min-height: 560px;
 }
 
@@ -282,6 +283,24 @@
   background: #252b38;
 }
 
+.pg-splitter.is-minimized::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 28px;
+  border: 1px solid #687385;
+  border-radius: 4px;
+  background: radial-gradient(circle, #aeb8c8 1.5px, transparent 2px) center 5px / 6px 6px repeat-y, #151923;
+  transform: translate(-50%, -50%);
+}
+
+.pg-splitter.is-minimized:hover::before {
+  border-color: #8064e8;
+}
+
 .pg-splitter:hover::after {
   background: #8064e8;
 }
@@ -293,7 +312,7 @@
 .pg-editor-area {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0px;
   min-width: 0;
   min-height: 0;
 }
@@ -374,27 +393,28 @@
 }
 
 .pg-editor-host {
-  flex: 1;
+  flex: 0 0 auto;
   height: auto;
   min-height: 240px;
-  overflow: hidden;
-  border: 1px solid #252b38;
-  border-radius: 4px;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
 }
 
 .pg-editor-host .query-oquery-code-editor {
-  height: 100%;
+  height: auto;
   min-height: 0;
+  overflow: visible;
   border-radius: 0;
 }
 
 .pg-editor-host .query-oquery-monaco-host {
-  height: 100%;
+  height: auto;
   min-height: 0;
 }
 
 .pg-editor-host .margin-view-overlays .line-numbers {
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .pg-copilot {
@@ -402,10 +422,10 @@
   flex-direction: column;
   gap: 8px;
   min-width: 0;
-  overflow: auto;
-  padding: 14px;
-  border: 1px solid #252b38;
-  border-radius: 5px;
+  overflow: hidden;
+  padding: 14px 14px 0;
+  border: 0;
+  border-radius: 0;
   background: linear-gradient(135deg, #11141c, #0f1218);
 }
 
@@ -419,6 +439,22 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex: 0 0 auto;
+}
+
+.pg-copilot-content {
+  min-height: 0;
+  overflow: auto;
+}
+
+.pg-copilot-question {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin-top: auto;
+  flex: 0 0 auto;
+  padding-top: 2px;
+  background: #11141c;
 }
 
 .pg-copilot-title {
@@ -436,14 +472,14 @@
 .pg-copilot-intro {
   margin: 0;
   color: #8993a5;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.5;
 }
 
 .pg-copilot h3 {
   margin: 10px 0 2px;
   color: #d9ebff;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .pg-copilot button.pg-suggestion {
@@ -455,7 +491,7 @@
   border-radius: 4px;
   color: #dbeaff;
   background: #0e1117;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 400;
   text-align: left;
 }
@@ -469,8 +505,12 @@
   color: #e9edf4;
   background: #0e1117;
   font: inherit;
-  font-size: 12px;
+  font-size: 11px;
   resize: vertical;
+}
+
+.pg-copilot button.pg-primary {
+  font-size: 11px;
 }
 
 .pg-copilot-rail {

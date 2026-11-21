@@ -212,7 +212,8 @@ sub-domain detail and the FullDomain are loaded only for the selected project.
 ### Function Definitions (`/function-definitions`)
 
 Uses `FunctionDefinitionService.getDefinitions()`, `saveDefinition()` and
-`deleteDefinition()`. The page produces global function data; Home and Query Builder consume it through`OQueryEditorService`.
+`deleteDefinition()`. The page produces global function data; Home and Query
+ Builder consume it through`OQueryEditorService`.
 
 ### Filter operators
 

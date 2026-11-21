@@ -147,6 +147,10 @@ visible while the result panel is busy, preventing a temporary page-height
 collapse and scroll jump. Success replaces the displayed result; failure clears
 it and shows the execution error. Editing still clears obsolete results.
 
+In the inline-result editor, **Ctrl+Enter** runs the query. After a result is
+shown, **Alt+Enter** places the caret on a new line below that result so another
+query can be entered without moving the result out of view.
+
 ```powershell
 node --test .\src\components\oquery-editor\oquery-comments.test.mjs
 node --test .\src\components\query-builder\query-design\oquery-feedback.test.mjs

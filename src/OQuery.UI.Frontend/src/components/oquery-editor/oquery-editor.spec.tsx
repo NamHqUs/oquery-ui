@@ -179,4 +179,179 @@ describe("OQueryEditor (Monaco)", () => {
     expect(event.defaultPrevented).toBe(true);
     expect(editor.model.getValue()).toBe("Entity: User");
   });
+
+  it("places the caret below an inline result on Alt+Enter", () => {
+    render({
+      initialText: "User:",
+      inlineResults: {
+        User: {
+          status: "succeeded",
+          result: { columns: ["Id"], rows: [["1"]], totalRecords: 1 },
+          sql: null,
+          error: "",
+        },
+      },
+    });
+    const editor = currentEditor();
+    editor.setSelectionOffsets(editor.model.getValue().length);
+
+    const event = new KeyboardEvent("keydown", { key: "Enter", altKey: true, bubbles: true, cancelable: true });
+    act(() => { container.querySelector(".query-oquery-code-editor")!.dispatchEvent(event); });
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(editor.model.getValue()).toBe("User:\n");
+    expect(editor.getSelection()?.getStartPosition()).toEqual({ lineNumber: 2, column: 1 });
+  });
+
+  it("keeps a normal Enter line below the grid after Alt+Enter", () => {
+    render({
+      initialText: "User:\nOrders:",
+      inlineResults: {
+        User: {
+          status: "succeeded",
+          result: { columns: ["Id"], rows: [["1"]], totalRecords: 1 },
+          sql: null,
+          error: "",
+        },
+      },
+    });
+    const editor = currentEditor();
+    editor.setSelectionOffsets("User:".length);
+    const altEvent = new KeyboardEvent("keydown", { key: "Enter", altKey: true, bubbles: true, cancelable: true });
+    act(() => { container.querySelector(".query-oquery-code-editor")!.dispatchEvent(altEvent); });
+
+    const event = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+    act(() => { container.querySelector(".query-oquery-code-editor")!.dispatchEvent(event); });
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(editor.model.getValue()).toBe("User:\n\n\nOrders:");
+    expect(editor.getSelection()?.getStartPosition()).toEqual({ lineNumber: 3, column: 1 });
+    expect(editor.viewZones.at(-1)?.afterLineNumber).toBe(1);
+  });
+
+  it("keeps typed text and a following Enter below the grid after Alt+Enter", () => {
+    render({
+      initialText: "User:",
+      inlineResults: {
+        User: {
+          status: "succeeded",
+          result: { columns: ["Id"], rows: [["1"]], totalRecords: 1 },
+          sql: null,
+          error: "",
+        },
+      },
+    });
+    const editor = currentEditor();
+    editor.setSelectionOffsets(editor.model.getValue().length);
+    const altEvent = new KeyboardEvent("keydown", { key: "Enter", altKey: true, bubbles: true, cancelable: true });
+    act(() => { container.querySelector(".query-oquery-code-editor")!.dispatchEvent(altEvent); });
+    act(() => { editor.model.applyEdit(editor.model.getValue().length, editor.model.getValue().length, "abc"); });
+    editor.setSelectionOffsets(editor.model.getValue().length);
+
+    const event = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+    act(() => { container.querySelector(".query-oquery-code-editor")!.dispatchEvent(event); });
+
+    expect(editor.model.getValue()).toBe("User:\nabc\n");
+    expect(editor.getSelection()?.getStartPosition()).toEqual({ lineNumber: 3, column: 1 });
+    expect(editor.viewZones.at(-1)?.afterLineNumber).toBe(1);
+  });
+
+  it("moves to a new row below the inline result on Alt+Enter after a normal Enter", () => {
+    render({
+      initialText: "User:",
+      inlineResults: {
+        User: {
+          status: "succeeded",
+          result: { columns: ["Id"], rows: [["1"]], totalRecords: 1 },
+          sql: null,
+          error: "",
+        },
+      },
+    });
+    const editor = currentEditor();
+    editor.setSelectionOffsets(editor.model.getValue().length);
+    const enter = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+    act(() => { container.querySelector(".query-oquery-code-editor")!.dispatchEvent(enter); });
+    expect(editor.model.getValue()).toBe("User:\n");
+
+    const altEvent = new KeyboardEvent("keydown", { key: "Enter", altKey: true, bubbles: true, cancelable: true });
+    act(() => { container.querySelector(".query-oquery-code-editor")!.dispatchEvent(altEvent); });
+
+    expect(altEvent.defaultPrevented).toBe(true);
+    expect(editor.model.getValue()).toBe("User:\n\n");
+    expect(editor.getSelection()?.getStartPosition()).toEqual({ lineNumber: 3, column: 1 });
+    expect(editor.viewZones.at(-1)?.afterLineNumber).toBe(2);
+  });
+
+  it("keeps text below the grid below it when Alt+Enter is pressed on the header", () => {
+    render({
+      initialText: "User:",
+      inlineResults: {
+        User: {
+          status: "succeeded",
+          result: { columns: ["Id"], rows: [["1"]], totalRecords: 1 },
+          sql: null,
+          error: "",
+        },
+      },
+    });
+    const editor = currentEditor();
+    editor.setSelectionOffsets(editor.model.getValue().length);
+    const alt = () => new KeyboardEvent("keydown", { key: "Enter", altKey: true, bubbles: true, cancelable: true });
+    act(() => { container.querySelector(".query-oquery-code-editor")!.dispatchEvent(alt()); });
+    act(() => { editor.model.applyEdit(editor.model.getValue().length, editor.model.getValue().length, "abc"); });
+    editor.setSelectionOffsets("User:".length);
+
+    act(() => { container.querySelector(".query-oquery-code-editor")!.dispatchEvent(alt()); });
+
+    expect(editor.model.getValue()).toBe("User:\n\nabc");
+    expect(editor.getSelection()?.getStartPosition()).toEqual({ lineNumber: 2, column: 1 });
+    expect(editor.viewZones.at(-1)?.afterLineNumber).toBe(1);
+  });
+
+  it("keeps the grid above text typed on the row below it after Alt+Enter", () => {
+    render({
+      initialText: "User:",
+      inlineResults: {
+        User: {
+          status: "succeeded",
+          result: { columns: ["Id"], rows: [["1"]], totalRecords: 1 },
+          sql: null,
+          error: "",
+        },
+      },
+    });
+    const editor = currentEditor();
+    editor.setSelectionOffsets(editor.model.getValue().length);
+    const altEvent = new KeyboardEvent("keydown", { key: "Enter", altKey: true, bubbles: true, cancelable: true });
+    act(() => { container.querySelector(".query-oquery-code-editor")!.dispatchEvent(altEvent); });
+
+    act(() => { editor.model.applyEdit(editor.model.getValue().length, editor.model.getValue().length, "abc"); });
+
+    expect(editor.model.getValue()).toBe("User:\nabc");
+    expect(editor.viewZones.at(-1)?.afterLineNumber).toBe(1);
+  });
+
+  it("inserts a new line below an inline result before following content on Alt+Enter", () => {
+    render({
+      initialText: "User:\nOrders:",
+      inlineResults: {
+        User: {
+          status: "succeeded",
+          result: { columns: ["Id"], rows: [["1"]], totalRecords: 1 },
+          sql: null,
+          error: "",
+        },
+      },
+    });
+    const editor = currentEditor();
+    editor.setSelectionOffsets("User:".length);
+
+    const event = new KeyboardEvent("keydown", { key: "Enter", altKey: true, bubbles: true, cancelable: true });
+    act(() => { container.querySelector(".query-oquery-code-editor")!.dispatchEvent(event); });
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(editor.model.getValue()).toBe("User:\n\nOrders:");
+    expect(editor.getSelection()?.getStartPosition()).toEqual({ lineNumber: 2, column: 1 });
+  });
 });

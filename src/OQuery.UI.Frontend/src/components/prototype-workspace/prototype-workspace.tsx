@@ -40,7 +40,7 @@ function Header({ projects, projectId, domains, domainId, connectionStatus, prov
   const connectionLabel = connectionStatus === "loading" ? "Connecting…"
     : connectionStatus === "failed" ? "Connection failed · Retry"
       : connectionStatus === "succeeded" ? (provider || "Connecting") : "Not connected";
-  return <header className="prototype-header">
+  return <header className="root-header">
     <button type="button" className="prototype-logo" onClick={onNavigateHome} aria-label="Go to home"><img src="/brand-concepts/23-oquery-orbit-core.svg" alt="" /><small>DATA QUERY ENGINE</small></button>
     <div className="prototype-context">
       <WorkspaceSelect
@@ -76,8 +76,8 @@ function Header({ projects, projectId, domains, domainId, connectionStatus, prov
 
 
 function Sidebar({ view, setView, collapsed, onToggle }: { view: View; setView: (view: View) => void; collapsed: boolean; onToggle: () => void }) {
-  return <aside className={`prototype-sidebar${collapsed ? " collapsed" : ""}`}>
-    <button type="button" className="prototype-sidebar-toggle" aria-label={collapsed ? "Expand main menu" : "Collapse main menu"} onClick={onToggle}>
+  return <aside className={`root-sidebar${collapsed ? " collapsed" : ""}`}>
+    <button type="button" className="root-sidebar-toggle" aria-label={collapsed ? "Expand main menu" : "Collapse main menu"} onClick={onToggle}>
       <Icon name={collapsed ? "chevron-right" : "chevron-left"} size={14} />
     </button>
     <nav>{items.map(([id, label, icon]) => <button key={id} type="button" className={view === id ? "active" : ""} title={label} aria-label={label} onClick={() => setView(id)}><Icon name={icon} size={19} /><span>{label}</span></button>)}</nav>
@@ -150,5 +150,5 @@ export default function PlaygroundWorkspace({ projectId, domainId, queryId, proj
     ? domainId
     : (domains.some((domain) => domain.id === domainId) ? domainId : (domains[0]?.id ?? ""));
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  return <div className="prototype-workspace"><Header projects={projects} projectId={projectId} domains={domains} domainId={selectedDomainId} connectionStatus={connectionStatus} provider={provider} onSelectProject={(id) => { if (id) onNavigate(`/playground/${encodeURIComponent(id)}`); }} onSelectDomain={(id) => { if (id) onNavigate(`/playground/${encodeURIComponent(projectId)}/${encodeURIComponent(id)}`); }} onOpenConnection={onOpenConnection} onNavigateHome={() => onNavigate("/")} /><div className="prototype-body"><Sidebar view={view} setView={setView} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((collapsed) => !collapsed)} /><main>{view === "overview" ? <Overview /> : view === "playground" ? <Playground queryId={queryId} projectId={projectId} domainId={selectedDomainId} /> : view === "queries" ? <Queries /> : view === "schema" ? <Schema /> : view === "explorer" ? <Explorer /> : view === "functions" ? <Functions /> : <Security />}</main></div><footer className="prototype-footer"><Icon name="schema" size={13} /> oQuery engine <span>Phase one</span><span>Data binding planned for phase two</span></footer></div>;
+  return <div className="root-workspace"><Header projects={projects} projectId={projectId} domains={domains} domainId={selectedDomainId} connectionStatus={connectionStatus} provider={provider} onSelectProject={(id) => { if (id) onNavigate(`/playground/${encodeURIComponent(id)}`); }} onSelectDomain={(id) => { if (id) onNavigate(`/playground/${encodeURIComponent(projectId)}/${encodeURIComponent(id)}`); }} onOpenConnection={onOpenConnection} onNavigateHome={() => onNavigate("/")} /><div className={`root-body${view === "playground" ? " playground-body" : ""}`}><Sidebar view={view} setView={setView} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((collapsed) => !collapsed)} /><main className={view === "playground" ? "root-main-playground" : undefined}>{view === "overview" ? <Overview /> : view === "playground" ? <Playground queryId={queryId} projectId={projectId} domainId={selectedDomainId} /> : view === "queries" ? <Queries /> : view === "schema" ? <Schema /> : view === "explorer" ? <Explorer /> : view === "functions" ? <Functions /> : <Security />}</main></div><footer className="root-footer"><Icon name="schema" size={13} /> oQuery engine <span>Phase one</span><span>Data binding planned for phase two</span></footer></div>;
 }

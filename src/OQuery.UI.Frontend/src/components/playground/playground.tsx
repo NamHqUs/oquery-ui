@@ -22,10 +22,10 @@ const ENTITY_ROW_HEIGHT = 28;
 const FIELD_ROW_HEIGHT = 24;
 const RELATION_ROW_HEIGHT = 24;
 const ROW_OVERSCAN = 6;
-const ENTITY_WIDTH = { default: 180, min: 0, max: 420 };
+const ENTITY_WIDTH = { default: 150, min: 0, max: 420 };
 const ENTITY_HIDDEN_WIDTH = 48;
 const COPILOT_WIDTH = { default: 250, min: 200, max: 460 };
-const COPILOT_COLLAPSED_WIDTH = 52;
+const COPILOT_COLLAPSED_WIDTH = 36;
 const suggestions: Array<[string, IconName]> = [
   ["Add a date filter", "type-datetime"],
   ["Add a revenue threshold", "chart-line"],
@@ -99,7 +99,7 @@ function PlaygroundHeading() {
   return <div className="pg-heading"><div><span className="pg-heading-icon"><Icon name="query" size={23} /></span><span><h1>Query playground</h1><p>Ask questions across your business data</p></span></div><div className="pg-heading-actions"><button type="button"><Icon name="code" size={13} />Format</button><button type="button"><Icon name="save" size={13} />Save</button></div></div>;
 }
 
-function Splitter({ label, hidden = false, onDrag }: { label: string; hidden?: boolean; onDrag: (delta: number) => void }) {
+function Splitter({ label, hidden = false, minimized = false, onDrag }: { label: string; hidden?: boolean; minimized?: boolean; onDrag: (delta: number) => void }) {
   const startDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
     event.preventDefault();
     let lastX = event.clientX;
@@ -114,7 +114,7 @@ function Splitter({ label, hidden = false, onDrag }: { label: string; hidden?: b
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", stop);
   };
-  return <div className={`pg-splitter${hidden ? " is-hidden" : ""}`} role="separator" aria-orientation="vertical" aria-label={label} onPointerDown={startDrag} />;
+  return <div className={`pg-splitter${hidden ? " is-hidden" : ""}${minimized ? " is-minimized" : ""}`} role="separator" aria-orientation="vertical" aria-label={label} onPointerDown={startDrag} />;
 }
 
 function EntityExplorer({ entities, relations, error }: { entities: MetadataEntity[]; relations: DomainRelation[]; error: string }) {
@@ -199,12 +199,16 @@ function CopilotAside({ collapsed, onToggle }: { collapsed: boolean; onToggle: (
       <span className="pg-copilot-title"><Icon name="function" size={16} /><span className="pg-eyebrow">AI assistant</span></span>
       <button type="button" className="pg-icon-button" aria-label="Collapse AI assistant" onClick={onToggle}><Icon name="chevron-right" size={14} /></button>
     </header>
-    <p className="pg-copilot-intro">Get help, suggestions, and generate queries with natural language.</p>
-    <h3>Quick suggestions</h3>
-    {suggestions.map(([label, icon]) => <button type="button" className="pg-suggestion" key={label}><Icon name={icon} size={14} />{label}<Icon name="chevron-right" size={13} /></button>)}
-    <h3>Ask a question</h3>
-    <textarea placeholder="e.g. Show top customers by revenue" />
-    <button className="pg-primary" type="button"><Icon name="function" size={13} /> Generate query</button>
+    <div className="pg-copilot-content">
+      <p className="pg-copilot-intro">Get help, suggestions, and generate queries with natural language.</p>
+      <h3>Quick suggestions</h3>
+      {suggestions.map(([label, icon]) => <button type="button" className="pg-suggestion" key={label}><Icon name={icon} size={14} />{label}<Icon name="chevron-right" size={13} /></button>)}
+    </div>
+    <div className="pg-copilot-question">
+      <h3>Ask a question</h3>
+      <textarea placeholder="e.g. Show top customers by revenue" />
+      <button className="pg-primary" type="button"><Icon name="function" size={13} /> Generate query</button>
+    </div>
   </aside>;
 }
 
@@ -282,7 +286,7 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
     <aside className={`pg-entities${entityWidth < ENTITY_HIDDEN_WIDTH ? " is-collapsed" : ""}`}>
       <EntityExplorer entities={metadata} relations={metadataRelations} error={loadError} />
     </aside>
-    <Splitter label="Resize available entities" onDrag={(delta) => setEntityWidth((width) => clamp(width + delta, ENTITY_WIDTH.min, ENTITY_WIDTH.max))} />
+    <Splitter minimized={entityWidth <= ENTITY_HIDDEN_WIDTH} label="Resize available entities" onDrag={(delta) => setEntityWidth((width) => clamp(width + delta, ENTITY_WIDTH.min, ENTITY_WIDTH.max))} />
     <section className="pg-editor-area">
       <div className="pg-tabs" role="tablist">
         {tabs.map((tab) => <div key={tab.id} className={`pg-tab${tab.id === activeTab.id ? " active" : ""}`}>
@@ -298,6 +302,7 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
           key={activeTab.id}
           ref={editorRef}
           oquery
+          autoHeight
           initialText={activeTab.text}
           onTextChange={(text) => updateTabText(activeTab.id, text)}
           domain={{ id: domainId, name: domainId, entities: metadata, relations: metadataRelations }}
@@ -306,7 +311,7 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
           suggestionFields={suggestionData.fields}
           suggestionEntities={suggestionData.entities}
           suggestionEntitiesMetadata={suggestionData.entitiesMetadata}
-          gutterWidth={10}
+          gutterWidth={7}
           onExecuteQuery={runEntry}
           onExecuteContext={runContext}
           inlineResults={inlineResults}
