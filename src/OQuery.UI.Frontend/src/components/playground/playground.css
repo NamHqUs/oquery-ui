@@ -193,7 +193,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin: 5px;
 }
 
 .pg-heading > div:first-child {
@@ -460,6 +460,7 @@
   align-items: center;
   justify-content: space-between;
   flex: 0 0 auto;
+  padding-top: 10px;
 }
 
 .pg-copilot-content {
