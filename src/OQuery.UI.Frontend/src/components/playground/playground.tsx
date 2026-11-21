@@ -235,9 +235,12 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
       panel.style.height = `${Math.max(0, bottom - top)}px`;
     };
     update();
+    const observer = new ResizeObserver(update);
+    observer.observe(layout);
     window.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update);
     return () => {
+      observer.disconnect();
       window.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
     };

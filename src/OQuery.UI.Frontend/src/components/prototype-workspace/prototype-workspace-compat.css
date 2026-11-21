@@ -468,7 +468,16 @@
 }
 
 .root-sidebar {
-  position: relative;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+}
+
+@media (max-width: 760px) {
+  .root-sidebar {
+    position: relative;
+    align-self: auto;
+  }
 }
 
 .root-sidebar-toggle {

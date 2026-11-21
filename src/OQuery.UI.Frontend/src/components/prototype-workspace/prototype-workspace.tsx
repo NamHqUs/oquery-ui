@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Icon, { type IconName } from "../icon/icon";
 import { getProject, type ProjectSummary } from "../../services/project-service";
 import WorkspaceSelect from "./prototype-select";
@@ -150,5 +150,32 @@ export default function PlaygroundWorkspace({ projectId, domainId, queryId, proj
     ? domainId
     : (domains.some((domain) => domain.id === domainId) ? domainId : (domains[0]?.id ?? ""));
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  return <div className="root-workspace"><Header projects={projects} projectId={projectId} domains={domains} domainId={selectedDomainId} connectionStatus={connectionStatus} provider={provider} onSelectProject={(id) => { if (id) onNavigate(`/playground/${encodeURIComponent(id)}`); }} onSelectDomain={(id) => { if (id) onNavigate(`/playground/${encodeURIComponent(projectId)}/${encodeURIComponent(id)}`); }} onOpenConnection={onOpenConnection} onNavigateHome={() => onNavigate("/")} /><div className={`root-body${view === "playground" ? " playground-body" : ""}`}><Sidebar view={view} setView={setView} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((collapsed) => !collapsed)} /><main className={view === "playground" ? "root-main-playground" : undefined}>{view === "overview" ? <Overview /> : view === "playground" ? <Playground queryId={queryId} projectId={projectId} domainId={selectedDomainId} /> : view === "queries" ? <Queries /> : view === "schema" ? <Schema /> : view === "explorer" ? <Explorer /> : view === "functions" ? <Functions /> : <Security />}</main></div><footer className="root-footer"><Icon name="schema" size={13} /> oQuery engine <span>Phase one</span><span>Data binding planned for phase two</span></footer></div>;
+  const bodyRef = useRef<HTMLDivElement>(null);
+  // The main menu stays on screen while the page scrolls. Its height runs from its current top to the viewport
+  // bottom, capped at the body's bottom, so it never extends past the body or grows the page as it scrolls.
+  useLayoutEffect(() => {
+    const body = bodyRef.current;
+    const sidebar = body?.querySelector<HTMLElement>(".root-sidebar");
+    if (!body || !sidebar) return;
+    const update = () => {
+      if (window.innerWidth <= 760) {
+        sidebar.style.height = "";
+        return;
+      }
+      const top = Math.max(0, sidebar.getBoundingClientRect().top);
+      const bottom = Math.min(window.innerHeight, body.getBoundingClientRect().bottom);
+      sidebar.style.height = `${Math.max(0, bottom - top)}px`;
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(body);
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+  return <div className="root-workspace"><Header projects={projects} projectId={projectId} domains={domains} domainId={selectedDomainId} connectionStatus={connectionStatus} provider={provider} onSelectProject={(id) => { if (id) onNavigate(`/playground/${encodeURIComponent(id)}`); }} onSelectDomain={(id) => { if (id) onNavigate(`/playground/${encodeURIComponent(projectId)}/${encodeURIComponent(id)}`); }} onOpenConnection={onOpenConnection} onNavigateHome={() => onNavigate("/")} /><div ref={bodyRef} className={`root-body${view === "playground" ? " playground-body" : ""}`}><Sidebar view={view} setView={setView} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((collapsed) => !collapsed)} /><main className={view === "playground" ? "root-main-playground" : undefined}>{view === "overview" ? <Overview /> : view === "playground" ? <Playground queryId={queryId} projectId={projectId} domainId={selectedDomainId} /> : view === "queries" ? <Queries /> : view === "schema" ? <Schema /> : view === "explorer" ? <Explorer /> : view === "functions" ? <Functions /> : <Security />}</main></div><footer className="root-footer"><Icon name="schema" size={13} /> oQuery engine <span>Phase one</span><span>Data binding planned for phase two</span></footer></div>;
 }
