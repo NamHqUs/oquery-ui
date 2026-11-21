@@ -27,6 +27,8 @@ const ENTITY_WIDTH = { default: 150, min: 0, max: 420 };
 const ENTITY_HIDDEN_WIDTH = 48;
 const COPILOT_WIDTH = { default: 250, min: 200, max: 460 };
 const COPILOT_COLLAPSED_WIDTH = 36;
+// Gap between the screen top and the entity list while it is pinned during scroll.
+const ENTITY_PIN_TOP = 6;
 type EditorTab = { id: string; title: string; text: string };
 type ExplorerRow =
   | { kind: "entity"; key: string; entity: MetadataEntity; open: boolean }
@@ -225,11 +227,11 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
     if (!slot || !panel || !layout) return;
     const update = () => {
       const rect = slot.getBoundingClientRect();
-      const pinned = rect.top < 0;
-      const top = pinned ? 0 : rect.top;
+      const pinned = rect.top < ENTITY_PIN_TOP;
+      const top = pinned ? ENTITY_PIN_TOP : rect.top;
       const bottom = Math.min(window.innerHeight, layout.getBoundingClientRect().bottom);
       panel.style.position = pinned ? "fixed" : "";
-      panel.style.top = pinned ? "0px" : "";
+      panel.style.top = pinned ? `${ENTITY_PIN_TOP}px` : "";
       panel.style.left = pinned ? `${rect.left}px` : "";
       panel.style.width = pinned ? `${rect.width}px` : "";
       panel.style.height = `${Math.max(0, bottom - top)}px`;
