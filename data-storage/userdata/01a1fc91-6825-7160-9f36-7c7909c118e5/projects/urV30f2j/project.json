@@ -1,0 +1,10 @@
+{
+  "Id": "urV30f2j",
+  "Name": "Test",
+  "Description": "",
+  "DbConnectionProfile": "",
+  "Connection": {
+    "Provider": "Sqlite",
+    "EncryptedConnectionString": "BFDgI8xKVvq2JATW1AFFi/yqcUWH1OXDZjs/qOzUlz7A698ANvNEvMNDIl5Yxm04"
+  }
+}

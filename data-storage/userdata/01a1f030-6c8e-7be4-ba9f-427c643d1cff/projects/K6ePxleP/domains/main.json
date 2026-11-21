@@ -4,20 +4,6 @@
   "Description": "Meta is mirrored from Database Schema",
   "Entities": [
     {
-      "Entity": "Employees",
-      "EntityName": null,
-      "FieldNames": [],
-      "ExcludedFields": [],
-      "RelationNames": []
-    },
-    {
-      "Entity": "Locations",
-      "EntityName": null,
-      "FieldNames": [],
-      "ExcludedFields": [],
-      "RelationNames": []
-    },
-    {
       "Entity": "School",
       "EntityName": null,
       "FieldNames": [],
@@ -26,55 +12,6 @@
     },
     {
       "Entity": "User",
-      "EntityName": null,
-      "FieldNames": [],
-      "ExcludedFields": [],
-      "RelationNames": []
-    },
-    {
-      "Entity": "Users",
-      "EntityName": null,
-      "FieldNames": [],
-      "ExcludedFields": [],
-      "RelationNames": []
-    },
-    {
-      "Entity": "Departments",
-      "EntityName": null,
-      "FieldNames": [],
-      "ExcludedFields": [],
-      "RelationNames": []
-    },
-    {
-      "Entity": "LeaveRequests",
-      "EntityName": null,
-      "FieldNames": [],
-      "ExcludedFields": [],
-      "RelationNames": []
-    },
-    {
-      "Entity": "PerformanceReviews",
-      "EntityName": null,
-      "FieldNames": [],
-      "ExcludedFields": [],
-      "RelationNames": []
-    },
-    {
-      "Entity": "OrderItems",
-      "EntityName": null,
-      "FieldNames": [],
-      "ExcludedFields": [],
-      "RelationNames": []
-    },
-    {
-      "Entity": "Orders",
-      "EntityName": null,
-      "FieldNames": [],
-      "ExcludedFields": [],
-      "RelationNames": []
-    },
-    {
-      "Entity": "Products",
       "EntityName": null,
       "FieldNames": [],
       "ExcludedFields": [],
@@ -96,6 +33,27 @@
     },
     {
       "Entity": "Visits",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "Departments",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "LeaveRequests",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "PerformanceReviews",
       "EntityName": null,
       "FieldNames": [],
       "ExcludedFields": [],
@@ -124,6 +82,48 @@
     },
     {
       "Entity": "PremiumPayments",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "Employees",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "Locations",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "Users",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "OrderItems",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "Orders",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "Products",
       "EntityName": null,
       "FieldNames": [],
       "ExcludedFields": [],

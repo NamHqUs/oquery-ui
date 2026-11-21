@@ -273,11 +273,11 @@ function PageSubnav({
       <nav className="hp-subnav app-subnav" aria-label="Home sections">
         <span className="hp-subnav-brand">{PRODUCT_NAME}</span>
         <div className="hp-subnav-links">
-          {HOME_SUBMENU.map((item) => <button key={item.target} type="button" onClick={() => scrollToSection(item.target)}>{item.label}</button>)}
+          {HOME_SUBMENU.map((item) => <button key={item.target} type="button" onClick={() => item.target === "hp-playground" ? onNavigateToPage("builder", true) : scrollToSection(item.target)}>{item.label}</button>)}
           <button type="button" onClick={() => onNavigateToPage("documentation")}>Documentation</button>
           <a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub</a>
         </div>
-        <button className="button primary hp-subnav-cta" type="button" onClick={() => onNavigateToPage("builder")}><Icon name="play" size={11} /> Try Playground</button>
+        <button className="button primary hp-subnav-cta" type="button" onClick={() => onNavigateToPage("builder", true)}><Icon name="play" size={11} /> Try Playground</button>
       </nav>
     );
   }
@@ -440,21 +440,22 @@ function WorkspaceContextBar({
 }
 
 function useWorkspaceProjects(refreshKey: string) {
-  const [state, setState] = useState<{ projects: ProjectSummary[] | null; failed: boolean }>({ projects: null, failed: false });
+  const [state, setState] = useState<{ key: string; projects: ProjectSummary[] | null; failed: boolean }>({ key: "", projects: null, failed: false });
   useEffect(() => {
     let active = true;
+    setState({ key: refreshKey, projects: null, failed: false });
     listProjects()
       .then((projects) => {
-        if (active) setState({ projects, failed: false });
+        if (active) setState({ key: refreshKey, projects, failed: false });
       })
       .catch(() => {
-        if (active) setState({ projects: null, failed: true });
+        if (active) setState({ key: refreshKey, projects: null, failed: true });
       });
     return () => {
       active = false;
     };
   }, [refreshKey]);
-  return state;
+  return state.key === refreshKey ? state : { key: refreshKey, projects: null, failed: false };
 }
 
 function WorkspaceGate({
@@ -654,7 +655,7 @@ function App() {
   const workspaceProjectId = builderProjectIdOf(location.pathname) || new URLSearchParams(location.search).get("project") || "";
   const workspaceNeedsProject = page === "builder" || page === "metadata" || page === "functions" || page === "security";
   const showWorkspaceGate = workspaceNeedsProject
-    && !workspaceProjects.projects?.some((item) => item.id === workspaceProjectId);
+    && (!workspaceProjects.projects || !workspaceProjects.projects.some((item) => item.id === workspaceProjectId));
   const [metadataVisited, setMetadataVisited] = useState(() => location.pathname === PAGE_PATHS.metadata || pageForPath(location.pathname) === "metadata");
   const [functionDefinitionsVisited, setFunctionDefinitionsVisited] = useState(() => location.pathname === PAGE_PATHS.functions);
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
@@ -767,7 +768,7 @@ function App() {
     const rememberedMetadataRoute = window.sessionStorage.getItem(METADATA_LAST_ROUTE_STORAGE_KEY);
     const lastBuilderProject = window.sessionStorage.getItem(LAST_BUILDER_PROJECT_STORAGE_KEY) ?? "";
     const destination = nextPage === "builder"
-      ? (lastBuilderProject ? builderPath(lastBuilderProject, "", fromHome ? "home" : "") : WORKSPACE_PATH)
+      ? (fromHome ? WORKSPACE_PATH : (lastBuilderProject ? builderPath(lastBuilderProject) : WORKSPACE_PATH))
       : nextPage === "metadata"
         ? metadataPath ?? (rememberedMetadataRoute?.startsWith(`${PAGE_PATHS.metadata}/`)
           ? rememberedMetadataRoute
@@ -815,6 +816,7 @@ function App() {
 
   const playgroundRoute = playgroundRouteOf(location.pathname);
   if (playgroundRoute?.projectId) {
+    if (!workspaceProjects.projects) return <main className="app-shell"><p className="metadata-message">Loading projects…</p></main>;
     if (workspaceProjects.projects && !workspaceProjects.projects.some((project) => project.id === playgroundRoute.projectId)) {
       return <Navigate to={workspaceProjects.projects.length === 0 ? PROJECT_CREATE_PATH : WORKSPACE_PATH} replace />;
     }

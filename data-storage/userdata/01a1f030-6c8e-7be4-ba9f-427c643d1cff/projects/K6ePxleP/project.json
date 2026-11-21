@@ -1,0 +1,10 @@
+{
+  "Id": "K6ePxleP",
+  "Name": "SqlServer Test",
+  "Description": "the first project",
+  "DbConnectionProfile": "",
+  "Connection": {
+    "Provider": "SqlServer",
+    "EncryptedConnectionString": "5At1/0q\u002BJKco4kE9Yr6Q/DAzIj54ewUF1NSIkzd\u002BjW7PyL\u002BhxMjcpSHutgEpKJQZ5PWZ5n5wLfK8d38eqRzSvuft2IA1V86Q11OP6LnWCAkb6v5gh0U\u002B73cocJMiVJIdTiGuxicW6eH4pqIxCh0fnOl1dX43hpY/4BYqcBFYve7PQ0PjezpGH3ep4uDsvbD6GTaNEk59"
+  }
+}
