@@ -25,6 +25,7 @@ import { store, type RootState } from "./store/store";
 import "./styles.css";
 import "./components/app-shell/app-shell.css";
 import PlaygroundWorkspace from "./components/prototype-workspace/prototype-workspace";
+import { domainDiagramRouteOf, isDomainDiagramPath } from "./components/domain-diagram/domain-diagram-routes";
 
 const PAGE_PATHS = {
   home: "/",
@@ -167,6 +168,8 @@ function PolicyPage({ kind }: { kind: "privacy" | "terms" }) {
 type PlaygroundRoute = { projectId: string; domainId: string; queryId: string };
 
 function playgroundRouteOf(pathname: string): PlaygroundRoute | null {
+  const diagramRoute = domainDiagramRouteOf(pathname);
+  if (diagramRoute) return { ...diagramRoute, queryId: "" };
   if (!pathname.startsWith(`${PLAYGROUND_PATH}/`)) return null;
   const [projectId = "", domainId = "", queryId = ""] = pathname
     .slice(PLAYGROUND_PATH.length + 1)
@@ -829,6 +832,7 @@ function App() {
           projects={workspaceProjects.projects ?? []}
           connectionStatus={database.connectionStatus}
           provider={database.connectedProvider}
+          diagramRoute={isDomainDiagramPath(location.pathname)}
           onNavigate={navigateWorkspace}
           onOpenConnection={requestDatabaseConnection}
         />

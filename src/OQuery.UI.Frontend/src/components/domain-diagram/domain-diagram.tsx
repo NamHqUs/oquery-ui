@@ -1,9 +1,9 @@
 import { useState } from "react";
-import type { DomainRelation, MetadataEntity } from "../../query-builder/query-design/query-builder-slice";
+import type { DomainRelation, MetadataEntity } from "../query-builder/query-design/query-builder-slice";
 import DiagramView, { diagramGroupTone, type DiagramRelationship } from "./diagram-view";
-import "./entity-diagram.css";
+import "./domain-diagram.css";
 
-type EntityDiagramProps = {
+type DomainDiagramProps = {
   entities: MetadataEntity[];
   relations: DomainRelation[];
   domainOptions: { id: string; name: string }[];
@@ -27,14 +27,14 @@ function toDiagramTable(entity: MetadataEntity) {
   };
 }
 
-export default function EntityDiagram({
+export default function DomainDiagram({
   entities,
   relations,
   domainOptions,
   activeDomainId,
   loading = false,
   onSelectDomain,
-}: EntityDiagramProps) {
+}: DomainDiagramProps) {
   const [selectedRelation, setSelectedRelation] = useState<SelectedRelation | null>(null);
   const tables = entities.map(toDiagramTable);
   const groups = domainOptions.map((option, index) => ({

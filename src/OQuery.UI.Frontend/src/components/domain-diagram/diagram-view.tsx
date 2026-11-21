@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import ELK from "elkjs/lib/elk.bundled.js";
 import type { ElkEdgeSection, ElkNode } from "elkjs/lib/elk-api";
-import Icon, { type IconName } from "../../icon/icon";
-import { fetchDbTableData, selectDbTable, setPreviewDbTable } from "../../data-sources/database-slice";
+import Icon, { type IconName } from "../icon/icon";
+import { fetchDbTableData, selectDbTable, setPreviewDbTable } from "../data-sources/database-slice";
 import "./diagram-view.css";
 
 export type DiagramTable = {

@@ -17,7 +17,7 @@ import ProjectForm from "./project/project-form";
 import ProjectOnboarding from "./project/project-onboarding";
 import FullDomainPanel from "./project/full-domain-panel";
 import SubDomainEditor from "./sub-domain/sub-domain-editor";
-import ProjectDiagram from "./entity-diagram/project-diagram";
+import ProjectDiagram from "../domain-diagram/project-diagram";
 import { DATABASE_EXPLORER_PATH, DIAGRAMS_PATH, DOMAINS_PATH, metadataPath, type MetadataSection } from "./metadata-routes";
 import "./metadata-builder.css";
 import "./project-builder.css";

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import EntityDiagram from "./entity-diagram";
-import { getDomain, type DomainDetails, type ProjectDetails, type ProjectSummary } from "../../../services/project-service";
+import DomainDiagram from "./domain-diagram";
+import { getDomain, type DomainDetails, type ProjectDetails, type ProjectSummary } from "../../services/project-service";
 
 type ProjectDiagramProps = {
   projects: ProjectSummary[];
@@ -68,7 +68,7 @@ export default function ProjectDiagram({
         )}
       </div>
       {project && (
-        <EntityDiagram
+        <DomainDiagram
           entities={details?.entities ?? []}
           relations={details?.relations ?? []}
           domainOptions={project.domains.map((item) => ({ id: item.id, name: item.name }))}
