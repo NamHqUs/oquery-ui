@@ -1,21 +1,58 @@
-import { useState } from "react";
-import type { DomainRelation, MetadataEntity } from "../../query-builder/query-design/query-builder-slice";
-import DiagramView, { diagramGroupTone, type DiagramRelationship } from "./diagram-view";
-import "./entity-diagram.css";
+import { createPortal } from "react-dom";
+import { useEffect, useState, type ReactNode } from "react";
+import type { DomainRelation, MetadataEntity } from "../query-builder/query-design/query-builder-slice";
+import DiagramView, { diagramGroupTone } from "./diagram-view";
+import PanelSplitter from "../panel-splitter/panel-splitter";
+import { useResizablePanel } from "../../utils/use-resizable-panel";
+import type { EditableEntity } from "./entity-definition/types";
+import "./domain-diagram.css";
 
 type EntityDiagramProps = {
   entities: MetadataEntity[];
   relations: DomainRelation[];
-  domainOptions: { id: string; name: string }[];
+  domains?: { id: string; name: string; entities: MetadataEntity[] }[];
+  domainOptions?: { id: string; name: string }[];
   activeDomainId?: string;
+  selectedEntityName?: string;
   loading?: boolean;
+  editingEntity?: EditableEntity | null;
+  editingEntityName?: string;
+  onDraftChange?: (updater: (draft: EditableEntity) => EditableEntity) => void;
   onSelectDomain?: (domainId: string) => void;
+  onOpenEntity: (table: { schema: string; name: string; columns: { name: string; dataType: string; isPrimaryKey: boolean }[] }) => void;
+  toolbarActions?: ReactNode;
+  entityEditorHeader: ReactNode;
+  entityEditor: ReactNode;
 };
 
-type SelectedRelation = DiagramRelationship & { from: string; to: string; sourceRelationIndex: number };
-
-function toDiagramTable(entity: MetadataEntity) {
-  return {
+export default function DomainDiagram({
+  entities,
+  relations,
+  domains,
+  domainOptions,
+  activeDomainId,
+  selectedEntityName,
+  loading = false,
+  editingEntity,
+  editingEntityName,
+  onDraftChange,
+  onSelectDomain,
+  onOpenEntity,
+  toolbarActions,
+  entityEditorHeader,
+  entityEditor,
+}: EntityDiagramProps) {
+  const panel = useResizablePanel("metadata-entity-diagram-height", 480, 280, 900);
+  const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
+  useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
+  const applyDraft = (entity: MetadataEntity) =>
+    editingEntity && entity.name === editingEntityName ? editingEntity : entity;
+  const isNewDraft = Boolean(editingEntity && !editingEntityName && editingEntity.name.trim());
+  const displayedEntities = [
+    ...entities.filter((entity) => !isNewDraft || entity.name !== editingEntity?.name),
+    ...(isNewDraft ? [editingEntity] : []),
+  ].map(applyDraft);
+  const tables = displayedEntities.map((entity) => ({
     schema: entity.schema || "dbo",
     name: entity.name,
     dbTable: entity.dbTable,
@@ -24,29 +61,29 @@ function toDiagramTable(entity: MetadataEntity) {
       dataType: field.dataType || "String",
       isPrimaryKey: false,
     })),
-  };
-}
-
-export default function EntityDiagram({
-  entities,
-  relations,
-  domainOptions,
-  activeDomainId,
-  loading = false,
-  onSelectDomain,
-}: EntityDiagramProps) {
-  const [selectedRelation, setSelectedRelation] = useState<SelectedRelation | null>(null);
-  const tables = entities.map(toDiagramTable);
-  const groups = domainOptions.map((option, index) => ({
-    id: option.id,
-    name: option.name,
-    tone: diagramGroupTone(index),
-    tables: option.id === activeDomainId ? tables : [],
   }));
-  const activeDomain = domainOptions.find((option) => option.id === activeDomainId);
-  const relationships = relations.map((relation, sourceRelationIndex) => {
-    const source = entities.find((entity) => entity.name === relation.sourceEntity);
-    const target = entities.find((entity) => entity.name === relation.targetEntity);
+  const domainGroups = (domainOptions || domains)?.map((domainEntry, index) => ({
+    id: domainEntry.id,
+    name: domainEntry.name,
+    tone: diagramGroupTone(index),
+    tables: (domainEntry.id === activeDomainId || (!activeDomainId && domainEntry.id === "All")
+      ? displayedEntities
+      : domains?.find(domain => domain.id === domainEntry.id)?.entities || [])
+      .map(applyDraft).map((entity) => ({
+      schema: entity.schema || "dbo",
+      name: entity.name,
+      dbTable: entity.dbTable,
+      columns: entity.fields.map((field) => ({
+        name: field.name,
+        dataType: field.dataType || "String",
+        isPrimaryKey: false,
+      })),
+    })),
+  }));
+  const activeDomain = (domainOptions || domains)?.find((domain) => domain.id === activeDomainId);
+  const relationships = relations.map((relation) => {
+    const source = displayedEntities.find((entity) => entity.name === relation.sourceEntity);
+    const target = displayedEntities.find((entity) => entity.name === relation.targetEntity);
     return {
       name: relation.sourceRelationName || `${relation.sourceEntity} to ${relation.targetEntity}`,
       sourceSchema: source?.schema || "dbo",
@@ -56,40 +93,37 @@ export default function EntityDiagram({
       targetTable: relation.targetEntity,
       targetColumns: [...relation.targetFields],
       isUnique: false,
-      sourceRelationIndex,
     };
   });
-  const selectedDefinition = selectedRelation ? relations[selectedRelation.sourceRelationIndex] : undefined;
-
   return (
-    <div className="entity-diagram">
+    <>
+      {toolbarHost && toolbarActions && createPortal(toolbarActions, toolbarHost)}
+      <div
+        className="metadata-diagram-mode-content split-workspace"
+        style={panel.style}
+      >
+      <section className="metadata-diagram-editor split-panel" aria-label="Entity definition editor">
+        {entityEditorHeader}
+        {entityEditor}
+      </section>
+      <PanelSplitter
+        panel={panel}
+        label="diagram height"
+        orientation="horizontal"
+        horizontalAnchor="top"
+        collapsible={false}
+      />
       <DiagramView
         tables={tables}
-        groups={groups}
+        groups={domainGroups}
         initialGroup={activeDomain?.name || activeDomainId}
+        selectedTableName={selectedEntityName}
         loading={loading}
         relationships={relationships}
         onSelectGroup={onSelectDomain}
-        onSelectRelation={(relation) => setSelectedRelation(relation as SelectedRelation)}
-        relationInspector={selectedRelation && selectedDefinition && (
-          <aside className="metadata-relation-inspector" aria-label="Selected relation">
-            <div>
-              <span className="section-kicker">SELECTED RELATION</span>
-              <strong>{selectedDefinition.sourceRelationName}</strong>
-              <span className="metadata-relation-path">
-                {selectedDefinition.sourceEntity} <span aria-hidden="true">→</span> {selectedDefinition.targetEntity}
-              </span>
-            </div>
-            <div className="metadata-relation-inspector-fields">
-              {selectedDefinition.sourceFields.map((sourceField, index) => (
-                <span key={`${sourceField}-${index}`}>
-                  {sourceField} <span aria-hidden="true">→</span> {selectedDefinition.targetFields[index]}
-                </span>
-              ))}
-            </div>
-          </aside>
-        )}
+        onOpenTable={onOpenEntity}
       />
-    </div>
+      </div>
+    </>
   );
 }

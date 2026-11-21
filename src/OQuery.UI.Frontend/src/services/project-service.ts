@@ -150,6 +150,13 @@ export async function createDomain(projectId: string, body: object): Promise<Sub
   return created;
 }
 
+// Saves the edited FullDomain (field and relation mappings). The server rejects edits that break an existing sub-domain.
+export async function updateFullDomain(projectId: string, body: FullDomain): Promise<FullDomain> {
+  const saved = await requestJson<FullDomain>(apiUrls.metadata.fullDomain(projectId.trim()), jsonRequest("PUT", body));
+  invalidateDomain(projectId);
+  return saved;
+}
+
 export async function updateDomain(projectId: string, domainId: string, body: object): Promise<SubDomainConfig> {
   const saved = await requestJson<SubDomainConfig>(
     apiUrls.metadata.domainById(projectId.trim(), domainId.trim()),

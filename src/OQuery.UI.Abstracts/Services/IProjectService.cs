@@ -17,6 +17,9 @@ public interface IProjectService
     FullDomainDto GenerateFullDomain(string projectId);
     FullDomainDto GetFullDomain(string projectId);
 
+    /// <summary>Saves the edited FullDomain (field and relation mappings to database columns). Existing sub-domains must still resolve.</summary>
+    FullDomainDto UpdateFullDomain(string projectId, FullDomainDto fullDomain);
+
     IReadOnlyList<DomainNameDto> GetDomainNames(string projectId);
     DomainDto GetDomain(string projectId, string domainId);
     DomainDto CreateDomain(string projectId, DomainDto domain);

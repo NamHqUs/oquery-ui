@@ -3,21 +3,17 @@ import Icon, { type IconName } from "../icon/icon";
 import { getProject, type ProjectSummary } from "../../services/project-service";
 import WorkspaceSelect from "./prototype-select";
 import Playground from "../playground/playground";
+import DomainDiagramPanel from "../domain-diagram/domain-diagram-panel";
+import { domainDiagramPath } from "../domain-diagram/domain-diagram-routes";
 import "./prototype-workspace.css";
 import "./prototype-workspace-compat.css";
 
-type View = "overview" | "playground" | "queries" | "schema" | "explorer" | "functions" | "security";
+type View = "overview" | "playground" | "queries" | "diagram" | "explorer" | "functions" | "security";
 const items: Array<[View, string, IconName]> = [
   ["overview", "Overview", "grid"], ["playground", "Playground", "play"], ["queries", "Queries", "file-text"],
-  ["schema", "Schema diagram", "schema"], ["explorer", "Database explorer", "database"],
+  ["diagram", "Domain Diagram", "schema"], ["explorer", "Database explorer", "database"],
   ["functions", "Custom functions", "function"], ["security", "Security", "shield"],
 ];
-const entities = [
-  ["Customer", "group", ["customer_id", "first_name", "last_name", "email"]],
-  ["Order", "table", ["order_id", "customer_id", "order_date", "total_amount"]],
-  ["Product", "grid", ["product_id", "name", "sku", "price"]],
-  ["Payment", "results", ["payment_id", "order_id", "amount", "status"]],
-] as const;
 const queries = ["Top customers by revenue", "Monthly order performance", "Unpaid orders audit", "Product conversion funnel", "Customer retention cohort"];
 
 type HeaderProps = {
@@ -101,8 +97,11 @@ function Queries() {
   return <><Heading icon="file-text" title="Saved queries" text="Organize, reuse, and collaborate on your data questions" action="New query" /><div className="prototype-toolbar"><input placeholder="⌕  Search queries..." /><span>All　5</span><span>☆ Favorites 1</span><span>♧ Shared with me 2</span><span>◷ Recent</span></div><div className="prototype-query-layout"><section className="prototype-panel query-list">{queries.map((q, i) => <article className={i === 0 ? "selected" : ""} key={q}><Icon name="chart-bar" size={19} /><div><b>{q}</b><p>Find insights and track business performance across your data</p></div><small>{["Sarah Johnson", "Michael Chen", "Emily Rodriguez", "David Kim", "Laura Garcia"][i]}<br />Analyst</small><em>{["Revenue", "Operations", "Finance", "Marketing", "Analytics"][i]}</em><button className="prototype-primary" type="button">▷ Run</button></article>)}</section><Panel title="Top customers by revenue" icon="chart-bar" className="query-inspector"><p>Find the top 10 customers by revenue in the last 3 months</p><b className="prototype-badge">Healthy</b><h3>Query code</h3><pre>{`SELECT c.customer_id,\n  c.first_name,\n  SUM(o.total_amount) AS total_revenue\nFROM customer c\nJOIN order o ON c.customer_id = o.customer_id\nORDER BY total_revenue DESC\nLIMIT 10;`}</pre><h3>Entities used</h3><div className="prototype-chips"><span>Customer</span><span>Order</span><span>Payment</span></div><button className="prototype-primary" type="button">Open in playground</button><button type="button">Share query</button></Panel></div></>;
 }
 
-function Schema() {
-  return <><Heading icon="schema" title="Schema intelligence" text="Explore your data model, understand relationships, and get AI-powered insights" /><div className="prototype-schema"><section className="prototype-panel diagram"><header><b>Entity relationship</b><span>Tables　　Relationships</span></header><div className="prototype-canvas">{entities.map(([name, icon, fields], i) => <article className={`entity-card entity-${i}`} key={name}><b><Icon name={icon as IconName} size={15} />{name}<small>{fields.length} fields</small></b>{fields.map(field => <p key={field}>⌘ {field}<small>UUID</small></p>)}</article>)}<i className="link link-a">1 ───── N</i><i className="link link-b">1 ───── N</i></div></section><Panel title="Entity insights" icon="schema" className="inspector"><h2>Customer <b>Core entity</b></h2><p>Represents a customer in your system, including contact information and account details.</p><h3>Fields (4)</h3>{entities[0][2].map(field => <p className="field" key={field}>⌘ {field}<small>VARCHAR(100)</small></p>)}<h3>AI query suggestion</h3><div className="suggestion">Show total order value per customer, including customer name and order count.<button className="prototype-primary" type="button">Use in Playground</button></div></Panel></div></>;
+function DomainDiagramView({ projectId, domainId, domains, onSelectDomain }: { projectId: string; domainId: string; domains: { id: string; name: string }[]; onSelectDomain: (domainId: string) => void }) {
+  return <>
+    <Heading icon="schema" title="Domain Diagram" text="Explore your data model, understand relationships, and get AI-powered insights" />
+    <DomainDiagramPanel projectId={projectId} domainId={domainId} domainOptions={domains} onSelectDomain={onSelectDomain} />
+  </>;
 }
 
 function Explorer() {
@@ -117,17 +116,22 @@ function Security() {
   return <><Heading icon="shield" title="Security & access" text="Control who can discover, query, and share your data" /><div className="prototype-stats">{[["check", "Policy coverage", "100%", "+2%"], ["eye-off", "Active policies", "12", "+3"], ["group", "Access requests", "3", "+1"], ["file-text", "Audit events", "1,248", "+18"]].map(([icon, label, value, change]) => <article key={label}><Icon name={icon as IconName} size={21} /><span>{label}<b>{value}</b><em>↑ {change}</em></span></article>)}</div><div className="prototype-query-layout"><section className="prototype-panel policy-list"><header><b>Policies</b><span>Roles　 Access requests　 Audit log</span></header>{["Row-level customer access", "Finance revenue protection", "PII masking", "Production read-only"].map((x, i) => <article className={i === 2 ? "selected" : ""} key={x}><Icon name={i === 2 ? "eye-off" : "shield"} size={18} /><div><b>{x}</b><p>{["Users can only see their assigned customers", "Restrict access to revenue and financial metrics", "Mask personally identifiable information", "Prevent write operations in production"][i]}</p></div><strong>Active</strong><small>{["Customers", "Finance", "All tables", "Production"][i]}</small><Icon name="edit" size={14} /></article>)}</section><Panel title="PII masking" icon="eye-off" className="query-inspector"><p>Mask personally identifiable information in query results and exports.</p><h3>Protected fields</h3><div className="prototype-chips"><span>customer_email · MASK</span><span>customer_phone · MASK</span><span>customer_name · MASK</span><span>address · MASK</span></div><h3>Rule preview</h3><pre>{`CASE\n WHEN current_role IN ('analytics', 'marketing')\n THEN customer_email\n ELSE '***MASKED***'\nEND AS customer_email`}</pre><button className="prototype-primary" type="button">Edit policy</button><button type="button">Test policy</button></Panel></div></>;
 }
 
-export default function PlaygroundWorkspace({ projectId, domainId, queryId, projects, connectionStatus, provider, onNavigate, onOpenConnection }: {
+export default function PlaygroundWorkspace({ projectId, domainId, queryId, projects, connectionStatus, provider, diagramRoute, onNavigate, onOpenConnection }: {
   projectId: string;
   domainId: string;
   queryId: string;
   projects: ProjectSummary[];
   connectionStatus: string;
   provider: string;
+  diagramRoute: boolean;
   onNavigate: (path: string) => void;
   onOpenConnection: () => void;
 }) {
-  const [view, setView] = useState<View>("playground");
+  const [view, setView] = useState<View>(diagramRoute ? "diagram" : "playground");
+  useEffect(() => {
+    if (diagramRoute) setView("diagram");
+    else setView((current) => (current === "diagram" ? "playground" : current));
+  }, [diagramRoute]);
   const [domains, setDomains] = useState<{ id: string; name: string }[]>([]);
   useEffect(() => {
     let active = true;
@@ -149,6 +153,14 @@ export default function PlaygroundWorkspace({ projectId, domainId, queryId, proj
   const selectedDomainId = domains.length === 0
     ? domainId
     : (domains.some((domain) => domain.id === domainId) ? domainId : (domains[0]?.id ?? ""));
+  const selectView = (next: View) => {
+    if (next === "diagram") {
+      if (!diagramRoute) onNavigate(domainDiagramPath(projectId, selectedDomainId));
+    } else if (diagramRoute) {
+      onNavigate(`/playground/${encodeURIComponent(projectId)}${selectedDomainId ? `/${encodeURIComponent(selectedDomainId)}` : ""}`);
+    }
+    setView(next);
+  };
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
   // The main menu stays on screen while the page scrolls. Its height runs from its current top to the viewport
@@ -177,5 +189,5 @@ export default function PlaygroundWorkspace({ projectId, domainId, queryId, proj
       window.removeEventListener("resize", update);
     };
   }, []);
-  return <div className="root-workspace"><Header projects={projects} projectId={projectId} domains={domains} domainId={selectedDomainId} connectionStatus={connectionStatus} provider={provider} onSelectProject={(id) => { if (id) onNavigate(`/playground/${encodeURIComponent(id)}`); }} onSelectDomain={(id) => { if (id) onNavigate(`/playground/${encodeURIComponent(projectId)}/${encodeURIComponent(id)}`); }} onOpenConnection={onOpenConnection} onNavigateHome={() => onNavigate("/")} /><div ref={bodyRef} className={`root-body${view === "playground" ? " playground-body" : ""}`}><Sidebar view={view} setView={setView} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((collapsed) => !collapsed)} /><main className={view === "playground" ? "root-main-playground" : undefined}>{view === "overview" ? <Overview /> : view === "playground" ? <Playground queryId={queryId} projectId={projectId} domainId={selectedDomainId} /> : view === "queries" ? <Queries /> : view === "schema" ? <Schema /> : view === "explorer" ? <Explorer /> : view === "functions" ? <Functions /> : <Security />}</main></div><footer className="root-footer"><Icon name="schema" size={13} /> oQuery engine <span>Phase one</span><span>Data binding planned for phase two</span></footer></div>;
+  return <div className="root-workspace"><Header projects={projects} projectId={projectId} domains={domains} domainId={selectedDomainId} connectionStatus={connectionStatus} provider={provider} onSelectProject={(id) => { if (id) onNavigate(`/playground/${encodeURIComponent(id)}`); }} onSelectDomain={(id) => { if (!id) return; onNavigate(diagramRoute ? domainDiagramPath(projectId, id) : `/playground/${encodeURIComponent(projectId)}/${encodeURIComponent(id)}`); }} onOpenConnection={onOpenConnection} onNavigateHome={() => onNavigate("/")} /><div ref={bodyRef} className={`root-body${view === "playground" ? " playground-body" : ""}`}><Sidebar view={view} setView={selectView} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((collapsed) => !collapsed)} /><main className={view === "playground" ? "root-main-playground" : undefined}>{view === "overview" ? <Overview /> : view === "playground" ? <Playground queryId={queryId} projectId={projectId} domainId={selectedDomainId} /> : view === "queries" ? <Queries /> : view === "diagram" ? <DomainDiagramView projectId={projectId} domainId={selectedDomainId} domains={domains} onSelectDomain={(id) => onNavigate(domainDiagramPath(projectId, id))} /> : view === "explorer" ? <Explorer /> : view === "functions" ? <Functions /> : <Security />}</main></div><footer className="root-footer"><Icon name="schema" size={13} /> oQuery engine <span>Phase one</span><span>Data binding planned for phase two</span></footer></div>;
 }

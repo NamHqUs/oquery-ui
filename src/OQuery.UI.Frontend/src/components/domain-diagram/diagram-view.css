@@ -51,20 +51,8 @@
   background: #11151d;
 }
 
-.diagram-edge {
-  cursor: pointer;
-  outline: none;
-}
-
 .diagram-edge path {
   pointer-events: stroke;
-}
-
-.diagram-edge:hover path,
-.diagram-edge:focus path {
-  stroke: #f0d98a;
-  stroke-width: 3;
-  filter: drop-shadow(0 0 5px #f0bd6888);
 }
 
 .diagram-group-switch {
@@ -375,8 +363,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-width: 140px;
-  min-height: 42px;
+  min-width: 126px;
+  min-height: 34px;
   resize: none;
   box-sizing: border-box;
   border: 0;
@@ -385,32 +373,15 @@
 
 .diagram-table-card.expanded {
   z-index: 5;
-  resize: both;
+  resize: none;
   background: #181d27;
-}
-
-.diagram-table-card.expanded::after {
-  position: absolute;
-  z-index: 4;
-  bottom: 3px;
-  left: 3px;
-  width: 9px;
-  height: 9px;
-  background: repeating-linear-gradient(
-    135deg,
-    transparent 0 2px,
-    #858fa1 2px 3px
-  );
-  content: "";
-  opacity: .7;
-  pointer-events: none;
 }
 
 .diagram-card-resize-handle {
   position: absolute;
   z-index: 6;
   right: 1px;
-  bottom: 1px;
+  bottom: -3px;
   width: 14px;
   height: 14px;
   padding: 0;
@@ -442,16 +413,12 @@
   resize: none;
 }
 
-.diagram-table-card.compact.expanded::after {
-  display: none;
-}
-
 .diagram-field-popup {
   position: absolute;
   z-index: 7;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   box-sizing: border-box;
   border: 1px solid #303644;
   border-radius: 3px;
@@ -461,24 +428,25 @@
 
 .diagram-field-popup .diagram-column-list {
   flex: 1 1 auto;
+  padding-right: 14px;
 }
 
 .diagram-popup-section {
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
 }
 
 .diagram-popup-relations {
-  flex: 0 1 auto;
+  box-shadow: inset 0 1px 0 #2a303d;
 }
 
 .diagram-popup-title {
   flex: 0 0 22px;
   height: 22px;
   padding: 0 8px;
-  border-bottom: 1px solid #252b36;
   color: #8d96a8;
   font-size: 10px;
   font-weight: 600;
@@ -491,24 +459,25 @@
   flex: 1 1 auto;
   min-height: 0;
   margin: 0;
-  padding: 2px 0;
+  padding: 2px 14px 2px 0;
   overflow: auto;
   list-style: none;
 }
 
 .diagram-relation-list li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  grid-template-columns: 20px minmax(0, 1fr) minmax(0, max-content);
   height: 21px;
-  align-items: center;
-  gap: 6px;
-  padding: 0 8px;
-  border-bottom: 1px solid #252b36;
+  padding: 0 8px 0 16px;
   white-space: nowrap;
 }
 
-.diagram-relation-list li:last-child {
-  border-bottom: 0;
+.diagram-relation-empty {
+  height: 21px;
+  padding: 0 16px;
+  color: #818b9d;
+  font-size: 11px;
+  line-height: 21px;
 }
 
 .diagram-relation-name,
@@ -517,6 +486,10 @@
   color: #c4cad5;
   font-size: 11px;
   text-overflow: ellipsis;
+}
+
+.diagram-relation-target {
+  text-align: right;
 }
 
 .diagram-relation-type {
@@ -536,10 +509,6 @@
   text-overflow: ellipsis;
 }
 
-.diagram-table-card.compact .diagram-column-toggle {
-  top: 4px;
-}
-
 .diagram-table-card:hover {
   border-color: transparent;
   box-shadow: none;
@@ -556,13 +525,12 @@
 .diagram-table-header {
   display: flex;
   width: 100%;
-  min-height: 40px;
+  min-height: 32px;
   align-items: center;
   gap: 9px;
   padding: 0 31px 0 9px;
   color: #e5def5;
   border: 0;
-  border-bottom: 1px solid #303644;
   background: linear-gradient(100deg, #28243a, #202733);
   cursor: grab;
   touch-action: none;
@@ -607,8 +575,9 @@
 .diagram-column-toggle {
   position: absolute;
   z-index: 3;
-  top: 12px;
+  top: 50%;
   right: 7px;
+  transform: translateY(-50%);
   display: grid;
   width: 20px;
   height: 20px;
@@ -636,16 +605,11 @@
 
 .diagram-column-list li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 20px 20px;
+  grid-template-columns: 20px minmax(0, 1fr) 20px;
   min-height: 21px;
   align-items: center;
   gap: 6px;
-  padding: 0 6px 0 8px;
-  border-bottom: 1px solid #252b36;
-}
-
-.diagram-column-list li:last-child {
-  border-bottom: 0;
+  padding: 0 6px 0 16px;
 }
 
 .diagram-column-name {

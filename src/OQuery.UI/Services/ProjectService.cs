@@ -124,6 +124,17 @@ public sealed class ProjectService(
             ?? throw new InvalidOperationException($"Project '{projectId}' has no full domain. Generate it first.");
     }
 
+    public FullDomainDto UpdateFullDomain(string projectId, FullDomainDto fullDomain)
+    {
+        ArgumentNullException.ThrowIfNull(fullDomain);
+        RequireProject(projectId);
+        var normalized = NormalizeFullDomain(fullDomain);
+        foreach (var domain in repository.GetDomains(SectionId(), projectId))
+            ProjectMetadataResolver.Resolve(normalized, domain);
+        repository.SaveFullDomain(SectionId(), projectId, normalized);
+        return normalized;
+    }
+
     public IReadOnlyList<DomainNameDto> GetDomainNames(string projectId)
     {
         RequireProject(projectId);
@@ -239,6 +250,67 @@ public sealed class ProjectService(
         if (string.IsNullOrWhiteSpace(value))
             throw new ArgumentException($"{label} is required.", nameof(value));
         return value.Trim();
+    }
+
+    /// <summary>
+    /// Trims names and rejects duplicates or dangling references. Names are matched exactly, as the resolver does.
+    /// </summary>
+    private static FullDomainDto NormalizeFullDomain(FullDomainDto fullDomain)
+    {
+        var entityNames = new HashSet<string>(StringComparer.Ordinal);
+        var entities = new List<EntityDto>();
+        foreach (var entity in fullDomain.Entities)
+        {
+            var entityName = RequireName(entity.Name, "Entity");
+            if (!entityNames.Add(entityName))
+                throw new ArgumentException($"Entity '{entityName}' appears more than once.");
+
+            var fieldNames = new HashSet<string>(StringComparer.Ordinal);
+            var fields = entity.Fields.Select(field =>
+            {
+                var fieldName = RequireName(field.Name, "Field");
+                if (!fieldNames.Add(fieldName))
+                    throw new ArgumentException($"Field '{fieldName}' appears more than once in entity '{entityName}'.");
+                return field with { Name = fieldName, DbColumn = field.DbColumn?.Trim() };
+            }).ToList();
+            entities.Add(entity with { Name = entityName, Fields = fields, RawSql = entity.RawSql?.Trim() ?? string.Empty });
+        }
+
+        var relations = fullDomain.Relations.Select(relation =>
+        {
+            var relationName = RequireName(relation.SourceRelationName, "Source relation");
+            var sourceFields = NormalizeKeyColumns(relation.SourceFields, relationName);
+            var targetFields = NormalizeKeyColumns(relation.TargetFields, relationName);
+            if (sourceFields.Count != targetFields.Count)
+                throw new ArgumentException($"Relation '{relationName}' must map the same number of source and target columns.");
+            return relation with
+            {
+                SourceEntity = RequireKnownEntity(relation.SourceEntity, entityNames, relationName),
+                SourceRelationName = relationName,
+                SourceFields = sourceFields,
+                TargetEntity = RequireKnownEntity(relation.TargetEntity, entityNames, relationName),
+                TargetRelationName = RequireName(relation.TargetRelationName, "Target relation"),
+                TargetFields = targetFields,
+            };
+        }).ToList();
+
+        return new FullDomainDto { Entities = entities, Relations = relations };
+    }
+
+    private static string RequireKnownEntity(string? entity, HashSet<string> entityNames, string relationName)
+    {
+        var name = RequireName(entity, "Relation entity");
+        if (!entityNames.Contains(name))
+            throw new ArgumentException($"Relation '{relationName}' references entity '{name}', which is not in the full domain.");
+        return name;
+    }
+
+    private static List<string> NormalizeKeyColumns(IEnumerable<string> columns, string relationName)
+    {
+        var normalized = columns.Select(column => RequireText(column, $"Key column of relation '{relationName}'")).ToList();
+        if (normalized.Count == 0)
+            throw new ArgumentException($"Relation '{relationName}' must map at least one column.");
+        return normalized;
     }
 
     /// <summary>Responses never include the encrypted connection string, only its DBMS.</summary>

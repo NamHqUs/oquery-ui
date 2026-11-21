@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import Icon, { IconName } from "../../../../icon/icon";
-import { EditableEntity, emptyField, toAbstractDataType } from "../../../types";
-import "./fields-builder.css";
+import Icon, { IconName } from "../../../icon/icon";
+import { EditableEntity, emptyField, toAbstractDataType } from "../types";
+import "./fields-definition.css";
 
 const dataTypes = ["String", "Number", "Boolean", "Datetime"];
 const dataTypeIcons: Record<string, IconName> = {
@@ -22,19 +22,19 @@ function getDataTypeIcon(dataType: string) {
   return dataTypeIcons[normalized === "string" ? "String" : dataType] || dataTypeIcons.String;
 }
 
-type FieldsBuilderProps = {
+type FieldsDefinitionProps = {
   fields: EditableEntity["fields"];
   selectedTableColumns: { name: string; dataType?: string }[];
   allowDataTypeEdit?: boolean;
   onChange: (updater: (fields: EditableEntity["fields"]) => EditableEntity["fields"]) => void;
 };
 
-export default function FieldsBuilder({
+export default function FieldsDefinition({
   fields,
   selectedTableColumns,
   allowDataTypeEdit = false,
   onChange,
-}: FieldsBuilderProps) {
+}: FieldsDefinitionProps) {
   const [draggedFieldIndex, setDraggedFieldIndex] = useState<number | null>(null);
   const [dropTargetFieldIndex, setDropTargetFieldIndex] = useState<number | null>(null);
   const [openDataTypeIndex, setOpenDataTypeIndex] = useState<number | null>(null);

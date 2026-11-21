@@ -40,7 +40,6 @@
   color: #858fa1;
   font-size: 12px;
 }
-.metadata-entity-navigation { display: flex; min-width: 0; min-height: calc(100vh - 170px); flex-direction: column; background: #0e1117; border-right: 1px solid var(--line); }
 .metadata-domain-navigation { padding: 18px 12px 12px; border-bottom: 1px solid #252c39; background: linear-gradient(180deg, #151923, #10131a); }
 .metadata-domain-navigation-heading { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 5px; padding: 0 9px 12px; border: 0; color: inherit; background: transparent !important; text-align: left; cursor: pointer; }
 .metadata-domain-navigation-heading .icon { color: #8f7fca; transition: transform .15s ease; }
@@ -56,7 +55,6 @@
 .metadata-domain-navigation-icon { display: inline-flex; color: #8f7fca; }
 .metadata-domain-navigation-name { min-width: 0; overflow: hidden; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .metadata-domain-navigation-count { margin-left: auto; color: #7d8799; font-size: 11px; }
-.metadata-entity-navigation > .entity-list { min-height: 0; flex: 1 1 auto; border-right: 0; }
 .metadata-list { background: #0e1117; border-right: 1px solid var(--line); padding: 22px 12px; }
 .sidebar-list-heading, .editor-section-head, .editor-head { display: flex; align-items: center; justify-content: space-between; }
 .sidebar-list-heading { height: 37px; padding: 0 10px 15px; }
@@ -143,7 +141,7 @@ section.page-heading.metadata-page-heading { position: relative; display: flex; 
 .metadata-heading-eyebrow { display: flex; align-items: center; gap: 9px; color: #b4a4e9; font: 500 11px "Manrope", sans-serif; letter-spacing: 1.15px; }
 .metadata-heading-eyebrow i { width: 3px; height: 3px; border-radius: 50%; background: #7866aa; }
 @media (max-width: 1100px) { .metadata-form-grid { grid-template-columns: 1fr; }.field-editor-head, .field-editor-row { grid-template-columns: 18px 1fr 1fr .8fr 26px; } }
-@media (max-width: 900px) { section.page-heading.metadata-page-heading { align-items: flex-start; flex-direction: column; gap: 14px; padding: 16px 22px; }.metadata-section-tabs { justify-content: flex-start; margin-left: 54px; }.metadata-workspace { grid-template-columns: 1fr; }.metadata-list { border-right: 0; border-bottom: 1px solid var(--line); }.metadata-entity-navigation { border-right: 0; border-bottom: 1px solid var(--line); }.metadata-editor { min-height: 600px; }
+@media (max-width: 900px) { section.page-heading.metadata-page-heading { align-items: flex-start; flex-direction: column; gap: 14px; padding: 16px 22px; }.metadata-section-tabs { justify-content: flex-start; margin-left: 54px; }.metadata-workspace { grid-template-columns: 1fr; }.metadata-list { border-right: 0; border-bottom: 1px solid var(--line); }.metadata-editor { min-height: 600px; }
 }
 
 .metadata-editor-content .field-editor-table { overflow: visible; }

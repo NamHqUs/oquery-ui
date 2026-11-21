@@ -63,6 +63,10 @@ public sealed class MetadataController(
     public ActionResult<FullDomainDto> GetFullDomain(string projectId)
         => Ok(projectService.GetFullDomain(projectId));
 
+    [HttpPut("{projectId}/full-domain")]
+    public ActionResult<FullDomainDto> UpdateFullDomain(string projectId, [FromBody] FullDomainDto fullDomain)
+        => Ok(projectService.UpdateFullDomain(projectId, fullDomain));
+
     [HttpGet("{projectId}/domains/names")]
     public ActionResult<IReadOnlyList<DomainNameDto>> GetDomainNames(string projectId)
         => Ok(projectService.GetDomainNames(projectId));

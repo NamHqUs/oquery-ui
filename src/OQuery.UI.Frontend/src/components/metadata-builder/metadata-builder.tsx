@@ -17,7 +17,6 @@ import ProjectForm from "./project/project-form";
 import ProjectOnboarding from "./project/project-onboarding";
 import FullDomainPanel from "./project/full-domain-panel";
 import SubDomainEditor from "./sub-domain/sub-domain-editor";
-import ProjectDiagram from "./entity-diagram/project-diagram";
 import { DATABASE_EXPLORER_PATH, DIAGRAMS_PATH, DOMAINS_PATH, metadataPath, type MetadataSection } from "./metadata-routes";
 import "./metadata-builder.css";
 import "./project-builder.css";
@@ -44,8 +43,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
   const panel = useResizablePanel("metadata-builder");
   const projectId = searchParams.get("project") ?? "";
   const domainId = searchParams.get("domain") ?? "";
-  const section: MetadataSection = location.pathname === DIAGRAMS_PATH ? "diagram" : "domains";
-  const basePath = section === "diagram" ? DIAGRAMS_PATH : DOMAINS_PATH;
 
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
   const [project, setProject] = useState<ProjectDetails | null>(null);
@@ -115,17 +112,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     if (location.pathname === "/metadata") navigate(DOMAINS_PATH, { replace: true });
   }, [location.pathname, navigate]);
 
-  useEffect(() => {
-    if (section !== "diagram" || projectId || !projects?.length) return;
-    navigate(metadataPath(DIAGRAMS_PATH, { projectId: projects[0].id }), { replace: true });
-  }, [section, projectId, projects, navigate]);
-
-  useEffect(() => {
-    if (section !== "diagram" || !project || project.id !== projectId || domainId) return;
-    const first = project.domains[0];
-    if (first) navigate(metadataPath(DIAGRAMS_PATH, { projectId: project.id, domainId: first.id }), { replace: true });
-  }, [section, project, projectId, domainId, navigate]);
-
   useDefinitionUnsavedWarning(dirty);
 
   const confirmDiscard = useCallback(async () => {
@@ -183,8 +169,8 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
     return () => onSectionNavigationChange(null);
   }, [onSectionNavigationChange, navigateTo, projectId, domainId]);
 
-  const selectProject = (id: string) => void navigateTo(basePath, { projectId: id });
-  const selectDomain = (id: string) => void navigateTo(basePath, { projectId, domainId: id });
+  const selectProject = (id: string) => void navigateTo(DOMAINS_PATH, { projectId: id });
+  const selectDomain = (id: string) => void navigateTo(DOMAINS_PATH, { projectId, domainId: id });
 
   const startCreate = async (mode: "project" | "domain") => {
     const navigated = await navigateTo(DOMAINS_PATH, mode === "domain" ? { projectId } : {});
@@ -247,22 +233,6 @@ export default function MetadataBuilder({ onNavigationGuardChange, onSectionNavi
       {notice.text}
     </p>
   );
-
-  if (section === "diagram") {
-    return (
-      <div className="project-builder-diagram-page">
-        {noticeNode}
-        <ProjectDiagram
-          projects={projects ?? []}
-          project={currentProject}
-          domainId={domainId}
-          onProjectChange={selectProject}
-          onDomainChange={selectDomain}
-          onError={setError}
-        />
-      </div>
-    );
-  }
 
   const renderContent = () => {
     if (creating === "project") {

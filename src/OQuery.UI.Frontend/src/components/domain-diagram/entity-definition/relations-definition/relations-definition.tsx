@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import Icon from "../../../../icon/icon";
-import { MetadataEntity, relationsForEntity, type DomainRelation, type EntityRelationView } from "../../../../query-builder/query-design/query-builder-slice";
-import { EditableEntity, pluralize, singularize, updateRelationSide } from "../../../types";
-import "./relations-builder.css";
+import Icon from "../../../icon/icon";
+import { MetadataEntity, relationsForEntity, type DomainRelation, type EntityRelationView } from "../../../query-builder/query-design/query-builder-slice";
+import { EditableEntity, pluralize, singularize, updateRelationSide } from "../types";
+import "./relations-definition.css";
 
 type DatabaseTable = {
   schema: string;
@@ -28,7 +28,7 @@ type ColumnPickerState = PickerState & {
 
 const pickerMenuMaxHeight = 240;
 
-type RelationsBuilderProps = {
+type RelationsDefinitionProps = {
   domainRelations: DomainRelation[];
   currentEntity: EditableEntity;
   allEntities: MetadataEntity[];
@@ -37,14 +37,14 @@ type RelationsBuilderProps = {
   onRelationsChange: (updater: (relations: DomainRelation[]) => DomainRelation[]) => void;
 };
 
-export default function RelationsBuilder({
+export default function RelationsDefinition({
   domainRelations,
   currentEntity,
   allEntities,
   databaseTables,
   selectedTable,
   onRelationsChange,
-}: RelationsBuilderProps) {
+}: RelationsDefinitionProps) {
   const relations = relationsForEntity(currentEntity.name, domainRelations);
   const [openEntityPicker, setOpenEntityPicker] = useState<PickerState | null>(null);
   const [openColumnPicker, setOpenColumnPicker] = useState<ColumnPickerState | null>(null);

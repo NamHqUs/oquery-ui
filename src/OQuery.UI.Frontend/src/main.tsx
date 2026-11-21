@@ -25,6 +25,7 @@ import { store, type RootState } from "./store/store";
 import "./styles.css";
 import "./components/app-shell/app-shell.css";
 import PlaygroundWorkspace from "./components/prototype-workspace/prototype-workspace";
+import { domainDiagramPath, domainDiagramRouteOf, isDomainDiagramPath } from "./components/domain-diagram/domain-diagram-routes";
 
 const PAGE_PATHS = {
   home: "/",
@@ -167,6 +168,8 @@ function PolicyPage({ kind }: { kind: "privacy" | "terms" }) {
 type PlaygroundRoute = { projectId: string; domainId: string; queryId: string };
 
 function playgroundRouteOf(pathname: string): PlaygroundRoute | null {
+  const diagramRoute = domainDiagramRouteOf(pathname);
+  if (diagramRoute) return { ...diagramRoute, queryId: "" };
   if (!pathname.startsWith(`${PLAYGROUND_PATH}/`)) return null;
   const [projectId = "", domainId = "", queryId = ""] = pathname
     .slice(PLAYGROUND_PATH.length + 1)
@@ -200,6 +203,35 @@ function LegacyQueryBuilderRedirect() {
   const projectId = params.get("project")?.trim() ?? "";
   if (!projectId) return <Navigate to={WORKSPACE_PATH} replace />;
   return <Navigate to={builderPath(projectId, params.get("domain")?.trim() ?? "")} replace />;
+}
+
+// The schema diagram is the global domain diagram route. Old /metadata/diagrams links resolve the project and
+// sub-domain from their query string, or fall back to the first project and its first sub-domain.
+function LegacyMetadataDiagramRedirect() {
+  const [params] = useSearchParams();
+  const project = params.get("project")?.trim() ?? "";
+  const domain = params.get("domain")?.trim() ?? "";
+  const [target, setTarget] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    const resolveTarget = async () => {
+      const projectId = project || (await listProjects())[0]?.id || "";
+      if (!projectId) return WORKSPACE_PATH;
+      if (domain) return domainDiagramPath(projectId, domain);
+      const details = await getProject(projectId);
+      return domainDiagramPath(projectId, details.domains[0]?.id ?? "");
+    };
+    resolveTarget()
+      .catch(() => WORKSPACE_PATH)
+      .then((path) => {
+        if (active) setTarget(path);
+      });
+    return () => {
+      active = false;
+    };
+  }, [project, domain]);
+  if (!target) return null;
+  return <Navigate to={target} replace />;
 }
 
 function pageForPath(path: string): Page | null {
@@ -532,15 +564,15 @@ function WorkspaceNavigation({
       group: "BUILD",
       links: [
         { label: "Overview", hint: "Project health", icon: "folder", path: withProject(DOMAINS_PATH) },
-        { label: "Playground", hint: "Run OQuery", icon: "play", path: builderLink, active: page === "builder" },
-        { label: "Queries", hint: "Saved requests", icon: "file-text", path: builderLink, active: page === "builder" },
+        { label: "Playground", hint: "Run OQuery", icon: "play", path: builderLink, active: page === "builder" && !isDomainDiagramPath(location.pathname) },
+        { label: "Queries", hint: "Saved requests", icon: "file-text", path: builderLink, active: page === "builder" && !isDomainDiagramPath(location.pathname) },
       ],
     },
     {
       group: "DOMAIN STUDIO",
       links: [
         { label: "Full domain", hint: "Entities and relations", icon: "schema", path: withProject(DOMAINS_PATH), active: page === "metadata" && location.pathname === DOMAINS_PATH },
-        { label: "Schema diagram", hint: "Visual map", icon: "schema", path: withProject(DIAGRAMS_PATH), active: page === "metadata" && location.pathname === DIAGRAMS_PATH },
+        { label: "Schema diagram", hint: "Visual map", icon: "schema", path: withProject(DIAGRAMS_PATH, true), active: isDomainDiagramPath(location.pathname) },
         { label: "Database explorer", hint: "Source tables", icon: "database", path: withProject(DATABASE_EXPLORER_PATH), active: page === "metadata" && location.pathname === DATABASE_EXPLORER_PATH },
       ],
     },
@@ -829,6 +861,7 @@ function App() {
           projects={workspaceProjects.projects ?? []}
           connectionStatus={database.connectionStatus}
           provider={database.connectedProvider}
+          diagramRoute={isDomainDiagramPath(location.pathname)}
           onNavigate={navigateWorkspace}
           onOpenConnection={requestDatabaseConnection}
         />
@@ -921,7 +954,7 @@ function App() {
           <Route path={PROJECT_CREATE_PATH} element={<div className="page-transition page-transition-no-slide"><CreateProjectPage /></div>} />
           <Route path={PAGE_PATHS.metadata} element={null} />
           <Route path={DOMAINS_PATH} element={null} />
-          <Route path={DIAGRAMS_PATH} element={null} />
+          <Route path={DIAGRAMS_PATH} element={<LegacyMetadataDiagramRedirect />} />
           <Route path={DATABASE_EXPLORER_PATH} element={null} />
           <Route path={PAGE_PATHS.functions} element={null} />
           <Route path={PAGE_PATHS.security} element={showWorkspaceGate ? null : <div className="page-transition page-transition-no-slide"><SecurityPage /></div>} />
@@ -951,7 +984,7 @@ function App() {
           ? () => navigateToPage("home")
           : undefined}
       />}
-      {metadataVisited && page === "metadata" && !showWorkspaceGate && location.pathname !== DATABASE_EXPLORER_PATH && <div className="page-transition page-transition-no-slide"><MetadataBuilder onNavigationGuardChange={updateMetadataNavigationGuard} onSectionNavigationChange={updateMetadataSectionNavigation} /></div>}
+      {metadataVisited && page === "metadata" && !showWorkspaceGate && location.pathname !== DATABASE_EXPLORER_PATH && location.pathname !== DIAGRAMS_PATH && <div className="page-transition page-transition-no-slide"><MetadataBuilder onNavigationGuardChange={updateMetadataNavigationGuard} onSectionNavigationChange={updateMetadataSectionNavigation} /></div>}
       {metadataVisited && page === "metadata" && !showWorkspaceGate && location.pathname === DATABASE_EXPLORER_PATH && <DataSources onRequestConnection={requestDatabaseConnection} />}
       {functionDefinitionsVisited && !showWorkspaceGate && <div hidden={page !== "functions"} className={page === "functions" ? "page-transition page-transition-no-slide" : undefined}>
         <FunctionDefinitionsWorkspace onNavigationGuardChange={updateFunctionNavigationGuard} />

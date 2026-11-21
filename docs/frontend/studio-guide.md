@@ -62,15 +62,15 @@ queries and the diagram use. The frontend may render names in bars, selectors an
 headings, but it must resolve them back to IDs before loading metadata or
 navigating.
 
-Diagram first loads the sub-domain names for the selected project. If no
-sub-domain is selected, or the current ID no longer exists, it selects the first
-returned sub-domain before loading its graph. The last valid project and
-sub-domain IDs are retained in session storage and restored when returning to
-Diagram.
+Diagram uses the project and sub-domain selected in the workspace header, which is
+the global selection shared with the Playground. It is served at
+`/domains/diagram/:projectId/:domainId`; the legacy `/metadata/diagrams` URL
+redirects there. If no sub-domain is selected, or the current ID no longer
+exists, it selects the first returned sub-domain before loading its graph.
 The project page shows the FullDomain read-only and owns the generate action.
 Sub-domain editing never changes physical columns, raw SQL or reference columns.
 
-After connecting, the Data View groups tables by schema, displays column and relationship metadata, and previews up to 10 rows. Schema and relationship metadata come from `GET /db/schema`; preview data comes from `GET /db/data/{tableName}` with `schema` and `limit=10` query parameters. The schema Diagram remains available as the metadata-builder view.
+After connecting, the Data View groups tables by schema, displays column and relationship metadata, and previews up to 10 rows. Schema and relationship metadata come from `GET /db/schema`; preview data comes from `GET /db/data/{tableName}` with `schema` and `limit=10` query parameters. The schema Diagram is opened from the workspace header selection.
 
 Run it with:
 

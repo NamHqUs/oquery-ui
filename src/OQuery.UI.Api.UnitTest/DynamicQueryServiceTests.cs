@@ -121,6 +121,7 @@ internal sealed class DynamicQueryServiceTests
         public void Delete(string projectId) => throw new NotSupportedException();
         public FullDomainDto GenerateFullDomain(string projectId) => throw new NotSupportedException();
         public FullDomainDto GetFullDomain(string projectId) => throw new NotSupportedException();
+        public FullDomainDto UpdateFullDomain(string projectId, FullDomainDto fullDomain) => throw new NotSupportedException();
         public IReadOnlyList<DomainNameDto> GetDomainNames(string projectId) => throw new NotSupportedException();
         public DomainDto GetDomain(string projectId, string domainId) => throw new NotSupportedException();
         public DomainDto CreateDomain(string projectId, DomainDto domain) => throw new NotSupportedException();

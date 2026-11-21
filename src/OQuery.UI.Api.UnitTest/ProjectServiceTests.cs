@@ -43,6 +43,33 @@ internal sealed class ProjectServiceTests
     }
 
     [Test]
+    public void UpdateFullDomainStoresEditedMappingsAndRejectsRelationToUnknownEntity()
+    {
+        _loader.Schema = CreateSchema("Clients", "Policies");
+        var project = _service.CreateFromDatabase(new ProjectFromDatabaseRequestDto("Sales", "", "Sqlite", "Data Source=sales.db"));
+        var edited = new FullDomainDto { Entities = project.FullDomain.Entities.ToList(), Relations = [] };
+        edited.Entities[0].Fields[0] = edited.Entities[0].Fields[0] with { DataType = DataType.Number };
+        edited.Relations.Add(new RelationDto
+        {
+            SourceEntity = "Clients",
+            SourceRelationName = "Policies",
+            SourceFields = ["id"],
+            TargetEntity = "Policies",
+            TargetRelationName = "Client",
+            TargetFields = ["client_id"],
+        });
+
+        var saved = _service.UpdateFullDomain(project.Id, edited);
+
+        Assert.That(_service.GetFullDomain(project.Id).Relations.Single().TargetEntity, Is.EqualTo("Policies"));
+        Assert.That(saved.Entities[0].Fields[0].DataType, Is.EqualTo(DataType.Number));
+
+        edited.Relations[0] = edited.Relations[0] with { TargetEntity = "Missing" };
+        var ex = Assert.Throws<ArgumentException>(() => _service.UpdateFullDomain(project.Id, edited));
+        Assert.That(ex!.Message, Does.Contain("Missing"));
+    }
+
+    [Test]
     public void CreateFromDatabaseStoresEncryptedConnectionAndMainDomain()
     {
         _loader.Schema = CreateSchema("Clients", "Policies");

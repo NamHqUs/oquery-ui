@@ -1,0 +1,147 @@
+{
+  "Id": "main",
+  "Name": "Main",
+  "Description": "Meta is mirrored from Database Schema",
+  "Entities": [
+    {
+      "Entity": "School",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "User",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "Diagnoses",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "LabResults",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "Visits",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "Departments",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "LeaveRequests",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "PerformanceReviews",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "Claims",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "InsurancePlans",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "Policies",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "PremiumPayments",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "Employees",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "Locations",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "Users",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "OrderItems",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "Orders",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "Products",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "TrackedTables",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    },
+    {
+      "Entity": "Versions",
+      "EntityName": null,
+      "FieldNames": [],
+      "ExcludedFields": [],
+      "RelationNames": []
+    }
+  ]
+}

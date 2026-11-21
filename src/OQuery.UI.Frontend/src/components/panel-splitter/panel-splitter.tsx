@@ -38,6 +38,7 @@ export default function PanelSplitter({
 
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
+    event.preventDefault();
     collapsedDrag.current = collapsed;
     event.currentTarget.setPointerCapture(event.pointerId);
     if (!collapsed) resizeFromPointer(event);

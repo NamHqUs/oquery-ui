@@ -1,10 +1,10 @@
+import ELK from "elkjs/lib/elk.bundled.js";
+import type { ElkEdgeSection, ElkNode } from "elkjs/lib/elk-api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import ELK from "elkjs/lib/elk.bundled.js";
-import type { ElkEdgeSection, ElkNode } from "elkjs/lib/elk-api";
-import Icon, { type IconName } from "../../icon/icon";
-import { fetchDbTableData, selectDbTable, setPreviewDbTable } from "../../data-sources/database-slice";
+import Icon, { type IconName } from "../icon/icon";
+import { fetchDbTableData, selectDbTable, setPreviewDbTable } from "../data-sources/database-slice";
 import "./diagram-view.css";
 
 export type DiagramTable = {
@@ -23,7 +23,6 @@ export type DiagramRelationship = {
   targetTable: string;
   targetColumns: string[];
   isUnique: boolean;
-  sourceRelationIndex?: number;
   targetRelationName?: string;
 };
 export const DIAGRAM_GROUP_TONES: DiagramGroupTone[] = ["revenue", "customer", "product", "finance", "custom"];
@@ -56,22 +55,17 @@ type DiagramViewProps = {
   selectedTableName?: string;
   loading?: boolean;
   relationships?: DiagramRelationship[];
-  onSelectGroup?: (groupId: string) => void;
-  onSelectRelation?: (relation: DiagramRelationship & { from: string; to: string }) => void;
-  relationInspector?: ReactNode;
   onOpenTable?: (table: DiagramTable) => void;
   navigationActions?: ReactNode;
-  hideActiveGroup?: boolean;
   compactCards?: boolean;
 };
 
-const CARD_WIDTH = 180;
-const CARD_HEIGHT = 96;
-const COLLAPSED_CARD_HEIGHT = 42;
+const CARD_WIDTH = 162;
+const CARD_HEIGHT = 77;
+const COLLAPSED_CARD_HEIGHT = 34;
 const COMPACT_CARD_HEIGHT = 30;
 const FIELD_ROW_HEIGHT = 21;
 const FIELD_LIST_PADDING = 4;
-const MIN_FIELD_ROWS = 5;
 const DEFAULT_VISIBLE_FIELD_ROWS = 8;
 const BOARD_MARGIN = 20;
 const ARROW_CLEARANCE = 8;
@@ -106,6 +100,15 @@ function tableKey(schema, name) {
   return `${schema}.${name}`;
 }
 
+function toRect(left, top, width, height) {
+  return { left, top, right: left + width, bottom: top + height };
+}
+
+function rectsOverlap(first, second) {
+  return first.left < second.right && first.right > second.left
+    && first.top < second.bottom && first.bottom > second.top;
+}
+
 function compactCardWidth(name, columns = [], expanded = false) {
   const longestText = expanded
     ? Math.max(name.length, ...columns.map((column) => column.name.length))
@@ -115,15 +118,21 @@ function compactCardWidth(name, columns = [], expanded = false) {
 
 // Popup sections: a Fields title and list, then a Relations title and list. Each height count includes its title row.
 const POPUP_SECTION_TITLE_HEIGHT = 22;
-const POPUP_MIN_WIDTH = 300;
+const POPUP_MIN_WIDTH = 200;
+const POPUP_BORDER_HEIGHT = 2;
 const RELATION_ROW_HEIGHT = 21;
 const MAX_VISIBLE_RELATION_ROWS = 5;
 
-function relationSectionHeight(rowCount) {
-  return rowCount ? POPUP_SECTION_TITLE_HEIGHT + rowCount * RELATION_ROW_HEIGHT + FIELD_LIST_PADDING : 0;
+function fieldSectionHeight(rowCount) {
+  return POPUP_SECTION_TITLE_HEIGHT + rowCount * FIELD_ROW_HEIGHT + FIELD_LIST_PADDING;
 }
 
-function compactPopupDefaultWidth(table) {
+function relationSectionHeight(rowCount) {
+  // An empty relation section still renders one "No relations" row.
+  return POPUP_SECTION_TITLE_HEIGHT + Math.max(1, rowCount) * RELATION_ROW_HEIGHT + FIELD_LIST_PADDING;
+}
+
+function popupDefaultWidth(table) {
   return Math.max(POPUP_MIN_WIDTH, compactCardWidth(table.name, table.columns, true));
 }
 
@@ -137,24 +146,32 @@ function relationsForTable(table, relationships = []) {
   return [...outgoing, ...incoming];
 }
 
-// Popup height shows up to 8 field rows and 5 relation rows by default; the lists scroll beyond that.
-function compactPopupDefaultHeight(columns = [], relationCount = 0) {
-  return POPUP_SECTION_TITLE_HEIGHT
-    + Math.min(Math.max(MIN_FIELD_ROWS, columns.length), DEFAULT_VISIBLE_FIELD_ROWS) * FIELD_ROW_HEIGHT
-    + FIELD_LIST_PADDING
+// Field rows shown without scrolling: the table's own rows, capped at 8.
+function visibleFieldRows(columns = []) {
+  return Math.min(Math.max(1, columns.length), DEFAULT_VISIBLE_FIELD_ROWS);
+}
+
+// Default popup height fits the content: fields up to 8 rows, relations up to 5 rows; the lists scroll beyond that.
+function popupDefaultHeight(columns = [], relationCount = 0) {
+  return fieldSectionHeight(visibleFieldRows(columns))
     + relationSectionHeight(Math.min(relationCount, MAX_VISIBLE_RELATION_ROWS));
 }
 
-// Popup height where every field and relation is visible; resizing stops here so the lists never scroll.
-function compactPopupMaxHeight(columns = [], relationCount = 0) {
-  return POPUP_SECTION_TITLE_HEIGHT
-    + Math.max(MIN_FIELD_ROWS, columns.length) * FIELD_ROW_HEIGHT
-    + FIELD_LIST_PADDING
-    + relationSectionHeight(relationCount);
+// Popup height where all visible fields and every relation fit. Dragging the resize handle stops here.
+function popupMaxHeight(columns = [], relationCount = 0) {
+  return fieldSectionHeight(visibleFieldRows(columns)) + relationSectionHeight(relationCount);
 }
 
-function compactPopupMinHeight() {
-  return POPUP_SECTION_TITLE_HEIGHT + FIELD_ROW_HEIGHT + FIELD_LIST_PADDING;
+function popupMinHeight() {
+  return fieldSectionHeight(1) + relationSectionHeight(1);
+}
+
+// Fields are sized to their rows, so Relations starts directly below them. Extra height goes to Relations.
+function splitPopupHeight(height, columns = [], relationCount = 0) {
+  const fieldsContent = fieldSectionHeight(visibleFieldRows(columns));
+  const relationsDefault = relationSectionHeight(Math.min(relationCount, MAX_VISIBLE_RELATION_ROWS));
+  const fieldsHeight = Math.min(fieldsContent, Math.max(fieldSectionHeight(1), height - relationsDefault));
+  return { fieldsHeight, relationsHeight: height - fieldsHeight };
 }
 
 function translateEdgePath(path, offset) {
@@ -164,10 +181,6 @@ function translateEdgePath(path, offset) {
 
 export function diagramGroupTone(index: number): DiagramGroupTone {
   return DIAGRAM_GROUP_TONES[index % DIAGRAM_GROUP_TONES.length];
-}
-
-function domainTone(domain): DiagramGroupTone {
-  return DOMAIN_TONES[domain] || "custom";
 }
 
 function orientation(a, b, c) {
@@ -230,6 +243,23 @@ function relationGeometry(from, to, fromWidth, fromHeight, toWidth = fromWidth, 
   };
 }
 
+function orthogonalPath(from, to, fromWidth, fromHeight, toWidth, toHeight, lane = 0) {
+  const fromCenter = { x: from.x + fromWidth / 2, y: from.y + fromHeight / 2 };
+  const toCenter = { x: to.x + toWidth / 2, y: to.y + toHeight / 2 };
+  const dx = toCenter.x - fromCenter.x;
+  const dy = toCenter.y - fromCenter.y;
+  if (Math.abs(dx) / (fromWidth + toWidth) >= Math.abs(dy) / (fromHeight + toHeight)) {
+    const startX = fromCenter.x + Math.sign(dx) * fromWidth / 2;
+    const endX = toCenter.x - Math.sign(dx) * toWidth / 2;
+    const midX = (startX + endX) / 2 + lane;
+    return `M ${startX} ${fromCenter.y} L ${midX} ${fromCenter.y} L ${midX} ${toCenter.y} L ${endX} ${toCenter.y}`;
+  }
+  const startY = fromCenter.y + Math.sign(dy) * fromHeight / 2;
+  const endY = toCenter.y - Math.sign(dy) * toHeight / 2;
+  const midY = (startY + endY) / 2 + lane;
+  return `M ${fromCenter.x} ${startY} L ${fromCenter.x} ${midY} L ${toCenter.x} ${midY} L ${toCenter.x} ${endY}`;
+}
+
 type CompactLayout = {
   positions: Record<string, { x: number; y: number }>;
   edgePaths: Record<string, string>;
@@ -239,21 +269,22 @@ type CompactLayout = {
 
 const elk = new ELK();
 
-async function createCompactLayout(tables, relationships, boardWidth, boardHeight): Promise<CompactLayout> {
+async function createCompactLayout(tables, relationships, direction: "RIGHT" | "DOWN", nodeSize): Promise<CompactLayout> {
   const graph: ElkNode = {
     id: "diagram",
     layoutOptions: {
       "elk.algorithm": "layered",
-      "elk.direction": boardWidth > boardHeight * 1.15 ? "RIGHT" : "DOWN",
+      "elk.direction": direction,
       "elk.edgeRouting": "ORTHOGONAL",
       "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
       "elk.layered.spacing.nodeNodeBetweenLayers": "24",
       "elk.spacing.nodeNode": "16",
+      "elk.spacing.edgeEdge": "10",
+      "elk.layered.spacing.edgeEdgeBetweenLayers": "12",
     },
     children: tables.map((table) => ({
       id: tableKey(table.schema, table.name),
-      width: compactCardWidth(table.name),
-      height: COMPACT_CARD_HEIGHT,
+      ...nodeSize(table),
     })),
     edges: relationships.map((relation, index) => ({
       id: `edge-${index}`,
@@ -267,8 +298,8 @@ async function createCompactLayout(tables, relationships, boardWidth, boardHeigh
   const minY = Math.min(...children.map((child) => child.y || 0), 0);
   const maxX = Math.max(...children.map((child) => (child.x || 0) + (child.width || 0)), 0);
   const maxY = Math.max(...children.map((child) => (child.y || 0) + (child.height || 0)), 0);
-  const offsetX = Math.max(BOARD_MARGIN, (boardWidth - (maxX - minX)) / 2) - minX;
-  const offsetY = Math.max(BOARD_MARGIN, (boardHeight - (maxY - minY)) / 2) - minY;
+  const offsetX = BOARD_MARGIN - minX;
+  const offsetY = BOARD_MARGIN - minY;
   const positions = Object.fromEntries(children.map((child) => [
     child.id,
     { x: (child.x || 0) + offsetX, y: (child.y || 0) + offsetY },
@@ -288,8 +319,8 @@ async function createCompactLayout(tables, relationships, boardWidth, boardHeigh
   return {
     positions,
     edgePaths,
-    width: Math.max(boardWidth, maxX - minX + BOARD_MARGIN * 2),
-    height: Math.max(boardHeight, maxY - minY + BOARD_MARGIN * 2),
+    width: maxX - minX + BOARD_MARGIN * 2,
+    height: maxY - minY + BOARD_MARGIN * 2,
   };
 }
 
@@ -305,8 +336,8 @@ function createLayout(tables, relationships, boardWidth, boardHeight, compact = 
     || byName(left, right));
   const cardWidth = compact
     ? Math.min(128, Math.max(100, boardWidth - 2 * BOARD_MARGIN))
-    : Math.min(CARD_WIDTH, Math.max(140, boardWidth - 2 * BOARD_MARGIN));
-  const expandedCardHeight = Math.min(CARD_HEIGHT, Math.max(80, boardHeight - 2 * BOARD_MARGIN));
+    : Math.min(CARD_WIDTH, Math.max(126, boardWidth - 2 * BOARD_MARGIN));
+  const expandedCardHeight = Math.min(CARD_HEIGHT, Math.max(65, boardHeight - 2 * BOARD_MARGIN));
   const cardHeight = compact ? COMPACT_CARD_HEIGHT : COLLAPSED_CARD_HEIGHT;
   const horizontalGap = compact ? 8 : 24;
   const center = { x: boardWidth / 2, y: boardHeight / 2 };
@@ -540,22 +571,17 @@ export default function DiagramView({
   selectedTableName,
   loading = false,
   relationships: suppliedRelationships,
-  onSelectGroup,
-  onSelectRelation,
-  relationInspector,
   onOpenTable,
   navigationActions,
-  hideActiveGroup = false,
   compactCards = false,
 }: DiagramViewProps) {
   const dispatch = useDispatch();
-  const { schema, schemaStatus, schemaError, debugUiEnabled } = useSelector((state) => state.database);
+  const { schema, schemaStatus, schemaError } = useSelector((state) => state.database);
   const diagramTables = suppliedTables || schema.tables;
   const [positions, setPositions] = useState({});
   const [expandedTables, setExpandedTables] = useState({});
   const [popupSizes, setPopupSizes] = useState({});
   const [graphPan, setGraphPan] = useState({ x: 0, y: 0 });
-  const [selectedGroup, setSelectedGroup] = useState("");
   const [boardSize, setBoardSize] = useState({ width: 720, height: 360 });
   const [layoutSize, setLayoutSize] = useState({ width: 720, height: 360 });
   const [autoRange, setAutoRange] = useState(true);
@@ -625,10 +651,9 @@ export default function DiagramView({
 
   const activeGroup = suppliedTables
     ? groups.find((group) => group.name === initialGroup)
-      || groups.find((group) => group.name === selectedGroup)
       || groups.find((group) => group.name === "All")
       || groups[0]
-    : groups.find((group) => group.name === selectedGroup) || groups[0];
+    : groups[0];
   const committedGroupRef = useRef<typeof activeGroup>(undefined);
   if (!loading && activeGroup) committedGroupRef.current = activeGroup;
   const renderedGroup = loading ? committedGroupRef.current || activeGroup : activeGroup;
@@ -637,47 +662,58 @@ export default function DiagramView({
     () => getDiagramRelationships(renderedGroup, suppliedRelationships || schema.relationships),
     [renderedGroup, schema.relationships, suppliedRelationships],
   );
-  const layoutWidth = autoRange ? boardSize.width : layoutSize.width;
-  const layoutHeight = autoRange ? boardSize.height : layoutSize.height;
-  const layoutHeightRef = useRef(layoutHeight);
+
+  const layoutSource = autoRange ? boardSize : layoutSize;
+  const layoutDirection = layoutSource.width > layoutSource.height * 1.15 ? "RIGHT" : "DOWN";
+
+  const layoutKey = JSON.stringify({
+    tables: (renderedGroup?.tables || []).map((table) => tableKey(table.schema, table.name)),
+    relationships: relationships.map((relation) => [relation.from, relation.to]),
+    direction: layoutDirection,
+    compactCards,
+  });
 
   useEffect(() => {
-    layoutHeightRef.current = layoutHeight;
-  }, [layoutHeight]);
-
-  useEffect(() => {
-    if (!compactCards || !renderedGroup?.tables?.length) {
+    if (!renderedGroup?.tables?.length) {
       setCompactLayout(null);
       return undefined;
     }
     let cancelled = false;
-    // Compact cards are not re-centered on height changes, so resizing the board height keeps them in place.
-    createCompactLayout(renderedGroup.tables, relationships, layoutWidth, layoutHeightRef.current)
+    const nodeSize = compactCards
+      ? (table) => ({ width: compactCardWidth(table.name), height: COMPACT_CARD_HEIGHT })
+      : () => ({ width: CARD_WIDTH, height: COLLAPSED_CARD_HEIGHT });
+    createCompactLayout(renderedGroup.tables, relationships, layoutDirection, nodeSize)
       .then((nextLayout) => {
         if (!cancelled) {
           setCompactLayout(nextLayout);
         }
       })
       .catch((error) => {
-        console.error("Unable to calculate compact diagram layout.", error);
+        console.error("Unable to calculate diagram layout.", error);
         if (!cancelled) setCompactLayout(null);
       });
     return () => {
       cancelled = true;
     };
-  }, [autoRange, compactCards, layoutWidth, relationships, renderedGroup]);
+  }, [layoutKey]);
 
+  const compactOffsetX = Math.max(0, (layoutSize.width - (compactLayout?.width || 0)) / 2);
+  const compactOffsetY = Math.max(0, (layoutSize.height - (compactLayout?.height || 0)) / 2);
   const layout = useMemo(() => {
     const next = createLayout(renderedGroup?.tables || [], relationships, layoutSize.width, layoutSize.height, compactCards);
+    const centeredCompactPositions = Object.fromEntries(Object.entries(compactLayout?.positions || {}).map(([key, position]) => [
+      key,
+      { x: position.x + compactOffsetX, y: position.y + compactOffsetY },
+    ]));
     return {
       cardWidth: next.cardWidth,
       cardHeight: next.cardHeight,
       positions: {
         ...Object.fromEntries(next.positions),
-        ...(compactLayout?.positions || {}),
+        ...centeredCompactPositions,
       },
     };
-  }, [autoRange, compactCards, compactLayout, layoutSize, relationships, renderedGroup]);
+  }, [compactCards, compactLayout, compactOffsetX, compactOffsetY, layoutSize, relationships, renderedGroup]);
   const basePositions = { ...layout.positions, ...positions };
   const tablePositions = Object.fromEntries(Object.entries(basePositions).map(([key, position]) => [
     key,
@@ -691,7 +727,6 @@ export default function DiagramView({
   function startDrag(event, key) {
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    setPositions((current) => ({ ...current, [key]: basePositions[key] }));
     drag.current = {
       key,
       pointerId: event.pointerId,
@@ -748,12 +783,12 @@ export default function DiagramView({
       <ul className="diagram-column-list">
         {table.columns.map((column) => (
           <li key={column.name} title={`${column.name} — ${column.dataType || "unknown type"}`}>
+            <span className="diagram-column-type" title={column.dataType || "unknown type"} aria-label={`Data type: ${column.dataType || "unknown type"}`}>
+              <Icon name={getDataTypeIcon(column.dataType || "String")} size={13} />
+            </span>
             <span className={`diagram-column-name${column.isPrimaryKey ? " primary" : ""}`}>{column.name}</span>
             <span className="diagram-column-key primary">
               {column.isPrimaryKey && <Icon name="key" size={13} />}
-            </span>
-            <span className="diagram-column-type" title={column.dataType || "unknown type"} aria-label={`Data type: ${column.dataType || "unknown type"}`}>
-              <Icon name={getDataTypeIcon(column.dataType || "String")} size={13} />
             </span>
           </li>
         ))}
@@ -762,17 +797,99 @@ export default function DiagramView({
     );
   }
 
-  function startResize(event, key, width, height) {
+  function popupRelations(table) {
+    return relationsForTable(table, suppliedRelationships || schema.relationships);
+  }
+
+  function popupWidthFor(table) {
+    return popupSizes[tableKey(table.schema, table.name)]?.width || popupDefaultWidth(table);
+  }
+
+  function popupHeightFor(table) {
+    return popupSizes[tableKey(table.schema, table.name)]?.height
+      || popupDefaultHeight(table.columns, popupRelations(table).length);
+  }
+
+  // The card is the header only; expanded fields and relations render in a popup below it.
+  function cardSizeFor(table) {
+    if (compactCards && table) return { width: compactCardWidth(table.name), height: COMPACT_CARD_HEIGHT };
+    return { width: layout.cardWidth, height: COLLAPSED_CARD_HEIGHT };
+  }
+
+  // Popups live outside the clipped board, so they are placed against the visible diagram area.
+  // Candidates are tried in order (below, above, right, left); a popup never overlaps its own card
+  // or the selected card. If no candidate fits, the popup is not rendered.
+  function popupPlacementFor(table, position) {
+    const cardSize = cardSizeFor(table);
+    const width = popupWidthFor(table);
+    const height = popupHeightFor(table) + POPUP_BORDER_HEIGHT;
+    const areaWidth = boardSize.width;
+    const areaHeight = boardSize.height;
+    const cardVisible = position.x < areaWidth && position.y < areaHeight
+      && position.x + cardSize.width > 0 && position.y + cardSize.height > 0;
+    if (!cardVisible) return null;
+
+    const avoid = [toRect(position.x, position.y, cardSize.width, cardSize.height)];
+    const selected = renderedGroup?.tables.find((item) => item.name === selectedTableName);
+    const selectedPosition = selected && tablePositions[tableKey(selected.schema, selected.name)];
+    if (selectedPosition) {
+      const selectedSize = cardSizeFor(selected);
+      avoid.push(toRect(selectedPosition.x, selectedPosition.y, selectedSize.width, selectedSize.height));
+    }
+
+    const candidates = [
+      { left: position.x, top: position.y + cardSize.height },
+      { left: position.x, top: position.y - height },
+      { left: position.x + cardSize.width, top: position.y },
+      { left: position.x - width, top: position.y },
+    ];
+    for (const candidate of candidates) {
+      const left = Math.max(0, Math.min(candidate.left, areaWidth - width));
+      const top = Math.max(0, Math.min(candidate.top, areaHeight - height));
+      const rect = toRect(left, top, width, height);
+      if (avoid.every((other) => !rectsOverlap(rect, other))) return { left, top, width, height };
+    }
+    return null;
+  }
+
+  function renderPopupSections(table) {
+    const relations = popupRelations(table);
+    const { fieldsHeight, relationsHeight } = splitPopupHeight(popupHeightFor(table), table.columns, relations.length);
+    return (
+      <>
+        <div className="diagram-popup-section diagram-popup-fields" style={{ height: fieldsHeight }}>
+          <div className="diagram-popup-title">Fields</div>
+          {renderFieldList(table)}
+        </div>
+        <div className="diagram-popup-section diagram-popup-relations" style={{ height: relationsHeight }}>
+          <div className="diagram-popup-title">Relations</div>
+          {relations.length === 0
+            ? <div className="diagram-relation-empty">No relations</div>
+            : <ul className="diagram-relation-list">
+              {relations.map((relation, index) => <li key={`${relation.type}-${relation.name}-${index}`} title={`${relation.name} → ${relation.target} (${relation.type})`}>
+                <span className="diagram-relation-type" title={relation.type} aria-label={relation.type}>
+                  <Icon name={relation.icon} size={13} />
+                </span>
+                <span className="diagram-relation-name">{relation.name}</span>
+                <span className="diagram-relation-target">→ {relation.target}</span>
+              </li>)}
+            </ul>}
+        </div>
+      </>
+    );
+  }
+
+  function startResize(event, table) {
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
     resizeDrag.current = {
-      key,
+      key: tableKey(table.schema, table.name),
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
-      originWidth: width,
-      originHeight: height,
+      originWidth: popupWidthFor(table),
+      originHeight: popupHeightFor(table),
     };
   }
 
@@ -785,12 +902,12 @@ export default function DiagramView({
       ...current,
       [currentResize.key]: {
         width: Math.max(
-          compactPopupDefaultWidth(table),
+          popupDefaultWidth(table),
           currentResize.originWidth + event.clientX - currentResize.startX,
         ),
         height: Math.min(
-          compactPopupMaxHeight(table.columns, relationsForTable(table, suppliedRelationships || schema.relationships).length),
-          Math.max(compactPopupMinHeight(), currentResize.originHeight + event.clientY - currentResize.startY),
+          popupMaxHeight(table.columns, popupRelations(table).length),
+          Math.max(popupMinHeight(), currentResize.originHeight + event.clientY - currentResize.startY),
         ),
       },
     }));
@@ -864,53 +981,7 @@ export default function DiagramView({
           </button>
         </div>
       </div>
-      {(!suppliedTables || suppliedGroups?.length) && <div className="diagram-group-toolbar">
-        <nav className="diagram-group-switch" aria-label="Diagram table groups">
-          {groups.filter((group) => !hideActiveGroup || group.name !== initialGroup).map((group) => (
-            <button
-              type="button"
-              className={`diagram-group-button tone-${group.tone || domainTone(group.name)}${activeGroup?.name === group.name ? " active" : ""}`}
-              aria-pressed={activeGroup?.name === group.name}
-              key={group.name}
-              onClick={() => {
-                if (debugUiEnabled) {
-                  const nextRelationships = getDiagramRelationships(group, schema.relationships);
-                  const nextLayoutData = createLayout(group.tables, nextRelationships, boardSize.width, boardSize.height);
-                  const nextLayout = {
-                    cardWidth: nextLayoutData.cardWidth,
-                    cardHeight: nextLayoutData.cardHeight,
-                    positions: Object.fromEntries(nextLayoutData.positions),
-                  };
-                  console.log("Database diagram render model:", {
-                    schema,
-                    groups,
-                    selectedGroup: group.name,
-                    activeGroup: group,
-                    relationships: nextRelationships,
-                    layout: nextLayout,
-                    tablePositions: nextLayout.positions,
-                    expandedTables,
-                    boardSize,
-                    layoutSize: boardSize,
-                  });
-                }
-                if (activeGroup) committedGroupRef.current = activeGroup;
-                setSelectedGroup(group.name);
-                onSelectGroup?.(group.id ?? group.name);
-                setLayoutSize(boardSize);
-                setPositions({});
-                setGraphPan({ x: 0, y: 0 });
-              }}
-            >
-              <span className="diagram-group-mark" aria-hidden="true" />
-              <strong>{group.name}</strong>
-              <span className="diagram-group-count">{group.tables.length}</span>
-            </button>
-          ))}
-        </nav>
-      </div>}
       <div className="diagram-content">
-        {relationInspector}
         <div className="diagram-scroll" ref={setScrollElement}>
         <div
           className="diagram-board"
@@ -932,41 +1003,21 @@ export default function DiagramView({
               if (!from || !to) return null;
               const fromTable = renderedGroup?.tables.find((table) => tableKey(table.schema, table.name) === relation.from);
               const toTable = renderedGroup?.tables.find((table) => tableKey(table.schema, table.name) === relation.to);
-              const fromWidth = compactCards && fromTable
-                ? compactCardWidth(fromTable.name)
-                : layout.cardWidth;
-              const toWidth = compactCards && toTable
-                ? compactCardWidth(toTable.name)
-                : layout.cardWidth;
-              const fromHeight = compactCards && fromTable
-                ? COMPACT_CARD_HEIGHT
-                : expandedTables[relation.from] ? layout.cardHeight : COLLAPSED_CARD_HEIGHT;
-              const toHeight = compactCards && toTable
-                ? COMPACT_CARD_HEIGHT
-                : expandedTables[relation.to] ? layout.cardHeight : COLLAPSED_CARD_HEIGHT;
-              const geometry = relationGeometry(from, to, fromWidth, fromHeight, toWidth, toHeight);
+              const fromSize = cardSizeFor(fromTable);
+              const toSize = cardSizeFor(toTable);
+              const geometry = relationGeometry(from, to, fromSize.width, fromSize.height, toSize.width, toSize.height);
               const routedPath = compactLayout?.edgePaths[`edge-${index}`];
               const edgePath = routedPath && Object.keys(positions).length === 0
-                ? translateEdgePath(routedPath, graphPan)
+                ? translateEdgePath(routedPath, { x: compactOffsetX + graphPan.x, y: compactOffsetY + graphPan.y })
                 : undefined;
               if (!geometry && !edgePath) return null;
               const path = edgePath || (geometry
-                ? `M ${geometry.start.x} ${geometry.start.y} L ${geometry.end.x} ${geometry.end.y}`
+                ? orthogonalPath(from, to, fromSize.width, fromSize.height, toSize.width, toSize.height, ((index % 5) - 2) * 8)
                 : "");
               return (
                         <g
                           className={`diagram-edge${relation.isManyToMany ? " many-to-many" : ""}`}
                           key={`${relation.name}-${index}`}
-                          role="button"
-                          tabIndex={0}
-                          aria-label={`Select relation ${relation.name || `${relation.from} to ${relation.to}`}`}
-                          onClick={() => onSelectRelation?.(relation)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              onSelectRelation?.(relation);
-                            }
-                          }}
                         >
                           <path
                           d={path}
@@ -981,12 +1032,7 @@ export default function DiagramView({
             const position = tablePositions[key];
             if (!position) return null;
             const expanded = Boolean(expandedTables[key]);
-            const width = compactCards
-              ? compactCardWidth(table.name)
-              : layout.cardWidth;
-            const height = expanded && !compactCards
-              ? layout.cardHeight
-              : compactCards ? COMPACT_CARD_HEIGHT : COLLAPSED_CARD_HEIGHT;
+            const { width, height } = cardSizeFor(table);
             return (
               <article
                 className={`diagram-table-card${compactCards ? " compact" : ""}${expanded ? " expanded" : ""}${selectedTableName === table.name ? " selected" : ""}`}
@@ -1024,70 +1070,36 @@ export default function DiagramView({
                   className="diagram-column-toggle"
                   aria-label={`${expanded ? "Collapse" : "Expand"} columns for ${table.name}`}
                   aria-expanded={expanded}
-                  onClick={() => setExpandedTables((current) => ({ ...current, [key]: !current[key] }))}
+                  onClick={() => setExpandedTables((current) => (current[key] ? {} : { [key]: true }))}
                   title={expanded ? "Collapse columns" : "Expand columns"}
                 >
                   <Icon name={expanded ? "chevron-down" : "chevron-right"} size={13} />
                 </button>
-                {expanded && !compactCards && renderFieldList(table)}
-                {expanded && !compactCards && (
-                  <button
-                    type="button"
-                    className="diagram-card-resize-handle"
-                    aria-label={`Resize ${table.name} fields`}
-                    onPointerDown={(event) => startResize(event, key, width, height)}
-                    onPointerMove={moveResize}
-                    onPointerUp={endResize}
-                    onPointerCancel={endResize}
-                  />
-                )}
               </article>
             );
           })}
-          {compactCards && (renderedGroup?.tables || []).map((table) => {
+            </div>
+          </div>
+          {(renderedGroup?.tables || []).map((table) => {
             const key = tableKey(table.schema, table.name);
             const position = tablePositions[key];
             if (!position || !expandedTables[key]) return null;
-            const size = popupSizes[key];
-            const relations = relationsForTable(table, suppliedRelationships || schema.relationships);
-            const width = size?.width || compactPopupDefaultWidth(table);
-            const height = size?.height || compactPopupDefaultHeight(table.columns, relations.length);
+            const placement = popupPlacementFor(table, position);
+            if (!placement) return null;
             return (
               <div
                 className="diagram-field-popup"
                 key={`${key}-fields`}
-                style={{
-                  left: position.x,
-                  top: position.y + COMPACT_CARD_HEIGHT,
-                  width,
-                  height,
-                }}
+                style={placement}
                 aria-label={`${table.name} fields and relations`}
                 onPointerDown={(event) => event.stopPropagation()}
               >
-                <div className="diagram-popup-section diagram-popup-fields">
-                  <div className="diagram-popup-title">Fields</div>
-                  {renderFieldList(table)}
-                </div>
-                <div className="diagram-popup-section diagram-popup-relations">
-                  <div className="diagram-popup-title">Relations</div>
-                  {relations.length === 0
-                    ? <div className="diagram-no-columns">No relations</div>
-                    : <ul className="diagram-relation-list">
-                      {relations.map((relation, index) => <li key={`${relation.type}-${relation.name}-${index}`} title={`${relation.name} → ${relation.target} (${relation.type})`}>
-                        <span className="diagram-relation-name">{relation.name}</span>
-                        <span className="diagram-relation-target">→ {relation.target}</span>
-                        <span className="diagram-relation-type" title={relation.type} aria-label={relation.type}>
-                          <Icon name={relation.icon} size={13} />
-                        </span>
-                      </li>)}
-                    </ul>}
-                </div>
+                {renderPopupSections(table)}
                 <button
                   type="button"
                   className="diagram-card-resize-handle"
                   aria-label={`Resize ${table.name} fields`}
-                  onPointerDown={(event) => startResize(event, key, width, height)}
+                  onPointerDown={(event) => startResize(event, table)}
                   onPointerMove={moveResize}
                   onPointerUp={endResize}
                   onPointerCancel={endResize}
@@ -1095,8 +1107,6 @@ export default function DiagramView({
               </div>
             );
           })}
-            </div>
-          </div>
         {loading && (
           <div className="diagram-loading-overlay" role="status" aria-label="Loading diagram entities">
             <span className="diagram-loading-icon" aria-hidden="true">

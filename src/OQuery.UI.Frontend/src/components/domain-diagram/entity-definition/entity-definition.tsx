@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import Icon from "../../../icon/icon";
-import { MetadataEntity, type DomainRelation } from "../../../query-builder/query-design/query-builder-slice";
-import { EditableEntity } from "../../types";
-import FieldsBuilder from "./fields-builder/fields-builder";
-import RelationsBuilder from "./relations-builder/relations-builder";
-import PanelSplitter from "../../../panel-splitter/panel-splitter";
-import { useResizablePanel } from "../../../../utils/use-resizable-panel";
-import "./entity-builder.css";
+import Icon from "../../icon/icon";
+import { MetadataEntity, type DomainRelation } from "../../query-builder/query-design/query-builder-slice";
+import { EditableEntity } from "./types";
+import FieldsDefinition from "./fields-definition/fields-definition";
+import RelationsDefinition from "./relations-definition/relations-definition";
+import PanelSplitter from "../../panel-splitter/panel-splitter";
+import { useResizablePanel } from "../../../utils/use-resizable-panel";
+import "./entity-definition.css";
 
-type EntityBuilderProps = {
+type EntityDefinitionProps = {
   draft: EditableEntity | null;
   canEdit: boolean;
   message: string;
@@ -32,7 +32,7 @@ export type DatabaseTableOption = {
   columns: { name: string; dataType?: string; isPrimaryKey?: boolean }[];
 };
 
-export default function EntityBuilder({
+export default function EntityDefinition({
   draft,
   canEdit,
   message,
@@ -48,7 +48,7 @@ export default function EntityBuilder({
   onSelectRawSql,
   compact = false,
   showFieldsRelationsSplitter = true,
-}: EntityBuilderProps) {
+}: EntityDefinitionProps) {
   const [tablePickerOpen, setTablePickerOpen] = useState(false);
   const [tableSearch, setTableSearch] = useState("");
   const [rawSqlMode, setRawSqlMode] = useState(false);
@@ -222,7 +222,7 @@ export default function EntityBuilder({
 
         <div className={`entity-split split-workspace${showFieldsRelationsSplitter ? "" : " entity-split-stacked"}`} style={splitPanel.style}>
           <div className="entity-fields-pane">
-            <FieldsBuilder
+            <FieldsDefinition
               fields={draft.fields}
               selectedTableColumns={selectedTableColumns}
               allowDataTypeEdit
@@ -240,7 +240,7 @@ export default function EntityBuilder({
           )}
 
           <div className="entity-relations-pane">
-            <RelationsBuilder
+            <RelationsDefinition
               domainRelations={domainRelations}
               currentEntity={draft}
               allEntities={allEntities}
