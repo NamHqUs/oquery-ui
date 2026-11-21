@@ -385,11 +385,11 @@ export default function RelationsDefinition({
               </colgroup>
               <thead>
                 <tr>
-                  <th scope="col" title={`How ${thisLabel} refers to the related entity`}>Name in {thisLabel}</th>
-                  <th scope="col">Related entity</th>
-                  <th scope="col" title="How the related entity refers back to this entity">Name in related entity</th>
-                  <th scope="col">{thisLabel} column</th>
-                  <th scope="col">Related column</th>
+                  <th scope="col" title={`How ${thisLabel} refers to the related entity`}>Relation</th>
+                  <th scope="col">Ref.Entity</th>
+                  <th scope="col" title="How the related entity refers back to this entity">Ref.Relation</th>
+                  <th scope="col">Column</th>
+                  <th scope="col">Ref.Column</th>
                   <th scope="col" aria-label="Key actions" />
                   <th scope="col" aria-label="Remove relation" />
                 </tr>

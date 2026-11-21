@@ -196,7 +196,7 @@ export default function EntityDefinition({
                       setTableSearch("");
                     }}
                   >
-                    <strong>{table.name}</strong>
+                    <span>{table.name}</span>
                     <small>{table.schema || "Default schema"}</small>
                   </button>
                 ))}

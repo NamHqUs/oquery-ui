@@ -205,9 +205,6 @@ export default function DomainDiagramPanel({ projectId, domainId, domainOptions,
       entityEditorHeader={
         <div className="table-details-heading metadata-editor-heading">
           <div className="table-details-title">
-            <div className="metadata-editor-heading-eyebrow">
-              <span className="section-kicker">ENTITY DEFINITION</span>
-            </div>
             <div className="metadata-editor-heading-title">
               <span className="metadata-editor-heading-icon"><Icon name="table" size={18} /></span>
               <h3>{draft?.name || "Select an entity"}</h3>
