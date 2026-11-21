@@ -536,9 +536,25 @@
   box-sizing: border-box;
 }
 
-.pg-chat-composer .pg-primary {
+.pg-chat-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   align-self: flex-end;
-  font-size: 11px;
+  padding: 0 2px 6px;
+  border: 0;
+  background: none;
+  color: #5fa8ff;
+  cursor: pointer;
+}
+
+.pg-chat-send:hover {
+  color: #dff0ff;
+}
+
+.pg-chat-send:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .pg-copilot-title {

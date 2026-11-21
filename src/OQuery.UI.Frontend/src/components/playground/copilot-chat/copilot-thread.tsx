@@ -1,4 +1,5 @@
 import { AssistantRuntimeProvider, ComposerPrimitive, MessagePrimitive, ThreadPrimitive, useLocalRuntime } from "@assistant-ui/react";
+import Icon from "../../icon/icon";
 import { mockChatAdapter } from "./mock-chat-adapter";
 
 function UserMessage() {
@@ -20,7 +21,7 @@ export default function CopilotThread() {
       </ThreadPrimitive.Viewport>
       <ComposerPrimitive.Root className="pg-chat-composer">
         <ComposerPrimitive.Input placeholder="e.g. Show top customers by revenue" rows={4} />
-        <ComposerPrimitive.Send className="pg-primary">Send</ComposerPrimitive.Send>
+        <ComposerPrimitive.Send className="pg-chat-send" aria-label="Send" title="Send"><Icon name="send" size={14} /></ComposerPrimitive.Send>
       </ComposerPrimitive.Root>
     </ThreadPrimitive.Root>
   </AssistantRuntimeProvider>;

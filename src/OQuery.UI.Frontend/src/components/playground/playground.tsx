@@ -187,12 +187,12 @@ function CopilotAside({ collapsed, onToggle }: { collapsed: boolean; onToggle: (
   if (collapsed) {
     return <aside className="pg-copilot collapsed">
       <button type="button" className="pg-icon-button" aria-label="Expand AI assistant" onClick={onToggle}><Icon name="chevron-left" size={14} /></button>
-      <span className="pg-copilot-rail" title="AI assistant"><Icon name="function" size={16} /></span>
+      <span className="pg-copilot-rail" title="AI assistant"><Icon name="robot" size={16} /></span>
     </aside>;
   }
   return <aside className="pg-copilot">
     <header className="pg-copilot-header">
-      <span className="pg-copilot-title"><Icon name="function" size={16} /><span className="pg-eyebrow">AI assistant</span></span>
+      <span className="pg-copilot-title"><Icon name="robot" size={16} /><span className="pg-eyebrow">AI assistant</span></span>
       <button type="button" className="pg-icon-button" aria-label="Collapse AI assistant" onClick={onToggle}><Icon name="chevron-right" size={14} /></button>
     </header>
     <CopilotThread />

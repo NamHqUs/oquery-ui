@@ -69,6 +69,8 @@ const paths = {
   copy: <><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" /></>,
   ungroup: <><rect x="3" y="4" width="7" height="7" rx="1" /><rect x="14" y="13" width="7" height="7" rx="1" /><path d="M10 7h5m0 0-2-2m2 2-2 2" /></>,
   edit: <><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3Z" /><path d="m14.5 7.5 2 2" /></>,
+  send: <><path d="M22 2 11 13" /><path d="M22 2 15 22l-4-9-9-4 20-7Z" /></>,
+  robot: <><rect x="4" y="8" width="16" height="12" rx="2" /><path d="M12 8V4M2 13h2m16 0h2M9 13h.01M15 13h.01M9 17h6" /><circle cx="12" cy="3" r="1" /></>,
 };
 
 export type IconName = keyof typeof paths;
