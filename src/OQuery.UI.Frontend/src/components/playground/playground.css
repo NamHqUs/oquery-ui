@@ -428,13 +428,10 @@
   font-size: 9px;
 }
 
-/* The slot is the sticky box: it pins to the screen top and spans to the viewport bottom, and the panel fills it,
-   so the message box always stays inside the slot. Playground sets --pg-copilot-top from the grid row's position. */
+/* The slot keeps the column in the grid. The panel inside it is positioned in the viewport from playground.tsx,
+   so the AI assistant stays on screen even at the end of the page. */
 .pg-copilot-slot {
-  position: sticky;
-  top: var(--pg-copilot-top, 0px);
-  align-self: start;
-  height: calc(100vh - var(--pg-copilot-top, 0px));
+  align-self: stretch;
   min-width: 0;
 }
 

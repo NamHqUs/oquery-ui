@@ -246,13 +246,24 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
     };
   }, []);
 
-  // The slot is pinned to the screen top and sized to the viewport bottom, so the panel and its message box stay inside it.
-  // The top comes from the grid row, which sticky does not move, so it recovers when scrolling back up.
+  // The AI assistant stays on screen. Its top follows the grid row until the row scrolls above the screen top, then sticks there.
+  // Its bottom stops at the grid row's bottom, so the panel shrinks to fit its parent but never leaves the screen.
   useLayoutEffect(() => {
     const slot = copilotSlotRef.current;
     const row = slot?.parentElement;
     if (!slot || !row) return;
-    const update = () => slot.style.setProperty("--pg-copilot-top", `${Math.max(0, row.getBoundingClientRect().top)}px`);
+    const update = () => {
+      const panel = slot.firstElementChild as HTMLElement | null;
+      if (!panel) return;
+      const rect = slot.getBoundingClientRect();
+      const top = Math.max(0, row.getBoundingClientRect().top);
+      const bottom = Math.min(window.innerHeight, row.getBoundingClientRect().bottom);
+      panel.style.position = "fixed";
+      panel.style.top = `${top}px`;
+      panel.style.left = `${rect.left}px`;
+      panel.style.width = `${rect.width}px`;
+      panel.style.height = `${Math.max(0, bottom - top)}px`;
+    };
     update();
     window.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update);
@@ -260,7 +271,7 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
       window.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
     };
-  }, []);
+  }, [copilotCollapsed, copilotWidth]);
 
   useEffect(() => {
     if (!projectId || !domainId) return;
