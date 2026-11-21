@@ -1,7 +1,7 @@
 import ELK from "elkjs/lib/elk.bundled.js";
 import type { ElkEdgeSection, ElkNode } from "elkjs/lib/elk-api";
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Icon, { type IconName } from "../icon/icon";
 import { fetchDbTableData, selectDbTable, setPreviewDbTable } from "../data-sources/database-slice";
@@ -243,21 +243,72 @@ function relationGeometry(from, to, fromWidth, fromHeight, toWidth = fromWidth, 
   };
 }
 
-function orthogonalPath(from, to, fromWidth, fromHeight, toWidth, toHeight, lane = 0) {
-  const fromCenter = { x: from.x + fromWidth / 2, y: from.y + fromHeight / 2 };
-  const toCenter = { x: to.x + toWidth / 2, y: to.y + toHeight / 2 };
-  const dx = toCenter.x - fromCenter.x;
-  const dy = toCenter.y - fromCenter.y;
-  if (Math.abs(dx) / (fromWidth + toWidth) >= Math.abs(dy) / (fromHeight + toHeight)) {
-    const startX = fromCenter.x + Math.sign(dx) * fromWidth / 2;
-    const endX = toCenter.x - Math.sign(dx) * toWidth / 2;
-    const midX = (startX + endX) / 2 + lane;
-    return `M ${startX} ${fromCenter.y} L ${midX} ${fromCenter.y} L ${midX} ${toCenter.y} L ${endX} ${toCenter.y}`;
+type RouteEndpoint = { key: string; x: number; y: number; width: number; height: number };
+type RouteRequest = { index: number; from: RouteEndpoint; to: RouteEndpoint };
+type RouteSide = "left" | "right" | "top" | "bottom";
+type RouteSlot = { position: number; count: number };
+
+const ROUTE_LANE_SPACING = 6;
+
+function sideAnchor(endpoint: RouteEndpoint, side: RouteSide, slot: RouteSlot) {
+  const ratio = (slot.position + 1) / (slot.count + 1);
+  if (side === "left") return { x: endpoint.x, y: endpoint.y + endpoint.height * ratio };
+  if (side === "right") return { x: endpoint.x + endpoint.width, y: endpoint.y + endpoint.height * ratio };
+  if (side === "top") return { x: endpoint.x + endpoint.width * ratio, y: endpoint.y };
+  return { x: endpoint.x + endpoint.width * ratio, y: endpoint.y + endpoint.height };
+}
+
+// Edges that share a card side get distinct anchor points (ordered by the other card's position to avoid crossings)
+// and distinct midline lanes, so routed edges fan out instead of stacking on one line.
+function routeRelationPaths(requests: RouteRequest[]): Map<number, string> {
+  const plans = requests.map(({ index, from, to }) => {
+    const dx = to.x + to.width / 2 - (from.x + from.width / 2);
+    const dy = to.y + to.height / 2 - (from.y + from.height / 2);
+    const horizontal = Math.abs(dx) / (from.width + to.width) >= Math.abs(dy) / (from.height + to.height);
+    const forward = horizontal ? dx >= 0 : dy >= 0;
+    const fromSide: RouteSide = horizontal ? (forward ? "right" : "left") : (forward ? "bottom" : "top");
+    const toSide: RouteSide = horizontal ? (forward ? "left" : "right") : (forward ? "top" : "bottom");
+    return { index, from, to, horizontal, fromSide, toSide };
+  });
+
+  const bySlot = new Map<string, { plan: (typeof plans)[number]; end: "from" | "to"; otherCenter: number }[]>();
+  const slotFor = new Map<string, RouteSlot>();
+  const addToSlot = (endpoint: RouteEndpoint, side: RouteSide, plan: (typeof plans)[number], end: "from" | "to", other: RouteEndpoint) => {
+    const slotKey = `${endpoint.key}|${side}`;
+    const otherCenter = plan.horizontal
+      ? other.y + other.height / 2
+      : other.x + other.width / 2;
+    const entries = bySlot.get(slotKey) || [];
+    entries.push({ plan, end, otherCenter });
+    bySlot.set(slotKey, entries);
+  };
+  for (const plan of plans) {
+    addToSlot(plan.from, plan.fromSide, plan, "from", plan.to);
+    addToSlot(plan.to, plan.toSide, plan, "to", plan.from);
   }
-  const startY = fromCenter.y + Math.sign(dy) * fromHeight / 2;
-  const endY = toCenter.y - Math.sign(dy) * toHeight / 2;
-  const midY = (startY + endY) / 2 + lane;
-  return `M ${fromCenter.x} ${startY} L ${fromCenter.x} ${midY} L ${toCenter.x} ${midY} L ${toCenter.x} ${endY}`;
+  for (const entries of bySlot.values()) {
+    entries.sort((left, right) => left.otherCenter - right.otherCenter || left.plan.index - right.plan.index);
+    entries.forEach((entry, position) => {
+      slotFor.set(`${entry.plan.index}-${entry.end}`, { position, count: entries.length });
+    });
+  }
+
+  const paths = new Map<number, string>();
+  for (const plan of plans) {
+    const fromSlot = slotFor.get(`${plan.index}-from`);
+    const toSlot = slotFor.get(`${plan.index}-to`);
+    const start = sideAnchor(plan.from, plan.fromSide, fromSlot);
+    const end = sideAnchor(plan.to, plan.toSide, toSlot);
+    const lane = (fromSlot.position - (fromSlot.count - 1) / 2) * ROUTE_LANE_SPACING;
+    if (plan.horizontal) {
+      const midX = (start.x + end.x) / 2 + lane;
+      paths.set(plan.index, `M ${start.x} ${start.y} L ${midX} ${start.y} L ${midX} ${end.y} L ${end.x} ${end.y}`);
+    } else {
+      const midY = (start.y + end.y) / 2 + lane;
+      paths.set(plan.index, `M ${start.x} ${start.y} L ${start.x} ${midY} L ${end.x} ${midY} L ${end.x} ${end.y}`);
+    }
+  }
+  return paths;
 }
 
 type CompactLayout = {
@@ -564,6 +615,87 @@ function getDiagramRelationships(activeGroup, schemaRelationships) {
   return edges;
 }
 
+// Memoized so a drag re-commits only the moved card and the edges whose path string changed.
+const DiagramEdge = memo(function DiagramEdge({ path, manyToMany }: { path: string; manyToMany: boolean }) {
+  return (
+    <g className={`diagram-edge${manyToMany ? " many-to-many" : ""}`}>
+      <path d={path} markerEnd="url(#diagram-relation-arrow)" />
+    </g>
+  );
+});
+
+type DiagramCardProps = {
+  table: DiagramTable;
+  cardKey: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  compact: boolean;
+  expanded: boolean;
+  selected: boolean;
+  onSelect: (table: DiagramTable) => void;
+  onPreview: (table: DiagramTable) => void;
+  onToggleExpand: (cardKey: string) => void;
+  onHeaderPointerDown: (event: ReactPointerEvent<HTMLButtonElement>, cardKey: string) => void;
+  onHeaderPointerMove: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onHeaderPointerUp: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+};
+
+const DiagramCard = memo(function DiagramCard({
+  table,
+  cardKey,
+  x,
+  y,
+  width,
+  height,
+  compact,
+  expanded,
+  selected,
+  onSelect,
+  onPreview,
+  onToggleExpand,
+  onHeaderPointerDown,
+  onHeaderPointerMove,
+  onHeaderPointerUp,
+}: DiagramCardProps) {
+  return (
+    <article
+      className={`diagram-table-card${compact ? " compact" : ""}${expanded ? " expanded" : ""}${selected ? " selected" : ""}`}
+      style={{ left: x, top: y, width, height }}
+      aria-label={`${table.name}${selected ? " (selected)" : ""}`}
+    >
+      <button
+        type="button"
+        className="diagram-table-header"
+        onClick={() => onSelect(table)}
+        onDoubleClick={() => onPreview(table)}
+        onPointerDown={(event) => onHeaderPointerDown(event, cardKey)}
+        onPointerMove={onHeaderPointerMove}
+        onPointerUp={onHeaderPointerUp}
+        onPointerCancel={onHeaderPointerUp}
+        title={`Double-click to preview ${table.name}`}
+      >
+        {!compact && <Icon name="table" size={15} />}
+        <span>{table.name}</span>
+        {!compact && table.dbTable && table.dbTable !== table.name && (
+          <span className="diagram-table-schema">{table.dbTable}</span>
+        )}
+      </button>
+      <button
+        type="button"
+        className="diagram-column-toggle"
+        aria-label={`${expanded ? "Collapse" : "Expand"} columns for ${table.name}`}
+        aria-expanded={expanded}
+        onClick={() => onToggleExpand(cardKey)}
+        title={expanded ? "Collapse columns" : "Expand columns"}
+      >
+        <Icon name={expanded ? "chevron-down" : "chevron-right"} size={13} />
+      </button>
+    </article>
+  );
+});
+
 export default function DiagramView({
   tables: suppliedTables,
   groups: suppliedGroups,
@@ -724,7 +856,30 @@ export default function DiagramView({
     height: Math.max(boardSize.height, compactLayout?.height || 0),
   };
 
-  function startDrag(event, key) {
+  // Only edges attached to a moved card are re-routed; every other edge keeps its ELK route, translated to the current pan.
+  const movedKeys = new Set(Object.keys(positions));
+  const edgeRequests: RouteRequest[] = [];
+  relationships.forEach((relation, index) => {
+    const from = tablePositions[relation.from];
+    const to = tablePositions[relation.to];
+    if (!from || !to) return;
+    const touchesMoved = movedKeys.has(relation.from) || movedKeys.has(relation.to);
+    if (!touchesMoved && compactLayout?.edgePaths[`edge-${index}`]) return;
+    const fromSize = cardSizeFor(renderedGroup?.tables.find((table) => tableKey(table.schema, table.name) === relation.from));
+    const toSize = cardSizeFor(renderedGroup?.tables.find((table) => tableKey(table.schema, table.name) === relation.to));
+    edgeRequests.push({
+      index,
+      from: { key: relation.from, x: from.x, y: from.y, width: fromSize.width, height: fromSize.height },
+      to: { key: relation.to, x: to.x, y: to.y, width: toSize.width, height: toSize.height },
+    });
+  });
+  const reroutedPaths = routeRelationPaths(edgeRequests);
+
+  // Handlers are stable across renders so memoized cards don't re-render on drag; they read the latest layout from this ref.
+  const latest = useRef(null);
+  latest.current = { basePositions, boardSize, layout, onOpenTable };
+
+  const startDrag = useCallback((event, key) => {
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = {
@@ -732,25 +887,26 @@ export default function DiagramView({
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
-      origin: basePositions[key],
+      origin: latest.current.basePositions[key],
     };
-  }
+  }, []);
 
-  function moveDrag(event) {
+  const moveDrag = useCallback((event) => {
     if (!drag.current || drag.current.pointerId !== event.pointerId) return;
     const currentDrag = drag.current;
+    const { boardSize: currentBoard, layout: currentLayout } = latest.current;
     setPositions((current) => ({
       ...current,
       [currentDrag.key]: {
-        x: Math.max(0, Math.min(boardSize.width - layout.cardWidth, currentDrag.origin.x + event.clientX - currentDrag.startX)),
-        y: Math.max(0, Math.min(boardSize.height - layout.cardHeight, currentDrag.origin.y + event.clientY - currentDrag.startY)),
+        x: Math.max(0, Math.min(currentBoard.width - currentLayout.cardWidth, currentDrag.origin.x + event.clientX - currentDrag.startX)),
+        y: Math.max(0, Math.min(currentBoard.height - currentLayout.cardHeight, currentDrag.origin.y + event.clientY - currentDrag.startY)),
       },
     }));
-  }
+  }, []);
 
-  function endDrag(event) {
+  const endDrag = useCallback((event) => {
     if (drag.current?.pointerId === event.pointerId) drag.current = null;
-  }
+  }, []);
 
   function startGraphDrag(event) {
     const target = event.target;
@@ -917,12 +1073,21 @@ export default function DiagramView({
     if (resizeDrag.current?.pointerId === event.pointerId) resizeDrag.current = null;
   }
 
-  function previewTable(table) {
+  const previewTable = useCallback((table) => {
     const selection = { name: table.name, schema: table.schema };
     dispatch(selectDbTable(selection));
     dispatch(setPreviewDbTable(selection));
     dispatch(fetchDbTableData({ tableName: table.name, schema: table.schema, limit: 10, refresh: true }));
-  }
+  }, [dispatch]);
+
+  const selectTable = useCallback((table) => {
+    dispatch(selectDbTable({ name: table.name, schema: table.schema }));
+    latest.current.onOpenTable?.(table);
+  }, [dispatch]);
+
+  const toggleExpanded = useCallback((key) => {
+    setExpandedTables((current) => (current[key] ? {} : { [key]: true }));
+  }, []);
 
   if (!suppliedTables && (schemaStatus === "loading" || schemaStatus === "idle")) {
     return <div className="diagram-state"><Icon name="schema" size={20} /><span>Loading database relationships…</span></div>;
@@ -1001,29 +1166,16 @@ export default function DiagramView({
               const from = tablePositions[relation.from];
               const to = tablePositions[relation.to];
               if (!from || !to) return null;
-              const fromTable = renderedGroup?.tables.find((table) => tableKey(table.schema, table.name) === relation.from);
-              const toTable = renderedGroup?.tables.find((table) => tableKey(table.schema, table.name) === relation.to);
-              const fromSize = cardSizeFor(fromTable);
-              const toSize = cardSizeFor(toTable);
-              const geometry = relationGeometry(from, to, fromSize.width, fromSize.height, toSize.width, toSize.height);
               const routedPath = compactLayout?.edgePaths[`edge-${index}`];
-              const edgePath = routedPath && Object.keys(positions).length === 0
-                ? translateEdgePath(routedPath, { x: compactOffsetX + graphPan.x, y: compactOffsetY + graphPan.y })
-                : undefined;
-              if (!geometry && !edgePath) return null;
-              const path = edgePath || (geometry
-                ? orthogonalPath(from, to, fromSize.width, fromSize.height, toSize.width, toSize.height, ((index % 5) - 2) * 8)
-                : "");
+              const path = reroutedPaths.get(index)
+                ?? (routedPath ? translateEdgePath(routedPath, { x: compactOffsetX + graphPan.x, y: compactOffsetY + graphPan.y }) : undefined);
+              if (!path) return null;
               return (
-                        <g
-                          className={`diagram-edge${relation.isManyToMany ? " many-to-many" : ""}`}
-                          key={`${relation.name}-${index}`}
-                        >
-                          <path
-                          d={path}
-                            markerEnd="url(#diagram-relation-arrow)"
-                          />
-                          </g>
+                <DiagramEdge
+                  key={`${relation.name}-${index}`}
+                  path={path}
+                  manyToMany={Boolean(relation.isManyToMany)}
+                />
               );
             })}
           </svg>
@@ -1031,54 +1183,28 @@ export default function DiagramView({
             const key = tableKey(table.schema, table.name);
             const position = tablePositions[key];
             if (!position) return null;
-            const expanded = Boolean(expandedTables[key]);
             const { width, height } = cardSizeFor(table);
             return (
-              <article
-                className={`diagram-table-card${compactCards ? " compact" : ""}${expanded ? " expanded" : ""}${selectedTableName === table.name ? " selected" : ""}`}
+              <DiagramCard
                 key={key}
-                style={{
-                  left: position.x,
-                  top: position.y,
-                  width,
-                  height,
-                }}
-                aria-label={`${table.name}${selectedTableName === table.name ? " (selected)" : ""}`}
-              >
-                <button
-                  type="button"
-                  className="diagram-table-header"
-                  onClick={() => {
-                    dispatch(selectDbTable({ name: table.name, schema: table.schema }));
-                    onOpenTable?.(table);
-                  }}
-                  onDoubleClick={() => previewTable(table)}
-                  onPointerDown={(event) => startDrag(event, key)}
-                  onPointerMove={moveDrag}
-                  onPointerUp={endDrag}
-                  onPointerCancel={endDrag}
-                  title={`Double-click to preview ${table.name}`}
-                >
-                  {!compactCards && <Icon name="table" size={15} />}
-                  <span>{table.name}</span>
-                  {!compactCards && table.dbTable && table.dbTable !== table.name && (
-                    <span className="diagram-table-schema">{table.dbTable}</span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className="diagram-column-toggle"
-                  aria-label={`${expanded ? "Collapse" : "Expand"} columns for ${table.name}`}
-                  aria-expanded={expanded}
-                  onClick={() => setExpandedTables((current) => (current[key] ? {} : { [key]: true }))}
-                  title={expanded ? "Collapse columns" : "Expand columns"}
-                >
-                  <Icon name={expanded ? "chevron-down" : "chevron-right"} size={13} />
-                </button>
-              </article>
+                table={table}
+                cardKey={key}
+                x={position.x}
+                y={position.y}
+                width={width}
+                height={height}
+                compact={compactCards}
+                expanded={Boolean(expandedTables[key])}
+                selected={selectedTableName === table.name}
+                onSelect={selectTable}
+                onPreview={previewTable}
+                onToggleExpand={toggleExpanded}
+                onHeaderPointerDown={startDrag}
+                onHeaderPointerMove={moveDrag}
+                onHeaderPointerUp={endDrag}
+              />
             );
-          })}
-            </div>
+          })}            </div>
           </div>
           {(renderedGroup?.tables || []).map((table) => {
             const key = tableKey(table.schema, table.name);
