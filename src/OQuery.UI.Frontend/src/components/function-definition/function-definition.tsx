@@ -5,9 +5,9 @@ import { fetchFunctionDefinitions, invalidateFunctionDefinitions } from "./funct
 import { fetchDatabaseConnections } from "../data-sources/database-slice";
 import * as functionDefinitionService from "../../services/function-definition-service";
 import type { AppDispatch, RootState } from "../../store/store";
-import PanelSplitter from "../panel-splitter/panel-splitter";
+import PanelSplitter from "../shared/panel-splitter/panel-splitter";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
-import { useMessageBox } from "../message-box/message-box";
+import { useMessageBox } from "../shared/message-box/message-box";
 import FunctionDetail from "./function-detail/function-detail";
 import FunctionList from "./function-list/function-list";
 import {

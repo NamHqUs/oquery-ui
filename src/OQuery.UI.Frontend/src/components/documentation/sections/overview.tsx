@@ -1,4 +1,4 @@
-import Icon from "../../icon/icon";
+import Icon from "../../shared/icon/icon";
 import { InfoCard } from "../doc-blocks";
 
 export default function OverviewContent() {

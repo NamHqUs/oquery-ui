@@ -4,8 +4,8 @@ import {
   type DomainEntityDto,
   type DomainRelation,
   type MetadataEntity,
-} from "../components/metadata/metadata-model";
-import { setQueryMetadata } from "../components/metadata/metadata-slice";
+} from "../components/domains/domain-model";
+import { setQueryMetadata } from "../components/domains/domain-slice";
 import { store } from "../store/store";
 import { requestJson } from "./api-client";
 

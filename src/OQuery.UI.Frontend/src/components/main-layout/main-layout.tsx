@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import Icon, { type IconName } from "../icon/icon";
+import Icon, { type IconName } from "../shared/icon/icon";
 import { getProject, type ProjectSummary } from "../../services/project-service";
 import MainLayoutSelect from "./main-layout-select";
 import "./main-layout.css";

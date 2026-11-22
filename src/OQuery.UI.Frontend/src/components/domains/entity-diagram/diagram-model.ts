@@ -1,4 +1,4 @@
-import type { DomainRelation, MetadataEntity } from "../../metadata/metadata-model";
+import type { DomainRelation, MetadataEntity } from "../domain-model";
 import type { DiagramRelationship, DiagramTable } from "./diagram-view";
 
 export function toDiagramTables(metadata: MetadataEntity[]): DiagramTable[] {

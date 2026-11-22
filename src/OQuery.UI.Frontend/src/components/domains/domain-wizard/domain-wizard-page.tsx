@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Icon from "../../icon/icon";
+import Icon from "../../shared/icon/icon";
 import DatabaseConnection from "../../data-sources/database-connection/database-connection";
 import { fetchDbProvider, fetchDbSchema } from "../../data-sources/database-slice";
 import type { AppDispatch, RootState } from "../../../store/store";

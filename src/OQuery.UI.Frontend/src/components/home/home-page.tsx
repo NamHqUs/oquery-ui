@@ -1,13 +1,13 @@
 ﻿import { useEffect, useRef, useState, type PointerEvent } from "react";
-import Icon, { type IconName } from "../icon/icon";
+import Icon, { type IconName } from "../shared/icon/icon";
 import type { FunctionDefinition } from "../function-definition/types";
 import OQueryEditor from "../oquery-editor/oquery-editor";
 import { getOQuerySuggestionData } from "../oquery-editor/oquery-suggestion-data";
 import type { FilterOperatorDefinition } from "../oquery-editor/filter-operators";
-import type { DomainRelation, MetadataEntity } from "../metadata/metadata-model";
+import type { DomainRelation, MetadataEntity } from "../domains/domain-model";
 import type { QueryResult } from "../../services/dynamic-query-service";
-import BarChart from "../charts/bar-chart/bar-chart";
-import type { SimpleChartData } from "../charts/chart-types";
+import BarChart from "../shared/charts/bar-chart/bar-chart";
+import type { SimpleChartData } from "../shared/charts/chart-types";
 import type { DemoExampleKey } from "./home-demo-examples";
 type DemoResultView = "grid" | "orgchart" | "barchart";
 type DemoRepresentation = "query" | "csharp" | "sql";

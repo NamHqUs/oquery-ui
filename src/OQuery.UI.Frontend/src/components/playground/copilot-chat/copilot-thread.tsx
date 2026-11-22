@@ -1,5 +1,5 @@
 import { AssistantRuntimeProvider, ComposerPrimitive, MessagePrimitive, ThreadPrimitive, useLocalRuntime } from "@assistant-ui/react";
-import Icon from "../../icon/icon";
+import Icon from "../../shared/icon/icon";
 import { mockChatAdapter } from "./mock-chat-adapter";
 
 function UserMessage() {

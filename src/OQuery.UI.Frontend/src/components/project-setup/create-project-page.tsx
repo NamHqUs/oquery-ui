@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import Icon from "../icon/icon";
+import Icon from "../shared/icon/icon";
 import "../data-sources/database-connection/database-connection.css";
 import { getConnectionOptions } from "../../services/database-connection-service";
 import { createProjectFromDatabase, testDatabaseConnection } from "../../services/project-service";

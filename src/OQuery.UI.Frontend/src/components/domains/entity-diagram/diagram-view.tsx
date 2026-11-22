@@ -3,7 +3,7 @@ import type { ElkEdgeSection, ElkNode } from "elkjs/lib/elk-api";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Icon, { type IconName } from "../../icon/icon";
+import Icon, { type IconName } from "../../shared/icon/icon";
 import { fetchDbTableData, selectDbTable, setPreviewDbTable } from "../../data-sources/database-slice";
 import "./diagram-view.css";
 

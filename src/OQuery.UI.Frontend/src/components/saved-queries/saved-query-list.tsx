@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Icon from "../icon/icon";
+import Icon from "../shared/icon/icon";
 import type { SavedQueryRequestDto } from "./saved-query-model";
 import "./saved-query-list.css";
 

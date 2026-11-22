@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import Icon from "../../icon/icon";
-import type { IconName } from "../../icon/icon";
+import Icon from "../../shared/icon/icon";
+import type { IconName } from "../../shared/icon/icon";
 
 const DESTINATIONS: { to: string; icon: IconName; title: string; body: string }[] = [
   { to: "/workspace", icon: "query", title: "Open Query builder", body: "Compose filters, projections, joins, and sorts." },

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import Icon, { IconName } from "../../../icon/icon";
+import Icon, { IconName } from "../../../shared/icon/icon";
 import { EditableEntity, emptyField, toAbstractDataType } from "../types";
 import "./fields-definition.css";
 

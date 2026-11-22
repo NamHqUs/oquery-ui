@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
-import Icon from "../icon/icon";
-import type { IconName } from "../icon/icon";
+import Icon from "../shared/icon/icon";
+import type { IconName } from "../shared/icon/icon";
 
 type CodeBlockProps = {
   language: string;

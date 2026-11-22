@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type FocusEventHandler, type ReactNode, type TextareaHTMLAttributes } from "react";
 import type { FunctionDefinition } from "../function-definition/types";
-import type { DomainRelation, MetadataEntity } from "../metadata/metadata-model";
+import type { DomainRelation, MetadataEntity } from "../domains/domain-model";
 import type { FilterOperatorDefinition } from "./filter-operators";
 import type { InlineQueryResult } from "./oquery-inline-result";
 import { getOQueryContextKeys } from "./oquery-context-colors";

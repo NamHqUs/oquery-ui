@@ -1,5 +1,5 @@
 import { useRef, type KeyboardEvent, type PointerEvent } from "react";
-import type { ResizablePanel } from "../../utils/use-resizable-panel";
+import type { ResizablePanel } from "../../../utils/use-resizable-panel";
 import Icon from "../icon/icon";
 import "./panel-splitter.css";
 

@@ -11,7 +11,7 @@ Implementation references:
 - [`src/components/data-sources/database-slice.ts`](../../src/OQuery.UI.Frontend/src/components/data-sources/database-slice.ts)
   — connection, schema, and table data.
 - [`src/store/store.ts`](../../src/OQuery.UI.Frontend/src/store/store.ts) — Redux store.
-- [`src/components/metadata/metadata-slice.ts`](../../src/OQuery.UI.Frontend/src/components/metadata/metadata-slice.ts)
+- [`src/components/domains/domain-slice.ts`](../../src/OQuery.UI.Frontend/src/components/domains/domain-slice.ts)
   — entities and relations of the loaded project.
 - [`src/components/function-definition/function-definition-slice.ts`](../../src/OQuery.UI.Frontend/src/components/function-definition/function-definition-slice.ts)
   — function definitions for the loaded project.

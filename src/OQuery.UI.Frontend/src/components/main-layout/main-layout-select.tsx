@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import Icon, { type IconName } from "../icon/icon";
+import Icon, { type IconName } from "../shared/icon/icon";
 
 export type SelectOption = { value: string; label: string };
 

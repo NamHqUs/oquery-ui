@@ -1,4 +1,4 @@
-import Icon from "../../icon/icon";
+import Icon from "../../shared/icon/icon";
 import { CodeBlock, InfoCard } from "../doc-blocks";
 
 export default function AutomaticContent() {

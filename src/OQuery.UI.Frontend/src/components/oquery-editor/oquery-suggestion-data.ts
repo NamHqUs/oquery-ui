@@ -1,4 +1,4 @@
-import { relationsForEntity, type DomainRelation, type MetadataEntity } from "../metadata/metadata-model";
+import { relationsForEntity, type DomainRelation, type MetadataEntity } from "../domains/domain-model";
 import type { OQuerySuggestionEntity } from "./oquery-completions";
 
 export function getOQuerySuggestionData(metadata: MetadataEntity[], relations: DomainRelation[]) {

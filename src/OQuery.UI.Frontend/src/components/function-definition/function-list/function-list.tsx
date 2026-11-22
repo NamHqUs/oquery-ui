@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import Icon from "../../icon/icon";
+import Icon from "../../shared/icon/icon";
 import { FunctionDefinition } from "../types";
 import "./function-list.css";
 

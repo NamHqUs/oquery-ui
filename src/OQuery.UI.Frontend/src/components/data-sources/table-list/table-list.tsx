@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Icon from "../../icon/icon";
-import SidebarList from "../../sidebar-list/sidebar-list";
+import Icon from "../../shared/icon/icon";
+import SidebarList from "../../shared/sidebar-list/sidebar-list";
 import { selectDbTable } from "../database-slice";
 import "./table-list.css";
 

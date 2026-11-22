@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import Icon from "../../icon/icon";
+import Icon from "../../shared/icon/icon";
 import "./domain-wizard.css";
 
 export type WizardStep = 1 | 2 | 3;

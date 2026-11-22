@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Icon from "../icon/icon";
-import PanelSplitter from "../panel-splitter/panel-splitter";
+import Icon from "../shared/icon/icon";
+import PanelSplitter from "../shared/panel-splitter/panel-splitter";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
 import { fetchDbSchema } from "./database-slice";
 import TableList from "./table-list/table-list";

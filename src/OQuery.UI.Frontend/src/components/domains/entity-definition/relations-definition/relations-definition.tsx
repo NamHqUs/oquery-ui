@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import Icon from "../../../icon/icon";
-import { MetadataEntity, relationsForEntity, type DomainRelation, type EntityRelationView } from "../../../metadata/metadata-model";
+import Icon from "../../../shared/icon/icon";
+import { relationsForEntity, type DomainRelation, type EntityRelationView, MetadataEntity } from "../../domain-model";
 import { EditableEntity, pluralize, singularize, updateRelationSide } from "../types";
 import "./relations-definition.css";
 

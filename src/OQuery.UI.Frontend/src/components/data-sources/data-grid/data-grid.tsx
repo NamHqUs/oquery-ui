@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Icon from "../../icon/icon";
+import Icon from "../../shared/icon/icon";
 import { setColumnFilter, setTableSort } from "../database-slice";
 import "./data-grid.css";
 

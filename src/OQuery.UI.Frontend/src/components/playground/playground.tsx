@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Icon, { type IconName } from "../icon/icon";
+import Icon, { type IconName } from "../shared/icon/icon";
 import OQueryEditor, { type OQueryEditorHandle } from "../oquery-editor/oquery-editor";
 import { getOQuerySuggestionData } from "../oquery-editor/oquery-suggestion-data";
 import { getOqueryContextBlocks } from "../oquery-editor/oquery-monaco-adapters";
@@ -17,7 +17,7 @@ import {
   type EntityRelationView,
   type MetadataEntity,
   type MetadataField,
-} from "../metadata/metadata-model";
+} from "../domains/domain-model";
 import { builtinFilterOperators } from "../oquery-editor/filter-operators";
 import CopilotThread from "./copilot-chat/copilot-thread";
 import "./playground.css";

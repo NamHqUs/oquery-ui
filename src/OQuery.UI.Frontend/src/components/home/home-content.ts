@@ -1,4 +1,4 @@
-import type { IconName } from "../icon/icon";
+import type { IconName } from "../shared/icon/icon";
 
 export const PRODUCT_NAME = "OQuery";
 export const GITHUB_URL = "https://github.com/NamHqUs/oquery-ui";

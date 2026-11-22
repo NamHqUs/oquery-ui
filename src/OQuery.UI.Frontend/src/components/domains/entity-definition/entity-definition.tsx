@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import Icon from "../../icon/icon";
-import { MetadataEntity, type DomainRelation } from "../../metadata/metadata-model";
+import Icon from "../../shared/icon/icon";
+import { MetadataEntity, type DomainRelation } from "../../domain-model";
 import { EditableEntity } from "./types";
 import FieldsDefinition from "./fields-definition/fields-definition";
 import RelationsDefinition from "./relations-definition/relations-definition";
-import PanelSplitter from "../../panel-splitter/panel-splitter";
+import PanelSplitter from "../../shared/panel-splitter/panel-splitter";
 import { useResizablePanel } from "../../../utils/use-resizable-panel";
 import "./entity-definition.css";
 

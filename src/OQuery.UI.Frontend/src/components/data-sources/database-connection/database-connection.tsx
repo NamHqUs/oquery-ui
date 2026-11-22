@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Icon, { getDatabaseIconName } from "../../icon/icon";
+import Icon, { getDatabaseIconName } from "../../shared/icon/icon";
 import { connectDatabase, fetchDatabaseConnections } from "../database-slice";
 import ConnectionStringInput from "./connection-string-input";
 import "./database-connection.css";

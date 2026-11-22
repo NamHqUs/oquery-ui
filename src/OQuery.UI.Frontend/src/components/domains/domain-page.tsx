@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import Icon from "../icon/icon";
+import Icon from "../shared/icon/icon";
 import { getDomain, getFullDomain, updateFullDomain, type ProjectSummary } from "../../services/project-service";
 import { getSchema } from "../../services/db-schema-service";
-import { metadataEntityFromDto, type DomainRelation, type MetadataEntity } from "../metadata/metadata-model";
+import { metadataEntityFromDto, type DomainRelation, type MetadataEntity } from "./domain-model";
 import MainLayout, { Heading, type WorkspaceView } from "../main-layout/main-layout";
 import DiagramView, { diagramGroupTone } from "./entity-diagram/diagram-view";
 import { toDiagramRelationships, toDiagramTables } from "./entity-diagram/diagram-model";
-import PanelSplitter from "../panel-splitter/panel-splitter";
+import PanelSplitter from "../shared/panel-splitter/panel-splitter";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
 import "./entity-diagram/entity-diagram.css";
 import EntityDefinition, { type DatabaseTableOption } from "./entity-definition/entity-definition";

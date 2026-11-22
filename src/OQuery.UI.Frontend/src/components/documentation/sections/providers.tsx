@@ -1,5 +1,5 @@
 import { useSelector } from "react-redux";
-import Icon, { getDatabaseIconName } from "../../icon/icon";
+import Icon, { getDatabaseIconName } from "../../shared/icon/icon";
 import type { RootState } from "../../../store/store";
 
 export default function ProvidersContent() {

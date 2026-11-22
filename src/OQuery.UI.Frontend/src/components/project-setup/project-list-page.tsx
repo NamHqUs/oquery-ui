@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import Icon from "../icon/icon";
+import Icon from "../shared/icon/icon";
 import { listProjects, type ProjectSummary } from "../../services/project-service";
 import "./projects.css";
 

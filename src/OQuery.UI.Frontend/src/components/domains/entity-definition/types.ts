@@ -1,6 +1,6 @@
-import type { DomainRelation, MetadataEntity, MetadataField } from "../../metadata/metadata-model";
+import type { DomainRelation, MetadataEntity, MetadataField } from "../../domain-model";
 
-export type { DomainRelation } from "../../metadata/metadata-model";
+export type { DomainRelation } from "../../domain-model";
 
 let nextFieldId = 1;
 export const createFieldId = () => `f_${nextFieldId++}`;

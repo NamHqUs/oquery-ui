@@ -1,8 +1,8 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { DomainRelation, MetadataEntity } from "./metadata-model";
+import type { DomainRelation, MetadataEntity } from "./domain-model";
 
-// Entities and relations of the project currently loaded by project-service.
-const metadataSlice = createSlice({
+// Entities and relations of the domain currently loaded by project-service.
+const domainSlice = createSlice({
   name: "metadata",
   initialState: {
     entities: [] as MetadataEntity[],
@@ -26,5 +26,5 @@ const metadataSlice = createSlice({
   },
 });
 
-export const { invalidateQueryMetadata, setQueryMetadata } = metadataSlice.actions;
-export default metadataSlice.reducer;
+export const { invalidateQueryMetadata, setQueryMetadata } = domainSlice.actions;
+export default domainSlice.reducer;

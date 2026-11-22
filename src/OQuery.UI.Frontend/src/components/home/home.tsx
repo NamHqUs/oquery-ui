@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Icon, { getDatabaseIconName } from "../icon/icon";
+import Icon, { getDatabaseIconName } from "../shared/icon/icon";
 import OQueryEditor, { type OQueryEditorHandle } from "../oquery-editor/oquery-editor";
 import DiagramView from "../domains/entity-diagram/diagram-view";
 import { toDiagramRelationships, toDiagramTables } from "../domains/entity-diagram/diagram-model";
@@ -8,7 +8,7 @@ import { getOQuerySuggestionData } from "../oquery-editor/oquery-suggestion-data
 import type { FunctionDefinition } from "../function-definition/types";
 import { requestContextResultFromText, requestQueryResultFromText, requestSqlStatementFromText, type QueryResult } from "../../services/dynamic-query-service";
 import type { FilterOperatorDefinition } from "../oquery-editor/filter-operators";
-import type { DomainRelation, MetadataEntity } from "../metadata/metadata-model";
+import type { DomainRelation, MetadataEntity } from "../domains/domain-model";
 import { builtinFilterOperators } from "../oquery-editor/filter-operators";
 import type { RootState } from "../../store/store";
 import { getDomain } from "../../services/project-service";
