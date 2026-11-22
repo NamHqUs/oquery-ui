@@ -10,6 +10,12 @@ export type WorkspaceDomain = { id: string; name: string };
 
 // Domain lists per project, kept across MainLayout mounts so page changes don't flash an empty selector.
 const projectDomainsCache = new Map<string, WorkspaceDomain[]>();
+const domainListListeners = new Set<(projectId: string) => void>();
+
+// Tells a mounted layout to refetch its domain selector after a domain is created or deleted.
+export function notifyWorkspaceDomainsChanged(projectId: string) {
+  domainListListeners.forEach((listener) => listener(projectId));
+}
 
 const items: Array<[WorkspaceView, string, IconName]> = [
   ["overview", "Overview", "grid"], ["playground", "Playground", "play"], ["queries", "Queries", "file-text"],
@@ -103,8 +109,20 @@ type MainLayoutProps = {
 export default function MainLayout({ view, projects, projectId, domainId, connectionStatus, provider, onSelectView, onSelectProject, onSelectDomain, onOpenConnection, onNavigateHome, children }: MainLayoutProps) {
   // Remounts (e.g. moving from another page) would otherwise render an empty Active Domain list until the fetch returns.
   const [domains, setDomains] = useState<WorkspaceDomain[]>(() => projectDomainsCache.get(projectId) ?? []);
+  const [domainsVersion, setDomainsVersion] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const listener = (changedProjectId: string) => {
+      if (changedProjectId !== projectId) return;
+      projectDomainsCache.delete(changedProjectId);
+      setDomainsVersion((version) => version + 1);
+    };
+    domainListListeners.add(listener);
+    return () => {
+      domainListListeners.delete(listener);
+    };
+  }, [projectId]);
   useEffect(() => {
     let active = true;
     if (!projectId) {
@@ -125,7 +143,7 @@ export default function MainLayout({ view, projects, projectId, domainId, connec
     return () => {
       active = false;
     };
-  }, [projectId]);
+  }, [projectId, domainsVersion]);
   const selectedDomainId = domains.length === 0
     ? domainId
     : (domains.some((domain) => domain.id === domainId) ? domainId : (domains[0]?.id ?? ""));

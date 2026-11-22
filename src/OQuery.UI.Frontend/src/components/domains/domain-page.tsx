@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Icon from "../shared/icon/icon";
-import { updateDomain, type ProjectSummary } from "../../services/project-service";
+import { deleteDomain, updateDomain, type ProjectSummary } from "../../services/project-service";
 import { getSchema } from "../../services/db-schema-service";
 import type { AppDispatch, RootState } from "../../store/store";
 import { metadataEntityFromDto, type DomainRelation, type MetadataEntity } from "./domain-model";
 import { clearDomainDraft, domainDraftSaved, setDomainDraftWorking, type DomainGraph } from "./domain-draft-slice";
 import { loadDomainDraft } from "./domain-draft-actions";
-import MainLayout, { Heading, type WorkspaceView } from "../main-layout/main-layout";
+import MainLayout, { Heading, notifyWorkspaceDomainsChanged, type WorkspaceView } from "../main-layout/main-layout";
 import DiagramView, { diagramGroupTone } from "./entity-diagram/diagram-view";
 import { toDiagramRelationships, toDiagramTables } from "./entity-diagram/diagram-model";
 import PanelSplitter from "../shared/panel-splitter/panel-splitter";
@@ -67,6 +67,7 @@ export default function DomainPage({ route, projects, connectionStatus, provider
         domainId={returnDomainId}
         onCancel={returnToDiagram}
         onApplied={returnToDiagram}
+        onCreated={(newDomainId) => onNavigate(domainDiagramPath(route.projectId, newDomainId))}
       />
     );
   }
@@ -191,7 +192,7 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
     changeDraft((current) => ({ ...current, schema: table.schema, dbTable: table.name, rawSql: table.name }));
   };
 
-  const save = async () => {
+  const save = async (): Promise<boolean> => {
     setSaving(true);
     setNotice(null);
     try {
@@ -210,8 +211,10 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
         relations: saved.relations,
       }));
       setNotice({ message: "Domain saved.", isError: false });
+      return true;
     } catch (error) {
       setNotice({ message: `Save failed. ${error instanceof Error ? error.message : "Something went wrong."}`, isError: true });
+      return false;
     } finally {
       setSaving(false);
     }
@@ -236,8 +239,63 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
     void dispatch(loadDomainDraft({ projectId, domainId, force: true }));
   };
 
+  // Create leaves the diagram, so unsaved edits must be saved or discarded first.
+  const openCreate = async () => {
+    if (dirty) {
+      const choice = await showMessageBox({
+        eyebrow: "Unsaved changes",
+        title: "Save changes before creating a domain?",
+        message: `"${draftState.name}" has unsaved changes.`,
+        actions: [
+          { value: "cancel", label: "Cancel" },
+          { value: "discard", label: "Discard", variant: "danger" },
+          { value: "save", label: "Save", variant: "primary" },
+        ],
+      });
+      if (choice === "save") {
+        if (!(await save())) return;
+      } else if (choice === "discard") {
+        dispatch(clearDomainDraft());
+      } else {
+        return;
+      }
+    }
+    onNavigate(domainCreatePath(projectId));
+  };
+
+  // The next domain in the selector is chosen; the last domain falls back to the previous one.
+  const currentIndex = domainOptions.findIndex((option) => option.id === domainId);
+  const nextDomain = currentIndex >= 0 ? (domainOptions[currentIndex + 1] ?? domainOptions[currentIndex - 1]) : undefined;
+
+  const deleteCurrentDomain = async () => {
+    if (!nextDomain) return;
+    const choice = await showMessageBox({
+      eyebrow: "Delete domain",
+      title: `Delete "${draftState.name || domainId}"?`,
+      message: dirty
+        ? "This permanently deletes the domain from the project. Unsaved changes will be lost."
+        : "This permanently deletes the domain from the project.",
+      actions: [
+        { value: "cancel", label: "Cancel" },
+        { value: "delete", label: "Delete", variant: "danger" },
+      ],
+    });
+    if (choice !== "delete") return;
+    try {
+      await deleteDomain(projectId, domainId);
+    } catch (error) {
+      setNotice({ message: `Delete failed. ${error instanceof Error ? error.message : "Something went wrong."}`, isError: true });
+      return;
+    }
+    notifyWorkspaceDomainsChanged(projectId);
+    onNavigate(domainDiagramPath(projectId, nextDomain.id));
+  };
+
   const toolbarActions = (
     <div className="editor-actions domain-diagram-actions" role="toolbar" aria-label="Metadata domain actions">
+      <button className="domain-action-button danger" type="button" title={nextDomain ? "Delete this domain" : "A project needs at least one other domain to delete this one"} aria-label="Delete domain" onClick={() => void deleteCurrentDomain()} disabled={!nextDomain || loading || saving}>
+        <Icon name="trash" size={15} /> Delete
+      </button>
       <button className="domain-action-button primary" type="button" title="Save domain" aria-label="Save domain" onClick={() => void save()} disabled={!dirty || saving}>
         <Icon name="save" size={15} /> Save
       </button>
@@ -247,7 +305,7 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
       <button className="domain-action-button" type="button" title="Edit this domain in the wizard" aria-label="Edit domain" onClick={() => onNavigate(domainEditPath(projectId, domainId))}>
         <Icon name="edit" size={15} /> Edit
       </button>
-      <button className="domain-action-button create" type="button" title="Create a domain in the wizard" aria-label="Create domain" onClick={() => onNavigate(domainCreatePath(projectId))}>
+      <button className="domain-action-button create" type="button" title="Create a domain in the wizard" aria-label="Create domain" onClick={() => void openCreate()} disabled={saving}>
         <Icon name="file-plus" size={15} /> Create
       </button>
     </div>
@@ -277,11 +335,11 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
               </div>
             </div>
             <div className="editor-actions domain-entity-actions" role="toolbar" aria-label="Entity actions">
-              <button className="domain-action-button create" type="button" title="Add a new entity to this domain" aria-label="New entity" onClick={createEntity} disabled={loading || saving}>
-                <Icon name="plus" size={14} /> New entity
-              </button>
               <button className="domain-action-button danger" type="button" title="Remove the selected entity and its relations" aria-label="Remove entity" onClick={removeEntity} disabled={!draft || loading || saving}>
                 <Icon name="trash" size={14} /> Remove entity
+              </button>
+              <button className="domain-action-button create" type="button" title="Add a new entity to this domain" aria-label="New entity" onClick={createEntity} disabled={loading || saving}>
+                <Icon name="plus" size={14} /> New entity
               </button>
             </div>
           </div>

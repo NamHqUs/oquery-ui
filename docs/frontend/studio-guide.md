@@ -38,8 +38,9 @@ Step 1 connects to the database when no connection is active (the existing conne
 is shown inline) and then lists its tables. Deselecting a mapped table removes its entity
 and relations on apply; new tables become entities with their foreign keys as relations.
 **Apply changes** only updates the draft. Nothing is written to the server until **Save** on
-the diagram. **Create** opens `/domains/diagrams/create/:projectId`, which builds a sub-domain
-from existing Main entities and does not use the draft. **Reload** refetches the domain from
+the diagram. **Create** opens `/domains/diagrams/create/:projectId`, which builds a new sub-domain
+from the selected tables and does not use the draft. Step 3 **Create domain** saves it to disk with `POST /metadata/projects/{project-id}/domains`
+and opens the diagram of the new domain, which becomes the active domain. **Reload** refetches the domain from
 the server and asks before discarding unsaved changes. Sub-domain editing is not part of this wizard.
 
 The Data Sources page first loads the detected providers from
@@ -83,6 +84,7 @@ The wizard routes are `/domains/diagrams/create/:projectId` and
 `/domains/diagrams/edit/:projectId/:domainId`; the old `/domains/diagram` paths are removed.
 The wizard header has a **Cancel** button (disabled while saving) that closes the wizard and returns to
 the domain diagram: `/domains/diagrams/:projectId/main` for create, or `/domains/diagrams/:projectId/:domainId` for edit.
+Successful create opens `/domains/diagrams/:projectId/:newDomainId`, so the new domain is selected.
 The project page shows the FullDomain read-only and owns the generate action.
 Sub-domain editing never changes physical columns, raw SQL or reference columns.
 

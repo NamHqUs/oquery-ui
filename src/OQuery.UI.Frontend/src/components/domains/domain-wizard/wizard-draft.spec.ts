@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
 import type { MetadataEntity } from "../domain-model";
 import type { DatabaseTableOption } from "../entity-definition/entity-definition";
-import { applyWizardToGraph, seedWizardSelection, type DatabaseRelationship, type WizardApplyInput } from "./wizard-draft";
+import { applyWizardToGraph, seedWizardSelection, wizardChangeCounts, type DatabaseRelationship, type WizardApplyInput } from "./wizard-draft";
+
+describe("wizardChangeCounts", () => {
+  it("counts added, removed and kept entities against the selection", () => {
+    expect(wizardChangeCounts(["dbo.Customers", "dbo.Orders"], new Set(["dbo.Orders", "dbo.Products"]))).toEqual({ added: 1, removed: 1, kept: 1 });
+  });
+
+  it("reports every existing entity as removed when nothing is selected", () => {
+    expect(wizardChangeCounts(["dbo.Customers"], new Set())).toEqual({ added: 0, removed: 1, kept: 0 });
+  });
+});
 
 const customers: DatabaseTableOption = {
   schema: "dbo",

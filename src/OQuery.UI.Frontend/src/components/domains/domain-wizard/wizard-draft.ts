@@ -52,6 +52,16 @@ export function seedWizardSelection(entities: MetadataEntity[], tables: Database
   return { selectedKeys, excludedColumns, fieldNames };
 }
 
+// Counts the entity changes the wizard will apply, given the table keys that already have entities and the selected table keys.
+export function wizardChangeCounts(existingKeys: string[], selectedKeys: Set<string>) {
+  const existing = new Set(existingKeys);
+  let kept = 0;
+  for (const key of existing) if (selectedKeys.has(key)) kept++;
+  let added = 0;
+  for (const key of selectedKeys) if (!existing.has(key)) added++;
+  return { added, removed: existing.size - kept, kept };
+}
+
 export type WizardApplyInput = {
   graph: DomainGraph;
   tables: DatabaseTableOption[];
