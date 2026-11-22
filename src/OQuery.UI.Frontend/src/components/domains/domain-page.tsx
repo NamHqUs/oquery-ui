@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Icon from "../shared/icon/icon";
 import { deleteDomain, updateDomain, type ProjectSummary } from "../../services/project-service";
@@ -9,7 +9,7 @@ import { clearDomainDraft, domainDraftSaved, setDomainDraftWorking, type DomainG
 import { loadDomainDraft } from "./domain-draft-actions";
 import MainLayout, { Heading, notifyWorkspaceDomainsChanged, type WorkspaceView } from "../main-layout/main-layout";
 import DiagramView, { diagramGroupTone } from "./entity-diagram/diagram-view";
-import { toDiagramRelationships, toDiagramTables } from "./entity-diagram/diagram-model";
+import { changedEntityNames, toDiagramRelationships, toDiagramTables } from "./entity-diagram/diagram-model";
 import PanelSplitter from "../shared/panel-splitter/panel-splitter";
 import ToastNotice from "../shared/toast-notice/toast-notice";
 import { useMessageBox } from "../shared/message-box/message-box";
@@ -119,6 +119,17 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
   const [saving, setSaving] = useState(false);
   const [selectedName, setSelectedName] = useState("");
   const [notice, setNotice] = useState<{ message: string; isError: boolean } | null>(null);
+  // Diagram card identity per entity name. A rename moves the id to the new name, so the card keeps its layout slot.
+  const entityIds = useRef(new Map<string, string>());
+  const nextEntityId = useRef(0);
+  const idOf = (name: string) => {
+    let id = entityIds.current.get(name);
+    if (!id) {
+      id = `entity-${++nextEntityId.current}`;
+      entityIds.current.set(name, id);
+    }
+    return id;
+  };
   const dirty = JSON.stringify(working) !== JSON.stringify(baseline);
   const panel = useResizablePanel("metadata-entity-diagram-height", 480, 280, 900);
   const showMessageBox = useMessageBox();
@@ -140,6 +151,7 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
   // Reuses the in-memory draft when it already holds this domain, so unsaved edits survive the wizard round trip.
   useEffect(() => {
     setSelectedName("");
+    entityIds.current.clear();
     if (!projectId || !domainId) {
       dispatch(clearDomainDraft());
       return;
@@ -156,6 +168,10 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
   const changeDraft = (updater: (draft: EditableEntity) => EditableEntity) => {
     if (!draft) return;
     const next = updater(draft);
+    if (next.name !== selectedName) {
+      entityIds.current.set(next.name, idOf(selectedName));
+      entityIds.current.delete(selectedName);
+    }
     const entity: MetadataEntity = { ...next, fields: next.fields.map(({ id, ...field }) => field) };
     dispatch(setDomainDraftWorking({
       entities: working.entities.map((item) => (item.name === selectedName ? entity : item)),
@@ -181,6 +197,7 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
   // Removes the entity and its relations from the in-memory domain only; nothing is persisted until save.
   const removeEntity = () => {
     if (!selectedName) return;
+    entityIds.current.delete(selectedName);
     dispatch(setDomainDraftWorking({
       entities: working.entities.filter((entity) => entity.name !== selectedName),
       relations: removeEntityFromRelations(working.relations, selectedName),
@@ -312,13 +329,14 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
   );
 
   const displayedEntities = working.entities.map((entity) => (draft && entity.name === selectedName ? draft : entity));
-  const tables = toDiagramTables(displayedEntities);
+  const changedNames = useMemo(() => changedEntityNames(baseline, working), [baseline, working]);
+  const tables = toDiagramTables(displayedEntities, idOf);
   const relationships = toDiagramRelationships(displayedEntities, working.relations);
   const groups = domainOptions.map((option, index) => ({
     id: option.id,
     name: option.name,
     tone: diagramGroupTone(index),
-    tables: toDiagramTables(option.id === domainId || (!domainId && option.id === "All") ? displayedEntities : []),
+    tables: toDiagramTables(option.id === domainId || (!domainId && option.id === "All") ? displayedEntities : [], idOf),
   }));
   const activeDomain = domainOptions.find((option) => option.id === domainId);
 
@@ -369,6 +387,7 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
           groups={groups}
           initialGroup={activeDomain?.name || domainId}
           selectedTableName={selectedName}
+          changedTableNames={changedNames}
           loading={loading}
           relationships={relationships}
           onOpenTable={(table) => setSelectedName(table.name)}

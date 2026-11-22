@@ -8,6 +8,7 @@ import { fetchDbTableData, selectDbTable, setPreviewDbTable } from "../../data-s
 import "./diagram-view.css";
 
 export type DiagramTable = {
+  id?: string;
   schema: string;
   name: string;
   dbTable?: string | null;
@@ -53,6 +54,7 @@ type DiagramViewProps = {
   groups?: { id?: string; name: string; tables: DiagramTable[]; tone?: DiagramGroupTone }[];
   initialGroup?: string;
   selectedTableName?: string;
+  changedTableNames?: ReadonlySet<string>;
   loading?: boolean;
   relationships?: DiagramRelationship[];
   onOpenTable?: (table: DiagramTable) => void;
@@ -60,7 +62,7 @@ type DiagramViewProps = {
   compactCards?: boolean;
 };
 
-const CARD_WIDTH = 162;
+const CARD_WIDTH = 170;
 const CARD_HEIGHT = 77;
 const COLLAPSED_CARD_HEIGHT = 34;
 const COMPACT_CARD_HEIGHT = 30;
@@ -99,6 +101,11 @@ const DOMAIN_TONES = {
 
 function tableKey(schema, name) {
   return `${schema}.${name}`;
+}
+
+// The stable id keeps a card's layout node, position and relations when its name changes.
+function cardKey(table) {
+  return table.id ?? tableKey(table.schema, table.name);
 }
 
 function toRect(left, top, width, height) {
@@ -335,7 +342,7 @@ async function createCompactLayout(tables, relationships, direction: "RIGHT" | "
       "elk.layered.spacing.edgeEdgeBetweenLayers": "12",
     },
     children: tables.map((table) => ({
-      id: tableKey(table.schema, table.name),
+      id: cardKey(table),
       ...nodeSize(table),
     })),
     edges: relationships.map((relation, index) => ({
@@ -377,14 +384,14 @@ async function createCompactLayout(tables, relationships, direction: "RIGHT" | "
 }
 
 function createLayout(tables, relationships, boardWidth, boardHeight, compact = false) {
-  const degree = new Map(tables.map((table) => [tableKey(table.schema, table.name), 0]));
+  const degree = new Map(tables.map((table) => [cardKey(table), 0]));
   relationships.forEach((relation) => {
     degree.set(relation.from, (degree.get(relation.from) || 0) + 1);
     degree.set(relation.to, (degree.get(relation.to) || 0) + 1);
   });
   const byName = (left, right) => left.name.localeCompare(right.name);
   const orderedTables = [...tables].sort((left, right) =>
-    degree.get(tableKey(right.schema, right.name)) - degree.get(tableKey(left.schema, left.name))
+    degree.get(cardKey(right)) - degree.get(cardKey(left))
     || byName(left, right));
   const cardWidth = compact
     ? Math.min(128, Math.max(100, boardWidth - 2 * BOARD_MARGIN))
@@ -456,7 +463,7 @@ function createLayout(tables, relationships, boardWidth, boardHeight, compact = 
 
   const goldenAngle = Math.PI * (3 - Math.sqrt(5));
   orderedTables.forEach((table, index) => {
-    const key = tableKey(table.schema, table.name);
+    const key = cardKey(table);
     if (compact && index === 0) {
       positions.set(key, { x: center.x - cardWidth / 2, y: center.y - cardHeight / 2 });
       return;
@@ -525,8 +532,8 @@ function createLayout(tables, relationships, boardWidth, boardHeight, compact = 
 
   const isolatedKeys = new Set(
     orderedTables
-      .filter((table) => (degree.get(tableKey(table.schema, table.name)) || 0) === 0)
-      .map((table) => tableKey(table.schema, table.name)),
+      .filter((table) => (degree.get(cardKey(table)) || 0) === 0)
+      .map((table) => cardKey(table)),
   );
   const graphPositions = [...positions.entries()].filter(([key]) => !isolatedKeys.has(key));
   if (graphPositions.length === 0) return {
@@ -569,14 +576,24 @@ function createLayout(tables, relationships, boardWidth, boardHeight, compact = 
 }
 
 function getDiagramRelationships(activeGroup, schemaRelationships) {
-  const tableByKey = new Map((activeGroup?.tables || []).map((table) => [tableKey(table.schema, table.name), table]));
-  const sourceRelations = schemaRelationships.filter((relation) =>
-    tableByKey.has(tableKey(relation.sourceSchema, relation.sourceTable))
-    && tableByKey.has(tableKey(relation.targetSchema, relation.targetTable)));
+  const tables = activeGroup?.tables || [];
+  const tableByName = new Map(tables.map((table) => [tableKey(table.schema, table.name), table]));
+  const keyOf = (schema, name) => {
+    const table = tableByName.get(tableKey(schema, name));
+    return table ? cardKey(table) : null;
+  };
+  const tableByKey = new Map(tables.map((table) => [cardKey(table), table]));
+  const sourceRelations = schemaRelationships
+    .map((relation) => ({
+      relation,
+      from: keyOf(relation.sourceSchema, relation.sourceTable),
+      to: keyOf(relation.targetSchema, relation.targetTable),
+    }))
+    .filter((item) => item.from && item.to)
+    .map((item) => ({ ...item.relation, from: item.from, to: item.to }));
   const junctionKeys = new Set(sourceRelations
     .reduce((byTable, relation) => {
-      const key = tableKey(relation.sourceSchema, relation.sourceTable);
-      byTable.set(key, [...(byTable.get(key) || []), relation]);
+      byTable.set(relation.from, [...(byTable.get(relation.from) || []), relation]);
       return byTable;
     }, new Map())
     .entries()
@@ -589,25 +606,22 @@ function getDiagramRelationships(activeGroup, schemaRelationships) {
     .map(([key]) => key));
 
   const edges = sourceRelations
-    .filter((relation) => !junctionKeys.has(tableKey(relation.sourceSchema, relation.sourceTable)))
+    .filter((relation) => !junctionKeys.has(relation.from))
     .map((relation) => ({
       ...relation,
-      from: tableKey(relation.sourceSchema, relation.sourceTable),
-      to: tableKey(relation.targetSchema, relation.targetTable),
       isManyToMany: false,
     }));
 
   for (const junctionKey of junctionKeys) {
-    const joinedRelations = sourceRelations.filter((relation) =>
-      tableKey(relation.sourceSchema, relation.sourceTable) === junctionKey);
+    const joinedRelations = sourceRelations.filter((relation) => relation.from === junctionKey);
     for (let index = 1; index < joinedRelations.length; index += 1) {
       const first = joinedRelations[0];
       const second = joinedRelations[index];
       edges.push({
         ...first,
         name: tableByKey.get(junctionKey).name,
-        from: tableKey(first.targetSchema, first.targetTable),
-        to: tableKey(second.targetSchema, second.targetTable),
+        from: first.to,
+        to: second.to,
         isUnique: false,
         isManyToMany: true,
       });
@@ -635,6 +649,7 @@ type DiagramCardProps = {
   compact: boolean;
   expanded: boolean;
   selected: boolean;
+  changed: boolean;
   onSelect: (table: DiagramTable) => void;
   onPreview: (table: DiagramTable) => void;
   onToggleExpand: (cardKey: string) => void;
@@ -653,6 +668,7 @@ const DiagramCard = memo(function DiagramCard({
   compact,
   expanded,
   selected,
+  changed,
   onSelect,
   onPreview,
   onToggleExpand,
@@ -662,9 +678,9 @@ const DiagramCard = memo(function DiagramCard({
 }: DiagramCardProps) {
   return (
     <article
-      className={`diagram-table-card${compact ? " compact" : ""}${expanded ? " expanded" : ""}${selected ? " selected" : ""}`}
+      className={`diagram-table-card${compact ? " compact" : ""}${expanded ? " expanded" : ""}${selected ? " selected" : ""}${changed ? " changed" : ""}`}
       style={{ left: x, top: y, width, height }}
-      aria-label={`${table.name}${selected ? " (selected)" : ""}`}
+      aria-label={`${table.name}${selected ? " (selected)" : ""}${changed ? " (unsaved changes)" : ""}`}
     >
       <button
         type="button"
@@ -675,9 +691,11 @@ const DiagramCard = memo(function DiagramCard({
         onPointerMove={onHeaderPointerMove}
         onPointerUp={onHeaderPointerUp}
         onPointerCancel={onHeaderPointerUp}
-        title={`Double-click to preview ${table.name}`}
+        title={changed ? `Double-click to preview ${table.name} (unsaved changes)` : `Double-click to preview ${table.name}`}
       >
-        {!compact && <Icon name="table" size={15} />}
+        {changed
+          ? <span className="diagram-table-changed" role="img" aria-label="Unsaved changes" title="Unsaved changes" />
+          : !compact && <Icon name="table" size={15} />}
         <span>{table.name}</span>
         {!compact && table.dbTable && table.dbTable !== table.name && (
           <span className="diagram-table-schema">{table.dbTable}</span>
@@ -702,6 +720,7 @@ export default function DiagramView({
   groups: suppliedGroups,
   initialGroup,
   selectedTableName,
+  changedTableNames,
   loading = false,
   relationships: suppliedRelationships,
   onOpenTable,
@@ -797,7 +816,7 @@ export default function DiagramView({
   const layoutDirection = layoutSource.width > layoutSource.height * 1.15 ? "RIGHT" : "DOWN";
 
   const layoutKey = JSON.stringify({
-    tables: (renderedGroup?.tables || []).map((table) => tableKey(table.schema, table.name)),
+    tables: (renderedGroup?.tables || []).map((table) => cardKey(table)),
     relationships: relationships.map((relation) => [relation.from, relation.to]),
     direction: layoutDirection,
     compactCards,
@@ -863,8 +882,8 @@ export default function DiagramView({
     if (!from || !to) return;
     const touchesMoved = movedKeys.has(relation.from) || movedKeys.has(relation.to);
     if (!touchesMoved && compactLayout?.edgePaths[`edge-${index}`]) return;
-    const fromSize = cardSizeFor(renderedGroup?.tables.find((table) => tableKey(table.schema, table.name) === relation.from));
-    const toSize = cardSizeFor(renderedGroup?.tables.find((table) => tableKey(table.schema, table.name) === relation.to));
+    const fromSize = cardSizeFor(renderedGroup?.tables.find((table) => cardKey(table) === relation.from));
+    const toSize = cardSizeFor(renderedGroup?.tables.find((table) => cardKey(table) === relation.to));
     edgeRequests.push({
       index,
       from: { key: relation.from, x: from.x, y: from.y, width: fromSize.width, height: fromSize.height },
@@ -956,11 +975,11 @@ export default function DiagramView({
   }
 
   function popupWidthFor(table) {
-    return popupSizes[tableKey(table.schema, table.name)]?.width || popupDefaultWidth(table);
+    return popupSizes[cardKey(table)]?.width || popupDefaultWidth(table);
   }
 
   function popupHeightFor(table) {
-    return popupSizes[tableKey(table.schema, table.name)]?.height
+    return popupSizes[cardKey(table)]?.height
       || popupDefaultHeight(table.columns, popupRelations(table).length);
   }
 
@@ -985,7 +1004,7 @@ export default function DiagramView({
 
     const avoid = [toRect(position.x, position.y, cardSize.width, cardSize.height)];
     const selected = renderedGroup?.tables.find((item) => item.name === selectedTableName);
-    const selectedPosition = selected && tablePositions[tableKey(selected.schema, selected.name)];
+    const selectedPosition = selected && tablePositions[cardKey(selected)];
     if (selectedPosition) {
       const selectedSize = cardSizeFor(selected);
       avoid.push(toRect(selectedPosition.x, selectedPosition.y, selectedSize.width, selectedSize.height));
@@ -1038,7 +1057,7 @@ export default function DiagramView({
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
     resizeDrag.current = {
-      key: tableKey(table.schema, table.name),
+      key: cardKey(table),
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
@@ -1050,7 +1069,7 @@ export default function DiagramView({
   function moveResize(event) {
     if (!resizeDrag.current || resizeDrag.current.pointerId !== event.pointerId) return;
     const currentResize = resizeDrag.current;
-    const table = renderedGroup?.tables.find((item) => tableKey(item.schema, item.name) === currentResize.key);
+    const table = renderedGroup?.tables.find((item) => cardKey(item) === currentResize.key);
     if (!table) return;
     setPopupSizes((current) => ({
       ...current,
@@ -1149,7 +1168,7 @@ export default function DiagramView({
             })}
           </svg>
           {(renderedGroup?.tables || []).map((table) => {
-            const key = tableKey(table.schema, table.name);
+            const key = cardKey(table);
             const position = tablePositions[key];
             if (!position) return null;
             const { width, height } = cardSizeFor(table);
@@ -1165,6 +1184,7 @@ export default function DiagramView({
                 compact={compactCards}
                 expanded={Boolean(expandedTables[key])}
                 selected={selectedTableName === table.name}
+                changed={changedTableNames?.has(table.name) ?? false}
                 onSelect={selectTable}
                 onPreview={previewTable}
                 onToggleExpand={toggleExpanded}
@@ -1176,7 +1196,7 @@ export default function DiagramView({
           })}            </div>
           </div>
           {(renderedGroup?.tables || []).map((table) => {
-            const key = tableKey(table.schema, table.name);
+            const key = cardKey(table);
             const position = tablePositions[key];
             if (!position || !expandedTables[key]) return null;
             const placement = popupPlacementFor(table, position);

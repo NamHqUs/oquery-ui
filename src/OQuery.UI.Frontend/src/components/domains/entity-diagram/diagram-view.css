@@ -502,7 +502,7 @@
   min-height: 32px;
   align-items: center;
   gap: 9px;
-  padding: 0 31px 0 9px;
+  padding: 0 24px 0 9px !important;
   color: #e5def5;
   border: 0;
   background: linear-gradient(100deg, #28243a, #202733);
@@ -515,6 +515,30 @@
   cursor: grabbing;
 }
 
+.diagram-table-changed {
+  flex: 0 0 15px;
+  position: relative;
+  width: 15px;
+  height: 15px;
+}
+
+.diagram-table-changed::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #f5b841;
+  box-shadow: 0 0 0 2px rgba(245, 184, 65, .18);
+}
+
+.diagram-table-card.changed {
+  border-color: #f5b841;
+}
+
 .diagram-table-header > .icon {
   flex: 0 0 auto;
   color: #b8a4ec;
@@ -522,7 +546,8 @@
 
 .diagram-table-header > span {
   min-width: 0;
-  overflow: visible;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font: 400 11px "Manrope", sans-serif;
   white-space: nowrap;
 }
@@ -535,6 +560,8 @@
 }
 
 .diagram-table-schema {
+  flex: 0 1 auto;
+  min-width: 0;
   margin-left: auto;
   padding: 2px 5px;
   color: #a9e3e5;
@@ -544,28 +571,30 @@
   font-size: 11px;
   line-height: 1;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .diagram-column-toggle {
   position: absolute;
   z-index: 3;
   top: 50%;
-  right: 7px;
+  right: 1px;
   transform: translateY(-50%);
   display: grid;
   width: 20px;
   height: 20px;
-  padding: 0;
+  padding: 0 !important;
   place-items: center;
   color: #b9abd9;
   border: 0;
   border-radius: 2px;
-  background: #302a40;
+  background: transparent;
 }
 
 .diagram-column-toggle:hover {
   color: #f0e9ff;
-  background: #493d63;
+  background: transparent;
 }
 
 .diagram-column-list {
