@@ -32,13 +32,15 @@ sub-domain actions. Neither page shares action state with the other.
 
 On the Diagram page, the toolbar has **Save**, **Reload**, **Edit**, and **Create**.
 **Edit** opens `/domains/diagrams/edit/:projectId/main`, the domain wizard for the Main
-domain. Step 1 connects to the database when no connection is active (the existing
-connection form is shown inline) and then lists its tables. Deselecting a mapped table
-removes its entity and relations on apply; new tables become entities with their
-foreign keys as relations. **Create** opens `/domains/diagrams/create/:projectId`, which
-builds a sub-domain from existing Main entities. Edit and Create are disabled while the
-domain has unsaved changes. **Reload** refetches the domain from the server and asks
-before discarding unsaved changes. Sub-domain editing is not part of this wizard.
+domain. The wizard and the diagram share one in-memory draft of the domain, so unsaved
+diagram edits are visible in the wizard and wizard changes are visible in the diagram.
+Step 1 connects to the database when no connection is active (the existing connection form
+is shown inline) and then lists its tables. Deselecting a mapped table removes its entity
+and relations on apply; new tables become entities with their foreign keys as relations.
+**Apply changes** only updates the draft. Nothing is written to the server until **Save** on
+the diagram. **Create** opens `/domains/diagrams/create/:projectId`, which builds a sub-domain
+from existing Main entities and does not use the draft. **Reload** refetches the domain from
+the server and asks before discarding unsaved changes. Sub-domain editing is not part of this wizard.
 
 The Data Sources page first loads the detected providers from
 `GET /db/connections`, then connects directly with `PUT /db/connection`

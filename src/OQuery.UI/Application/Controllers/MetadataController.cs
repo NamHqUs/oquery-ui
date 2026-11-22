@@ -55,18 +55,6 @@ public sealed class MetadataController(
         return NoContent();
     }
 
-    [HttpPost("{projectId}/full-domain/generate")]
-    public ActionResult<FullDomainDto> GenerateFullDomain(string projectId)
-        => Ok(projectService.GenerateFullDomain(projectId));
-
-    [HttpGet("{projectId}/full-domain")]
-    public ActionResult<FullDomainDto> GetFullDomain(string projectId)
-        => Ok(projectService.GetFullDomain(projectId));
-
-    [HttpPut("{projectId}/full-domain")]
-    public ActionResult<FullDomainDto> UpdateFullDomain(string projectId, [FromBody] FullDomainDto fullDomain)
-        => Ok(projectService.UpdateFullDomain(projectId, fullDomain));
-
     [HttpGet("{projectId}/domains/names")]
     public ActionResult<IReadOnlyList<DomainNameDto>> GetDomainNames(string projectId)
         => Ok(projectService.GetDomainNames(projectId));
@@ -74,10 +62,6 @@ public sealed class MetadataController(
     [HttpGet("{projectId}/domains/{domainId}")]
     public ActionResult<DomainDto> GetDomain(string projectId, string domainId)
         => Ok(projectService.GetDomain(projectId, domainId));
-
-    [HttpGet("{projectId}/domains/{domainId}/resolved")]
-    public ActionResult<FullDomainDto> GetResolvedDomain(string projectId, string domainId)
-        => Ok(projectService.GetResolvedDomain(projectId, domainId));
 
     [HttpPost("{projectId}/domains")]
     public ActionResult<DomainDto> CreateDomain(string projectId, [FromBody] DomainDto domain)

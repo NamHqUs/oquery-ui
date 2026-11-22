@@ -26,14 +26,10 @@ export const apiUrls = {
     projects: `${backendApiUrl}/metadata/projects`,
     createFromDatabase: `${backendApiUrl}/metadata/projects/from-database`,
     projectById: (projectId: string) => `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}`,
-    fullDomain: (projectId: string) => `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/full-domain`,
-    generateFullDomain: (projectId: string) => `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/full-domain/generate`,
     domainNames: (projectId: string) => `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/domains/names`,
     domains: (projectId: string) => `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/domains`,
     domainById: (projectId: string, domainId: string) =>
       `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/domains/${encodeURIComponent(domainId)}`,
-    domainResolved: (projectId: string, domainId: string) =>
-      `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/domains/${encodeURIComponent(domainId)}/resolved`,
     functions: (projectId: string) => `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/functions`,
     functionByName: (projectId: string, functionName: string) =>
       `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/functions/${encodeURIComponent(functionName)}`,

@@ -34,7 +34,6 @@ public sealed class ProjectService(
             Description = project.Description,
             DbConnectionProfile = project.DbConnectionProfile,
             DbProvider = project.Connection?.Provider ?? string.Empty,
-            FullDomain = repository.GetFullDomain(SectionId(), project.Id) ?? new FullDomainDto(),
             Domains = repository.GetDomains(SectionId(), project.Id).ToList(),
         };
     }
@@ -69,7 +68,7 @@ public sealed class ProjectService(
         if (schema.Tables.Count == 0)
             throw new InvalidOperationException("The connected database has no tables to build a domain from.");
 
-        var fullDomain = BuildFullDomain(schema);
+        var mainDomain = BuildMainDomain(schema);
         var project = new ProjectFileDto(repository.CreateId(SectionId()), name, description, string.Empty)
         {
             Connection = new ProjectConnectionDto(provider, connectionStringProtector.Protect(connectionString)),
@@ -77,8 +76,7 @@ public sealed class ProjectService(
         try
         {
             repository.Save(SectionId(), project);
-            repository.SaveFullDomain(SectionId(), project.Id, fullDomain);
-            repository.SaveDomain(SectionId(), project.Id, MainDomain(fullDomain));
+            repository.SaveDomain(SectionId(), project.Id, mainDomain);
             databaseService.Connect(provider, connectionString);
         }
         catch
@@ -109,32 +107,6 @@ public sealed class ProjectService(
             throw new KeyNotFoundException($"Project '{projectId}' was not found.");
     }
 
-    public FullDomainDto GenerateFullDomain(string projectId)
-    {
-        RequireProject(projectId);
-        var fullDomain = BuildFullDomain(databaseService.GetDatabaseSchema());
-        repository.SaveFullDomain(SectionId(), projectId, fullDomain);
-        return fullDomain;
-    }
-
-    public FullDomainDto GetFullDomain(string projectId)
-    {
-        RequireProject(projectId);
-        return repository.GetFullDomain(SectionId(), projectId)
-            ?? throw new InvalidOperationException($"Project '{projectId}' has no full domain. Generate it first.");
-    }
-
-    public FullDomainDto UpdateFullDomain(string projectId, FullDomainDto fullDomain)
-    {
-        ArgumentNullException.ThrowIfNull(fullDomain);
-        RequireProject(projectId);
-        var normalized = NormalizeFullDomain(fullDomain);
-        foreach (var domain in repository.GetDomains(SectionId(), projectId))
-            ProjectMetadataResolver.Resolve(normalized, domain);
-        repository.SaveFullDomain(SectionId(), projectId, normalized);
-        return normalized;
-    }
-
     public IReadOnlyList<DomainNameDto> GetDomainNames(string projectId)
     {
         RequireProject(projectId);
@@ -154,10 +126,10 @@ public sealed class ProjectService(
     public DomainDto CreateDomain(string projectId, DomainDto domain)
     {
         ArgumentNullException.ThrowIfNull(domain);
-        var fullDomain = GetFullDomain(projectId);
+        RequireProject(projectId);
         var normalized = Normalize(domain, Guid.NewGuid().ToString("N")[..10]);
         EnsureDomainNameAvailable(projectId, normalized, currentId: null);
-        ProjectMetadataResolver.Resolve(fullDomain, normalized);
+        ProjectMetadataResolver.Resolve(normalized);
         repository.SaveDomain(SectionId(), projectId, normalized);
         return normalized;
     }
@@ -165,11 +137,10 @@ public sealed class ProjectService(
     public DomainDto UpdateDomain(string projectId, string domainId, DomainDto domain)
     {
         ArgumentNullException.ThrowIfNull(domain);
-        var fullDomain = GetFullDomain(projectId);
         var existing = GetDomain(projectId, domainId);
         var normalized = Normalize(domain, existing.Id);
         EnsureDomainNameAvailable(projectId, normalized, currentId: existing.Id);
-        ProjectMetadataResolver.Resolve(fullDomain, normalized);
+        ProjectMetadataResolver.Resolve(normalized);
         repository.SaveDomain(SectionId(), projectId, normalized);
         return normalized;
     }
@@ -182,48 +153,7 @@ public sealed class ProjectService(
     }
 
     public IReadOnlyList<OQuery.Entity> ResolveMetadata(string projectId, string domainId)
-        => ProjectMetadataResolver.Resolve(GetFullDomain(projectId), GetDomain(projectId, domainId));
-
-    public FullDomainDto GetResolvedDomain(string projectId, string domainId)
-        => ToFullDomain(ResolveMetadata(projectId, domainId));
-
-    /// <summary>Converts resolved entities back to the FullDomain shape. Each foreign key appears once, as its lookup side.</summary>
-    private static FullDomainDto ToFullDomain(IReadOnlyList<OQuery.Entity> entities)
-    {
-        var relations = new List<RelationDto>();
-        foreach (var source in entities)
-        {
-            foreach (var lookup in (source.Relations ?? []).Where(relation => relation.Type == RelationType.Lookup))
-            {
-                var target = entities.Single(entity => entity.Name.Equals(lookup.RefEntity, StringComparison.OrdinalIgnoreCase));
-                var reverseKeys = lookup.RefKeys.Select(key => (key.RefDbColumn, key.DbColumn)).ToArray();
-                var collection = target.Relations?.FirstOrDefault(relation =>
-                    relation.Type == RelationType.Collection
-                    && relation.RefEntity.Equals(source.Name, StringComparison.OrdinalIgnoreCase)
-                    && relation.RefKeys.Select(key => (key.DbColumn, key.RefDbColumn)).SequenceEqual(reverseKeys));
-                relations.Add(new RelationDto
-                {
-                    SourceEntity = source.Name,
-                    SourceRelationName = lookup.Name,
-                    SourceFields = lookup.RefKeys.Select(key => key.DbColumn).ToArray(),
-                    TargetEntity = target.Name,
-                    TargetRelationName = collection?.Name ?? lookup.Name,
-                    TargetFields = lookup.RefKeys.Select(key => key.RefDbColumn).ToArray(),
-                });
-            }
-        }
-
-        return new FullDomainDto
-        {
-            Entities = entities.Select(entity => new EntityDto(entity.Name, entity.Fields.ToList(), entity.DbTable)
-            {
-                DbSchema = entity.DbSchema,
-                DbTable = entity.DbTable,
-                IsRawSql = entity.IsRawSql,
-            }).ToList(),
-            Relations = relations,
-        };
-    }
+        => ProjectMetadataResolver.Resolve(GetDomain(projectId, domainId));
 
     private string SectionId() => userSectionManager.GetSectionId();
 
@@ -255,11 +185,11 @@ public sealed class ProjectService(
     /// <summary>
     /// Trims names and rejects duplicates or dangling references. Names are matched exactly, as the resolver does.
     /// </summary>
-    private static FullDomainDto NormalizeFullDomain(FullDomainDto fullDomain)
+    private static DomainDto NormalizeMetadata(DomainDto domain)
     {
         var entityNames = new HashSet<string>(StringComparer.Ordinal);
         var entities = new List<EntityDto>();
-        foreach (var entity in fullDomain.Entities)
+        foreach (var entity in domain.Entities)
         {
             var entityName = RequireName(entity.Name, "Entity");
             if (!entityNames.Add(entityName))
@@ -276,7 +206,7 @@ public sealed class ProjectService(
             entities.Add(entity with { Name = entityName, Fields = fields, RawSql = entity.RawSql?.Trim() ?? string.Empty });
         }
 
-        var relations = fullDomain.Relations.Select(relation =>
+        var relations = domain.Relations.Select(relation =>
         {
             var relationName = RequireName(relation.SourceRelationName, "Source relation");
             var sourceFields = NormalizeKeyColumns(relation.SourceFields, relationName);
@@ -294,14 +224,14 @@ public sealed class ProjectService(
             };
         }).ToList();
 
-        return new FullDomainDto { Entities = entities, Relations = relations };
+        return new DomainDto { Entities = entities, Relations = relations };
     }
 
     private static string RequireKnownEntity(string? entity, HashSet<string> entityNames, string relationName)
     {
         var name = RequireName(entity, "Relation entity");
         if (!entityNames.Contains(name))
-            throw new ArgumentException($"Relation '{relationName}' references entity '{name}', which is not in the full domain.");
+            throw new ArgumentException($"Relation '{relationName}' references entity '{name}', which is not in the domain.");
         return name;
     }
 
@@ -319,24 +249,18 @@ public sealed class ProjectService(
             ? project
             : project with { Connection = project.Connection with { EncryptedConnectionString = string.Empty } };
 
-    /// <summary>The hard-coded first domain: every FullDomain entity, named after the database.</summary>
-    private static DomainDto MainDomain(FullDomainDto fullDomain)
-        => new()
-        {
-            Id = MainDomainId,
-            Name = MainDomainName,
-            Description = MainDomainDescription,
-            Entities = fullDomain.Entities.Select(entity => new SubDomainEntityDto(entity.Name)).ToList(),
-        };
-
     private static DomainDto Normalize(DomainDto domain, string id)
-        => new()
+    {
+        var metadata = NormalizeMetadata(domain);
+        return new()
         {
             Id = id,
             Name = RequireName(domain.Name, "Domain"),
             Description = domain.Description ?? string.Empty,
-            Entities = domain.Entities ?? [],
+            Entities = metadata.Entities,
+            Relations = metadata.Relations,
         };
+    }
 
     private void EnsureDomainNameAvailable(string projectId, DomainDto domain, string? currentId)
     {
@@ -346,8 +270,8 @@ public sealed class ProjectService(
             throw new InvalidOperationException($"A domain named '{domain.Name}' already exists.");
     }
 
-    /// <summary>Maps every table and foreign key in the schema to a FullDomain entity and relation.</summary>
-    private static FullDomainDto BuildFullDomain(DatabaseSchema schema)
+    /// <summary>Maps every table and foreign key in the schema to an entity and relation of the Main domain.</summary>
+    private static DomainDto BuildMainDomain(DatabaseSchema schema)
     {
         var entityNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var takenEntityNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -388,7 +312,14 @@ public sealed class ProjectService(
             });
         }
 
-        return new FullDomainDto { Entities = entities, Relations = relations };
+        return new DomainDto
+        {
+            Id = MainDomainId,
+            Name = MainDomainName,
+            Description = MainDomainDescription,
+            Entities = entities,
+            Relations = relations,
+        };
     }
 
     private static HashSet<string> NamesOf(Dictionary<string, HashSet<string>> namesByEntity, string entity)

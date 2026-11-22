@@ -1,49 +1,46 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Icon from "../../shared/icon/icon";
 import DatabaseConnection from "../../data-sources/database-connection/database-connection";
 import { fetchDbProvider, fetchDbSchema } from "../../data-sources/database-slice";
 import type { AppDispatch, RootState } from "../../../store/store";
-import { getFullDomain } from "../../../services/project-service";
 import DomainWizard, { type WizardSource, type WizardStep } from "./domain-wizard";
 import type { DatabaseTableOption } from "../entity-definition/entity-definition";
 import { pluralize, singularize, toAbstractDataType } from "../entity-definition/types";
+import { setDomainDraftWorking } from "../domain-draft-slice";
+import { loadDomainDraft } from "../domain-draft-actions";
+import {
+  applyWizardToGraph,
+  seedWizardSelection,
+  tableEntityMap,
+  tableKey,
+  tableKeyOf,
+  type DatabaseRelationship,
+  type RelationNames,
+} from "./wizard-draft";
 import "./domain-wizard-page.css";
 
-type DatabaseRelationship = {
-  name: string;
-  sourceSchema: string;
-  sourceTable: string;
-  sourceColumns: string[];
-  targetSchema: string;
-  targetTable: string;
-  targetColumns: string[];
-};
-type RelationNames = { lookup: string; collection: string };
-type DataTypeIcon = "type-number" | "type" | "type-datetime" | "type-boolean";
-
-const tableKey = (schema: string | null | undefined, table: string) => `${schema ?? ""}.${table}`;
-const tableKeyOf = (table: DatabaseTableOption) => tableKey(table.schema, table.name);
 const relationSourceKey = (relation: DatabaseRelationship) => tableKey(relation.sourceSchema, relation.sourceTable);
 const relationTargetKey = (relation: DatabaseRelationship) => tableKey(relation.targetSchema, relation.targetTable);
 const relationKey = (relation: DatabaseRelationship) => `${relation.name}|${relationSourceKey(relation)}|${relationTargetKey(relation)}`;
+type DataTypeIcon = "type-number" | "type" | "type-datetime" | "type-boolean";
 
 const DATA_TYPE_ICONS: Record<string, DataTypeIcon> = { Number: "type-number", Boolean: "type-boolean", Datetime: "type-datetime" };
 const dataTypeIconOf = (dataType: string): DataTypeIcon => DATA_TYPE_ICONS[dataType] ?? "type";
 
-function messageOf(error: unknown) {
-  return error instanceof Error ? error.message : "Something went wrong.";
-}
-
 type DomainWizardPageProps = {
   mode: "create" | "edit";
   projectId: string;
+  domainId: string;
   onCancel: () => void;
+  // Edit mode only: the wizard changed the in-memory domain and the diagram should be shown again.
+  onApplied: () => void;
 };
 
-export default function DomainWizardPage({ mode, projectId, onCancel }: DomainWizardPageProps) {
+export default function DomainWizardPage({ mode, projectId, domainId, onCancel, onApplied }: DomainWizardPageProps) {
   const dispatch = useDispatch<AppDispatch>();
   const database = useSelector((state: RootState) => state.database);
+  const draft = useSelector((state: RootState) => state.domainDraft);
   const connected = database.connectionStatus === "succeeded";
   const tables: DatabaseTableOption[] = database.schema.tables;
   const relationships: DatabaseRelationship[] = database.schema.relationships;
@@ -52,8 +49,6 @@ export default function DomainWizardPage({ mode, projectId, onCancel }: DomainWi
   const [source, setSource] = useState<WizardSource>("database");
   const [tableFilter, setTableFilter] = useState("");
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set());
-  // Table key -> name of the Main domain entity already mapped to that table (edit mode only).
-  const [existingEntities, setExistingEntities] = useState<Map<string, string>>(() => new Map());
   const [excludedColumns, setExcludedColumns] = useState<Record<string, string[]>>({});
   const [fieldNames, setFieldNames] = useState<Record<string, Record<string, string>>>({});
   const [entityNames, setEntityNames] = useState<Record<string, string>>({});
@@ -64,6 +59,16 @@ export default function DomainWizardPage({ mode, projectId, onCancel }: DomainWi
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [doneMessage, setDoneMessage] = useState("");
+  const seededRef = useRef(false);
+
+  // Edit mode works on the in-memory domain, which the diagram may already hold. Create mode never reads it.
+  const draftReady = mode === "edit" && draft.projectId === projectId && draft.domainId === domainId && draft.status === "succeeded";
+  const draftFailed = mode === "edit" && draft.projectId === projectId && draft.domainId === domainId && draft.status === "failed";
+  const existingDomainName = draftReady ? draft.name : "";
+  const existingEntities = useMemo(
+    () => new Map([...tableEntityMap(draftReady ? draft.working.entities : [], tables)].map(([key, entity]) => [key, entity.name])),
+    [draftReady, draft.working.entities, tables],
+  );
 
   useEffect(() => {
     if (database.connectionStatus === "idle") void dispatch(fetchDbProvider());
@@ -75,21 +80,18 @@ export default function DomainWizardPage({ mode, projectId, onCancel }: DomainWi
 
   useEffect(() => {
     if (mode !== "edit") return;
-    let active = true;
-    getFullDomain(projectId)
-      .then((full) => {
-        if (!active) return;
-        const existing = new Map(full.entities.map((entity) => [tableKey(entity.dbSchema, entity.dbTable ?? ""), entity.name]));
-        setExistingEntities(existing);
-        setSelectedKeys(new Set(existing.keys()));
-      })
-      .catch((reason: unknown) => {
-        if (active) setError(messageOf(reason));
-      });
-    return () => {
-      active = false;
-    };
-  }, [mode, projectId]);
+    void dispatch(loadDomainDraft({ projectId, domainId }));
+  }, [mode, projectId, domainId, dispatch]);
+
+  // Seeds the selection once per visit, after both the domain and the database tables are available.
+  useEffect(() => {
+    if (!draftReady || seededRef.current || tables.length === 0) return;
+    seededRef.current = true;
+    const seed = seedWizardSelection(draft.working.entities, tables);
+    setSelectedKeys(seed.selectedKeys);
+    setExcludedColumns(seed.excludedColumns);
+    setFieldNames(seed.fieldNames);
+  }, [draftReady, draft.working.entities, tables]);
 
   const normalizedFilter = tableFilter.trim().toLowerCase();
   const filteredTables = tables.filter(table => !normalizedFilter
@@ -128,7 +130,28 @@ export default function DomainWizardPage({ mode, projectId, onCancel }: DomainWi
     setStep(next);
   };
 
-  // Preview only: the wizard does not persist the design yet.
+  // Edit mode: writes the result to the in-memory domain only. The diagram's Save is the only path that persists it.
+  const applyChanges = () => {
+    setError("");
+    const result = applyWizardToGraph({
+      graph: draft.working,
+      tables,
+      chosen,
+      relationships,
+      excludedColumns,
+      entityName,
+      fieldName,
+      relationNames: relationNamesFor,
+    });
+    if ("error" in result) {
+      setError(result.error);
+      return;
+    }
+    dispatch(setDomainDraftWorking(result.graph));
+    onApplied();
+  };
+
+  // Create preview only: the wizard does not persist a new domain yet.
   const generate = () => {
     const name = domainName.trim();
     if (!name) {
@@ -311,7 +334,18 @@ export default function DomainWizardPage({ mode, projectId, onCancel }: DomainWi
     </div>
   );
 
-  const generateStep = (
+  const editApplyStep = (
+    <div className="domain-final-details">
+      <p className="domain-generation-summary">
+        {chosen.length} entities will be kept in the domain; unselected tables are removed. The diagram&apos;s Save button stores the changes.
+      </p>
+      <button type="button" className="domain-primary domain-generate-content-button" onClick={applyChanges} disabled={saving}>
+        Apply changes <Icon name="arrow-right" size={14} />
+      </button>
+    </div>
+  );
+
+  const generateStep = mode === "edit" ? editApplyStep : (
     <form className="domain-final-details" onSubmit={event => { event.preventDefault(); generate(); }}>
       <label className="domain-name">
         <span>Domain name</span>
@@ -334,12 +368,12 @@ export default function DomainWizardPage({ mode, projectId, onCancel }: DomainWi
     <main className="domain-wizard-page domain-create-view">
       <DomainWizard
         mode={mode}
-        domainDisplayName={mode === "edit" ? "Main" : undefined}
+        domainDisplayName={mode === "edit" ? existingDomainName || undefined : undefined}
         source={source}
         step={step}
         canContinue={canContinue}
         saving={saving}
-        error={error}
+        error={error || (draftFailed ? draft.error : "")}
         onStepChange={goTo}
         onSourceChange={next => { setError(""); setSource(next); }}
         onBack={() => goTo(Math.max(1, step - 1) as WizardStep)}

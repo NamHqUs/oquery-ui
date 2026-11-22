@@ -42,9 +42,11 @@ internal sealed class DynamicQueryServiceTests
             new FakeFunctionDefinitionService(),
             NullLogger<DynamicQueryService>.Instance);
 
-    private static FullDomainDto CreateFullDomain()
+    private static DomainDto CreateTestDomain()
         => new()
         {
+            Id = "TEST_DOMAIN",
+            Name = "Test",
             Entities =
             [
                 new EntityDto(
@@ -82,18 +84,6 @@ internal sealed class DynamicQueryServiceTests
             ],
         };
 
-    private static DomainDto CreateSubDomain()
-        => new()
-        {
-            Id = "TEST_DOMAIN",
-            Name = "Test",
-            Entities =
-            [
-                new SubDomainEntityDto("Clients"),
-                new SubDomainEntityDto("Policies"),
-            ],
-        };
-
     private sealed class FakeDbConnectionService : IDbConnectionService
     {
         public IDbConnection CreateConnection() => new SqlConnection("Server=localhost;Database=TEST;Connect Timeout=1");
@@ -105,13 +95,10 @@ internal sealed class DynamicQueryServiceTests
 
     private sealed class FakeProjectService : IProjectService
     {
-        private readonly FullDomainDto _fullDomain = CreateFullDomain();
-        private readonly DomainDto _domain = CreateSubDomain();
+        private readonly DomainDto _domain = CreateTestDomain();
 
         public IReadOnlyList<OQuery.Entity> ResolveMetadata(string projectId, string domainId)
-            => ProjectMetadataResolver.Resolve(_fullDomain, _domain);
-
-        public FullDomainDto GetResolvedDomain(string projectId, string domainId) => throw new NotSupportedException();
+            => ProjectMetadataResolver.Resolve(_domain);
 
         public IReadOnlyList<ProjectFileDto> GetAll() => throw new NotSupportedException();
         public ProjectDto GetById(string projectId) => throw new NotSupportedException();
@@ -119,9 +106,6 @@ internal sealed class DynamicQueryServiceTests
         public ProjectDto CreateFromDatabase(ProjectFromDatabaseRequestDto request) => throw new NotSupportedException();
         public ProjectDto Update(string projectId, ProjectFileDto project) => throw new NotSupportedException();
         public void Delete(string projectId) => throw new NotSupportedException();
-        public FullDomainDto GenerateFullDomain(string projectId) => throw new NotSupportedException();
-        public FullDomainDto GetFullDomain(string projectId) => throw new NotSupportedException();
-        public FullDomainDto UpdateFullDomain(string projectId, FullDomainDto fullDomain) => throw new NotSupportedException();
         public IReadOnlyList<DomainNameDto> GetDomainNames(string projectId) => throw new NotSupportedException();
         public DomainDto GetDomain(string projectId, string domainId) => throw new NotSupportedException();
         public DomainDto CreateDomain(string projectId, DomainDto domain) => throw new NotSupportedException();

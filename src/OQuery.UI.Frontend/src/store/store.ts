@@ -3,6 +3,7 @@ import dataSourceReducer from "../components/data-sources/data-source-slice";
 import databaseReducer from "../components/data-sources/database-slice";
 import functionDefinitionsReducer from "../components/function-definition/function-definition-slice";
 import metadataReducer from "../components/domains/domain-slice";
+import domainDraftReducer from "../components/domains/domain-draft-slice";
 import playgroundReducer from "../components/playground/playground-slice";
 import savedQueriesReducer from "../components/saved-queries/saved-queries-slice";
 
@@ -11,6 +12,7 @@ export const store = configureStore({
     dataSource: dataSourceReducer,
     database: databaseReducer,
     metadata: metadataReducer,
+    domainDraft: domainDraftReducer,
     functionDefinitions: functionDefinitionsReducer,
     savedQueries: savedQueriesReducer,
     playground: playgroundReducer,

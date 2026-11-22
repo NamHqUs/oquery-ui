@@ -5,39 +5,18 @@ namespace OQuery.UI.Abstracts.Dto;
 public sealed record DomainNameDto(string Id, string Name);
 public sealed record DomainNameWithDescriptionDto(string Id, string Name, string Description);
 
-/// <summary>All entities, fields and relations generated from the database schema. Relations use physical columns.</summary>
-public sealed class FullDomainDto
-{
-    public List<EntityDto> Entities { get; set; } = [];
-    public List<RelationDto> Relations { get; set; } = [];
-}
-
 /// <summary>
-/// A sub-domain: exposes a chosen set of FullDomain entities. Overrides are keyed by original names.
-/// Only names can change; physical columns and raw SQL are never overridden.
+/// A domain: its own entities and relations, mapped directly to database tables. Every query belongs to one domain,
+/// and the domain's metadata is what the engine runs against. Relations use physical columns.
 /// </summary>
 public sealed class DomainDto
 {
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";
-    /// <summary>Only listed entities are exposed.</summary>
-    public List<SubDomainEntityDto> Entities { get; set; } = [];
+    public List<EntityDto> Entities { get; set; } = [];
+    public List<RelationDto> Relations { get; set; } = [];
 }
-
-/// <summary>An exposed entity, identified by its original name in FullDomain.</summary>
-public sealed record SubDomainEntityDto(string Entity)
-{
-    public string? EntityName { get; init; }
-    public List<SubDomainFieldDto> FieldNames { get; init; } = [];
-    public List<string> ExcludedFields { get; init; } = [];
-    public List<SubDomainRelationDto> RelationNames { get; init; } = [];
-}
-
-public sealed record SubDomainFieldDto(string Field, string FieldName);
-
-/// <summary>Renames a relation side owned by the entity, identified by the original relation name.</summary>
-public sealed record SubDomainRelationDto(string Relation, string RelationName);
 
 public sealed record EntityDto(
     string Name,

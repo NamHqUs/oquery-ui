@@ -226,13 +226,9 @@ describe("caching and invalidation", () => {
     expect(preview.rows).toHaveLength(services.schema.MAX_TABLE_DATA_ROWS);
   });
 
-  it("caches sub-domain metadata per project and invalidates it after an update", async () => {
+  it("caches domain metadata per project and invalidates it after an update", async () => {
     const services = await loadServices();
-    const calls = mockFetch((url) => {
-      if (url.endsWith("/resolved")) return respond({ entities: [], relations: [] });
-      if (url.endsWith("/domains/names")) return respond([{ id: "d1", name: "Demo" }]);
-      return respond(domainResponse);
-    });
+    const calls = mockFetch(() => respond(domainResponse));
 
     await services.project.getDomain("p1", "d1");
     await services.project.getDomain("p1", "d1");
@@ -240,26 +236,22 @@ describe("caching and invalidation", () => {
     await services.project.getDomain("p1", "d1");
 
     expect(calls.map((call) => call.url)).toEqual([
-      "/metadata/projects/p1/domains/d1/resolved",
-      "/metadata/projects/p1/domains/names",
       "/metadata/projects/p1/domains/d1",
-      "/metadata/projects/p1/domains/d1/resolved",
-      "/metadata/projects/p1/domains/names",
+      "/metadata/projects/p1/domains/d1",
+      "/metadata/projects/p1/domains/d1",
     ]);
   });
 
-  it("keeps sub-domain metadata separate for the same domain id in another project", async () => {
+  it("keeps domain metadata separate for the same domain id in another project", async () => {
     const services = await loadServices();
-    const calls = mockFetch((url) => url.endsWith("/resolved")
-      ? respond({ entities: [], relations: [] })
-      : respond([{ id: "d1", name: "Demo" }]));
+    const calls = mockFetch(() => respond(domainResponse));
 
     await services.project.getDomain("p1", "d1");
     await services.project.getDomain("p2", "d1");
 
-    expect(calls.filter((call) => call.url.endsWith("/resolved")).map((call) => call.url)).toEqual([
-      "/metadata/projects/p1/domains/d1/resolved",
-      "/metadata/projects/p2/domains/d1/resolved",
+    expect(calls.map((call) => call.url)).toEqual([
+      "/metadata/projects/p1/domains/d1",
+      "/metadata/projects/p2/domains/d1",
     ]);
   });
 

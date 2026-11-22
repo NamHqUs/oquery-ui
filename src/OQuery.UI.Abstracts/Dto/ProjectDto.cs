@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace OQuery.UI.Abstracts.Dto;
 
 /// <summary>
-/// A project aggregate: the full database metadata plus the sub-domains that expose it.
+/// A project aggregate: its domains, each mapped to database tables.
 /// Queries and custom functions are stored in the project folder and served by their own endpoints.
 /// </summary>
 public class ProjectDto
@@ -16,7 +16,6 @@ public class ProjectDto
     public string DbConnectionProfile { get; set; } = string.Empty;
     /// <summary>The DBMS of the project's connection. The connection string itself is never returned.</summary>
     public string DbProvider { get; set; } = string.Empty;
-    public FullDomainDto FullDomain { get; set; } = new();
     public List<DomainDto> Domains { get; set; } = new();
 }
 
@@ -30,5 +29,5 @@ public sealed record ProjectFileDto(string Id, string Name, string Description, 
 /// <summary>The DBMS and the AES-GCM encrypted connection string of a project.</summary>
 public sealed record ProjectConnectionDto(string Provider, string EncryptedConnectionString);
 
-/// <summary>Request to create a project whose FullDomain and Main domain are read from the database.</summary>
+/// <summary>Request to create a project whose Main domain is read from the database.</summary>
 public sealed record ProjectFromDatabaseRequestDto(string Name, string Description, string Provider, string ConnectionString);

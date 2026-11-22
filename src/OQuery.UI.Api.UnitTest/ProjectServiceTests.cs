@@ -43,11 +43,12 @@ internal sealed class ProjectServiceTests
     }
 
     [Test]
-    public void UpdateFullDomainStoresEditedMappingsAndRejectsRelationToUnknownEntity()
+    public void UpdateDomainStoresEditedMappingsAndRejectsRelationToUnknownEntity()
     {
         _loader.Schema = CreateSchema("Clients", "Policies");
         var project = _service.CreateFromDatabase(new ProjectFromDatabaseRequestDto("Sales", "", "Sqlite", "Data Source=sales.db"));
-        var edited = new FullDomainDto { Entities = project.FullDomain.Entities.ToList(), Relations = [] };
+        var main = project.Domains.Single();
+        var edited = new DomainDto { Id = main.Id, Name = main.Name, Entities = main.Entities.ToList(), Relations = [] };
         edited.Entities[0].Fields[0] = edited.Entities[0].Fields[0] with { DataType = DataType.Number };
         edited.Relations.Add(new RelationDto
         {
@@ -59,13 +60,13 @@ internal sealed class ProjectServiceTests
             TargetFields = ["client_id"],
         });
 
-        var saved = _service.UpdateFullDomain(project.Id, edited);
+        var saved = _service.UpdateDomain(project.Id, main.Id, edited);
 
-        Assert.That(_service.GetFullDomain(project.Id).Relations.Single().TargetEntity, Is.EqualTo("Policies"));
+        Assert.That(_service.GetDomain(project.Id, main.Id).Relations.Single().TargetEntity, Is.EqualTo("Policies"));
         Assert.That(saved.Entities[0].Fields[0].DataType, Is.EqualTo(DataType.Number));
 
         edited.Relations[0] = edited.Relations[0] with { TargetEntity = "Missing" };
-        var ex = Assert.Throws<ArgumentException>(() => _service.UpdateFullDomain(project.Id, edited));
+        var ex = Assert.Throws<ArgumentException>(() => _service.UpdateDomain(project.Id, main.Id, edited));
         Assert.That(ex!.Message, Does.Contain("Missing"));
     }
 
@@ -80,8 +81,7 @@ internal sealed class ProjectServiceTests
         var main = project.Domains.Single();
         Assert.That(main.Name, Is.EqualTo("Main"));
         Assert.That(main.Description, Is.EqualTo("Meta is mirrored from Database Schema"));
-        Assert.That(main.Entities.Select(entity => entity.Entity), Is.EqualTo(new[] { "Clients", "Policies" }));
-        Assert.That(project.FullDomain.Entities.Select(entity => entity.Name), Is.EqualTo(new[] { "Clients", "Policies" }));
+        Assert.That(main.Entities.Select(entity => entity.Name), Is.EqualTo(new[] { "Clients", "Policies" }));
 
         var stored = _provider.Projects.Get(Section, project.Id)!;
         Assert.That(stored.Connection!.EncryptedConnectionString, Is.Not.Empty.And.Not.Contain("sales.db"));
@@ -112,71 +112,28 @@ internal sealed class ProjectServiceTests
     }
 
     [Test]
-    public void ResolvedDomainAppliesNameOverridesAndKeepsEachRelationOnce()
+    public void CreateDomainRejectsRelationToAnEntityOutsideIt()
     {
         var project = _service.Create(new ProjectFileDto("", "Sales", "", "Profile"));
-        _provider.Projects.SaveFullDomain(Section, project.Id, CreateFullDomain());
-        _service.CreateDomain(project.Id, new DomainDto
+
+        Assert.Throws<ArgumentException>(() => _service.CreateDomain(project.Id, new DomainDto
         {
-            Name = "Customers view",
-            Entities =
-            [
-                new SubDomainEntityDto("Clients")
-                {
-                    EntityName = "Customers",
-                    FieldNames = [new SubDomainFieldDto("Name", "FullName")],
-                },
-                new SubDomainEntityDto("Policies")
-                {
-                    RelationNames = [new SubDomainRelationDto("Client", "Owner")],
-                },
-            ],
-        });
-        var domainId = _service.GetDomainNames(project.Id).Single(domain => domain.Name == "Customers view").Id;
-
-        var resolved = _service.GetResolvedDomain(project.Id, domainId);
-
-        Assert.That(resolved.Entities.Select(entity => entity.Name), Is.EqualTo(new[] { "Customers", "Policies" }));
-        Assert.That(resolved.Entities.Single(entity => entity.Name == "Customers").Fields
-            .Select(field => field.Name), Is.EqualTo(new[] { "Id", "FullName" }));
-        var relation = resolved.Relations.Single();
-        Assert.That(relation.SourceEntity, Is.EqualTo("Policies"));
-        Assert.That(relation.SourceRelationName, Is.EqualTo("Owner"));
-        Assert.That(relation.TargetEntity, Is.EqualTo("Customers"));
-        Assert.That(relation.TargetRelationName, Is.EqualTo("Policies"));
-        Assert.That(relation.SourceFields, Is.EqualTo(new[] { "UserId" }));
-        Assert.That(relation.TargetFields, Is.EqualTo(new[] { "Id" }));
-    }
-
-    private static FullDomainDto CreateFullDomain()
-        => new()
-        {
-            Entities =
-            [
-                new EntityDto("Clients", [new Field("Id", "Id", DataType.Number), new Field("Name", "Name", DataType.String)], "Users")
-                {
-                    DbSchema = "dbo",
-                    DbTable = "Users",
-                },
-                new EntityDto("Policies", [new Field("Id", "Id", DataType.Number), new Field("UserId", "UserId", DataType.Number)], "Policies")
-                {
-                    DbSchema = "dbo",
-                    DbTable = "Policies",
-                },
-            ],
+            Name = "Clients only",
+            Entities = [new EntityDto("Clients", [new Field("Id", "Id", DataType.Number)], "Users") { DbTable = "Users" }],
             Relations =
             [
                 new RelationDto
                 {
-                    SourceEntity = "Policies",
-                    SourceRelationName = "Client",
-                    SourceFields = ["UserId"],
-                    TargetEntity = "Clients",
-                    TargetRelationName = "Policies",
+                    SourceEntity = "Clients",
+                    SourceRelationName = "Policies",
+                    SourceFields = ["Id"],
+                    TargetEntity = "Policies",
+                    TargetRelationName = "Client",
                     TargetFields = ["Id"],
                 },
             ],
-        };
+        }));
+    }
 
     private static DatabaseSchema CreateSchema(params string[] tables)
         => new(

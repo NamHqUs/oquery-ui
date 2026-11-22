@@ -9,8 +9,8 @@ import { setQueryMetadata } from "../components/domains/domain-slice";
 import { store } from "../store/store";
 import { requestJson } from "./api-client";
 
-// A project owns one FullDomain and any number of sub-domains. A sub-domain is identified by its ID within its project,
-// so every sub-domain lookup needs both IDs.
+// A project owns any number of domains. Each domain holds its own entities and relations, mapped to database tables,
+// so every domain lookup needs both the project ID and the domain ID.
 export type ProjectSummary = {
   id: string;
   name: string;
@@ -20,33 +20,16 @@ export type ProjectSummary = {
   connection?: { provider: string } | null;
 };
 
-export type FullDomain = {
+export type DomainConfig = {
+  id: string;
+  name: string;
+  description: string;
   entities: DomainEntityDto[];
   relations: DomainRelation[];
 };
 
-export type SubDomainFieldName = { field: string; fieldName: string };
-export type SubDomainRelationName = { relation: string; relationName: string };
-
-// Overrides are keyed by original names. Only names can change.
-export type SubDomainEntity = {
-  entity: string;
-  entityName?: string | null;
-  fieldNames: SubDomainFieldName[];
-  excludedFields: string[];
-  relationNames: SubDomainRelationName[];
-};
-
-export type SubDomainConfig = {
-  id: string;
-  name: string;
-  description: string;
-  entities: SubDomainEntity[];
-};
-
 export type ProjectDetails = ProjectSummary & {
-  fullDomain: FullDomain;
-  domains: SubDomainConfig[];
+  domains: DomainConfig[];
 };
 
 export type DomainName = {
@@ -55,7 +38,7 @@ export type DomainName = {
   description: string;
 };
 
-// The resolved sub-domain: what queries and the diagram actually see, with overrides applied.
+// The domain as queries and the diagram see it: its own entities and relations.
 export type DomainDetails = DomainName & {
   projectId: string;
   entities: MetadataEntity[];
@@ -73,14 +56,14 @@ function publishDomainMetadata(details: DomainDetails) {
   store.dispatch(setQueryMetadata({ entities: details.entities, relations: details.relations }));
 }
 
-function toDomainDetails(projectId: string, domainId: string, resolved: FullDomain): DomainDetails {
+function toDomainDetails(projectId: string, domainId: string, config: DomainConfig): DomainDetails {
   return {
     id: domainId,
-    name: "",
-    description: "",
+    name: config.name,
+    description: config.description,
     projectId,
-    entities: resolved.entities.map(metadataEntityFromDto),
-    relations: resolved.relations,
+    entities: config.entities.map(metadataEntityFromDto),
+    relations: config.relations,
   };
 }
 
@@ -122,17 +105,9 @@ export async function testDatabaseConnection(provider: string, connectionString:
   await requestJson(apiUrls.database.testConnection, jsonRequest("POST", { provider, connectionString }));
 }
 
-// The server creates the project, its encrypted connection, the FullDomain and the Main domain, or nothing at all.
+// The server creates the project, its encrypted connection and the Main domain, or nothing at all.
 export function createProjectFromDatabase(body: DatabaseProjectRequest): Promise<ProjectDetails> {
   return requestJson<ProjectDetails>(apiUrls.metadata.createFromDatabase, jsonRequest("POST", body));
-}
-
-export function generateFullDomain(projectId: string): Promise<FullDomain> {
-  return requestJson<FullDomain>(apiUrls.metadata.generateFullDomain(projectId.trim()), { method: "POST" });
-}
-
-export function getFullDomain(projectId: string): Promise<FullDomain> {
-  return requestJson<FullDomain>(apiUrls.metadata.fullDomain(projectId.trim()));
 }
 
 export async function listDomainNames(projectId: string): Promise<DomainName[]> {
@@ -140,25 +115,18 @@ export async function listDomainNames(projectId: string): Promise<DomainName[]> 
   return domains.map((domain) => ({ id: domain.id, name: domain.name, description: "" }));
 }
 
-export function getDomainConfig(projectId: string, domainId: string): Promise<SubDomainConfig> {
-  return requestJson<SubDomainConfig>(apiUrls.metadata.domainById(projectId.trim(), domainId.trim()));
+export function getDomainConfig(projectId: string, domainId: string): Promise<DomainConfig> {
+  return requestJson<DomainConfig>(apiUrls.metadata.domainById(projectId.trim(), domainId.trim()));
 }
 
-export async function createDomain(projectId: string, body: object): Promise<SubDomainConfig> {
-  const created = await requestJson<SubDomainConfig>(apiUrls.metadata.domains(projectId.trim()), jsonRequest("POST", body));
+export async function createDomain(projectId: string, body: object): Promise<DomainConfig> {
+  const created = await requestJson<DomainConfig>(apiUrls.metadata.domains(projectId.trim()), jsonRequest("POST", body));
   invalidateDomain(projectId);
   return created;
 }
 
-// Saves the edited FullDomain (field and relation mappings). The server rejects edits that break an existing sub-domain.
-export async function updateFullDomain(projectId: string, body: FullDomain): Promise<FullDomain> {
-  const saved = await requestJson<FullDomain>(apiUrls.metadata.fullDomain(projectId.trim()), jsonRequest("PUT", body));
-  invalidateDomain(projectId);
-  return saved;
-}
-
-export async function updateDomain(projectId: string, domainId: string, body: object): Promise<SubDomainConfig> {
-  const saved = await requestJson<SubDomainConfig>(
+export async function updateDomain(projectId: string, domainId: string, body: object): Promise<DomainConfig> {
+  const saved = await requestJson<DomainConfig>(
     apiUrls.metadata.domainById(projectId.trim(), domainId.trim()),
     jsonRequest("PUT", body),
   );
@@ -171,7 +139,7 @@ export async function deleteDomain(projectId: string, domainId: string): Promise
   invalidateDomain(projectId, domainId);
 }
 
-// Resolved metadata is cached per project and sub-domain. Concurrent calls share one request.
+// Domain metadata is cached per project and domain. Concurrent calls share one request.
 export async function getDomain(projectId: string, domainId: string): Promise<DomainDetails> {
   const normalizedProjectId = projectId.trim();
   const normalizedDomainId = domainId.trim();
@@ -185,11 +153,9 @@ export async function getDomain(projectId: string, domainId: string): Promise<Do
   const pending = domainDetailsRequests.get(key);
   if (pending) return pending;
 
-  const request = requestJson<FullDomain>(apiUrls.metadata.domainResolved(normalizedProjectId, normalizedDomainId))
-    .then(async (resolved) => {
-      const names = await listDomainNames(normalizedProjectId);
-      const name = names.find((item) => item.id === normalizedDomainId)?.name ?? normalizedDomainId;
-      const details = { ...toDomainDetails(normalizedProjectId, normalizedDomainId, resolved), name };
+  const request = getDomainConfig(normalizedProjectId, normalizedDomainId)
+    .then((config) => {
+      const details = toDomainDetails(normalizedProjectId, normalizedDomainId, config);
       domainDetailsCache.set(key, details);
       publishDomainMetadata(details);
       return details;

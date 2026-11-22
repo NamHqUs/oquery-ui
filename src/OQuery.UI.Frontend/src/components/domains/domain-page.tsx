@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import Icon from "../shared/icon/icon";
-import { getDomain, getFullDomain, updateFullDomain, type ProjectSummary } from "../../services/project-service";
+import { updateDomain, type ProjectSummary } from "../../services/project-service";
 import { getSchema } from "../../services/db-schema-service";
+import type { AppDispatch, RootState } from "../../store/store";
 import { metadataEntityFromDto, type DomainRelation, type MetadataEntity } from "./domain-model";
+import { clearDomainDraft, domainDraftSaved, setDomainDraftWorking, type DomainGraph } from "./domain-draft-slice";
+import { loadDomainDraft } from "./domain-draft-actions";
 import MainLayout, { Heading, type WorkspaceView } from "../main-layout/main-layout";
 import DiagramView, { diagramGroupTone } from "./entity-diagram/diagram-view";
 import { toDiagramRelationships, toDiagramTables } from "./entity-diagram/diagram-model";
 import PanelSplitter from "../shared/panel-splitter/panel-splitter";
+import ToastNotice from "../shared/toast-notice/toast-notice";
 import { useMessageBox } from "../shared/message-box/message-box";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
 import "./entity-diagram/entity-diagram.css";
@@ -14,8 +19,6 @@ import EntityDefinition, { type DatabaseTableOption } from "./entity-definition/
 import { removeEntityFromRelations, renameEntityInRelations, toEditable, toEntityPayload, toRelationPayload, type EditableEntity } from "./entity-definition/types";
 import { domainCreatePath, domainDiagramPath, domainEditPath, type DomainDiagramRoute } from "./domain-routes";
 import DomainWizardPage from "./domain-wizard/domain-wizard-page";
-
-type DomainGraph = { entities: MetadataEntity[]; relations: DomainRelation[] };
 
 type DomainPageProps = {
   route: DomainDiagramRoute;
@@ -26,7 +29,6 @@ type DomainPageProps = {
   onOpenConnection: () => void;
 };
 
-// The Main domain is the FullDomain itself, so its entities and relations are the editable mapping to the database.
 const MAIN_DOMAIN_ID = "main";
 const EMPTY_GRAPH: DomainGraph = { entities: [], relations: [] };
 
@@ -55,12 +57,16 @@ const encode = (segment: string) => encodeURIComponent(segment);
 export default function DomainPage({ route, projects, connectionStatus, provider, onNavigate, onOpenConnection }: DomainPageProps) {
   if (route.kind !== "view") {
     // Cancel closes the wizard and returns to the diagram of the domain it was opened from (Main for create).
+    // Edit shares the diagram's in-memory draft, so applying the wizard only changes that draft until Save.
     const returnDomainId = route.kind === "edit" ? route.domainId : MAIN_DOMAIN_ID;
+    const returnToDiagram = () => onNavigate(domainDiagramPath(route.projectId, returnDomainId));
     return (
       <DomainWizardPage
         mode={route.kind}
         projectId={route.projectId}
-        onCancel={() => onNavigate(domainDiagramPath(route.projectId, returnDomainId))}
+        domainId={returnDomainId}
+        onCancel={returnToDiagram}
+        onApplied={returnToDiagram}
       />
     );
   }
@@ -101,14 +107,17 @@ type DomainDiagramContentProps = {
 };
 
 function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }: DomainDiagramContentProps) {
-  const isMainDomain = domainId === MAIN_DOMAIN_ID;
-  const [baseline, setBaseline] = useState<DomainGraph>(EMPTY_GRAPH);
-  const [working, setWorking] = useState<DomainGraph>(EMPTY_GRAPH);
+  const dispatch = useDispatch<AppDispatch>();
+  const draftState = useSelector((state: RootState) => state.domainDraft);
+  // The store keeps one draft; until its load finishes, the diagram must not show another domain's graph.
+  const isCurrentDraft = draftState.projectId === projectId && draftState.domainId === domainId;
+  const baseline: DomainGraph = isCurrentDraft ? draftState.baseline : EMPTY_GRAPH;
+  const working: DomainGraph = isCurrentDraft ? draftState.working : EMPTY_GRAPH;
+  const loading = !isCurrentDraft || draftState.status === "loading";
   const [databaseTables, setDatabaseTables] = useState<DatabaseTableOption[]>([]);
-  const [loading, setLoading] = useState(() => Boolean(projectId && domainId));
   const [saving, setSaving] = useState(false);
-  const [reloadToken, setReloadToken] = useState(0);
   const [selectedName, setSelectedName] = useState("");
+  const [notice, setNotice] = useState<{ message: string; isError: boolean } | null>(null);
   const dirty = JSON.stringify(working) !== JSON.stringify(baseline);
   const panel = useResizablePanel("metadata-entity-diagram-height", 480, 280, 900);
   const showMessageBox = useMessageBox();
@@ -127,36 +136,15 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
     };
   }, []);
 
+  // Reuses the in-memory draft when it already holds this domain, so unsaved edits survive the wizard round trip.
   useEffect(() => {
     setSelectedName("");
     if (!projectId || !domainId) {
-      setBaseline(EMPTY_GRAPH);
-      setWorking(EMPTY_GRAPH);
+      dispatch(clearDomainDraft());
       return;
     }
-    let active = true;
-    setLoading(true);
-    const request: Promise<DomainGraph> = isMainDomain
-      ? getFullDomain(projectId).then((full) => ({ entities: full.entities.map(metadataEntityFromDto), relations: full.relations }))
-      : getDomain(projectId, domainId).then((resolved) => ({ entities: resolved.entities, relations: resolved.relations }));
-    request
-      .then((graph) => {
-        if (!active) return;
-        setBaseline(graph);
-        setWorking(graph);
-      })
-      .catch(() => {
-        if (!active) return;
-        setBaseline(EMPTY_GRAPH);
-        setWorking(EMPTY_GRAPH);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [projectId, domainId, isMainDomain, reloadToken]);
+    void dispatch(loadDomainDraft({ projectId, domainId }));
+  }, [projectId, domainId, dispatch]);
 
   const selected = working.entities.find((entity) => entity.name === selectedName) ?? null;
   const draft = useMemo(() => (selected ? toEditable(selected) : null), [selected]);
@@ -165,39 +153,36 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
     : undefined;
 
   const changeDraft = (updater: (draft: EditableEntity) => EditableEntity) => {
-    if (!draft || !isMainDomain) return;
+    if (!draft) return;
     const next = updater(draft);
     const entity: MetadataEntity = { ...next, fields: next.fields.map(({ id, ...field }) => field) };
-    setWorking((current) => ({
-      entities: current.entities.map((item) => (item.name === selectedName ? entity : item)),
-      relations: renameEntityInRelations(current.relations, selectedName, entity.name),
+    dispatch(setDomainDraftWorking({
+      entities: working.entities.map((item) => (item.name === selectedName ? entity : item)),
+      relations: renameEntityInRelations(working.relations, selectedName, entity.name),
     }));
     if (entity.name !== selectedName) setSelectedName(entity.name);
   };
 
   const changeRelations = (updater: (relations: DomainRelation[]) => DomainRelation[]) => {
-    if (!isMainDomain) return;
-    setWorking((current) => ({ ...current, relations: updater(current.relations) }));
+    dispatch(setDomainDraftWorking({ ...working, relations: updater(working.relations) }));
   };
 
-  // Adds an unmapped entity to the Main domain and opens it, so its table and fields can be chosen in the editor.
+  // Adds an unmapped entity to the domain and opens it, so its table and fields can be chosen in the editor.
   const createEntity = () => {
-    if (!isMainDomain) return;
     const name = nextEntityName(working.entities);
-    setWorking((current) => ({
-      ...current,
-      entities: [...current.entities, { name, schema: "dbo", dbTable: null, rawSql: "", fields: [] }],
+    dispatch(setDomainDraftWorking({
+      ...working,
+      entities: [...working.entities, { name, schema: "dbo", dbTable: null, rawSql: "", fields: [] }],
     }));
     setSelectedName(name);
   };
 
   // Removes the entity and its relations from the in-memory domain only; nothing is persisted until save.
   const removeEntity = () => {
-    if (!isMainDomain || !selectedName) return;
-    setWorking((current) => ({
-      ...current,
-      entities: current.entities.filter((entity) => entity.name !== selectedName),
-      relations: removeEntityFromRelations(current.relations, selectedName),
+    if (!selectedName) return;
+    dispatch(setDomainDraftWorking({
+      entities: working.entities.filter((entity) => entity.name !== selectedName),
+      relations: removeEntityFromRelations(working.relations, selectedName),
     }));
     setSelectedName("");
   };
@@ -206,22 +191,27 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
     changeDraft((current) => ({ ...current, schema: table.schema, dbTable: table.name, rawSql: table.name }));
   };
 
-  const persist = async (graph: DomainGraph) => {
-    const saved = await updateFullDomain(projectId, {
-      entities: graph.entities.map(toEntityPayload),
-      relations: toRelationPayload(graph.relations),
-    });
-    const next = { entities: saved.entities.map(metadataEntityFromDto), relations: saved.relations };
-    setBaseline(next);
-    setWorking(next);
-  };
-
   const save = async () => {
     setSaving(true);
+    setNotice(null);
     try {
-      await persist(working);
-    } catch {
-      // Save failures are not surfaced yet, matching the previous panel behavior.
+      const saved = await updateDomain(projectId, domainId, {
+        name: draftState.name,
+        description: draftState.description,
+        entities: working.entities.map(toEntityPayload),
+        relations: toRelationPayload(working.relations),
+      });
+      dispatch(domainDraftSaved({
+        projectId,
+        domainId,
+        name: saved.name,
+        description: saved.description,
+        entities: saved.entities.map(metadataEntityFromDto),
+        relations: saved.relations,
+      }));
+      setNotice({ message: "Domain saved.", isError: false });
+    } catch (error) {
+      setNotice({ message: `Save failed. ${error instanceof Error ? error.message : "Something went wrong."}`, isError: true });
     } finally {
       setSaving(false);
     }
@@ -240,29 +230,24 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
     return choice === "discard";
   };
 
+  // Reload replaces the in-memory draft with the saved domain, so it is the only action that discards unsaved edits.
   const reload = async () => {
     if (dirty && !(await confirmDiscard("Reload domain?", "Discard unsaved changes and reload the domain from the server?", "Reload"))) return;
-    setReloadToken((token) => token + 1);
-  };
-
-  // Create always navigates, but unsaved changes would be lost, so remind the user before leaving.
-  const openCreateWizard = async () => {
-    if (dirty && !(await confirmDiscard("Create domain?", "You have unsaved changes. Leaving now will discard them. Continue to create a domain?", "Continue"))) return;
-    onNavigate(domainCreatePath(projectId));
+    void dispatch(loadDomainDraft({ projectId, domainId, force: true }));
   };
 
   const toolbarActions = (
     <div className="editor-actions domain-diagram-actions" role="toolbar" aria-label="Metadata domain actions">
-      <button className="domain-action-button primary" type="button" title="Save domain" aria-label="Save domain" onClick={() => void save()} disabled={!isMainDomain || !dirty || saving}>
+      <button className="domain-action-button primary" type="button" title="Save domain" aria-label="Save domain" onClick={() => void save()} disabled={!dirty || saving}>
         <Icon name="save" size={15} /> Save
       </button>
       <button className="domain-action-button" type="button" title="Reload domain from the server" aria-label="Reload domain" onClick={() => void reload()} disabled={loading || saving}>
         <Icon name="reset" size={15} /> Reload
       </button>
-      <button className="domain-action-button" type="button" title="Edit the Main domain in the wizard" aria-label="Edit domain"       onClick={() => onNavigate(domainEditPath(projectId, domainId))}>
+      <button className="domain-action-button" type="button" title="Edit this domain in the wizard" aria-label="Edit domain" onClick={() => onNavigate(domainEditPath(projectId, domainId))}>
         <Icon name="edit" size={15} /> Edit
       </button>
-            <button className="domain-action-button create" type="button" title="Create a domain in the wizard" aria-label="Create domain" onClick={() => void openCreateWizard()}>
+      <button className="domain-action-button create" type="button" title="Create a domain in the wizard" aria-label="Create domain" onClick={() => onNavigate(domainCreatePath(projectId))}>
         <Icon name="file-plus" size={15} /> Create
       </button>
     </div>
@@ -292,17 +277,17 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
               </div>
             </div>
             <div className="editor-actions domain-entity-actions" role="toolbar" aria-label="Entity actions">
-              <button className="domain-action-button create" type="button" title="Add a new entity to the Main domain" aria-label="New entity" onClick={createEntity} disabled={!isMainDomain || loading || saving}>
+              <button className="domain-action-button create" type="button" title="Add a new entity to this domain" aria-label="New entity" onClick={createEntity} disabled={loading || saving}>
                 <Icon name="plus" size={14} /> New entity
               </button>
-              <button className="domain-action-button danger" type="button" title="Remove the selected entity and its relations" aria-label="Remove entity" onClick={removeEntity} disabled={!isMainDomain || !draft || loading || saving}>
+              <button className="domain-action-button danger" type="button" title="Remove the selected entity and its relations" aria-label="Remove entity" onClick={removeEntity} disabled={!draft || loading || saving}>
                 <Icon name="trash" size={14} /> Remove entity
               </button>
             </div>
           </div>
           <EntityDefinition
             draft={draft}
-            canEdit={isMainDomain}
+            canEdit
             message=""
             allEntities={working.entities}
             domainRelations={working.relations}
@@ -331,6 +316,7 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
           onOpenTable={(table) => setSelectedName(table.name)}
         />
       </div>
+      <ToastNotice message={notice?.message} isError={notice?.isError} onDismiss={() => setNotice(null)} />
     </>
   );
 }

@@ -8,8 +8,8 @@ namespace OQuery.UI.Storage.Files;
 
 /// <summary>
 /// Stores each project in <c>projects/{projectId}</c>: <c>project.json</c> and one <c>domains/{domainId}.json</c>
-/// per domain. The Main domain file also holds the project's FullDomain. Legacy <c>domains/fulldomain.json</c>
-/// files are merged into <c>main.json</c> the first time the project's domains or FullDomain are read.
+/// per domain. Each domain file holds its own entities and relations. Legacy files are upgraded on read:
+/// <c>domains/fulldomain.json</c> is merged into <c>main.json</c>, and a legacy <c>main.json</c> FullDomain is read as the Main domain.
 /// </summary>
 public sealed class ProjectFileRepository(FilePathResolver filePathResolver) : IProjectRepository
 {
@@ -78,23 +78,6 @@ public sealed class ProjectFileRepository(FilePathResolver filePathResolver) : I
         return true;
     }
 
-    public FullDomainDto? GetFullDomain(string userSectionId, string projectId)
-    {
-        MigrateLegacyFullDomain(userSectionId, projectId);
-        return ReadOptional<MainDomainFile>(DomainPath(userSectionId, projectId, MAIN_DOMAIN_ID))?.FullDomain;
-    }
-
-    public void SaveFullDomain(string userSectionId, string projectId, FullDomainDto fullDomain)
-    {
-        ArgumentNullException.ThrowIfNull(fullDomain);
-        var path = DomainPath(userSectionId, projectId, MAIN_DOMAIN_ID);
-        var main = ReadOptional<MainDomainFile>(path) ?? new MainDomainFile { Id = MAIN_DOMAIN_ID, Name = MAIN_DOMAIN_NAME };
-        main.FullDomain = fullDomain;
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        WriteJson(path, main);
-        MigrateLegacyFullDomain(userSectionId, projectId);
-    }
-
     public IReadOnlyList<DomainDto> GetDomains(string userSectionId, string projectId)
     {
         MigrateLegacyFullDomain(userSectionId, projectId);
@@ -105,6 +88,7 @@ public sealed class ProjectFileRepository(FilePathResolver filePathResolver) : I
         return Directory.EnumerateFiles(folder, "*.json")
             .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
             .Select(ReadDomain)
+            .OfType<DomainDto>()
             .ToArray();
     }
 
@@ -119,22 +103,7 @@ public sealed class ProjectFileRepository(FilePathResolver filePathResolver) : I
         ArgumentNullException.ThrowIfNull(domain);
         var path = DomainPath(userSectionId, projectId, domain.Id);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        if (!domain.Id.Equals(MAIN_DOMAIN_ID, StringComparison.OrdinalIgnoreCase))
-        {
-            WriteJson(path, domain);
-            return;
-        }
-
-        // Keeps the FullDomain already stored in main.json; only the domain's own fields change.
-        var fullDomain = ReadOptional<MainDomainFile>(path)?.FullDomain;
-        WriteJson(path, new MainDomainFile
-        {
-            Id = domain.Id,
-            Name = domain.Name,
-            Description = domain.Description,
-            Entities = domain.Entities,
-            FullDomain = fullDomain,
-        });
+        WriteJson(path, domain);
     }
 
     public bool DeleteDomain(string userSectionId, string projectId, string domainId)
@@ -171,10 +140,10 @@ public sealed class ProjectFileRepository(FilePathResolver filePathResolver) : I
         if (!File.Exists(legacyPath))
             return;
 
-        var legacy = ReadOptional<FullDomainDto>(legacyPath)
+        var legacy = ReadOptional<LegacyFullDomain>(legacyPath)
             ?? throw new InvalidDataException($"Legacy full domain file '{legacyPath}' is missing.");
         var mainPath = DomainPath(userSectionId, projectId, MAIN_DOMAIN_ID);
-        var main = ReadOptional<MainDomainFile>(mainPath) ?? new MainDomainFile { Id = MAIN_DOMAIN_ID, Name = MAIN_DOMAIN_NAME };
+        var main = ReadOptional<StoredDomainFile>(mainPath) ?? new StoredDomainFile { Id = MAIN_DOMAIN_ID, Name = MAIN_DOMAIN_NAME };
         main.FullDomain ??= legacy;
         WriteJson(mainPath, main);
         File.Delete(legacyPath);
@@ -191,13 +160,26 @@ public sealed class ProjectFileRepository(FilePathResolver filePathResolver) : I
         => ReadOptional<ProjectFileDto>(path)
             ?? throw new InvalidDataException($"Project file '{path}' is missing.");
 
-    private static DomainDto ReadDomain(string path)
+    private static DomainDto? ReadDomain(string path)
     {
-        var domain = ReadOptional<DomainDto>(path)
+        var file = ReadOptional<StoredDomainFile>(path)
             ?? throw new InvalidDataException($"Domain file '{path}' is missing.");
-        if (string.IsNullOrWhiteSpace(domain.Id))
-            domain.Id = Path.GetFileNameWithoutExtension(path);
-        return domain;
+        if (string.IsNullOrWhiteSpace(file.Id))
+            file.Id = Path.GetFileNameWithoutExtension(path);
+
+        var legacy = file.FullDomain;
+        // Legacy sub-domain files only reference FullDomain entities by name. They stay on disk but are not loaded.
+        if (legacy is null && file.Entities.Any(entity => entity.Name is null))
+            return null;
+
+        return new DomainDto
+        {
+            Id = file.Id,
+            Name = file.Name,
+            Description = file.Description,
+            Entities = legacy?.Entities ?? file.Entities,
+            Relations = legacy?.Relations ?? file.Relations,
+        };
     }
 
     private static T? ReadOptional<T>(string path) where T : class
@@ -211,13 +193,20 @@ public sealed class ProjectFileRepository(FilePathResolver filePathResolver) : I
     private static void WriteJson<T>(string path, T value)
         => File.WriteAllText(path, JsonSerializer.Serialize(value, WriteOptions));
 
-    /// <summary>The Main domain file: the domain's fields plus the FullDomain it is built from.</summary>
-    private sealed class MainDomainFile
+    /// <summary>A domain file. <see cref="FullDomain"/> is only present in files written before domains owned their metadata.</summary>
+    private sealed class StoredDomainFile
     {
         public string Id { get; set; } = "";
         public string Name { get; set; } = "";
         public string Description { get; set; } = "";
-        public List<SubDomainEntityDto> Entities { get; set; } = [];
-        public FullDomainDto? FullDomain { get; set; }
+        public List<EntityDto> Entities { get; set; } = [];
+        public List<RelationDto> Relations { get; set; } = [];
+        public LegacyFullDomain? FullDomain { get; set; }
+    }
+
+    private sealed class LegacyFullDomain
+    {
+        public List<EntityDto> Entities { get; set; } = [];
+        public List<RelationDto> Relations { get; set; } = [];
     }
 }
