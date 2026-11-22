@@ -122,10 +122,11 @@ behavior as before. Only the Plan text diagram/editor arrangement changed.
 
 The OQuery editor preserves leading spaces and aligns highlighted text with the
 textarea caret.
-Run the layout regression test with:
+The OQuery editor regression tests (layout, comments, completions, folding,
+Monaco adapters, validation) live in one file. Run them with:
 
 ```powershell
-node --test .\src\components\oquery-editor\oquery-editor-layout.test.mjs
+npx vitest run src\components\oquery-editor\oquery-language.spec.ts
 ```
 
 Use **Ctrl+/** (or **Cmd+/**) to toggle comments on the current line when no text
@@ -156,7 +157,6 @@ shown, **Alt+Enter** places the caret on a new line below that result so another
 query can be entered without moving the result out of view.
 
 ```powershell
-node --test .\src\components\oquery-editor\oquery-comments.test.mjs
 npx vitest run src\components\playground\playground-slice.test.mjs
 ```
 
@@ -177,10 +177,11 @@ validation-error title. Context indexes in server errors are displayed as
 one-based numbers (for example, `Context 1 > Sorts`). Detailed server errors
 are retained for non-validation failures as well.
 
-Run the API error message regression tests with:
+The API error message regression tests are in `api-services.spec.ts`. Run the
+service tests with:
 
 ```powershell
-node --test .\src\services\api-error.test.mjs
+npx vitest run src\services\api-services.spec.ts
 ```
 
 Saving in OQuery mode parses the current editor contents before persisting

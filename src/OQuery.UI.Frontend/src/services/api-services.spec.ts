@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { allScalarApplyFor } from "../components/function-definition/types";
+import { formatApiError } from "./api-error";
+import { datesForDays, rangeForDates, toCsv, validateDates } from "./admin-analytics-service";
 
 // Each test reloads the services so their module-level caches start empty.
 async function loadServices() {
@@ -330,5 +332,85 @@ describe("loadDataSource", () => {
 
     await expect(loadDataSource("")).rejects.toThrow("Set VITE_DATA_SOURCE_URL");
     await expect(loadDataSource("https://example.test/down")).rejects.toThrow("Datasource request failed (503).");
+  });
+});
+
+describe("admin analytics date helpers", () => {
+  it("converts an inclusive day range to the API's half-open range", () => {
+    expect(rangeForDates("2026-01-01", "2026-01-31")).toEqual({ from: "2026-01-01", to: "2026-02-01" });
+  });
+
+  it("builds the last N days ending today in UTC", () => {
+    expect(datesForDays(7, new Date("2026-03-10T12:00:00Z"))).toEqual({ fromDay: "2026-03-04", toDay: "2026-03-10" });
+  });
+
+  it("rejects a reversed range and a span over 366 days", () => {
+    expect(validateDates("2026-02-01", "2026-01-01")).toBe("'From' must be on or before 'To'.");
+    expect(validateDates("2025-01-01", "2026-01-02")).toBe("The range may not exceed 366 days.");
+    expect(validateDates("2025-01-01", "2026-01-01")).toBeNull();
+  });
+});
+
+describe("toCsv", () => {
+  it("quotes commas, quotes and newlines per RFC 4180", () => {
+    const csv = toCsv(["URL", "Requests"], [["/a,b", 1], ['/say "hi"', 2], ["/line\nbreak", 3]]);
+    expect(csv).toBe('URL,Requests\r\n"/a,b",1\r\n"/say ""hi""",2\r\n"/line\nbreak",3\r\n');
+  });
+});
+
+describe("formatApiError", () => {
+  const fallback = "Query request failed (400).";
+
+  it("shows every validation error with a readable context and field", () => {
+    const message = formatApiError(JSON.stringify({
+      title: "One or more validation errors occurred.",
+      status: 400,
+      errors: {
+        "Contexts[0].Value.Sorts": ["The Sorts field is required."],
+        "Contexts[1].Value.Sorts": ["The Sorts field is required."],
+      },
+      traceId: "internal-trace",
+    }), fallback);
+    expect(message).toBe([
+      "The query request contains invalid values. Correct the fields below and try again.",
+      "- Context 1 > Sorts: The Sorts field is required.",
+      "- Context 2 > Sorts: The Sorts field is required.",
+    ].join("\n"));
+  });
+
+  it("retains validation errors alongside server detail and named context paths", () => {
+    const message = formatApiError(JSON.stringify({
+      detail: "Unable to save this query.",
+      errors: {
+        "Contexts.Managers.Entity": ["Unknown entity.", "Choose an available entity."],
+        "$.pageSize": "Must be greater than zero.",
+      },
+    }), fallback);
+    expect(message).toMatch(/Unable to save this query/);
+    expect(message).toMatch(/Context "Managers" > Entity: Unknown entity/);
+    expect(message).toMatch(/Choose an available entity/);
+    expect(message).toMatch(/pageSize: Must be greater than zero/);
+  });
+
+  it("preserves server details, titles, and plain-text or JSON-string errors", () => {
+    expect(formatApiError('{"detail":"Unknown field [Missing].","title":"Bad request"}', fallback))
+      .toBe("Unknown field [Missing].");
+    expect(formatApiError('{"title":"Connection unavailable"}', fallback)).toBe("Connection unavailable");
+    expect(formatApiError("Entity cannot be changed.", fallback)).toBe("Entity cannot be changed.");
+    expect(formatApiError('"Invalid query."', fallback)).toBe("Invalid query.");
+  });
+
+  it("uses a useful fallback for empty, HTML, and unrecognized error bodies", () => {
+    for (const body of ["", " ", "null", "[]", "123", "{}", "<html>Bad gateway</html>"]) {
+      expect(formatApiError(body, fallback)).toBe(fallback);
+    }
+  });
+
+  it("handles malformed validation entries without losing valid errors", () => {
+    const message = formatApiError(JSON.stringify({
+      errors: { Entity: [null, 42, "", "Required.", "Required."] },
+    }), fallback);
+    expect(message.split("\n").filter((line) => line.startsWith("- ")).length).toBe(1);
+    expect(message).toMatch(/Entity: Required/);
   });
 });
