@@ -44,8 +44,8 @@ function Header({ projects, projectId, domains, domainId, connectionStatus, prov
     : connectionStatus === "failed" ? "Connection failed · Retry"
       : connectionStatus === "succeeded" ? (provider || "Connecting") : "Not connected";
   return <header className="root-header">
-    <button type="button" className="prototype-logo" onClick={onNavigateHome} aria-label="Go to home"><img src="/brand-concepts/23-oquery-orbit-core.svg" alt="" /><small>DATA QUERY ENGINE</small></button>
-    <div className="prototype-context">
+    <button type="button" className="main-layout-logo" onClick={onNavigateHome} aria-label="Go to home"><img src="/brand-concepts/23-oquery-orbit-core.svg" alt="" /><small>DATA QUERY ENGINE</small></button>
+    <div className="main-layout-context">
       <MainLayoutSelect
         label="CURRENT PROJECT"
         icon="folder"
@@ -65,14 +65,14 @@ function Header({ projects, projectId, domains, domainId, connectionStatus, prov
         onChange={onSelectDomain}
       />
     </div>
-    <div className="prototype-actions">
+    <div className="main-layout-actions">
       <button type="button" className={`database-status${connectionState ? ` ${connectionState}` : ""}`} onClick={onOpenConnection} aria-live="polite">
         <span className="database-status-dot" />
         <Icon name={connectionState === "connected" ? "check" : "database"} size={15} />
         <span>{connectionLabel}</span>
       </button>
-      <button type="button" className="prototype-notification" aria-label="Notifications"><Icon name="bell" size={15} /><em>3</em></button>
-      <button type="button" className="prototype-avatar" aria-label="User profile">N</button>
+      <button type="button" className="main-layout-notification" aria-label="Notifications"><Icon name="bell" size={15} /><em>3</em></button>
+      <button type="button" className="main-layout-avatar" aria-label="User profile">N</button>
     </div>
   </header>;
 }
@@ -88,7 +88,7 @@ function Sidebar({ view, setView, collapsed, onToggle }: { view: WorkspaceView; 
 }
 
 export function Heading({ icon, title, text, action }: { icon: IconName; title: string; text: string; action?: string }) {
-  return <div className="prototype-heading"><div><span className="prototype-heading-icon"><Icon name={icon} size={23} /></span><span><h1>{title}</h1><p>{text}</p></span></div>{action && <button className="prototype-primary" type="button"><Icon name="plus" size={14} /> {action}</button>}</div>;
+  return <div className="main-layout-heading"><div><span className="main-layout-heading-icon"><Icon name={icon} size={23} /></span><span><h1>{title}</h1><p>{text}</p></span></div>{action && <button className="main-layout-primary" type="button"><Icon name="plus" size={14} /> {action}</button>}</div>;
 }
 
 type MainLayoutProps = {

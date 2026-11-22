@@ -20,7 +20,6 @@ import {
 } from "../domains/domain-model";
 import { builtinFilterOperators } from "../oquery-editor/filter-operators";
 import CopilotThread from "./copilot-chat/copilot-thread";
-import "./playground.css";
 
 const ENTITY_ROW_HEIGHT = 28;
 const FIELD_ROW_HEIGHT = 24;
@@ -95,7 +94,7 @@ function rowAt(offsets: number[], y: number) {
 }
 
 function PlaygroundHeading() {
-  return <div className="pg-heading"><div><span className="pg-heading-icon"><Icon name="query" size={23} /></span><span><h1>Query playground</h1><p>Ask questions across your business data</p></span></div><div className="pg-heading-actions"><button type="button" className="button secondary"><Icon name="code" size={14} />Format</button><button type="button" className="button secondary"><Icon name="save" size={14} />Save</button></div></div>;
+  return <div className="playground-heading"><div><span className="playground-heading-icon"><Icon name="query" size={23} /></span><span><h1>Query playground</h1><p>Ask questions across your business data</p></span></div><div className="playground-heading-actions"><button type="button" className="button secondary"><Icon name="code" size={14} />Format</button><button type="button" className="button secondary"><Icon name="save" size={14} />Save</button></div></div>;
 }
 
 function Splitter({ label, hidden = false, minimized = false, onDrag }: { label: string; hidden?: boolean; minimized?: boolean; onDrag: (delta: number) => void }) {
@@ -113,7 +112,7 @@ function Splitter({ label, hidden = false, minimized = false, onDrag }: { label:
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", stop);
   };
-  return <div className={`pg-splitter${hidden ? " is-hidden" : ""}${minimized ? " is-minimized" : ""}`} role="separator" aria-orientation="vertical" aria-label={label} onPointerDown={startDrag} />;
+  return <div className={`playground-splitter${hidden ? " is-hidden" : ""}${minimized ? " is-minimized" : ""}`} role="separator" aria-orientation="vertical" aria-label={label} onPointerDown={startDrag} />;
 }
 
 function EntityExplorer({ entities, relations, error }: { entities: MetadataEntity[]; relations: DomainRelation[]; error: string }) {
@@ -146,39 +145,39 @@ function EntityExplorer({ entities, relations, error }: { entities: MetadataEnti
   const last = Math.min(rows.length, rowAt(offsets, scrollTop + viewportHeight) + 1 + ROW_OVERSCAN);
 
   return <>
-    <h2 className="pg-eyebrow">Available entities</h2>
-    <label className="pg-search"><Icon name="search" size={14} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search entities or fields..." aria-label="Search entities or fields" /></label>
-    {error && <p className="pg-message error">{error}</p>}
-    {!error && rows.length === 0 && <p className="pg-message">{entities.length ? "No matches" : "No entities in this domain"}</p>}
-    <div className="pg-list" ref={listRef} onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}>
-      <div className="pg-list-content" style={{ height: offsets[rows.length] }}>
+    <h2 className="playground-eyebrow">Available entities</h2>
+    <label className="playground-search"><Icon name="search" size={14} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search entities or fields..." aria-label="Search entities or fields" /></label>
+    {error && <p className="playground-message error">{error}</p>}
+    {!error && rows.length === 0 && <p className="playground-message">{entities.length ? "No matches" : "No entities in this domain"}</p>}
+    <div className="playground-list" ref={listRef} onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}>
+      <div className="playground-list-content" style={{ height: offsets[rows.length] }}>
         {rows.slice(first, last).map((row, offset) => {
           const top = offsets[first + offset];
           const height = rowHeight(row);
           if (row.kind === "entity") {
-            return <div key={row.key} className="pg-row pg-row-entity" style={{ top, height }}>
-              <button type="button" className="pg-row-button" aria-expanded={row.open} onClick={() => toggleEntity(row.entity.name)}>
+            return <div key={row.key} className="playground-row playground-row-entity" style={{ top, height }}>
+              <button type="button" className="playground-row-button" aria-expanded={row.open} onClick={() => toggleEntity(row.entity.name)}>
                 <Icon name="table" size={14} />
-                <span className="pg-name">{row.entity.name}</span>
-                <span className="pg-row-toggle"><Icon name={row.open ? "chevron-down" : "chevron-right"} size={12} /></span>
+                <span className="playground-name">{row.entity.name}</span>
+                <span className="playground-row-toggle"><Icon name={row.open ? "chevron-down" : "chevron-right"} size={12} /></span>
               </button>
             </div>;
           }
           if (row.kind === "field") {
             const type = dataTypeIcon(row.field.dataType);
-            return <div key={row.key} className="pg-row pg-row-field" style={{ top, height }}>
+            return <div key={row.key} className="playground-row playground-row-field" style={{ top, height }}>
               <Icon name="field" size={12} />
-              <span className="pg-name">{row.field.name}</span>
-              <span className="pg-type" title={type.label} aria-label={type.label}><Icon name={type.icon} size={12} /></span>
+              <span className="playground-name">{row.field.name}</span>
+              <span className="playground-type" title={type.label} aria-label={type.label}><Icon name={type.icon} size={12} /></span>
             </div>;
           }
           const collection = row.relation.side === "target";
-          return <div key={row.key} className="pg-row pg-row-relation" style={{ top, height }}>
-            <span className="pg-relation-name">
+          return <div key={row.key} className="playground-row playground-row-relation" style={{ top, height }}>
+            <span className="playground-relation-name">
               <Icon name={collection ? "relation-one-to-many" : "relation-many-to-one"} size={12} />
-              <span className="pg-name">{row.relation.name}</span>
+              <span className="playground-name">{row.relation.name}</span>
             </span>
-            <span className="pg-ref"><span className="pg-arrow">→</span> {row.relation.refEntity}</span>
+            <span className="playground-ref"><span className="playground-arrow">→</span> {row.relation.refEntity}</span>
           </div>;
         })}
       </div>
@@ -188,15 +187,15 @@ function EntityExplorer({ entities, relations, error }: { entities: MetadataEnti
 
 function CopilotAside({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   if (collapsed) {
-    return <aside className="pg-copilot collapsed">
-      <button type="button" className="pg-icon-button" aria-label="Expand AI assistant" onClick={onToggle}><Icon name="chevron-left" size={14} /></button>
-      <span className="pg-copilot-rail" title="AI assistant"><Icon name="robot" size={16} /></span>
+    return <aside className="playground-copilot collapsed">
+      <button type="button" className="playground-icon-button" aria-label="Expand AI assistant" onClick={onToggle}><Icon name="chevron-left" size={14} /></button>
+      <span className="playground-copilot-rail" title="AI assistant"><Icon name="robot" size={16} /></span>
     </aside>;
   }
-  return <aside className="pg-copilot">
-    <header className="pg-copilot-header">
-      <span className="pg-copilot-title"><Icon name="robot" size={16} /><span className="pg-eyebrow">AI assistant</span></span>
-      <button type="button" className="pg-icon-button" aria-label="Collapse AI assistant" onClick={onToggle}><Icon name="chevron-right" size={14} /></button>
+  return <aside className="playground-copilot">
+    <header className="playground-copilot-header">
+      <span className="playground-copilot-title"><Icon name="robot" size={16} /><span className="playground-eyebrow">AI assistant</span></span>
+      <button type="button" className="playground-icon-button" aria-label="Collapse AI assistant" onClick={onToggle}><Icon name="chevron-right" size={14} /></button>
     </header>
     <CopilotThread />
   </aside>;
@@ -332,27 +331,27 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
     runContext(entry);
   };
 
-  return <div className="pg-root" style={{ gridTemplateColumns: `minmax(0,1fr) 6px ${copilotCollapsed ? COPILOT_COLLAPSED_WIDTH : copilotWidth}px` }}>
-    <div className="pg-main">
+  return <div className="playground-root" style={{ gridTemplateColumns: `minmax(0,1fr) 6px ${copilotCollapsed ? COPILOT_COLLAPSED_WIDTH : copilotWidth}px` }}>
+    <div className="playground-main">
       <PlaygroundHeading />
-      <div className="pg-layout" style={{ gridTemplateColumns: `${entityWidth}px 6px minmax(0,1fr)` }}>
-    <div ref={entitiesSlotRef} className="pg-entities-slot">
-      <aside ref={entitiesRef} className={`pg-entities${entityWidth < ENTITY_HIDDEN_WIDTH ? " is-collapsed" : ""}`}>
+      <div className="playground-layout" style={{ gridTemplateColumns: `${entityWidth}px 6px minmax(0,1fr)` }}>
+    <div ref={entitiesSlotRef} className="playground-entities-slot">
+      <aside ref={entitiesRef} className={`playground-entities${entityWidth < ENTITY_HIDDEN_WIDTH ? " is-collapsed" : ""}`}>
         <EntityExplorer entities={metadata} relations={metadataRelations} error={loadError} />
       </aside>
     </div>
     <Splitter minimized={entityWidth <= ENTITY_HIDDEN_WIDTH} label="Resize available entities" onDrag={(delta) => setEntityWidth((width) => clamp(width + delta, ENTITY_WIDTH.min, ENTITY_WIDTH.max))} />
-    <section className="pg-editor-area">
-      <div className="pg-tabs" role="tablist">
-        {tabs.map((tab) => <div key={tab.id} className={`pg-tab${tab.id === activeTab.id ? " active" : ""}`}>
+    <section className="playground-editor-area">
+      <div className="playground-tabs" role="tablist">
+        {tabs.map((tab) => <div key={tab.id} className={`playground-tab${tab.id === activeTab.id ? " active" : ""}`}>
           <button type="button" role="tab" aria-selected={tab.id === activeTab.id} onClick={() => selectTab(tab.id)}>
             <Icon name="file-text" size={13} />{tab.title}
           </button>
-          {tabs.length > 1 && <button type="button" className="pg-tab-close" aria-label={`Close ${tab.title}`} onClick={() => closeTab(tab.id)}><Icon name="close" size={11} /></button>}
+          {tabs.length > 1 && <button type="button" className="playground-tab-close" aria-label={`Close ${tab.title}`} onClick={() => closeTab(tab.id)}><Icon name="close" size={11} /></button>}
         </div>)}
-        <button type="button" className="pg-tab-add" aria-label="New query tab" onClick={addTab}><Icon name="plus" size={13} /></button>
+        <button type="button" className="playground-tab-add" aria-label="New query tab" onClick={addTab}><Icon name="plus" size={13} /></button>
       </div>
-      <div className="pg-editor-host">
+      <div className="playground-editor-host">
         <OQueryEditor
           key={activeTab.id}
           ref={editorRef}
@@ -373,12 +372,12 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
           onClearInlineResult={(name) => dispatch(clearInlineResult(name))}
         />
       </div>
-      {message && <p className="pg-message error">{message}</p>}
+      {message && <p className="playground-message error">{message}</p>}
     </section>
       </div>
     </div>
     <Splitter hidden={copilotCollapsed} label="Resize AI assistant" onDrag={(delta) => setCopilotWidth((width) => clamp(width - delta, COPILOT_WIDTH.min, COPILOT_WIDTH.max))} />
-    <div ref={copilotSlotRef} className="pg-copilot-slot">
+    <div ref={copilotSlotRef} className="playground-copilot-slot">
       <CopilotAside collapsed={copilotCollapsed} onToggle={() => setCopilotCollapsed((collapsed) => !collapsed)} />
     </div>
   </div>;
