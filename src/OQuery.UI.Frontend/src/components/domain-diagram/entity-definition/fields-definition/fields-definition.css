@@ -35,7 +35,7 @@
 .field-data-type-menu { position: absolute; z-index: 10; top: calc(100% + 2px); right: 0; display: grid; min-width: 100%; width: max-content; }
 .field-data-type-option { white-space: nowrap; }
 .field-data-type-option .icon { flex: 0 0 auto; color: #a78bfa; }
-.button.compact.add-field-button { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; margin-top: 16px; padding: 0; border: 1px solid #3b3d52; border-radius: 3px; color: #c9b8ff; background: #211d32; font: 12px "Manrope", sans-serif; }
+.button.compact.add-field-button { display: inline-flex; width: 28px; height: 28px; align-items: center; justify-content: center; margin-top: 16px; padding: 0; border: 1px solid #3b3d52; border-radius: 3px; color: #c9b8ff; background: #211d32; }
 .editor-section-head .button.compact.add-field-button { margin-top: 0; }
 .button.compact.add-field-button:hover { border-color: #8064e8; color: #fff; background: #30264d; }
 .field-actions { display: flex; align-items: center; gap: 10px; }

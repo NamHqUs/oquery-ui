@@ -26,6 +26,7 @@ import "./styles.css";
 import "./components/app-shell/app-shell.css";
 import PlaygroundWorkspace from "./components/prototype-workspace/prototype-workspace";
 import { domainDiagramPath, domainDiagramRouteOf, isDomainDiagramPath } from "./components/domain-diagram/domain-diagram-routes";
+import DomainWizardPage from "./components/domain-diagram/domain-wizard/domain-wizard-page";
 
 const PAGE_PATHS = {
   home: "/",
@@ -169,7 +170,7 @@ type PlaygroundRoute = { projectId: string; domainId: string; queryId: string };
 
 function playgroundRouteOf(pathname: string): PlaygroundRoute | null {
   const diagramRoute = domainDiagramRouteOf(pathname);
-  if (diagramRoute) return { ...diagramRoute, queryId: "" };
+  if (diagramRoute) return diagramRoute.kind === "view" ? { projectId: diagramRoute.projectId, domainId: diagramRoute.domainId, queryId: "" } : null;
   if (!pathname.startsWith(`${PLAYGROUND_PATH}/`)) return null;
   const [projectId = "", domainId = "", queryId = ""] = pathname
     .slice(PLAYGROUND_PATH.length + 1)
@@ -844,6 +845,11 @@ function App() {
 
   if (legacyProjectIdOf(location.pathname)) {
     return <Navigate to={builderPath(legacyProjectIdOf(location.pathname), new URLSearchParams(location.search).get("domain")?.trim() ?? "")} replace />;
+  }
+
+  const wizardRoute = domainDiagramRouteOf(location.pathname);
+  if (wizardRoute?.kind === "create" || wizardRoute?.kind === "edit") {
+    return <DomainWizardPage mode={wizardRoute.kind} projectId={wizardRoute.projectId} domainId={wizardRoute.kind === "edit" ? wizardRoute.domainId : ""} />;
   }
 
   const playgroundRoute = playgroundRouteOf(location.pathname);

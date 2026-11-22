@@ -18,6 +18,8 @@ export interface DefinitionActionAdapter {
   onReload?: () => Promise<void>;
   onDelete?: () => Promise<void>;
   onNew?: () => void;
+  showLabels?: boolean;
+  deleteMessage?: string;
 }
 
 type DefinitionChangeAdapter = Pick<
@@ -74,13 +76,14 @@ async function confirmDefinitionDelete(
   showMessageBox: ReturnType<typeof useMessageBox>,
 ): Promise<boolean> {
   const selectedName = adapter.getSelectedName?.() || adapter.selectedName;
+  const verb = adapter.resourceName === "entity" ? "Remove" : "Delete";
   const action = await showMessageBox({
-    eyebrow: `DELETE ${adapter.resourceName.toUpperCase()}`,
-    title: `Delete ${selectedName}?`,
-    message: `This ${adapter.resourceName} definition will be permanently removed.`,
+    eyebrow: `${verb.toUpperCase()} ${adapter.resourceName.toUpperCase()}`,
+    title: `${verb} ${selectedName}?`,
+    message: adapter.deleteMessage || `This ${adapter.resourceName} definition will be permanently removed.`,
     actions: [
       { value: "cancel", label: "Cancel", variant: "secondary" },
-      { value: "delete", label: "Delete", variant: "danger" },
+      { value: "delete", label: verb, variant: "danger" },
     ],
   });
   return action === "delete";
@@ -94,7 +97,10 @@ export default function DefinitionActions({ adapter }: { adapter: DefinitionActi
     && (adapter.dirty || adapter.showSaveWhenClean);
   const resourceContext = adapter.resourceName === "entity" ? " from current domain" : "";
   const createLabel = `Create ${adapter.resourceName}${adapter.resourceName === "entity" ? " in current domain" : ""}`;
-  const deleteLabel = `Delete ${adapter.resourceName}${resourceContext}`;
+  const deleteLabel = `${adapter.resourceName === "entity" ? "Remove" : "Delete"} ${adapter.resourceName}${resourceContext}`;
+  const labelClass = adapter.showLabels ? " labeled" : "";
+  const createVisibleLabel = adapter.resourceName === "entity" ? "New entity" : "";
+  const deleteVisibleLabel = adapter.resourceName === "entity" ? "Remove entity" : "";
 
   const handleNew = async () => {
     if (!adapter.onNew || !(await resolveDefinitionChanges(adapter, showMessageBox))) return;
@@ -115,7 +121,7 @@ export default function DefinitionActions({ adapter }: { adapter: DefinitionActi
     <div className="editor-actions">
       {!adapter.isBuiltIn && showDelete && (
         <button
-          className="icon-button definition-action-button danger"
+          className={`icon-button definition-action-button danger${labelClass}`}
           type="button"
           title={deleteLabel}
           aria-label={deleteLabel}
@@ -123,6 +129,7 @@ export default function DefinitionActions({ adapter }: { adapter: DefinitionActi
           disabled={!adapter.onDelete || adapter.saving}
         >
           <Icon name="trash" size={17} />
+          {adapter.showLabels && <span>{deleteVisibleLabel}</span>}
         </button>
       )}
 
@@ -139,7 +146,7 @@ export default function DefinitionActions({ adapter }: { adapter: DefinitionActi
         </button>
       )}
       {adapter.onNew && <button
-        className="icon-button definition-action-button create"
+        className={`icon-button definition-action-button create${labelClass}`}
         type="button"
         title={createLabel}
         aria-label={createLabel}
@@ -147,6 +154,7 @@ export default function DefinitionActions({ adapter }: { adapter: DefinitionActi
         disabled={!adapter.onNew || adapter.saving}
       >
         <Icon name="file-plus" size={17} />
+        {adapter.showLabels && <span>{createVisibleLabel}</span>}
       </button>}
     </div>
   );

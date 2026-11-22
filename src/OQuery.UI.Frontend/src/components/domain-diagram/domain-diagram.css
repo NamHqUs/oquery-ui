@@ -1,4 +1,11 @@
 .entity-diagram { min-height: 640px; overflow: hidden; background: #10141c; border-radius: 5px; color: #b7bfce; }
+.domain-diagram-toolbar { display: flex; justify-content: flex-end; padding: 10px 16px; border-bottom: 1px solid #252b38; background: #11151d; }
+.domain-diagram-actions { display: flex; align-items: center; gap: 8px; }
+.domain-action-button { display: inline-flex; align-items: center; border: 1px solid #303847; border-radius: 3px; color: #c9ced9; background: #151923; }
+.domain-action-button:hover:not(:disabled) { border-color: #a78bfa; color: #eeeaff; }
+.domain-action-button.primary { border-color: #8064e8; color: #fff; background: linear-gradient(135deg,#6049a0,#443078); }
+.domain-action-button.create { border-color: #3f8b70; }
+.domain-action-button:disabled { opacity: .45; cursor: not-allowed; }
 .entity-diagram-toolbar, .entity-diagram-domain-bar { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 15px 20px; border-bottom: 1px solid #252b38; background: #11151d; }
 .entity-diagram-toolbar p { margin: 6px 0 0; color: #818b9d; font-size: 11px; }
 .entity-domain-create, .entity-diagram-add-table { display: flex; align-items: center; gap: 8px; }
@@ -30,11 +37,12 @@
 .metadata-diagram-mode-content > .panel-splitter.horizontal { position: relative; top: auto; right: auto; bottom: auto; left: auto; z-index: 5; grid-column: 1; grid-row: 2; width: auto; height: 8px; }
 .metadata-diagram-mode-content > .panel-splitter.horizontal .panel-splitter-handle { top: 0; }
 .metadata-diagram-mode-content > .metadata-diagram-editor { display: flex; grid-column: 1; grid-row: 3; min-height: 0; flex-direction: column; overflow: visible; background: linear-gradient(160deg, #171923, #11141c); }
-.metadata-diagram-editor .metadata-editor-heading { flex: 0 0 auto; margin: 0; padding: 0px 16px; border: 0; border-top: 2px solid #35364a; border-radius: 0; background: linear-gradient(105deg, #262238a6, #1a1c29a6); }
-.metadata-diagram-editor .metadata-editor-heading .table-details-title h3 { margin: 7px 0 3px; color: #f0edfb; font-size: 15px; letter-spacing: -.2px; }
+.metadata-diagram-editor .metadata-editor-heading { flex: 0 0 auto; align-items: center; margin: 0; padding: 0px 16px; border: 0; border-top: 2px solid #35364a; border-radius: 0; background: linear-gradient(105deg, #262238a6, #1a1c29a6); }
+.metadata-diagram-editor .metadata-editor-heading .table-details-title h3 { margin: 0; color: #f0edfb; font-size: 15px; letter-spacing: -.2px; }
 .metadata-diagram-editor .metadata-editor-heading .editor-actions { gap: 6px; }
 .metadata-diagram-editor .metadata-editor-heading .definition-action-button { background: #131720 !important; }
 .metadata-diagram-editor .metadata-editor-heading .definition-action-button.create { background: #131720 !important; }
+.metadata-diagram-editor .metadata-editor-heading .definition-action-button.labeled { width: auto; grid-auto-flow: column; gap: 6px; white-space: nowrap; }
 .metadata-diagram-editor .metadata-editor-content { min-height: 0; flex: 1 1 auto; overflow: visible; padding-bottom: 14px; }
 .metadata-diagram-editor .metadata-editor-compact .metadata-form-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 .metadata-diagram-editor .metadata-editor-compact .metadata-table-picker > label,

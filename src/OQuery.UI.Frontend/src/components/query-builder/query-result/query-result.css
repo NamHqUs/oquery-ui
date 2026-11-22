@@ -14,5 +14,4 @@
 .query-result-tools .button.query-result-action:hover:not(:disabled) { background: #8169e3; }
 .query-result-action:disabled { opacity: .5; cursor: not-allowed; }
 .query-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-right: 12px; margin-bottom: 12px; padding-top: 14px; color: var(--muted); font-size: 12px; }
-.query-pagination .button { padding: 7px 11px; }
 .query-pagination .button:disabled { opacity: .5; cursor: not-allowed; }

@@ -263,7 +263,7 @@
 .report-detail-chart .report-series-chart > h4 { margin: 0 0 5px; color: #c7c0d8; font: 700 14px "Manrope",sans-serif; }
 .report-series-chart .report-svg-wrap { max-width: 100%; }
 .report-chart-empty { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 27px 16px; text-align: center; }.report-chart-empty strong { color: #dedbe9; font-size: 13px; }.report-chart-empty > span:not(.report-empty-mark) { max-width: 350px; color: #818b9d; font-size: 11px; line-height: 1.6; }
-.report-empty-mark { display: grid; width: 43px; height: 43px; place-items: center; border: 1px solid #433860; border-radius: 6px; color: #b7a4ff; background: #211b32; box-shadow: 0 8px 22px #0003; }.report-chart-empty .button { margin-top: 5px; padding: 8px 11px; font-size: 11px; }
+.report-empty-mark { display: grid; width: 43px; height: 43px; place-items: center; border: 1px solid #433860; border-radius: 6px; color: #b7a4ff; background: #211b32; box-shadow: 0 8px 22px #0003; }.report-chart-empty .button { margin-top: 5px; }
 .report-spinner { width: 14px; height: 14px; border: 2px solid #554777; border-top-color: #c3adff; border-radius: 50%; animation: report-spin .75s linear infinite; }@keyframes report-spin { to { transform: rotate(360deg); } }
 .report-metadata-error { padding: 9px 12px; border-radius: 3px; color: #f0adb5; background: #29171d; font-size: 11px; }
 .report-modal-backdrop { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: 20px; background: #05060bcc; backdrop-filter: blur(6px); }
@@ -271,7 +271,7 @@
 .report-modal-heading { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 22px; }.report-modal-heading h2 { margin: 7px 0 0; font-size: 21px; letter-spacing: -.5px; }
 .report-modal > label,.report-form-row > label { display: flex; flex: 1; flex-direction: column; gap: 7px; margin-bottom: 15px; color: #a9b2c1; font-size: 11px; font-weight: 600; }
 .report-modal input,.report-modal textarea,.report-modal select { width: 100%; padding: 10px 11px; border: 1px solid #303644; border-radius: 3px; outline: 0; color: #e2e6ed; background: #0d1016; font-size: 12px; }.report-modal textarea { resize: vertical; line-height: 1.5; }.report-modal input:focus,.report-modal textarea:focus,.report-modal select:focus { border-color: #8069cb; box-shadow: 0 0 0 2px #8069cb22; }
-.report-form-row { display: flex; gap: 12px; }.report-form-note { margin: 0; color: #737e90; font-size: 11px; line-height: 1.6; }.report-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }.report-modal-actions .button { padding: 9px 13px; font-size: 11px; }
+.report-form-row { display: flex; gap: 12px; }.report-form-note { margin: 0; color: #737e90; font-size: 11px; line-height: 1.6; }.report-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 .report-metadata-error { border-radius: 3px; background: #29171d; }
 .new-home-story { font-family: "Manrope", sans-serif; }
 .new-home-story .eyebrow,

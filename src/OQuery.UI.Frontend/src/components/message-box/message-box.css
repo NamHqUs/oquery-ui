@@ -7,5 +7,4 @@
 .message-box-confirmation input:focus { border-color: var(--purple); }
 .message-box-confirmation small { color: #f0a6ae; font-size: 11px; }
 .message-box-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
-.message-box-actions .button { padding: 8px 11px; font-size: 12px; }
 .message-box-actions .button.danger { color: #f1b1b9; border-color: #704047; background: #24171c; }

@@ -30,6 +30,16 @@ The Projects page owns the **Create project** action and the project's
 sub-domain actions. The Diagram page owns its own **Reload domain** and
 sub-domain actions. Neither page shares action state with the other.
 
+On the Diagram page, the toolbar has **Save**, **Reload**, **Edit**, and **Create**.
+**Edit** opens `/domains/diagrams/edit/:projectId/main`, the domain wizard for the Main
+domain. Step 1 connects to the database when no connection is active (the existing
+connection form is shown inline) and then lists its tables. Deselecting a mapped table
+removes its entity and relations on apply; new tables become entities with their
+foreign keys as relations. **Create** opens `/domains/diagrams/create/:projectId`, which
+builds a sub-domain from existing Main entities. Edit and Create are disabled while the
+domain has unsaved changes. **Reload** refetches the domain from the server and asks
+before discarding unsaved changes. Sub-domain editing is not part of this wizard.
+
 The Data Sources page first loads the detected providers from
 `GET /db/connections`, then connects directly with `PUT /db/connection`
 (provider and connection string). Providers are the dialects registered from the
@@ -64,9 +74,11 @@ navigating.
 
 Diagram uses the project and sub-domain selected in the workspace header, which is
 the global selection shared with the Playground. It is served at
-`/domains/diagram/:projectId/:domainId`; the legacy `/metadata/diagrams` URL
+`/domains/diagrams/:projectId/:domainId`; the legacy `/metadata/diagrams` URL
 redirects there. If no sub-domain is selected, or the current ID no longer
 exists, it selects the first returned sub-domain before loading its graph.
+The wizard routes are `/domains/diagrams/create/:projectId` and
+`/domains/diagrams/edit/:projectId/:domainId`; the old `/domains/diagram` paths are removed.
 The project page shows the FullDomain read-only and owns the generate action.
 Sub-domain editing never changes physical columns, raw SQL or reference columns.
 

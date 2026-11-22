@@ -158,7 +158,7 @@
 .hp-flow-steps li:not(:last-child)::after { position: absolute; top: 15px; bottom: 1px; left: 3px; width: 1px; background: #2c3341; content: ""; }
 .hp-flow-result { border-color: #2d5a4c; background: linear-gradient(160deg, #10201c, #10131a); }
 .hp-flow-result p { margin: 0; color: #a7dfc9; font-size: 13px; line-height: 1.5; }
-.hp-flow-result .button { align-self: flex-start; margin-top: auto; padding: 7px 12px; font-size: 12px; }
+.hp-flow-result .button { align-self: flex-start; margin-top: auto; }
 .hp-points-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 22px; }
 .hp-points { display: contents; margin: 0; padding: 0; list-style: none; }
 .hp-points li { display: flex; align-items: flex-start; gap: 9px; color: #c0c7d3; font-size: 13px; line-height: 1.5; }
@@ -316,10 +316,8 @@
 }
 .hp-hero-copy { position: relative; z-index: 1; padding-top: 0; }
 .hp-hero .hp-actions { margin-top: 18px; }
-.hp-hero .hp-actions .button { padding: 9px 13px; }
 .hp-hero-copy h1 { font-size: clamp(24px, 2.7vw, 36px); letter-spacing: -2px; }
 .hp-hero-copy .hp-lede { font-size: 13px; }
-.hp-hero .hp-actions .button { padding: 8px 12px; font-size: 11px; }
 .hp-hero-usecases {
   margin-top: 24px;
   padding: 0;

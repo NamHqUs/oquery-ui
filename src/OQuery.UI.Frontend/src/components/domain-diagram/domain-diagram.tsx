@@ -1,5 +1,4 @@
-import { createPortal } from "react-dom";
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { DomainRelation, MetadataEntity } from "../query-builder/query-design/query-builder-slice";
 import DiagramView, { diagramGroupTone } from "./diagram-view";
 import PanelSplitter from "../panel-splitter/panel-splitter";
@@ -43,8 +42,6 @@ export default function DomainDiagram({
   entityEditor,
 }: EntityDiagramProps) {
   const panel = useResizablePanel("metadata-entity-diagram-height", 480, 280, 900);
-  const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
-  useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   const applyDraft = (entity: MetadataEntity) =>
     editingEntity && entity.name === editingEntityName ? editingEntity : entity;
   const isNewDraft = Boolean(editingEntity && !editingEntityName && editingEntity.name.trim());
@@ -97,7 +94,7 @@ export default function DomainDiagram({
   });
   return (
     <>
-      {toolbarHost && toolbarActions && createPortal(toolbarActions, toolbarHost)}
+      {toolbarActions && <div className="domain-diagram-toolbar">{toolbarActions}</div>}
       <div
         className="metadata-diagram-mode-content split-workspace"
         style={panel.style}

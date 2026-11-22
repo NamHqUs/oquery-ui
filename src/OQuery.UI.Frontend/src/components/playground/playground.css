@@ -391,12 +391,6 @@
   margin-right: 16px;
 }
 
-.pg-heading-actions .button {
-  padding: 6px 10px;
-  font-size: 11px;
-  gap: 6px;
-}
-
 .pg-editor-host {
   flex: 0 0 auto;
   height: auto;
