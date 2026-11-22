@@ -254,7 +254,7 @@ export default function FieldsDefinition({
         {fields.map((field, index) => (
           <div
             className={`field-editor-row${draggedFieldIndex === index ? " dragging" : ""}${dropTargetFieldIndex === index ? " drop-target" : ""}${openDataTypeIndex === index ? " data-type-open" : ""}`}
-            key={field.id ?? index}
+            key={index}
             onDragOver={(event) => {
               if (draggedFieldIndex !== null && draggedFieldIndex !== index) {
                 event.preventDefault();
