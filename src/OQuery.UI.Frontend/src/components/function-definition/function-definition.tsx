@@ -1,4 +1,3 @@
-import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
@@ -11,12 +10,6 @@ import { useResizablePanel } from "../../utils/use-resizable-panel";
 import { useMessageBox } from "../message-box/message-box";
 import FunctionDetail from "./function-detail/function-detail";
 import FunctionList from "./function-list/function-list";
-import DefinitionActions from "../metadata-builder/definition-actions/definition-actions";
-import {
-  resolveDefinitionChanges,
-  useDefinitionUnsavedWarning,
-} from "../metadata-builder/definition-actions/definition-actions";
-import type { DefinitionActionAdapter } from "../metadata-builder/definition-actions/definition-actions";
 import {
   EditableFunctionDefinition,
   FunctionDefinition,
@@ -100,13 +93,10 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
   const [dirty, setDirty] = useState(false);
-  const [toolbarHost, setToolbarHost] = useState<HTMLElement | null>(null);
   const selectedDefinition = definitions.find((definition) => definition.name === selectedName);
   const selectedIsBuiltin = selectedDefinition?.isBuiltin === true
     || selectedDefinition?.canDelete === false;
 
-  useDefinitionUnsavedWarning(dirty);
-  useEffect(() => setToolbarHost(document.getElementById("metadata-toolbar-actions")), []);
   // Database types populate the SQL template dropdowns; the thunk skips the request once loaded.
   useEffect(() => {
     void dispatch(fetchDatabaseConnections());
@@ -206,14 +196,10 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
   };
 
   const resolveDirtyChanges = async () => {
-    return resolveDefinitionChanges({
-      resourceName: "function",
-      selectedName,
-      dirty,
-      saving: status === "saving",
-      onSave: save,
-      onDiscard: discardChanges,
-    }, showMessageBox);
+    if (!dirty) return true;
+    if (!window.confirm("Discard unsaved function changes?")) return false;
+    discardChanges();
+    return true;
   };
 
   useEffect(() => {
@@ -266,23 +252,8 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
     setDirty(true);
   };
 
-  const actionAdapter: DefinitionActionAdapter = {
-    resourceName: "function",
-    selectedName,
-    hasSelection: Boolean(selectedName),
-    isBuiltIn: selectedIsBuiltin,
-    hasDraft: Boolean(draft),
-    dirty,
-    saving: status === "saving",
-    onSave: save,
-    onDiscard: discardChanges,
-    onDelete: removeDefinition,
-    onNew: () => void createDefinition(),
-  };
-
   return (
     <>
-      {toolbarHost && createPortal(<DefinitionActions adapter={actionAdapter} />, toolbarHost)}
       <section
         className={`function-workspace split-workspace${panel.collapsed ? " panel-collapsed" : ""}`}
         style={panel.style}

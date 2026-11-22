@@ -3,7 +3,6 @@ import Icon from "../icon/icon";
 import { getDomain, getFullDomain, updateFullDomain, type ProjectSummary } from "../../services/project-service";
 import { getSchema } from "../../services/db-schema-service";
 import { metadataEntityFromDto, type DomainRelation, type MetadataEntity } from "../metadata/metadata-model";
-import DefinitionActions from "../metadata-builder/definition-actions/definition-actions";
 import MainLayout, { Heading, type WorkspaceView } from "../main-layout/main-layout";
 import DiagramView, { diagramGroupTone } from "./entity-diagram/diagram-view";
 import { toDiagramRelationships, toDiagramTables } from "./entity-diagram/diagram-model";
@@ -221,21 +220,6 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
     setReloadToken((token) => token + 1);
   };
 
-  const entityActionAdapter = {
-    resourceName: "entity",
-    selectedName,
-    hasSelection: Boolean(selected),
-    isBuiltIn: false,
-    hasDraft: Boolean(draft),
-    dirty: false,
-    saving: false,
-    onNew: isMainDomain ? createEntity : undefined,
-    onDelete: isMainDomain ? removeEntity : undefined,
-    showLabels: true,
-    deleteMessage: "This entity is removed from the domain now. It is permanently deleted only after you click Save domain.",
-  };
-  const entityHeaderActions = <DefinitionActions adapter={entityActionAdapter} />;
-
   const toolbarActions = (
     <div className="editor-actions domain-diagram-actions" role="toolbar" aria-label="Metadata domain actions">
       <button className="domain-action-button primary" type="button" title="Save domain" aria-label="Save domain" onClick={() => void save()} disabled={!isMainDomain || !dirty || saving}>
@@ -275,9 +259,6 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
                 <span className="metadata-editor-heading-icon"><Icon name="table" size={18} /></span>
                 <h3>{draft?.name || "Select an entity"}</h3>
               </div>
-            </div>
-            <div className="metadata-editor-heading-actions">
-              {entityHeaderActions}
             </div>
           </div>
           <EntityDefinition

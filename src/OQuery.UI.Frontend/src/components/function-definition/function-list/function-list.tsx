@@ -1,8 +1,15 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Icon from "../../icon/icon";
 import { FunctionDefinition } from "../types";
-import MetadataSidebar, { type MetadataSidebarGroup } from "../../metadata-builder/metadata-sidebar/metadata-sidebar";
 import "./function-list.css";
+
+type FunctionGroup = {
+  id: string;
+  title: string;
+  count: number;
+  content: ReactNode[];
+  emptyMessage?: string;
+};
 
 type FunctionListProps = {
   definitions: FunctionDefinition[];
@@ -45,7 +52,7 @@ export default function FunctionList({
       <Icon name="chevron" size={14} />
     </button>
   );
-  const groups: MetadataSidebarGroup[] = [
+  const groups: FunctionGroup[] = [
     {
       id: "function-custom-list",
       title: "Custom",
@@ -63,16 +70,25 @@ export default function FunctionList({
   ];
 
   return (
-    <MetadataSidebar
-      className="function-list split-panel"
-      title="FUNCTIONS"
-      totalCount={definitions.length}
-      filter={filter}
-      searchPlaceholder="Find a function"
-      loadingMessage={status === "loading" ? "Loading function definitions…" : undefined}
-      groups={groups}
-      onFilterChange={setFilter}
-      scrollable
-    />
+    <aside className="function-list split-panel">
+      <header className="function-list-header">
+        <h3>FUNCTIONS</h3>
+        <small>{definitions.length}</small>
+      </header>
+      <input
+        className="function-list-search"
+        type="search"
+        placeholder="Find a function"
+        value={filter}
+        onChange={(event) => setFilter(event.target.value)}
+      />
+      {status === "loading" && <p className="metadata-message">Loading function definitions…</p>}
+      {groups.map((group) => (
+        <section key={group.id} className="function-list-group">
+          <h4>{group.title} <small>{group.count}</small></h4>
+          {group.content.length ? group.content : <p className="metadata-message">{group.emptyMessage}</p>}
+        </section>
+      ))}
+    </aside>
   );
 }

@@ -19,8 +19,6 @@ Implementation references:
   — saved query requests.
 - [`src/components/playground/playground-slice.ts`](../../src/OQuery.UI.Frontend/src/components/playground/playground-slice.ts)
   — playground inline results.
-- [`src/components/metadata-builder/metadata-builder.tsx`](../../src/OQuery.UI.Frontend/src/components/metadata-builder/metadata-builder.tsx)
-  — metadata routes and domain UI.
 
 ## Service ownership
 

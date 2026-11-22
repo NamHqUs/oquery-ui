@@ -7,7 +7,6 @@ import Icon, { getDatabaseIconName } from "./components/icon/icon";
 import DataSources from "./components/data-sources/data-sources";
 import DatabaseConnection from "./components/data-sources/database-connection/database-connection";
 import { fetchDbProvider } from "./components/data-sources/database-slice";
-import MetadataBuilder from "./components/metadata-builder/metadata-builder";
 import FunctionDefinitionsWorkspace from "./components/function-definition/function-definition";
 import Home from "./components/home/home";
 import Documentation from "./components/documentation/documentation";
@@ -16,7 +15,6 @@ import { documentationSubmenu } from "./components/documentation/doc-agenda";
 import { GITHUB_URL, PRODUCT_NAME } from "./components/home/home-content";
 import { MessageBoxProvider } from "./components/message-box/message-box";
 import { readAnalyticsConsent } from "./services/api-client";
-import ProjectOnboarding from "./components/metadata-builder/project/project-onboarding";
 import CreateProjectPage from "./components/project-setup/create-project-page";
 import ProjectListPage from "./components/project-setup/project-list-page";
 import { getProject, listProjects, type ProjectSummary } from "./services/project-service";
@@ -68,7 +66,7 @@ const HOME_SUBMENU = [
 const PAGE_SUBMENUS: Record<Exclude<Page, "home">, readonly string[]> = {
   builder: [],
   sources: ["Connections", "Tables", "Schema"],
-  metadata: ["Projects", "Diagram", "Explore database"],
+  metadata: ["Explore database"],
   functions: [],
   security: ["Policies", "Query limits", "Audit log"],
   documentation: [],
@@ -327,8 +325,7 @@ function PageSubnav({
               <button key={item.target} type="button" onClick={() => scrollToSection(item.target)}>{item.label}</button>
             ))}
             {PAGE_SUBMENUS[page].map((item) => {
-            const itemSection = item === "Diagram" ? "diagram" : item === "Projects" ? "domains" : undefined;
-            const metadataItemSection = itemSection ?? (item === "Explore database" ? "explorer" : undefined);
+            const metadataItemSection = item === "Explore database" ? "explorer" : undefined;
             const isActive = page === "metadata" && metadataItemSection === metadataSection;
             return <button
               key={item}
@@ -493,27 +490,19 @@ function WorkspaceGate({
   projects,
   failed,
   onSelectProject,
-  onProjectCreated,
 }: {
   projects: ProjectSummary[] | null;
   failed: boolean;
   onSelectProject: (projectId: string) => void;
-  onProjectCreated: (projectId: string, domainId: string) => void;
 }) {
-  const [creating, setCreating] = useState(false);
-
   if (failed) {
     return <section className="workspace-gate"><p className="metadata-alert" role="alert">Unable to load projects. Check the API connection and reload the page.</p></section>;
   }
   if (!projects) {
     return <section className="workspace-gate"><p className="metadata-message">Loading projects…</p></section>;
   }
-  if (projects.length === 0 || creating) {
-    return (
-      <section className="workspace-gate">
-        <ProjectOnboarding onCompleted={onProjectCreated} onCancel={projects.length ? () => setCreating(false) : undefined} />
-      </section>
-    );
+  if (projects.length === 0) {
+    return <section className="workspace-gate"><p className="metadata-message">No projects found.</p></section>;
   }
   return (
     <section className="workspace-gate">
@@ -523,7 +512,6 @@ function WorkspaceGate({
           <h2>Open a project workspace</h2>
           <p>Playground, domains, and custom functions all run inside one project.</p>
         </div>
-        <button className="button primary" type="button" onClick={() => setCreating(true)}><Icon name="plus" size={14} /> Create project</button>
       </div>
       <div className="workspace-gate-grid">
         {projects.map((item) => (
@@ -562,7 +550,6 @@ function WorkspaceNavigation({
     {
       group: "BUILD",
       links: [
-        { label: "Overview", hint: "Project health", icon: "folder", path: withProject(DOMAINS_PATH) },
         { label: "Playground", hint: "Run OQuery", icon: "play", path: builderLink, active: page === "builder" && !isDomainDiagramPath(location.pathname) },
         { label: "Queries", hint: "Saved requests", icon: "file-text", path: builderLink, active: page === "builder" && !isDomainDiagramPath(location.pathname) },
       ],
@@ -570,8 +557,6 @@ function WorkspaceNavigation({
     {
       group: "DOMAIN STUDIO",
       links: [
-        { label: "Full domain", hint: "Entities and relations", icon: "schema", path: withProject(DOMAINS_PATH), active: page === "metadata" && location.pathname === DOMAINS_PATH },
-        { label: "Schema diagram", hint: "Visual map", icon: "schema", path: withProject(DIAGRAMS_PATH, true), active: isDomainDiagramPath(location.pathname) },
         { label: "Database explorer", hint: "Source tables", icon: "database", path: withProject(DATABASE_EXPLORER_PATH), active: page === "metadata" && location.pathname === DATABASE_EXPLORER_PATH },
       ],
     },
@@ -692,22 +677,13 @@ function App() {
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
   const [analyticsConsent, setAnalyticsConsent] = useState<"granted" | "declined" | null>(readAnalyticsConsent);
   const connectionPromptShown = useRef(false);
-  const metadataNavigationGuard = useRef<NavigationGuard | null>(null);
-  const metadataSectionNavigation = useRef<((section: MetadataSection) => void) | null>(null);
   const functionNavigationGuard = useRef<NavigationGuard | null>(null);
   const approvedNavigation = useRef<string | null>(null);
   const handledBlockedLocation = useRef<string | null>(null);
-  const updateMetadataNavigationGuard = useCallback((guard: NavigationGuard | null) => {
-    metadataNavigationGuard.current = guard;
-  }, []);
-  const updateMetadataSectionNavigation = useCallback((handler: ((section: MetadataSection) => void) | null) => {
-    metadataSectionNavigation.current = handler;
-  }, []);
   const updateFunctionNavigationGuard = useCallback((guard: NavigationGuard | null) => {
     functionNavigationGuard.current = guard;
   }, []);
   const guardForPage = (targetPage: Page | null) => {
-    if (targetPage === "metadata") return metadataNavigationGuard.current;
     if (targetPage === "functions") return functionNavigationGuard.current;
     return null;
   };
@@ -924,16 +900,7 @@ function App() {
         onNavigateToPage={navigateToPage}
         onBuilderDomainSelect={navigateToBuilderDomain}
         onMetadataSectionSelect={(section) => {
-          if (section === "explorer") {
-          if (metadataSectionNavigation.current) metadataSectionNavigation.current(section);
-          else routerNavigate(DATABASE_EXPLORER_PATH);
-          return;
-          }
-          if (metadataSectionNavigation.current) {
-          metadataSectionNavigation.current(section);
-          return;
-          }
-          routerNavigate(section === "domains" ? DOMAINS_PATH : DIAGRAMS_PATH);
+          routerNavigate(section === "explorer" ? DATABASE_EXPLORER_PATH : section === "domains" ? DOMAINS_PATH : DIAGRAMS_PATH);
         }}
       />
       <div className="page-content">
@@ -944,7 +911,6 @@ function App() {
             onSelectProject={(projectId) => navigateWorkspace(page === "builder"
               ? builderPath(projectId)
               : `${location.pathname}?${new URLSearchParams({ project: projectId }).toString()}`)}
-            onProjectCreated={(projectId, domainId) => navigateWorkspace(`${DOMAINS_PATH}?${new URLSearchParams({ project: projectId, domain: domainId }).toString()}`)}
           />
         )}
         <Routes>
@@ -977,7 +943,6 @@ function App() {
         />
       )}
       {connectionDialogOpen && <ConnectionDialog onClose={() => setConnectionDialogOpen(false)} />}
-      {metadataVisited && page === "metadata" && !showWorkspaceGate && location.pathname !== DATABASE_EXPLORER_PATH && location.pathname !== DIAGRAMS_PATH && <div className="page-transition page-transition-no-slide"><MetadataBuilder onNavigationGuardChange={updateMetadataNavigationGuard} onSectionNavigationChange={updateMetadataSectionNavigation} /></div>}
       {metadataVisited && page === "metadata" && !showWorkspaceGate && location.pathname === DATABASE_EXPLORER_PATH && <DataSources onRequestConnection={requestDatabaseConnection} />}
       {functionDefinitionsVisited && !showWorkspaceGate && <div hidden={page !== "functions"} className={page === "functions" ? "page-transition page-transition-no-slide" : undefined}>
         <FunctionDefinitionsWorkspace onNavigationGuardChange={updateFunctionNavigationGuard} />
