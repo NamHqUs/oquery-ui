@@ -10,12 +10,15 @@ import {
   clearAllInlineResults,
   clearInlineResult,
   executeContextFromText,
+} from "./playground-slice";
+import {
   relationsForEntity,
   type DomainRelation,
   type EntityRelationView,
   type MetadataEntity,
   type MetadataField,
-} from "../query-builder/query-design/query-builder-slice";
+} from "../metadata/metadata-model";
+import { builtinFilterOperators } from "../oquery-editor/filter-operators";
 import CopilotThread from "./copilot-chat/copilot-thread";
 import "./playground.css";
 
@@ -200,7 +203,10 @@ function CopilotAside({ collapsed, onToggle }: { collapsed: boolean; onToggle: (
 }
 
 export default function Playground({ queryId, projectId, domainId }: { queryId: string; projectId: string; domainId: string }) {
-  const { metadata, metadataRelations, functionDefinitions, filterOperators, inlineResults } = useSelector((state: RootState) => state.queryBuilder);
+  const { entities: metadata, relations: metadataRelations } = useSelector((state: RootState) => state.metadata);
+  const functionDefinitions = useSelector((state: RootState) => state.functionDefinitions.definitions);
+  const filterOperators = builtinFilterOperators;
+  const inlineResults = useSelector((state: RootState) => state.playground.inlineResults);
   const dispatch = useDispatch();
   const editorRef = useRef<OQueryEditorHandle>(null);
   const nextTabNumber = useRef(2);

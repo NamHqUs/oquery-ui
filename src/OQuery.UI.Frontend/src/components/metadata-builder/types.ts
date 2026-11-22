@@ -1,4 +1,4 @@
-import type { DomainRelation, MetadataField } from "../query-builder/query-design/query-builder-slice";
+import type { DomainRelation, MetadataField } from "../metadata/metadata-model";
 import type { FullDomain, SubDomainConfig, SubDomainEntity } from "../../services/project-service";
 
 export type RelationSide = {

@@ -1,4 +1,4 @@
-import { formatApiError } from "../components/query-builder/query-design/api-error";
+import { formatApiError } from "./api-error";
 
 // Shared transport for all services. Services own the URL, validation and caching;
 // this module only performs the request and maps HTTP failures to readable errors.

@@ -1,11 +1,11 @@
 import { apiUrls } from "../const/api-urls";
 import {
   metadataEntityFromDto,
-  setQueryMetadata,
   type DomainEntityDto,
   type DomainRelation,
   type MetadataEntity,
-} from "../components/query-builder/query-design/query-builder-slice";
+} from "../components/metadata/metadata-model";
+import { setQueryMetadata } from "../components/metadata/metadata-slice";
 import { store } from "../store/store";
 import { requestJson } from "./api-client";
 

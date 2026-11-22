@@ -208,20 +208,20 @@
   gap: 7px;
 }
 
-.prototype-select {
+.main-layout-select {
   display: grid;
   gap: 5px;
   min-width: 210px;
   cursor: pointer;
 }
 
-.prototype-select small {
+.main-layout-select small {
   color: #8993a5;
   font: 700 9px "Space Grotesk", sans-serif;
   letter-spacing: 1.4px;
 }
 
-.prototype-select-trigger {
+.main-layout-select-trigger {
   display: flex;
   min-height: 30px;
   align-items: center;
@@ -237,7 +237,7 @@
   cursor: pointer;
 }
 
-.prototype-select-trigger > span {
+.main-layout-select-trigger > span {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -245,21 +245,21 @@
   white-space: nowrap;
 }
 
-.prototype-select-trigger:hover:not(:disabled),
-.prototype-select-trigger[aria-expanded="true"] {
+.main-layout-select-trigger:hover:not(:disabled),
+.main-layout-select-trigger[aria-expanded="true"] {
   color: #c9bcff;
 }
 
-.prototype-select-trigger:disabled {
+.main-layout-select-trigger:disabled {
   color: #8993a5;
   cursor: not-allowed;
 }
 
-.prototype-select {
+.main-layout-select {
   position: relative;
 }
 
-.prototype-select-menu {
+.main-layout-select-menu {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
@@ -277,7 +277,7 @@
   box-shadow: 0 12px 28px #00000080;
 }
 
-.prototype-select-menu button {
+.main-layout-select-menu button {
   width: 100%;
   padding: 8px 10px;
   border: 0;
@@ -291,8 +291,8 @@
   cursor: pointer;
 }
 
-.prototype-select-menu button:hover,
-.prototype-select-menu button.selected {
+.main-layout-select-menu button:hover,
+.main-layout-select-menu button.selected {
   color: #f0edff;
   background: #2b2445;
 }

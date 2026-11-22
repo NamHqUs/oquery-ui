@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Icon from "../icon/icon";
-import type { SavedQueryRequestDto } from "../query-builder/query-design/query-builder-slice";
+import type { SavedQueryRequestDto } from "./saved-query-model";
 import "./saved-query-list.css";
 
 type SavedQueryListProps = {

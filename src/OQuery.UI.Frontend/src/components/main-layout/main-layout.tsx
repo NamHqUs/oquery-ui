@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import Icon, { type IconName } from "../icon/icon";
 import { getProject, type ProjectSummary } from "../../services/project-service";
-import WorkspaceSelect from "./workspace-select";
-import "./workspace-shell.css";
-import "./workspace-shell-compat.css";
+import MainLayoutSelect from "./main-layout-select";
+import "./main-layout.css";
+import "./main-layout-compat.css";
 
 export type WorkspaceView = "overview" | "playground" | "queries" | "diagram" | "explorer" | "functions" | "security";
 export type WorkspaceDomain = { id: string; name: string };
@@ -37,7 +37,7 @@ function Header({ projects, projectId, domains, domainId, connectionStatus, prov
   return <header className="root-header">
     <button type="button" className="prototype-logo" onClick={onNavigateHome} aria-label="Go to home"><img src="/brand-concepts/23-oquery-orbit-core.svg" alt="" /><small>DATA QUERY ENGINE</small></button>
     <div className="prototype-context">
-      <WorkspaceSelect
+      <MainLayoutSelect
         label="CURRENT PROJECT"
         icon="folder"
         value={projectId}
@@ -46,7 +46,7 @@ function Header({ projects, projectId, domains, domainId, connectionStatus, prov
         onChange={onSelectProject}
       />
       <i />
-      <WorkspaceSelect
+      <MainLayoutSelect
         label="ACTIVE DOMAIN"
         icon="table"
         value={domainId}
@@ -82,7 +82,7 @@ export function Heading({ icon, title, text, action }: { icon: IconName; title: 
   return <div className="prototype-heading"><div><span className="prototype-heading-icon"><Icon name={icon} size={23} /></span><span><h1>{title}</h1><p>{text}</p></span></div>{action && <button className="prototype-primary" type="button"><Icon name="plus" size={14} /> {action}</button>}</div>;
 }
 
-type WorkspaceShellProps = {
+type MainLayoutProps = {
   view: WorkspaceView;
   projects: ProjectSummary[];
   projectId: string;
@@ -97,7 +97,7 @@ type WorkspaceShellProps = {
   children: (context: { domains: WorkspaceDomain[]; domainId: string }) => ReactNode;
 };
 
-export default function WorkspaceShell({ view, projects, projectId, domainId, connectionStatus, provider, onSelectView, onSelectProject, onSelectDomain, onOpenConnection, onNavigateHome, children }: WorkspaceShellProps) {
+export default function MainLayout({ view, projects, projectId, domainId, connectionStatus, provider, onSelectView, onSelectProject, onSelectDomain, onOpenConnection, onNavigateHome, children }: MainLayoutProps) {
   const [domains, setDomains] = useState<WorkspaceDomain[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);

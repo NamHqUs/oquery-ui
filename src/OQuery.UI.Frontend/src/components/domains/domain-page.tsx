@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import Icon from "../icon/icon";
 import { getDomain, getFullDomain, updateFullDomain, type ProjectSummary } from "../../services/project-service";
 import { getSchema } from "../../services/db-schema-service";
-import { metadataEntityFromDto, type DomainRelation, type MetadataEntity } from "../query-builder/query-design/query-builder-slice";
+import { metadataEntityFromDto, type DomainRelation, type MetadataEntity } from "../metadata/metadata-model";
 import DefinitionActions from "../metadata-builder/definition-actions/definition-actions";
-import WorkspaceShell, { Heading, type WorkspaceView } from "../workspace-shell/workspace-shell";
+import MainLayout, { Heading, type WorkspaceView } from "../main-layout/main-layout";
 import DiagramView, { diagramGroupTone } from "./entity-diagram/diagram-view";
 import { toDiagramRelationships, toDiagramTables } from "./entity-diagram/diagram-model";
 import PanelSplitter from "../panel-splitter/panel-splitter";
@@ -60,7 +60,7 @@ export default function DomainPage({ route, projects, connectionStatus, provider
     onNavigate(`/playground/${encode(projectId)}${domainId ? `/${encode(domainId)}` : ""}`);
   };
   return (
-    <WorkspaceShell
+    <MainLayout
       view="diagram"
       projects={projects}
       projectId={projectId}
@@ -79,7 +79,7 @@ export default function DomainPage({ route, projects, connectionStatus, provider
           <DomainDiagramContent projectId={projectId} domainId={domainId} domainOptions={domains} onNavigate={onNavigate} />
         </>
       )}
-    </WorkspaceShell>
+    </MainLayout>
   );
 }
 

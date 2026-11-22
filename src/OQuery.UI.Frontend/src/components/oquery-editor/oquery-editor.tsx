@@ -1,8 +1,10 @@
 import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type FocusEventHandler, type ReactNode, type TextareaHTMLAttributes } from "react";
 import type { FunctionDefinition } from "../function-definition/types";
-import type { DomainRelation, FilterOperatorDefinition, InlineQueryResult, MetadataEntity } from "../query-builder/query-design/query-builder-slice";
-import { getOQueryContextKeys } from "../query-builder/query-design/oquery-context-colors";
-import "../query-builder/query-design/query-design.css";
+import type { DomainRelation, MetadataEntity } from "../metadata/metadata-model";
+import type { FilterOperatorDefinition } from "./filter-operators";
+import type { InlineQueryResult } from "./oquery-inline-result";
+import { getOQueryContextKeys } from "./oquery-context-colors";
+import "./oquery-editor.css";
 import { getOQueryCompletions, type OQuerySuggestionEntity } from "./oquery-completions";
 import { getOqueryEnterEdit } from "./oquery-editor-enter";
 import { normalizeOqueryEditorText } from "./oquery-editor-text";

@@ -1,4 +1,4 @@
-import type { DomainRelation, MetadataEntity } from "../../query-builder/query-design/query-builder-slice";
+import type { DomainRelation, MetadataEntity } from "../../metadata/metadata-model";
 import type { DiagramRelationship, DiagramTable } from "./diagram-view";
 
 export function toDiagramTables(metadata: MetadataEntity[]): DiagramTable[] {

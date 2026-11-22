@@ -2,7 +2,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
-import { fetchFunctionDefinitions, invalidateFunctionDefinitions } from "../query-builder/query-design/query-builder-slice";
+import { fetchFunctionDefinitions, invalidateFunctionDefinitions } from "./function-definition-slice";
 import { fetchDatabaseConnections } from "../data-sources/database-slice";
 import * as functionDefinitionService from "../../services/function-definition-service";
 import type { AppDispatch, RootState } from "../../store/store";
@@ -91,9 +91,7 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
   const [searchParams] = useSearchParams();
   // Function definitions belong to a project. Without a ?project= param, the home project from the env is used.
   const projectId = searchParams.get("project")?.trim() || import.meta.env.VITE_HOME_PROJECT_ID?.trim() || "";
-  const definitions = useSelector((state: RootState) => state.queryBuilder.functionDefinitions);
-  const functionDefinitionsProjectId = useSelector((state: RootState) => state.queryBuilder.functionDefinitionsProjectId);
-  const functionDefinitionsStatus = useSelector((state: RootState) => state.queryBuilder.functionDefinitionsStatus);
+  const { definitions, projectId: functionDefinitionsProjectId, status: functionDefinitionsStatus } = useSelector((state: RootState) => state.functionDefinitions);
   const providers = useSelector((state: RootState) => state.database.providers);
   const showMessageBox = useMessageBox();
   const panel = useResizablePanel("metadata-functions");

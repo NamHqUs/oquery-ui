@@ -1,5 +1,13 @@
-import type { InlineQueryResult } from "../query-builder/query-design/query-builder-slice";
+import type { QueryResult } from "../../services/dynamic-query-service";
 import "./oquery-inline-result.css";
+
+// Inline results are keyed by OQuery context name and stay until cleared or replaced by another run of that context.
+export type InlineQueryResult = {
+  status: "loading" | "succeeded" | "failed";
+  result: QueryResult | null;
+  sql: string | null;
+  error: string;
+};
 
 export const INLINE_ROW_HEIGHT = 22;
 export const INLINE_HEAD_HEIGHT = 28;

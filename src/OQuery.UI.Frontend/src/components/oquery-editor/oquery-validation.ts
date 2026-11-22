@@ -1,5 +1,5 @@
 import type { FunctionDefinition } from "../function-definition/types";
-import type { FilterOperatorDefinition } from "../query-builder/query-design/query-builder-slice";
+import type { FilterOperatorDefinition } from "./filter-operators";
 import {
   getFunctionApplicabilityError,
   isInsideAggregateCall,

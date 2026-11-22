@@ -4,7 +4,7 @@ import Icon, { type IconName } from "../icon/icon";
 export type SelectOption = { value: string; label: string };
 
 // A borderless trigger with a custom popup list, replacing the native select.
-export default function WorkspaceSelect({ label, icon, value, options, placeholder, disabled = false, onChange }: {
+export default function MainLayoutSelect({ label, icon, value, options, placeholder, disabled = false, onChange }: {
   label: string;
   icon: IconName;
   value: string;
@@ -33,15 +33,15 @@ export default function WorkspaceSelect({ label, icon, value, options, placehold
     };
   }, [open]);
 
-  return <div className="prototype-select" ref={rootRef}>
+  return <div className="main-layout-select" ref={rootRef}>
     <small>{label}</small>
-    <button type="button" className="prototype-select-trigger" aria-label={label} aria-haspopup="listbox" aria-expanded={open}
+    <button type="button" className="main-layout-select-trigger" aria-label={label} aria-haspopup="listbox" aria-expanded={open}
       disabled={disabled} onClick={() => setOpen((current) => !current)}>
       <Icon name={icon} size={14} />
       <span>{selected?.label ?? placeholder}</span>
       <Icon name="chevron-down" size={12} />
     </button>
-    {open && options.length > 0 && <ul className="prototype-select-menu" role="listbox" aria-label={label}>
+    {open && options.length > 0 && <ul className="main-layout-select-menu" role="listbox" aria-label={label}>
       {options.map((option) => <li key={option.value} role="option" aria-selected={option.value === value}>
         <button type="button" className={option.value === value ? "selected" : ""} onClick={() => { setOpen(false); onChange(option.value); }}>
           {option.label}

@@ -1,9 +1,15 @@
-import type { FilterOperatorDefinition } from "./query-builder-slice";
+export type FilterOperatorDefinition = {
+  id: string;
+  name: string;
+  symbol: string;
+  supportedDataTypes: string[];
+  isBuiltin: boolean;
+};
 
 const allDataTypes = ["string", "number", "datetime", "boolean"];
 const orderedDataTypes = ["number", "datetime"];
 
-// The built-in operators are fixed by the OQuery engine, so the query builder reads them from here instead of the API.
+// The built-in operators are fixed by the OQuery engine, so the editor and playground read them from here instead of the API.
 const builtinOperators: [number, string, string, string[]][] = [
   [0, "Equals", "=", allDataTypes],
   [1, "Not equals", "<>", allDataTypes],

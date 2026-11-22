@@ -6,12 +6,10 @@ import DiagramView from "../domains/entity-diagram/diagram-view";
 import { toDiagramRelationships, toDiagramTables } from "../domains/entity-diagram/diagram-model";
 import { getOQuerySuggestionData } from "../oquery-editor/oquery-suggestion-data";
 import type { FunctionDefinition } from "../function-definition/types";
-import {
-  requestContextResultFromText,
-  requestQueryResultFromText,
-  requestSqlStatementFromText,
-  type QueryResult,
-} from "../query-builder/query-design/query-builder-slice";
+import { requestContextResultFromText, requestQueryResultFromText, requestSqlStatementFromText, type QueryResult } from "../../services/dynamic-query-service";
+import type { FilterOperatorDefinition } from "../oquery-editor/filter-operators";
+import type { DomainRelation, MetadataEntity } from "../metadata/metadata-model";
+import { builtinFilterOperators } from "../oquery-editor/filter-operators";
 import type { RootState } from "../../store/store";
 import { getDomain } from "../../services/project-service";
 import * as oQueryEditorService from "../../services/oquery-editor-service";
@@ -81,12 +79,12 @@ function Playground({
   initialQuery: string;
   label: string;
   functionDefinitions: FunctionDefinition[];
-  operators: RootState["queryBuilder"]["filterOperators"];
+  operators: FilterOperatorDefinition[];
   domain: {
     id: string;
     name: string;
-    entities: RootState["queryBuilder"]["metadata"];
-    relations: RootState["queryBuilder"]["metadataRelations"];
+    entities: MetadataEntity[];
+    relations: DomainRelation[];
   };
   suggestionData: SuggestionData;
   editorHostRef?: RefObject<HTMLDivElement | null>;
@@ -296,7 +294,9 @@ export default function Home({
   onRequestConnection: () => void;
 }) {
   const dispatch = useDispatch();
-  const { metadata, metadataRelations, metadataStatus, functionDefinitions, filterOperators } = useSelector((state: RootState) => state.queryBuilder);
+  const { entities: metadata, relations: metadataRelations, status: metadataStatus } = useSelector((state: RootState) => state.metadata);
+  const functionDefinitions = useSelector((state: RootState) => state.functionDefinitions.definitions);
+  const filterOperators = builtinFilterOperators;
   const { providers } = useSelector((state: RootState) => state.database);
   const projectId = HOME_PROJECT_ID;
   const domainId = HOME_DOMAIN_ID;

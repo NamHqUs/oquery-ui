@@ -1,4 +1,4 @@
-import { getOqueryFolds } from "../query-builder/query-design/oquery-folding.ts";
+import { getOqueryFolds } from "./oquery-folding.ts";
 import type { OQueryCompletion } from "./oquery-completions";
 import type { OQueryErrorPosition } from "./oquery-validation";
 

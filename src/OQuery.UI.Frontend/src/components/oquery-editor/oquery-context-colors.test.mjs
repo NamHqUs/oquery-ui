@@ -22,7 +22,7 @@ test("marks only entity headers that exist in the current domain", () => {
 });
 
 test("all context keys use one CSS color different from schema keywords", () => {
-  const css = readFileSync(new URL("./query-design.css", import.meta.url), "utf8");
+  const css = readFileSync(new URL("./oquery-editor.css", import.meta.url), "utf8");
   const contextColor = css.match(/\.query-oquery-context-key\s*\{[^}]*color:\s*([^;]+)/)?.[1];
   const keywordColor = css.match(/\.query-oquery-protected-key\s*\{[^}]*color:\s*([^;]+)/)?.[1];
   assert.ok(contextColor);
@@ -34,16 +34,16 @@ test("all context keys use one CSS color different from schema keywords", () => 
   assert.equal(functionColor, "#7296c7");
   assert.equal(editorFunctionColor, functionColor);
   assert.notEqual(functionColor, contextColor);
-  const component = readFileSync(new URL("./query-design.tsx", import.meta.url), "utf8");
+  const component = readFileSync(new URL("./oquery-editor.tsx", import.meta.url), "utf8");
   assert.ok(component.includes('<span class="query-oquery-context-key">${name}</span>'));
 });
 
 test("fold controls use arrow CSS and do not render plus/minus text", () => {
-  const css = readFileSync(new URL("./query-design.css", import.meta.url), "utf8");
+  const css = readFileSync(new URL("./oquery-editor.css", import.meta.url), "utf8");
   assert.match(css, /\.query-oquery-line-numbers:hover \.query-oquery-gutter-line button/);
   assert.match(css, /\.query-oquery-gutter-line button\.collapsed/);
   assert.match(css, /button::before\s*\{[^}]*border-left/);
-  const component = readFileSync(new URL("./query-design.tsx", import.meta.url), "utf8");
+  const component = readFileSync(new URL("./oquery-editor.tsx", import.meta.url), "utf8");
   assert.ok(component.includes('className={`query-oquery-fold-button${collapsed.has(line) ? " collapsed" : ""}`}'));
   assert.ok(!component.includes('}>{collapsed.has(line) ? "+" : "-"}</button>'));
 });

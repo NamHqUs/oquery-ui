@@ -98,18 +98,6 @@ condition argument as a labeled, read-only condition instead of a function
 selector. Applying the calculation preserves the structured condition,
 including its operand types and nested groups.
 
-## Expression builder debug visuals
-
-The expression builder's debug outline, model tooltips, and model JSON panel are controlled by `debugUiEnabled` in the `queryBuilder` Redux state. To change what appears after a browser refresh, edit the `debugUiEnabled` value in the slice's `initialState` (`true` shows the debug UI; `false` hides it). This is a source-code flag and does not require a `.env` setting.
-
-To change it at runtime, dispatch `setExpressionDebugUiEnabled(false)` to turn the debug UI off, or `setExpressionDebugUiEnabled(true)` to turn it back on. In Redux DevTools, dispatch the corresponding action as:
-
-```json
-{ "type": "queryBuilder/setExpressionDebugUiEnabled", "payload": false }
-```
-
-To change the default, edit `debugUiEnabled` in `src/components/query-builder/query-design/query-builder-slice.ts`. The persistent left borders on groups and field boxes are structural styling and remain visible.
-
 ## Query Builder layout
 
 Query Builder keeps the saved-query library beside the design workspace below the
@@ -165,8 +153,7 @@ query can be entered without moving the result out of view.
 
 ```powershell
 node --test .\src\components\oquery-editor\oquery-comments.test.mjs
-node --test .\src\components\query-builder\query-design\oquery-feedback.test.mjs
-node --test .\src\components\query-builder\query-design\query-loading.test.mjs
+npx vitest run src\components\playground\playground-slice.test.mjs
 ```
 
 Query Builder provides Visual and OQuery tabs in the page header. The OQuery tab
@@ -189,16 +176,12 @@ are retained for non-validation failures as well.
 Run the API error message regression tests with:
 
 ```powershell
-node --test .\src\components\query-builder\query-design\api-error.test.mjs
+node --test .\src\services\api-error.test.mjs
 ```
 
 Saving in OQuery mode parses the current editor contents before persisting
 the query. Removing `JoinType` preserves a null join through save and reload;
-it is not replaced with `Left`. Run the saved-query round-trip regression with:
-
-```powershell
-node --test .\src\components\query-builder\query-design\query-save.test.mjs
-```
+it is not replaced with `Left`.
 
 All OQuery context keys share the gold color previously used for
 functions. Functions use a darker muted blue, while schema keywords remain

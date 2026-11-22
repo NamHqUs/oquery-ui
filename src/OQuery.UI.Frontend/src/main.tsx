@@ -7,7 +7,6 @@ import Icon, { getDatabaseIconName } from "./components/icon/icon";
 import DataSources from "./components/data-sources/data-sources";
 import DatabaseConnection from "./components/data-sources/database-connection/database-connection";
 import { fetchDbProvider } from "./components/data-sources/database-slice";
-import QueryBuilder from "./components/query-builder/query-builder";
 import MetadataBuilder from "./components/metadata-builder/metadata-builder";
 import FunctionDefinitionsWorkspace from "./components/function-definition/function-definition";
 import Home from "./components/home/home";
@@ -696,7 +695,6 @@ function App() {
   const metadataNavigationGuard = useRef<NavigationGuard | null>(null);
   const metadataSectionNavigation = useRef<((section: MetadataSection) => void) | null>(null);
   const functionNavigationGuard = useRef<NavigationGuard | null>(null);
-  const builderNavigationGuard = useRef<NavigationGuard | null>(null);
   const approvedNavigation = useRef<string | null>(null);
   const handledBlockedLocation = useRef<string | null>(null);
   const updateMetadataNavigationGuard = useCallback((guard: NavigationGuard | null) => {
@@ -708,13 +706,9 @@ function App() {
   const updateFunctionNavigationGuard = useCallback((guard: NavigationGuard | null) => {
     functionNavigationGuard.current = guard;
   }, []);
-  const updateBuilderNavigationGuard = useCallback((guard: NavigationGuard | null) => {
-    builderNavigationGuard.current = guard;
-  }, []);
   const guardForPage = (targetPage: Page | null) => {
     if (targetPage === "metadata") return metadataNavigationGuard.current;
     if (targetPage === "functions") return functionNavigationGuard.current;
-    if (targetPage === "builder") return builderNavigationGuard.current;
     return null;
   };
 
@@ -745,11 +739,6 @@ function App() {
       approvedNavigation.current = null;
       return false;
     }
-    // Switching domain stays on the builder page, so it is guarded separately from page changes.
-    const isBuilderDomainSwitch = currentPage === "builder"
-      && nextPage === "builder"
-      && builderDomainIdOf(currentLocation.pathname) !== builderDomainIdOf(nextLocation.pathname);
-    if (isBuilderDomainSwitch) return builderNavigationGuard.current !== null;
     return currentPage !== null
       && nextPage !== null
       && currentPage !== nextPage
@@ -988,15 +977,6 @@ function App() {
         />
       )}
       {connectionDialogOpen && <ConnectionDialog onClose={() => setConnectionDialogOpen(false)} />}
-      {page === "builder" && !showWorkspaceGate && <QueryBuilder
-        key={builderDomainIdOf(location.pathname) || "query-builder"}
-        routeProjectId={builderProjectIdOf(location.pathname)}
-        onRequestConnection={requestDatabaseConnection}
-        onNavigationGuardChange={updateBuilderNavigationGuard}
-        onBackToHome={new URLSearchParams(location.search).get("from") === "home"
-          ? () => navigateToPage("home")
-          : undefined}
-      />}
       {metadataVisited && page === "metadata" && !showWorkspaceGate && location.pathname !== DATABASE_EXPLORER_PATH && location.pathname !== DIAGRAMS_PATH && <div className="page-transition page-transition-no-slide"><MetadataBuilder onNavigationGuardChange={updateMetadataNavigationGuard} onSectionNavigationChange={updateMetadataSectionNavigation} /></div>}
       {metadataVisited && page === "metadata" && !showWorkspaceGate && location.pathname === DATABASE_EXPLORER_PATH && <DataSources onRequestConnection={requestDatabaseConnection} />}
       {functionDefinitionsVisited && !showWorkspaceGate && <div hidden={page !== "functions"} className={page === "functions" ? "page-transition page-transition-no-slide" : undefined}>

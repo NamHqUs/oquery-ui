@@ -1,6 +1,6 @@
-import type { DomainRelation, MetadataEntity, MetadataField } from "../../query-builder/query-design/query-builder-slice";
+import type { DomainRelation, MetadataEntity, MetadataField } from "../../metadata/metadata-model";
 
-export type { DomainRelation } from "../../query-builder/query-design/query-builder-slice";
+export type { DomainRelation } from "../../metadata/metadata-model";
 
 let nextFieldId = 1;
 export const createFieldId = () => `f_${nextFieldId++}`;

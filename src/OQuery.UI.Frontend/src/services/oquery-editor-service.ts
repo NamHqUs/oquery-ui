@@ -1,8 +1,6 @@
 import { store } from "../store/store";
-import {
-  fetchFunctionDefinitions,
-  fetchQueryRequests,
-} from "../components/query-builder/query-design/query-builder-slice";
+import { fetchFunctionDefinitions } from "../components/function-definition/function-definition-slice";
+import { fetchQueryRequests } from "../components/saved-queries/saved-queries-slice";
 import { getDomain } from "./project-service";
 
 // Orchestrates the OQuery editor's data. Every source is loaded through its owning service;

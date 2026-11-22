@@ -3,7 +3,7 @@ import Icon, { type IconName } from "../icon/icon";
 import type { ProjectSummary } from "../../services/project-service";
 import Playground from "./playground";
 import { domainDiagramPath } from "../domains/domain-routes";
-import WorkspaceShell, { Heading, type WorkspaceView } from "../workspace-shell/workspace-shell";
+import MainLayout, { Heading, type WorkspaceView } from "../main-layout/main-layout";
 
 const queries = ["Top customers by revenue", "Monthly order performance", "Unpaid orders audit", "Product conversion funnel", "Customer retention cohort"];
 
@@ -46,7 +46,7 @@ export default function PlaygroundWorkspace({ projectId, domainId, queryId, proj
     if (next === "diagram") onNavigate(domainDiagramPath(projectId, selectedDomainId));
     else setView(next);
   };
-  return <WorkspaceShell
+  return <MainLayout
     view={view}
     projects={projects}
     projectId={projectId}
@@ -60,5 +60,5 @@ export default function PlaygroundWorkspace({ projectId, domainId, queryId, proj
     onNavigateHome={() => onNavigate("/")}
   >
     {({ domainId: selectedDomainId }) => view === "overview" ? <Overview /> : view === "playground" ? <Playground queryId={queryId} projectId={projectId} domainId={selectedDomainId} /> : view === "queries" ? <Queries /> : view === "explorer" ? <Explorer /> : view === "functions" ? <Functions /> : <Security />}
-  </WorkspaceShell>;
+  </MainLayout>;
 }

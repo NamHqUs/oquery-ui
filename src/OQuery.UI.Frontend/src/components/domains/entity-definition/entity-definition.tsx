@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Icon from "../../icon/icon";
-import { MetadataEntity, type DomainRelation } from "../../query-builder/query-design/query-builder-slice";
+import { MetadataEntity, type DomainRelation } from "../../metadata/metadata-model";
 import { EditableEntity } from "./types";
 import FieldsDefinition from "./fields-definition/fields-definition";
 import RelationsDefinition from "./relations-definition/relations-definition";

@@ -10,8 +10,15 @@ Implementation references:
 - [`src/const/api-urls.ts`](../../src/OQuery.UI.Frontend/src/const/api-urls.ts) — endpoint definitions.
 - [`src/components/data-sources/database-slice.ts`](../../src/OQuery.UI.Frontend/src/components/data-sources/database-slice.ts)
   — connection, schema, and table data.
-- [`src/components/query-builder/query-design/query-builder-slice.ts`](../../src/OQuery.UI.Frontend/src/components/query-builder/query-design/query-builder-slice.ts)
-  — query, metadata, and saved-query requests.
+- [`src/store/store.ts`](../../src/OQuery.UI.Frontend/src/store/store.ts) — Redux store.
+- [`src/components/metadata/metadata-slice.ts`](../../src/OQuery.UI.Frontend/src/components/metadata/metadata-slice.ts)
+  — entities and relations of the loaded project.
+- [`src/components/function-definition/function-definition-slice.ts`](../../src/OQuery.UI.Frontend/src/components/function-definition/function-definition-slice.ts)
+  — function definitions for the loaded project.
+- [`src/components/saved-queries/saved-queries-slice.ts`](../../src/OQuery.UI.Frontend/src/components/saved-queries/saved-queries-slice.ts)
+  — saved query requests.
+- [`src/components/playground/playground-slice.ts`](../../src/OQuery.UI.Frontend/src/components/playground/playground-slice.ts)
+  — playground inline results.
 - [`src/components/metadata-builder/metadata-builder.tsx`](../../src/OQuery.UI.Frontend/src/components/metadata-builder/metadata-builder.tsx)
   — metadata routes and domain UI.
 
@@ -74,7 +81,7 @@ type OQueryEditorInput = {
 
 Home, Query Builder, and future editor hosts must use
 `OQueryEditorService`. The editor must not fetch missing domain or function
-data. Built-in filter operators are static (`query-design/filter-operators.ts`)
+data. Built-in filter operators are static (`oquery-editor/filter-operators.ts`)
 and need no request.
 
 ```text
@@ -150,7 +157,7 @@ are never seeded, because the seed scripts drop and recreate tables.
 
 ### Playground (`/playground/{projectId}/{domainId}/{queryId}`)
 
-The playground is the prototype workspace component (`playground-workspace.tsx`)
+The playground is the workspace component (`playground-workspace.tsx`)
 shown in the content area. `domainId` and `queryId` are optional trailing
 segments. The header's Current Project and Active Domain selects change the
 URL, and the connection button reuses the topbar `database-status` style. The
@@ -170,23 +177,19 @@ uses `VITE_HOME_PROJECT_ID` and `VITE_HOME_DOMAIN_ID` (the sub-domain) through
 
 ### Query Builder (`/playground/{projectId}/{domainId}`, formerly `/query-builder`)
 
+The Query Builder page was removed. The playground at the same URL uses the
+calls below.
+
 | Service call or API action | Trigger | Purpose |
 | --- | --- | --- |
 | `ProjectService.listDomainNames(projectId)` | Sub-domain selector load | Provides selector options. |
 | `OQueryEditorService` | Sub-domain selection | Provides the resolved sub-domain, functions, and operators. |
-| `QueryService` via `OQueryEditorService` (saved queries) | Saved-query panel load/revisit | Provides cached saved queries for the selected project and sub-domain. |
-| `POST /dynamic-query/query?projectId={projectId}&domainId={domainId}` | Structured query execution | Executes the current definition. |
-| `POST /dynamic-query/query/from-text?projectId={projectId}&domainId={domainId}` | OQuery execution | Parses and executes text. |
-| `POST /dynamic-query/query/from-text/{context}?projectId={projectId}&domainId={domainId}` | Context execution | Executes text for a selected context. |
-| `POST /dynamic-query/query/to-string?projectId={projectId}&domainId={domainId}` | SQL preview | Converts a definition to SQL. |
-| `POST /dynamic-query/query/to-string-from-text?projectId={projectId}&domainId={domainId}` | Text SQL preview | Converts OQuery text to SQL. |
-| `POST /dynamic-query/query/to-oquery` | OQuery conversion | Converts a definition to OQuery text. |
-| `POST /dynamic-query/query/from-oquery` | OQuery loading | Converts OQuery text to a definition. |
-| `QueryService.fetch/save/delete(...)` | Saved-query load and mutation | Fetches, saves and deletes through the service; per-scope cache updated on save/delete. |
+| `POST /dynamic-query/query/from-text/{context}?projectId={projectId}&domainId={domainId}` | Inline context run (`executeContextFromText`) | Executes text for a selected context. |
+| Context SQL preview (`oqueryContextToSql`) | Inline context run | Converts the context text to SQL for the inline result. |
 
-`QueryService` owns the underlying `/query-request*` API and caches requests
-by project and sub-domain. Query Builder must not directly call
-`GET /query-request?projectId={projectId}&domainId={domainId}`.
+Saved queries are loaded by `fetchQueryRequests` (`saved-queries-slice.ts`),
+which uses `QueryService`. Callers must not call
+`GET /query-request?projectId={projectId}&domainId={domainId}` directly.
 
 ### Metadata: Projects (`/metadata`)
 
@@ -199,7 +202,7 @@ sub-domain detail and the FullDomain are loaded only for the selected project.
 | `ProjectService.getProject(id)` | Project selected | Loads the project and its sub-domain configuration. |
 | `ProjectService.generateFullDomain(id)` / `getFullDomain(id)` | Full domain panel | Generates or reads the FullDomain. |
 | `ProjectService.createDomain/updateDomain/deleteDomain(...)` | Sub-domain mutation | Persists the sub-domain and reconciles caches. |
-| `ProjectService.getDomain(projectId, domainId)` | Diagram / query builder | Loads the resolved sub-domain. |
+| `ProjectService.getDomain(projectId, domainId)` | Diagram / playground | Loads the resolved sub-domain. |
 | `DbSchemaService.getSchema()` | Database-backed editing | Provides tables and relationships for the FullDomain generate action. |
 
 ### Metadata: Database Explorer (`/metadata/explorer`)
@@ -212,13 +215,13 @@ sub-domain detail and the FullDomain are loaded only for the selected project.
 ### Function Definitions (`/function-definitions`)
 
 Uses `FunctionDefinitionService.getDefinitions()`, `saveDefinition()` and
-`deleteDefinition()`. The page produces global function data; Home and Query
- Builder consume it through`OQueryEditorService`.
+`deleteDefinition()`. The page produces global function data; Home and the
+playground consume it through `OQueryEditorService`.
 
 ### Filter operators
 
 Built-in filter operators are static and owned by
-`query-design/filter-operators.ts`. No API request is made for them.
+`oquery-editor/filter-operators.ts`. No API request is made for them.
 
 ### Documentation (`/documentation`)
 
