@@ -46,7 +46,7 @@ would change the submodule, so it is left for a submodule commit (see O3).
 
 | # | Missing | Impact |
 |---|---|---|
-| M1 | No document describes the metadata YAML format used in `oquery/.data-storage/metadata/*.yml`. | Users cannot write metadata without reading code. |
+| M1 | No document describes the metadata YAML format used in `oquery/data-storage/metadata/*.yml`. | Users cannot write metadata without reading code. |
 | M2 | No API reference for the backend endpoints in `src/Demo.Services` and `src/OQuery.UI`. `api-by-page.md` covers only what the frontend calls. | Backend changes can break the frontend silently. |
 | M3 | The homepage has no generator or mapping from `homepage-spec.md` to `src/Demo.Frontend/src/components/home/`. The spec is not yet a source of truth in code. | Homepage copy and layout can drift from the spec. |
 | M4 | No glossary of terms: entity, field, relation, context, metadata, domain, scope. | Terms are used with different meanings in product and core docs. |
@@ -67,7 +67,7 @@ would change the submodule, so it is left for a submodule commit (see O3).
 | Link | Location | Status |
 |---|---|---|
 | `artifacts/query-architecture.svg` | `oquery/TECH.md` | Missing file. Open (submodule). |
-| `./db-scripts.sqlite.sql` | `oquery/.data-storage/scripts/sales-report-queries.md` | No such file. The sales script is `sale-demo.sqlite.sql`. Open (submodule). |
+| `./db-scripts.sqlite.sql` | `oquery/data-storage/scripts/sales-report-queries.md` | No such file. The sales script is `sale-demo.sqlite.sql`. Open (submodule). |
 
 All links in the root `docs/` tree and the root README resolve.
 

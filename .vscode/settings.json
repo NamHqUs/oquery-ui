@@ -4,7 +4,7 @@
   "git.repositoryScanMaxDepth": 2,
   "yaml.schemas": {
     "./.vscode/oquery-metadata.schema.json": [
-      "oquery/.data-storage/metadata/*.yml"
+      "oquery/data-storage/metadata/*.yml"
     ]
   }
 }

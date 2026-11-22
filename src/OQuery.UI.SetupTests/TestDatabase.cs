@@ -254,7 +254,7 @@ public sealed class TestDatabase
             .Select(GetScriptPath)
             .ToArray();
 
-    // Script files are named "<dataset>.<provider>.sql" and live under .data-storage/<dataset>/scripts.
+    // Script files are named "<dataset>.<provider>.sql" and live under data-storage/<dataset>/scripts.
     private static string GetScriptPath(string fileName)
     {
         var dataset = fileName[..fileName.IndexOf('.', StringComparison.Ordinal)];
@@ -262,16 +262,16 @@ public sealed class TestDatabase
     }
 
     private static string GetDataStorageRoot()
-        => Path.Combine(GetRepositoryRoot(), "oquery", ".data-storage");
+        => Path.Combine(GetRepositoryRoot(), "oquery", "data-storage");
 
     private static string GetRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !Directory.Exists(Path.Combine(directory.FullName, "oquery", ".data-storage")))
+        while (directory is not null && !Directory.Exists(Path.Combine(directory.FullName, "oquery", "data-storage")))
             directory = directory.Parent;
 
         return directory?.FullName
-            ?? throw new DirectoryNotFoundException("Could not find oquery/.data-storage above the test output folder.");
+            ?? throw new DirectoryNotFoundException("Could not find oquery/data-storage above the test output folder.");
     }
 
     private static string GetScriptVersion(IEnumerable<string> scriptNames)
@@ -282,7 +282,7 @@ public sealed class TestDatabase
 
         //foreach (var scriptName in scriptNames)
         //{
-        //    var path = Path.Combine(root, ".data-storage", "scripts", scriptName);
+        //    var path = Path.Combine(root, "data-storage", "scripts", scriptName);
         //    hash.AppendData(Encoding.UTF8.GetBytes(File.ReadAllText(path)));
         //}
 
