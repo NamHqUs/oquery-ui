@@ -5,7 +5,7 @@
 .field-section-toggle svg { color: #858fa1; transition: transform .15s ease; }
 .field-section-toggle[aria-expanded="false"] svg { transform: rotate(-90deg); }
 .field-section-toggle:hover h3, .field-section-toggle:focus-visible h3 { color: #b9a7ef; }
-.field-editor-head, .field-editor-row { display: grid; grid-template-columns: 18px 1.1fr 1.2fr .8fr 26px; gap: 4px; align-items: center; }
+.field-editor-head, .field-editor-row { display: grid; grid-template-columns: 18px 1.1fr 1.2fr minmax(96px, .8fr) 26px; gap: 4px; align-items: center; }
 .field-editor-head { color: #858fa1; background: #10131a; border-bottom: 1px solid #2a3140; font: 500 11px "Manrope", sans-serif; text-transform: uppercase; letter-spacing: .5px; margin: 0; padding: 9px 4px; }
 .field-editor-row { margin-top: 0; padding: 4px; border-bottom: 1px solid #202633; background: #141821; transition: background-color .15s ease; }
 .field-editor-row.data-type-open { position: relative; z-index: 5; }
@@ -29,6 +29,7 @@
 .field-data-type { display: inline-flex; min-width: 0; align-items: center; justify-content: flex-start; gap: 6px; padding: 7px 8px; color: #aeb6c5; text-align: left; }
 .field-data-type-picker { position: relative; min-width: 0; }
 .field-data-type-trigger { display: flex; width: 100%; align-items: center; justify-content: flex-start; gap: 6px; padding: 7px 8px; color: #dce1eb; font-size: 12px; text-align: left; }
+.field-data-type-trigger > span { white-space: nowrap; }
 .field-data-type-trigger svg:last-child { margin-left: auto; }
 .field-data-type-trigger svg { flex: 0 0 auto; color: #a78bfa; }
 .field-data-type-trigger svg:last-child { color: #858fa1; }
@@ -55,5 +56,5 @@
 .schema-column-apply:disabled { opacity: .55; cursor: not-allowed; }
 
 @media (max-width: 1100px) {
-  .field-editor-head, .field-editor-row { grid-template-columns: 18px 1fr 1fr .8fr 26px; }
+  .field-editor-head, .field-editor-row { grid-template-columns: 18px 1fr 1fr minmax(96px, .8fr) 26px; }
 }

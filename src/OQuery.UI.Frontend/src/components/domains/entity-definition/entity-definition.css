@@ -44,6 +44,10 @@
 .metadata-table-picker-menu > .metadata-raw-sql-menu-item:hover { color: #d0c2ff; }
 .metadata-table-picker-menu > button small { margin-left: auto; padding: 2px 5px; color: #a9e3e5; border: 1px solid #3d7180; border-radius: 2px; background: #263d4a; font-size: 11px; line-height: 1; }
 .metadata-table-picker-empty { padding: 8px; color: #858c9d; font-size: 11px; }
+.metadata-dropdown-menu { box-sizing: border-box; padding: 5px; border: 1px solid #3b4352; border-radius: 3px; background: #191e28; box-shadow: 0 12px 25px #00000055; }
+.metadata-dropdown-item { display: flex; width: 100%; box-sizing: border-box; align-items: center; gap: 6px; padding: 7px 8px; color: #dce1eb; border: 0; border-radius: 2px; background: #171b24 !important; font-size: 12px; text-align: left; cursor: pointer; transition: background-color .12s ease, color .12s ease; }
+.metadata-dropdown-menu .metadata-dropdown-item:hover,
+.metadata-dropdown-menu .metadata-dropdown-item[aria-selected="true"] { color: #fff; background: #29233d !important; }
 .metadata-empty { min-height: 600px; display: grid; align-content: center; justify-items: center; gap: 12px; color: var(--muted); font-size: 11px; text-align: center; }
 .metadata-empty svg { color: #6d5baf; }
 .metadata-empty p { margin: 0; }
@@ -56,7 +60,6 @@
 .metadata-diagram-editor .metadata-editor-compact .metadata-form input,
 .metadata-diagram-editor .metadata-editor-compact .metadata-form select,
 .metadata-diagram-editor .metadata-editor-compact .metadata-form textarea { padding: 6px 8px; font-size: 11px; }
-.metadata-diagram-editor .metadata-editor-compact .field-data-type-trigger > span { display: none; }
 .metadata-diagram-editor .metadata-editor-compact .editor-section { margin-top: 0; }
 .metadata-diagram-editor .metadata-editor-compact .editor-section h3 { font-size: 12px; }
 .metadata-diagram-editor .metadata-editor-compact .editor-section p { margin-top: 3px; font-size: 11px; }
