@@ -56,6 +56,25 @@
   color: #ffffff;
 }
 
+.query-oquery-inline-copy {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: #9aa6bd;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.query-oquery-inline-copy:hover {
+  color: #ffffff;
+}
+
+.query-oquery-inline-copy.copied {
+  color: #7fd6a4;
+}
+
 .query-oquery-inline-clear {
   flex: none;
   border: 0;

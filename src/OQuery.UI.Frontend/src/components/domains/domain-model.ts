@@ -11,6 +11,7 @@ export type MetadataEntity = {
   dbTable?: string | null;
   fields: MetadataField[];
   rawSql?: string;
+  isRawSql?: boolean;
 };
 
 export type DomainRelation = {
@@ -27,6 +28,7 @@ export type DomainEntityDto = {
   dbSchema?: string | null;
   dbTable?: string | null;
   rawSql?: string;
+  isRawSql?: boolean;
   fields: MetadataField[];
 };
 
@@ -36,8 +38,14 @@ export function metadataEntityFromDto(entity: DomainEntityDto): MetadataEntity {
     schema: entity.dbSchema ?? null,
     dbTable: entity.dbTable,
     rawSql: entity.rawSql,
+    isRawSql: entity.isRawSql ?? false,
     fields: entity.fields,
   };
+}
+
+// Schema names from saved domains can differ in case from the database's (e.g. "main" vs "Main"), so they match case-insensitively.
+export function isSameSchema(left: string | null | undefined, right: string | null | undefined): boolean {
+  return (left || "dbo").toLowerCase() === (right || "dbo").toLowerCase();
 }
 
 export type EntityRelationView = {

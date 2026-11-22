@@ -4,12 +4,12 @@ import Icon from "../shared/icon/icon";
 import { deleteDomain, updateDomain, type ProjectSummary } from "../../services/project-service";
 import { getSchema } from "../../services/db-schema-service";
 import type { AppDispatch, RootState } from "../../store/store";
-import { metadataEntityFromDto, type DomainRelation, type MetadataEntity } from "./domain-model";
+import { isSameSchema, metadataEntityFromDto, type DomainRelation, type MetadataEntity } from "./domain-model";
 import { clearDomainDraft, domainDraftSaved, setDomainDraftWorking, type DomainGraph } from "./domain-draft-slice";
 import { loadDomainDraft } from "./domain-draft-actions";
 import MainLayout, { Heading, notifyWorkspaceDomainsChanged, type WorkspaceView } from "../main-layout/main-layout";
 import DiagramView, { diagramGroupTone } from "./entity-diagram/diagram-view";
-import { changedEntityNames, toDiagramRelationships, toDiagramTables } from "./entity-diagram/diagram-model";
+import { changedEntityNames, dbSchemaChangedEntityNames, toDiagramRelationships, toDiagramTables } from "./entity-diagram/diagram-model";
 import PanelSplitter from "../shared/panel-splitter/panel-splitter";
 import ToastNotice from "../shared/toast-notice/toast-notice";
 import { useMessageBox } from "../shared/message-box/message-box";
@@ -131,7 +131,7 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
     return id;
   };
   const dirty = JSON.stringify(working) !== JSON.stringify(baseline);
-  const panel = useResizablePanel("metadata-entity-diagram-height", 480, 280, 900);
+  const panel = useResizablePanel("metadata-entity-diagram-height", 480, 150, 900);
   const showMessageBox = useMessageBox();
 
   useEffect(() => {
@@ -162,7 +162,7 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
   const selected = working.entities.find((entity) => entity.name === selectedName) ?? null;
   const draft = useMemo(() => (selected ? toEditable(selected) : null), [selected]);
   const selectedTable = draft?.dbTable
-    ? databaseTables.find((table) => table.name === draft.dbTable && table.schema === (draft.schema || "dbo"))
+    ? databaseTables.find((table) => table.name === draft.dbTable && isSameSchema(table.schema, draft.schema))
     : undefined;
 
   const changeDraft = (updater: (draft: EditableEntity) => EditableEntity) => {
@@ -206,7 +206,7 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
   };
 
   const selectTable = (table: DatabaseTableOption) => {
-    changeDraft((current) => ({ ...current, schema: table.schema, dbTable: table.name, rawSql: table.name }));
+    changeDraft((current) => ({ ...current, schema: table.schema, dbTable: table.name, rawSql: table.name, isRawSql: false }));
   };
 
   const save = async (): Promise<boolean> => {
@@ -330,6 +330,7 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
 
   const displayedEntities = working.entities.map((entity) => (draft && entity.name === selectedName ? draft : entity));
   const changedNames = useMemo(() => changedEntityNames(baseline, working), [baseline, working]);
+  const schemaChangedNames = useMemo(() => dbSchemaChangedEntityNames(working.entities, databaseTables), [working.entities, databaseTables]);
   const tables = toDiagramTables(displayedEntities, idOf);
   const relationships = toDiagramRelationships(displayedEntities, working.relations);
   const groups = domainOptions.map((option, index) => ({
@@ -388,6 +389,7 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
           initialGroup={activeDomain?.name || domainId}
           selectedTableName={selectedName}
           changedTableNames={changedNames}
+          schemaChangedTableNames={schemaChangedNames}
           loading={loading}
           relationships={relationships}
           onOpenTable={(table) => setSelectedName(table.name)}

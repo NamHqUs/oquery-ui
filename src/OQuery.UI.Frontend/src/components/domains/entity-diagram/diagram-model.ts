@@ -1,4 +1,5 @@
-import type { DomainRelation, MetadataEntity } from "../domain-model";
+import { isSameSchema, type DomainRelation, type MetadataEntity } from "../domain-model";
+import type { DatabaseTableOption } from "../entity-definition/entity-definition";
 import type { DiagramRelationship, DiagramTable } from "./diagram-view";
 
 // Names of working entities that differ from the saved graph: new, renamed, edited fields, or
@@ -20,6 +21,22 @@ export function changedEntityNames(baseline: { entities: MetadataEntity[]; relat
   return changed;
 }
 
+// Entities whose definition differs from the physical table they map to: the entity name or a field
+// name differs from the table/column, or a field column is missing from the table. Entities that map
+// to no loaded table (raw SQL, schema not loaded) are not compared. Relations are not compared.
+export function dbSchemaChangedEntityNames(entities: MetadataEntity[], databaseTables: DatabaseTableOption[]): Set<string> {
+  const changed = new Set<string>();
+  for (const entity of entities) {
+    const table = databaseTables.find((item) => item.name === entity.dbTable && isSameSchema(item.schema, entity.schema));
+    if (!table) continue;
+    const columns = new Set(table.columns.map((column) => column.name));
+    const fieldChanged = entity.fields.some((field) =>
+      !field.isRawSql && (field.name !== field.dbColumn || (Boolean(field.dbColumn) && !columns.has(field.dbColumn))));
+    if (entity.name !== table.name || fieldChanged) changed.add(entity.name);
+  }
+  return changed;
+}
+
 function markRelation(changed: Set<string>, relation: DomainRelation) {
   changed.add(relation.sourceEntity);
   changed.add(relation.targetEntity);
@@ -31,6 +48,7 @@ export function toDiagramTables(metadata: MetadataEntity[], idOf?: (name: string
     schema: item.schema || "dbo",
     name: item.name,
     dbTable: item.dbTable,
+    isRawSql: Boolean(item.isRawSql),
     columns: item.fields.map((field) => ({
       name: field.name,
       dataType: field.dataType || "String",

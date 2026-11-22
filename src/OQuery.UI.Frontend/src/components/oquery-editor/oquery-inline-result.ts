@@ -44,6 +44,48 @@ function buildModeToggle(
   return group;
 }
 
+function buildCopyButton(contextName: string, sql: string): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "query-oquery-inline-copy";
+  button.title = "Copy SQL";
+  button.setAttribute("aria-label", `Copy ${contextName} SQL`);
+
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", "13");
+  svg.setAttribute("height", "13");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "2");
+  svg.setAttribute("aria-hidden", "true");
+  for (const attributes of [
+    { tag: "rect", x: "8", y: "8", width: "12", height: "12", rx: "2" },
+    { tag: "path", d: "M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" },
+  ]) {
+    const { tag, ...attrs } = attributes;
+    const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (const [name, value] of Object.entries(attrs)) element.setAttribute(name, value);
+    svg.append(element);
+  }
+  button.append(svg);
+
+  button.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(sql);
+      button.classList.add("copied");
+      button.title = "Copied";
+      window.setTimeout(() => {
+        button.classList.remove("copied");
+        button.title = "Copy SQL";
+      }, 1500);
+    } catch {
+      button.title = "Copy failed";
+    }
+  });
+  return button;
+}
+
 // The result is built with textContent so query values are never parsed as HTML.
 export function buildInlineResultView(
   contextName: string,
@@ -84,7 +126,9 @@ export function buildInlineResultView(
   clear.title = "Clear result";
   clear.setAttribute("aria-label", `Clear ${contextName} result`);
   clear.addEventListener("click", onClear);
-  head.append(title, buildModeToggle(contextName, mode, onModeChange), clear);
+  head.append(title, buildModeToggle(contextName, mode, onModeChange));
+  if (mode === "sql" && entry.sql) head.append(buildCopyButton(contextName, entry.sql));
+  head.append(clear);
 
   const body = document.createElement("div");
   body.className = "query-oquery-inline-body";

@@ -40,6 +40,7 @@ export function toEntityPayload(entity: MetadataEntity) {
     dbSchema: entity.schema || undefined,
     dbTable: entity.dbTable || entity.rawSql || entity.name,
     rawSql: entity.rawSql || entity.name,
+    isRawSql: entity.isRawSql ?? false,
     fields: entity.fields.map((field) => ({
       name: field.name,
       dbColumn: field.dbColumn,

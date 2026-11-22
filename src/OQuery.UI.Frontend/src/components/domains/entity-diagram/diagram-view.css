@@ -535,6 +535,25 @@
   box-shadow: 0 0 0 2px rgba(245, 184, 65, .18);
 }
 
+.diagram-table-schema-changed {
+  flex: 0 0 15px;
+  position: relative;
+  width: 15px;
+  height: 15px;
+}
+
+.diagram-table-schema-changed::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: #ff6b8a;
+  box-shadow: 0 0 0 2px rgba(255, 107, 138, .18);
+}
+
 .diagram-table-card.changed {
   border-color: #f5b841;
 }

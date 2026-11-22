@@ -51,15 +51,9 @@ export default function EntityDefinition({
 }: EntityDefinitionProps) {
   const [tablePickerOpen, setTablePickerOpen] = useState(false);
   const [tableSearch, setTableSearch] = useState("");
-  const [rawSqlMode, setRawSqlMode] = useState(false);
   const splitPanel = useResizablePanel("metadata-entity-fields-width", 340, 240, 640);
   const tablePickerRef = useRef<HTMLDivElement>(null);
-  const rawSql = draft?.rawSql.trim() || "";
-  const entityName = draft?.name.trim() || "";
-  const selectedTableName = selectedTable?.name.trim() || "";
-  const hasRawSqlField = draft?.fields.some((field) => field.isRawSql) ?? false;
-  const isRawSqlEntity = Boolean(rawSql && !selectedTableName && (rawSql !== entityName || hasRawSqlField));
-  const showRawSql = isRawSqlEntity || (rawSqlMode && !selectedTableName);
+  const showRawSql = Boolean(draft?.isRawSql);
 
   const filteredTables = useMemo(() => {
     const query = tableSearch.trim().toLowerCase();
@@ -113,8 +107,8 @@ export default function EntityDefinition({
                 type="button"
                 className="metadata-raw-sql-mode-button"
                 onClick={() => {
-                  setRawSqlMode(false);
-                  onDraftChange((entity) => ({ ...entity, rawSql: "" }));
+                  // dbTable must be cleared too: toEditable falls back to dbTable, which would restore the raw SQL.
+                  onDraftChange((entity) => ({ ...entity, isRawSql: false, dbTable: null, rawSql: "" }));
                 }}
                 aria-label="Switch to table selection"
                 title="Switch to table selection"
@@ -169,7 +163,7 @@ export default function EntityDefinition({
                     type="button"
                     className="metadata-dropdown-item metadata-raw-sql-menu-item"
                     onClick={() => {
-                      setRawSqlMode(true);
+                      onDraftChange((entity) => ({ ...entity, isRawSql: true, dbTable: null }));
                       onSelectRawSql?.();
                       setTablePickerOpen(false);
                     }}

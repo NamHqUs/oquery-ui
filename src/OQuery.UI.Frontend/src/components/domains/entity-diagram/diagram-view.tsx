@@ -12,6 +12,7 @@ export type DiagramTable = {
   schema: string;
   name: string;
   dbTable?: string | null;
+  isRawSql?: boolean;
   columns: { name: string; dataType: string; isPrimaryKey: boolean; isNullable?: boolean }[];
 };
 export type DiagramGroupTone = "revenue" | "customer" | "product" | "finance" | "custom";
@@ -55,6 +56,7 @@ type DiagramViewProps = {
   initialGroup?: string;
   selectedTableName?: string;
   changedTableNames?: ReadonlySet<string>;
+  schemaChangedTableNames?: ReadonlySet<string>;
   loading?: boolean;
   relationships?: DiagramRelationship[];
   onOpenTable?: (table: DiagramTable) => void;
@@ -639,6 +641,15 @@ const DiagramEdge = memo(function DiagramEdge({ path, manyToMany }: { path: stri
   );
 });
 
+// editing: unsaved draft change. schema-changed: saved definition differs from the physical DB schema.
+type DiagramCardStatus = "editing" | "schema-changed" | "normal";
+
+const cardStatusLabels: Record<DiagramCardStatus, string> = {
+  editing: "unsaved changes",
+  "schema-changed": "differs from database schema",
+  normal: "",
+};
+
 type DiagramCardProps = {
   table: DiagramTable;
   cardKey: string;
@@ -649,7 +660,7 @@ type DiagramCardProps = {
   compact: boolean;
   expanded: boolean;
   selected: boolean;
-  changed: boolean;
+  status: DiagramCardStatus;
   onSelect: (table: DiagramTable) => void;
   onPreview: (table: DiagramTable) => void;
   onToggleExpand: (cardKey: string) => void;
@@ -668,7 +679,7 @@ const DiagramCard = memo(function DiagramCard({
   compact,
   expanded,
   selected,
-  changed,
+  status,
   onSelect,
   onPreview,
   onToggleExpand,
@@ -676,11 +687,12 @@ const DiagramCard = memo(function DiagramCard({
   onHeaderPointerMove,
   onHeaderPointerUp,
 }: DiagramCardProps) {
+  const statusLabel = cardStatusLabels[status];
   return (
     <article
-      className={`diagram-table-card${compact ? " compact" : ""}${expanded ? " expanded" : ""}${selected ? " selected" : ""}${changed ? " changed" : ""}`}
+      className={`diagram-table-card${compact ? " compact" : ""}${expanded ? " expanded" : ""}${selected ? " selected" : ""}${status === "editing" ? " changed" : ""}`}
       style={{ left: x, top: y, width, height }}
-      aria-label={`${table.name}${selected ? " (selected)" : ""}${changed ? " (unsaved changes)" : ""}`}
+      aria-label={`${table.name}${selected ? " (selected)" : ""}${statusLabel ? ` (${statusLabel})` : ""}`}
     >
       <button
         type="button"
@@ -691,11 +703,11 @@ const DiagramCard = memo(function DiagramCard({
         onPointerMove={onHeaderPointerMove}
         onPointerUp={onHeaderPointerUp}
         onPointerCancel={onHeaderPointerUp}
-        title={changed ? `Double-click to preview ${table.name} (unsaved changes)` : `Double-click to preview ${table.name}`}
+        title={statusLabel ? `Double-click to preview ${table.name} (${statusLabel})` : `Double-click to preview ${table.name}`}
       >
-        {changed
-          ? <span className="diagram-table-changed" role="img" aria-label="Unsaved changes" title="Unsaved changes" />
-          : !compact && <Icon name="table" size={15} />}
+        {status === "editing" && <span className="diagram-table-changed" role="img" aria-label="Unsaved changes" title="Unsaved changes" />}
+        {status === "schema-changed" && <span className="diagram-table-schema-changed" role="img" aria-label="Differs from database schema" title="Differs from database schema" />}
+        {status === "normal" && !compact && <Icon name={table.isRawSql ? "code" : "table"} size={15} />}
         <span>{table.name}</span>
         {!compact && table.dbTable && table.dbTable !== table.name && (
           <span className="diagram-table-schema">{table.dbTable}</span>
@@ -721,6 +733,7 @@ export default function DiagramView({
   initialGroup,
   selectedTableName,
   changedTableNames,
+  schemaChangedTableNames,
   loading = false,
   relationships: suppliedRelationships,
   onOpenTable,
@@ -729,6 +742,10 @@ export default function DiagramView({
 }: DiagramViewProps) {
   const dispatch = useDispatch();
   const { schema, schemaStatus, schemaError } = useSelector((state) => state.database);
+  const cardStatus = (tableName: string): DiagramCardStatus =>
+    changedTableNames?.has(tableName) ? "editing"
+      : schemaChangedTableNames?.has(tableName) ? "schema-changed"
+        : "normal";
   const diagramTables = suppliedTables || schema.tables;
   const [positions, setPositions] = useState({});
   const [expandedTables, setExpandedTables] = useState({});
@@ -1184,7 +1201,7 @@ export default function DiagramView({
                 compact={compactCards}
                 expanded={Boolean(expandedTables[key])}
                 selected={selectedTableName === table.name}
-                changed={changedTableNames?.has(table.name) ?? false}
+                status={cardStatus(table.name)}
                 onSelect={selectTable}
                 onPreview={previewTable}
                 onToggleExpand={toggleExpanded}
