@@ -10,7 +10,7 @@ metadata but must remain independent of controllers.
 
 - Read the repository interface and every caller before changing persistence
   semantics.
-- Inspect root `data-storage` conventions, file names, YAML/JSON shapes, and
+- Inspect root `.data-storage` conventions, file names, YAML/JSON shapes, and
   path layout before changing file-backed behavior.
 - Search storage-provider registration and tests before adding an adapter.
 

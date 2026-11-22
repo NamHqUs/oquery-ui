@@ -11,7 +11,7 @@ database services, and file storage.
 - Read the endpoint/controller, contract DTO, service, and middleware chain
   before changing an API behavior.
 - Search registration in `Program.cs`, configuration in `appsettings.json`,
-  and relevant root `data-storage` fixtures.
+  and relevant root `.data-storage` fixtures.
 - Check the UI solution and the `oquery` submodule reference before changing
   project paths or Docker behavior.
 - Preserve existing HTTP status codes, problem-details handling, and Swagger

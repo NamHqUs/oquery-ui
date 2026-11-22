@@ -81,7 +81,7 @@ Test changes:
 
 ## Notes
 
-- Git reports many modified `data-storage/` and frontend files that this change did
+- Git reports many modified `.data-storage/` and frontend files that this change did
   not touch (for example the domain and query JSON files). They were left as they
   were.
 - `COUNT(1)` counts the rows of the current collection without naming a column. The

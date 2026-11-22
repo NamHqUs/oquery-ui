@@ -1,4 +1,4 @@
-$fileStoragePath = (Resolve-Path (Join-Path $PSScriptRoot '..\..\data-storage')).Path
+$fileStoragePath = (Resolve-Path (Join-Path $PSScriptRoot '..\..\.data-storage')).Path
 
 docker image inspect oquery-ui:dev *> $null
 if ($LASTEXITCODE -ne 0) {

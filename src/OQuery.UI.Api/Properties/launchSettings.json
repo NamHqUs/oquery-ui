@@ -26,7 +26,7 @@
         "OQuery__DbProvider__Provider": "Sqlite",
         "OQuery__Repositories__Files__UserDataStorePath": "../var/data/UserData"
       },
-      "containerRunArguments": "-v \"{ProjectDir}/../../data-storage:/var/data\"",
+      "containerRunArguments": "-v \"{ProjectDir}/../../.data-storage:/var/data\"",
       "httpPort": 21210, /* Fixed VS port for HTTP */
       "publishAllPorts": false,
       "useSSL": false
