@@ -150,7 +150,7 @@ are never seeded, because the seed scripts drop and recreate tables.
 
 ### Playground (`/playground/{projectId}/{domainId}/{queryId}`)
 
-The playground is the prototype workspace component (`prototype-workspace.tsx`)
+The playground is the prototype workspace component (`playground-workspace.tsx`)
 shown in the content area. `domainId` and `queryId` are optional trailing
 segments. The header's Current Project and Active Domain selects change the
 URL, and the connection button reuses the topbar `database-status` style. The

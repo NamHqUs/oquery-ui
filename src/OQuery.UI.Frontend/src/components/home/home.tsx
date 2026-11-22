@@ -2,8 +2,8 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type R
 import { useDispatch, useSelector } from "react-redux";
 import Icon, { getDatabaseIconName } from "../icon/icon";
 import OQueryEditor, { type OQueryEditorHandle } from "../oquery-editor/oquery-editor";
-import DiagramView from "../domain-diagram/diagram-view";
-import { toDiagramRelationships, toDiagramTables } from "../domain-diagram/diagram-model";
+import DiagramView from "../domains/entity-diagram/diagram-view";
+import { toDiagramRelationships, toDiagramTables } from "../domains/entity-diagram/diagram-model";
 import { getOQuerySuggestionData } from "../oquery-editor/oquery-suggestion-data";
 import type { FunctionDefinition } from "../function-definition/types";
 import {

@@ -18,15 +18,14 @@ import { GITHUB_URL, PRODUCT_NAME } from "./components/home/home-content";
 import { MessageBoxProvider } from "./components/message-box/message-box";
 import { readAnalyticsConsent } from "./services/api-client";
 import ProjectOnboarding from "./components/metadata-builder/project/project-onboarding";
-import CreateProjectPage from "./components/projects/create-project-page";
-import WorkspacePage from "./components/workspace/workspace-page";
+import CreateProjectPage from "./components/project-setup/create-project-page";
+import ProjectListPage from "./components/project-setup/project-list-page";
 import { getProject, listProjects, type ProjectSummary } from "./services/project-service";
 import { store, type RootState } from "./store/store";
 import "./styles.css";
-import "./components/app-shell/app-shell.css";
-import PlaygroundWorkspace from "./components/prototype-workspace/prototype-workspace";
-import { domainDiagramPath, domainDiagramRouteOf, isDomainDiagramPath } from "./components/domain-diagram/domain-diagram-routes";
-import DomainWizardPage from "./components/domain-diagram/domain-wizard/domain-wizard-page";
+import PlaygroundWorkspace from "./components/playground/playground-workspace";
+import { domainDiagramPath, domainDiagramRouteOf, isDomainDiagramPath } from "./components/domains/domain-routes";
+import DomainPage from "./components/domains/domain-page";
 
 const PAGE_PATHS = {
   home: "/",
@@ -847,9 +846,16 @@ function App() {
     return <Navigate to={builderPath(legacyProjectIdOf(location.pathname), new URLSearchParams(location.search).get("domain")?.trim() ?? "")} replace />;
   }
 
-  const wizardRoute = domainDiagramRouteOf(location.pathname);
-  if (wizardRoute?.kind === "create" || wizardRoute?.kind === "edit") {
-    return <DomainWizardPage mode={wizardRoute.kind} projectId={wizardRoute.projectId} domainId={wizardRoute.kind === "edit" ? wizardRoute.domainId : ""} />;
+  const domainRoute = domainDiagramRouteOf(location.pathname);
+  const domainPageProps = {
+    projects: workspaceProjects.projects ?? [],
+    connectionStatus: database.connectionStatus,
+    provider: database.connectedProvider,
+    onNavigate: navigateWorkspace,
+    onOpenConnection: requestDatabaseConnection,
+  };
+  if (domainRoute?.kind === "create" || domainRoute?.kind === "edit") {
+    return <DomainPage route={domainRoute} {...domainPageProps} />;
   }
 
   const playgroundRoute = playgroundRouteOf(location.pathname);
@@ -860,17 +866,18 @@ function App() {
     }
     return (
       <>
-        <PlaygroundWorkspace
-          projectId={playgroundRoute.projectId}
-          domainId={playgroundRoute.domainId}
-          queryId={playgroundRoute.queryId}
-          projects={workspaceProjects.projects ?? []}
-          connectionStatus={database.connectionStatus}
-          provider={database.connectedProvider}
-          diagramRoute={isDomainDiagramPath(location.pathname)}
-          onNavigate={navigateWorkspace}
-          onOpenConnection={requestDatabaseConnection}
-        />
+        {domainRoute
+          ? <DomainPage route={domainRoute} {...domainPageProps} />
+          : <PlaygroundWorkspace
+            projectId={playgroundRoute.projectId}
+            domainId={playgroundRoute.domainId}
+            queryId={playgroundRoute.queryId}
+            projects={workspaceProjects.projects ?? []}
+            connectionStatus={database.connectionStatus}
+            provider={database.connectedProvider}
+            onNavigate={navigateWorkspace}
+            onOpenConnection={requestDatabaseConnection}
+          />}
         {connectionDialogOpen && <ConnectionDialog onClose={() => setConnectionDialogOpen(false)} />}
       </>
     );
@@ -956,7 +963,7 @@ function App() {
           <Route path={PAGE_PATHS.documentation} element={<div className="page-transition page-transition-no-slide"><Documentation /></div>} />
           <Route path={PAGE_PATHS.builder} element={null} />
           <Route path={LEGACY_BUILDER_PATH} element={<LegacyQueryBuilderRedirect />} />
-          <Route path={WORKSPACE_PATH} element={<div className="page-transition page-transition-no-slide"><WorkspacePage /></div>} />
+          <Route path={WORKSPACE_PATH} element={<div className="page-transition page-transition-no-slide"><ProjectListPage /></div>} />
           <Route path={PROJECT_CREATE_PATH} element={<div className="page-transition page-transition-no-slide"><CreateProjectPage /></div>} />
           <Route path={PAGE_PATHS.metadata} element={null} />
           <Route path={DOMAINS_PATH} element={null} />

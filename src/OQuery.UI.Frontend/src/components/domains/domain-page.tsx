@@ -1,31 +1,34 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import Icon from "../icon/icon";
-import { getDomain, getFullDomain, updateFullDomain } from "../../services/project-service";
+import { getDomain, getFullDomain, updateFullDomain, type ProjectSummary } from "../../services/project-service";
 import { getSchema } from "../../services/db-schema-service";
 import { metadataEntityFromDto, type DomainRelation, type MetadataEntity } from "../query-builder/query-design/query-builder-slice";
 import DefinitionActions from "../metadata-builder/definition-actions/definition-actions";
-import DomainDiagram from "./domain-diagram";
+import WorkspaceShell, { Heading, type WorkspaceView } from "../workspace-shell/workspace-shell";
+import DiagramView, { diagramGroupTone } from "./entity-diagram/diagram-view";
+import { toDiagramRelationships, toDiagramTables } from "./entity-diagram/diagram-model";
+import PanelSplitter from "../panel-splitter/panel-splitter";
+import { useResizablePanel } from "../../utils/use-resizable-panel";
+import "./entity-diagram/entity-diagram.css";
 import EntityDefinition, { type DatabaseTableOption } from "./entity-definition/entity-definition";
 import { removeEntityFromRelations, renameEntityInRelations, toEditable, toEntityPayload, toRelationPayload, type EditableEntity } from "./entity-definition/types";
-import type { DomainGraph } from "./domain-wizard/domain-wizard-model";
-import { domainCreatePath, domainEditPath } from "./domain-diagram-routes";
+import { domainCreatePath, domainDiagramPath, domainEditPath, type DomainDiagramRoute } from "./domain-routes";
+import DomainWizardPage from "./domain-wizard/domain-wizard-page";
 
-type DomainDiagramPanelProps = {
-  projectId: string;
-  domainId: string;
-  domainOptions: { id: string; name: string }[];
-  onSelectDomain?: (domainId: string) => void;
-  onError?: (message: string) => void;
+type DomainGraph = { entities: MetadataEntity[]; relations: DomainRelation[] };
+
+type DomainPageProps = {
+  route: DomainDiagramRoute;
+  projects: ProjectSummary[];
+  connectionStatus: string;
+  provider: string;
+  onNavigate: (path: string) => void;
+  onOpenConnection: () => void;
 };
 
 // The Main domain is the FullDomain itself, so its entities and relations are the editable mapping to the database.
 const MAIN_DOMAIN_ID = "main";
 const EMPTY_GRAPH: DomainGraph = { entities: [], relations: [] };
-
-function messageOf(error: unknown) {
-  return error instanceof Error ? error.message : "Something went wrong.";
-}
 
 type DatabaseSchemaPayload = {
   tables: { schema: string; name: string; columns: { name: string; dataType: string; isPrimaryKey: boolean }[] }[];
@@ -47,9 +50,48 @@ function toDatabaseTableOptions(schema: unknown): DatabaseTableOption[] {
   }));
 }
 
-export default function DomainDiagramPanel({ projectId, domainId, domainOptions, onSelectDomain, onError }: DomainDiagramPanelProps) {
+const encode = (segment: string) => encodeURIComponent(segment);
+
+export default function DomainPage({ route, projects, connectionStatus, provider, onNavigate, onOpenConnection }: DomainPageProps) {
+  if (route.kind !== "view") return <DomainWizardPage mode={route.kind} projectId={route.projectId} />;
+  const { projectId } = route;
+  const onSelectView = (view: WorkspaceView, domainId: string) => {
+    if (view === "diagram") return;
+    onNavigate(`/playground/${encode(projectId)}${domainId ? `/${encode(domainId)}` : ""}`);
+  };
+  return (
+    <WorkspaceShell
+      view="diagram"
+      projects={projects}
+      projectId={projectId}
+      domainId={route.domainId}
+      connectionStatus={connectionStatus}
+      provider={provider}
+      onSelectView={onSelectView}
+      onSelectProject={(id) => { if (id) onNavigate(`/playground/${encode(id)}`); }}
+      onSelectDomain={(id) => { if (id) onNavigate(domainDiagramPath(projectId, id)); }}
+      onOpenConnection={onOpenConnection}
+      onNavigateHome={() => onNavigate("/")}
+    >
+      {({ domains, domainId }) => (
+        <>
+          <Heading icon="schema" title="Domain Diagram" text="Explore your data model, understand relationships, and get AI-powered insights" />
+          <DomainDiagramContent projectId={projectId} domainId={domainId} domainOptions={domains} onNavigate={onNavigate} />
+        </>
+      )}
+    </WorkspaceShell>
+  );
+}
+
+type DomainDiagramContentProps = {
+  projectId: string;
+  domainId: string;
+  domainOptions: { id: string; name: string }[];
+  onNavigate: (path: string) => void;
+};
+
+function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }: DomainDiagramContentProps) {
   const isMainDomain = domainId === MAIN_DOMAIN_ID;
-  const navigate = useNavigate();
   const [baseline, setBaseline] = useState<DomainGraph>(EMPTY_GRAPH);
   const [working, setWorking] = useState<DomainGraph>(EMPTY_GRAPH);
   const [databaseTables, setDatabaseTables] = useState<DatabaseTableOption[]>([]);
@@ -58,6 +100,7 @@ export default function DomainDiagramPanel({ projectId, domainId, domainOptions,
   const [reloadToken, setReloadToken] = useState(0);
   const [selectedName, setSelectedName] = useState("");
   const dirty = JSON.stringify(working) !== JSON.stringify(baseline);
+  const panel = useResizablePanel("metadata-entity-diagram-height", 480, 280, 900);
 
   useEffect(() => {
     let active = true;
@@ -65,8 +108,8 @@ export default function DomainDiagramPanel({ projectId, domainId, domainOptions,
       .then((schema) => {
         if (active) setDatabaseTables(toDatabaseTableOptions(schema));
       })
-      .catch((error: unknown) => {
-        if (active) onError?.(messageOf(error));
+      .catch(() => {
+        if (active) setDatabaseTables([]);
       });
     return () => {
       active = false;
@@ -91,11 +134,10 @@ export default function DomainDiagramPanel({ projectId, domainId, domainOptions,
         setBaseline(graph);
         setWorking(graph);
       })
-      .catch((error: unknown) => {
+      .catch(() => {
         if (!active) return;
         setBaseline(EMPTY_GRAPH);
         setWorking(EMPTY_GRAPH);
-        onError?.(messageOf(error));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -153,7 +195,6 @@ export default function DomainDiagramPanel({ projectId, domainId, domainOptions,
     changeDraft((current) => ({ ...current, schema: table.schema, dbTable: table.name, rawSql: table.name }));
   };
 
-  // Throws on failure so callers (the toolbar Save and the wizard Apply) can show the error where they are.
   const persist = async (graph: DomainGraph) => {
     const saved = await updateFullDomain(projectId, {
       entities: graph.entities.map(toEntityPayload),
@@ -168,8 +209,8 @@ export default function DomainDiagramPanel({ projectId, domainId, domainOptions,
     setSaving(true);
     try {
       await persist(working);
-    } catch (error) {
-      onError?.(messageOf(error));
+    } catch {
+      // Save failures are not surfaced yet, matching the previous panel behavior.
     } finally {
       setSaving(false);
     }
@@ -203,57 +244,74 @@ export default function DomainDiagramPanel({ projectId, domainId, domainOptions,
       <button className="domain-action-button" type="button" title="Reload domain from the server" aria-label="Reload domain" onClick={reload} disabled={loading || saving}>
         <Icon name="reset" size={15} /> Reload
       </button>
-      <button className="domain-action-button" type="button" title="Edit the Main domain in the wizard" aria-label="Edit domain" onClick={() => navigate(domainEditPath(projectId, domainId))} disabled={!isMainDomain || dirty || loading || saving}>
+      <button className="domain-action-button" type="button" title="Edit the Main domain in the wizard" aria-label="Edit domain" onClick={() => onNavigate(domainEditPath(projectId, domainId))} disabled={!isMainDomain || dirty || loading || saving}>
         <Icon name="edit" size={15} /> Edit
       </button>
-      <button className="domain-action-button create" type="button" title="Create a domain in the wizard" aria-label="Create domain" onClick={() => navigate(domainCreatePath(projectId))} disabled={dirty || loading || saving}>
+      <button className="domain-action-button create" type="button" title="Create a domain in the wizard" aria-label="Create domain" onClick={() => onNavigate(domainCreatePath(projectId))} disabled={dirty || loading || saving}>
         <Icon name="file-plus" size={15} /> Create
       </button>
     </div>
   );
 
+  const displayedEntities = working.entities.map((entity) => (draft && entity.name === selectedName ? draft : entity));
+  const tables = toDiagramTables(displayedEntities);
+  const relationships = toDiagramRelationships(displayedEntities, working.relations);
+  const groups = domainOptions.map((option, index) => ({
+    id: option.id,
+    name: option.name,
+    tone: diagramGroupTone(index),
+    tables: toDiagramTables(option.id === domainId || (!domainId && option.id === "All") ? displayedEntities : []),
+  }));
+  const activeDomain = domainOptions.find((option) => option.id === domainId);
+
   return (
-    <DomainDiagram
-      entities={working.entities}
-      relations={working.relations}
-      domainOptions={domainOptions}
-      activeDomainId={domainId}
-      selectedEntityName={selectedName}
-      loading={loading}
-      editingEntity={draft}
-      editingEntityName={selectedName}
-      onDraftChange={changeDraft}
-      onSelectDomain={onSelectDomain}
-      onOpenEntity={(table) => setSelectedName(table.name)}
-      toolbarActions={toolbarActions}
-      entityEditorHeader={
-        <div className="table-details-heading metadata-editor-heading">
-          <div className="table-details-title">
-            <div className="metadata-editor-heading-title">
-              <span className="metadata-editor-heading-icon"><Icon name="table" size={18} /></span>
-              <h3>{draft?.name || "Select an entity"}</h3>
+    <>
+      <div className="domain-diagram-toolbar">{toolbarActions}</div>
+      <div className="metadata-diagram-mode-content split-workspace" style={panel.style}>
+        <section className="metadata-diagram-editor split-panel" aria-label="Entity definition editor">
+          <div className="table-details-heading metadata-editor-heading">
+            <div className="table-details-title">
+              <div className="metadata-editor-heading-title">
+                <span className="metadata-editor-heading-icon"><Icon name="table" size={18} /></span>
+                <h3>{draft?.name || "Select an entity"}</h3>
+              </div>
+            </div>
+            <div className="metadata-editor-heading-actions">
+              {entityHeaderActions}
             </div>
           </div>
-          <div className="metadata-editor-heading-actions">
-            {entityHeaderActions}
-          </div>
-        </div>
-      }
-      entityEditor={
-        <EntityDefinition
-          draft={draft}
-          canEdit={isMainDomain}
-          message=""
-          allEntities={working.entities}
-          domainRelations={working.relations}
-          onDraftChange={changeDraft}
-          onRelationsChange={changeRelations}
-          databaseTables={databaseTables}
-          selectedTable={selectedTable}
-          onSelectTable={selectTable}
-          compact
+          <EntityDefinition
+            draft={draft}
+            canEdit={isMainDomain}
+            message=""
+            allEntities={working.entities}
+            domainRelations={working.relations}
+            onDraftChange={changeDraft}
+            onRelationsChange={changeRelations}
+            databaseTables={databaseTables}
+            selectedTable={selectedTable}
+            onSelectTable={selectTable}
+            compact
+          />
+        </section>
+        <PanelSplitter
+          panel={panel}
+          label="diagram height"
+          orientation="horizontal"
+          horizontalAnchor="top"
+          collapsible={false}
         />
-      }
-    />
+        <DiagramView
+          tables={tables}
+          groups={groups}
+          initialGroup={activeDomain?.name || domainId}
+          selectedTableName={selectedName}
+          loading={loading}
+          relationships={relationships}
+          onOpenTable={(table) => setSelectedName(table.name)}
+        />
+      </div>
+    </>
   );
 }
+

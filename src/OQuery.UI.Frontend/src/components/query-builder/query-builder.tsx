@@ -10,7 +10,7 @@ import { ApiQueryContextDefinition, clearAllInlineResults, clearInlineResult, cl
 import { MetadataRelationsContext } from "./query-design/metadata-relations-context";
 import QueryDesign from "./query-design/query-design";
 import QueryResult from "./query-result/query-result";
-import SavedQueryList from "./saved-query-list/saved-query-list";
+import SavedQueryList from "../saved-queries/saved-query-list";
 import { getOquerySyntaxError } from "../oquery-editor/oquery-validation";
 import { clearOQueryDraft, readOQueryDraft } from "./oquery-draft";
 import { getOQuerySuggestionData } from "../oquery-editor/oquery-suggestion-data";

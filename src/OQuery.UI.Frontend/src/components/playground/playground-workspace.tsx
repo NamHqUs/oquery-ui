@@ -1,89 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Icon, { type IconName } from "../icon/icon";
-import { getProject, type ProjectSummary } from "../../services/project-service";
-import WorkspaceSelect from "./prototype-select";
-import Playground from "../playground/playground";
-import DomainDiagramPanel from "../domain-diagram/domain-diagram-panel";
-import { domainDiagramPath } from "../domain-diagram/domain-diagram-routes";
-import "./prototype-workspace.css";
-import "./prototype-workspace-compat.css";
+import type { ProjectSummary } from "../../services/project-service";
+import Playground from "./playground";
+import { domainDiagramPath } from "../domains/domain-routes";
+import WorkspaceShell, { Heading, type WorkspaceView } from "../workspace-shell/workspace-shell";
 
-type View = "overview" | "playground" | "queries" | "diagram" | "explorer" | "functions" | "security";
-const items: Array<[View, string, IconName]> = [
-  ["overview", "Overview", "grid"], ["playground", "Playground", "play"], ["queries", "Queries", "file-text"],
-  ["diagram", "Domain Diagram", "schema"], ["explorer", "Database explorer", "database"],
-  ["functions", "Custom functions", "function"], ["security", "Security", "shield"],
-];
 const queries = ["Top customers by revenue", "Monthly order performance", "Unpaid orders audit", "Product conversion funnel", "Customer retention cohort"];
-
-type HeaderProps = {
-  projects: ProjectSummary[];
-  projectId: string;
-  domains: { id: string; name: string }[];
-  domainId: string;
-  connectionStatus: string;
-  provider: string;
-  onSelectProject: (projectId: string) => void;
-  onSelectDomain: (domainId: string) => void;
-  onOpenConnection: () => void;
-  onNavigateHome: () => void;
-};
-
-function Header({ projects, projectId, domains, domainId, connectionStatus, provider, onSelectProject, onSelectDomain, onOpenConnection, onNavigateHome }: HeaderProps) {
-  const connectionState = connectionStatus === "loading" ? "connecting"
-    : connectionStatus === "failed" ? "failed"
-      : connectionStatus === "succeeded" ? "connected" : "";
-  const connectionLabel = connectionStatus === "loading" ? "Connecting…"
-    : connectionStatus === "failed" ? "Connection failed · Retry"
-      : connectionStatus === "succeeded" ? (provider || "Connecting") : "Not connected";
-  return <header className="root-header">
-    <button type="button" className="prototype-logo" onClick={onNavigateHome} aria-label="Go to home"><img src="/brand-concepts/23-oquery-orbit-core.svg" alt="" /><small>DATA QUERY ENGINE</small></button>
-    <div className="prototype-context">
-      <WorkspaceSelect
-        label="CURRENT PROJECT"
-        icon="folder"
-        value={projectId}
-        placeholder={projects.length ? "Choose a project" : "No projects yet"}
-        options={projects.map((project) => ({ value: project.id, label: project.name }))}
-        onChange={onSelectProject}
-      />
-      <i />
-      <WorkspaceSelect
-        label="ACTIVE DOMAIN"
-        icon="table"
-        value={domainId}
-        placeholder={projectId ? "No domains" : "Choose a project first"}
-        disabled={domains.length === 0}
-        options={domains.map((domain) => ({ value: domain.id, label: domain.name }))}
-        onChange={onSelectDomain}
-      />
-    </div>
-    <div className="prototype-actions">
-      <button type="button" className={`database-status${connectionState ? ` ${connectionState}` : ""}`} onClick={onOpenConnection} aria-live="polite">
-        <span className="database-status-dot" />
-        <Icon name={connectionState === "connected" ? "check" : "database"} size={15} />
-        <span>{connectionLabel}</span>
-      </button>
-      <button type="button" className="prototype-notification" aria-label="Notifications"><Icon name="bell" size={15} /><em>3</em></button>
-      <button type="button" className="prototype-avatar" aria-label="User profile">N</button>
-    </div>
-  </header>;
-}
-
-
-function Sidebar({ view, setView, collapsed, onToggle }: { view: View; setView: (view: View) => void; collapsed: boolean; onToggle: () => void }) {
-  return <aside className={`root-sidebar${collapsed ? " collapsed" : ""}`}>
-    <button type="button" className="root-sidebar-toggle" aria-label={collapsed ? "Expand main menu" : "Collapse main menu"} onClick={onToggle}>
-      <Icon name={collapsed ? "chevron-right" : "chevron-left"} size={14} />
-    </button>
-    <nav>{items.map(([id, label, icon]) => <button key={id} type="button" className={view === id ? "active" : ""} title={label} aria-label={label} onClick={() => setView(id)}><Icon name={icon} size={19} /><span>{label}</span></button>)}</nav>
-    {!collapsed && <p>Smarter queries.<br />Deeper insights.</p>}
-  </aside>;
-}
-
-function Heading({ icon, title, text, action }: { icon: IconName; title: string; text: string; action?: string }) {
-  return <div className="prototype-heading"><div><span className="prototype-heading-icon"><Icon name={icon} size={23} /></span><span><h1>{title}</h1><p>{text}</p></span></div>{action && <button className="prototype-primary" type="button"><Icon name="plus" size={14} /> {action}</button>}</div>;
-}
 
 function Panel({ title, icon, children, className = "" }: { title: string; icon: IconName; children: React.ReactNode; className?: string }) {
   return <section className={`prototype-panel ${className}`}><header><span><Icon name={icon} size={16} /><b>{title}</b></span><small>View all →</small></header>{children}</section>;
@@ -95,13 +17,6 @@ function Overview() {
 
 function Queries() {
   return <><Heading icon="file-text" title="Saved queries" text="Organize, reuse, and collaborate on your data questions" action="New query" /><div className="prototype-toolbar"><input placeholder="⌕  Search queries..." /><span>All　5</span><span>☆ Favorites 1</span><span>♧ Shared with me 2</span><span>◷ Recent</span></div><div className="prototype-query-layout"><section className="prototype-panel query-list">{queries.map((q, i) => <article className={i === 0 ? "selected" : ""} key={q}><Icon name="chart-bar" size={19} /><div><b>{q}</b><p>Find insights and track business performance across your data</p></div><small>{["Sarah Johnson", "Michael Chen", "Emily Rodriguez", "David Kim", "Laura Garcia"][i]}<br />Analyst</small><em>{["Revenue", "Operations", "Finance", "Marketing", "Analytics"][i]}</em><button className="prototype-primary" type="button">▷ Run</button></article>)}</section><Panel title="Top customers by revenue" icon="chart-bar" className="query-inspector"><p>Find the top 10 customers by revenue in the last 3 months</p><b className="prototype-badge">Healthy</b><h3>Query code</h3><pre>{`SELECT c.customer_id,\n  c.first_name,\n  SUM(o.total_amount) AS total_revenue\nFROM customer c\nJOIN order o ON c.customer_id = o.customer_id\nORDER BY total_revenue DESC\nLIMIT 10;`}</pre><h3>Entities used</h3><div className="prototype-chips"><span>Customer</span><span>Order</span><span>Payment</span></div><button className="prototype-primary" type="button">Open in playground</button><button type="button">Share query</button></Panel></div></>;
-}
-
-function DomainDiagramView({ projectId, domainId, domains, onSelectDomain }: { projectId: string; domainId: string; domains: { id: string; name: string }[]; onSelectDomain: (domainId: string) => void }) {
-  return <>
-    <Heading icon="schema" title="Domain Diagram" text="Explore your data model, understand relationships, and get AI-powered insights" />
-    <DomainDiagramPanel projectId={projectId} domainId={domainId} domainOptions={domains} onSelectDomain={onSelectDomain} />
-  </>;
 }
 
 function Explorer() {
@@ -116,78 +31,34 @@ function Security() {
   return <><Heading icon="shield" title="Security & access" text="Control who can discover, query, and share your data" /><div className="prototype-stats">{[["check", "Policy coverage", "100%", "+2%"], ["eye-off", "Active policies", "12", "+3"], ["group", "Access requests", "3", "+1"], ["file-text", "Audit events", "1,248", "+18"]].map(([icon, label, value, change]) => <article key={label}><Icon name={icon as IconName} size={21} /><span>{label}<b>{value}</b><em>↑ {change}</em></span></article>)}</div><div className="prototype-query-layout"><section className="prototype-panel policy-list"><header><b>Policies</b><span>Roles　 Access requests　 Audit log</span></header>{["Row-level customer access", "Finance revenue protection", "PII masking", "Production read-only"].map((x, i) => <article className={i === 2 ? "selected" : ""} key={x}><Icon name={i === 2 ? "eye-off" : "shield"} size={18} /><div><b>{x}</b><p>{["Users can only see their assigned customers", "Restrict access to revenue and financial metrics", "Mask personally identifiable information", "Prevent write operations in production"][i]}</p></div><strong>Active</strong><small>{["Customers", "Finance", "All tables", "Production"][i]}</small><Icon name="edit" size={14} /></article>)}</section><Panel title="PII masking" icon="eye-off" className="query-inspector"><p>Mask personally identifiable information in query results and exports.</p><h3>Protected fields</h3><div className="prototype-chips"><span>customer_email · MASK</span><span>customer_phone · MASK</span><span>customer_name · MASK</span><span>address · MASK</span></div><h3>Rule preview</h3><pre>{`CASE\n WHEN current_role IN ('analytics', 'marketing')\n THEN customer_email\n ELSE '***MASKED***'\nEND AS customer_email`}</pre><button className="prototype-primary" type="button">Edit policy</button><button type="button">Test policy</button></Panel></div></>;
 }
 
-export default function PlaygroundWorkspace({ projectId, domainId, queryId, projects, connectionStatus, provider, diagramRoute, onNavigate, onOpenConnection }: {
+export default function PlaygroundWorkspace({ projectId, domainId, queryId, projects, connectionStatus, provider, onNavigate, onOpenConnection }: {
   projectId: string;
   domainId: string;
   queryId: string;
   projects: ProjectSummary[];
   connectionStatus: string;
   provider: string;
-  diagramRoute: boolean;
   onNavigate: (path: string) => void;
   onOpenConnection: () => void;
 }) {
-  const [view, setView] = useState<View>(diagramRoute ? "diagram" : "playground");
-  useEffect(() => {
-    if (diagramRoute) setView("diagram");
-    else setView((current) => (current === "diagram" ? "playground" : current));
-  }, [diagramRoute]);
-  const [domains, setDomains] = useState<{ id: string; name: string }[]>([]);
-  useEffect(() => {
-    let active = true;
-    if (!projectId) {
-      setDomains([]);
-      return;
-    }
-    getProject(projectId)
-      .then((details) => {
-        if (active) setDomains(details.domains.map((domain) => ({ id: domain.id, name: domain.name })));
-      })
-      .catch(() => {
-        if (active) setDomains([]);
-      });
-    return () => {
-      active = false;
-    };
-  }, [projectId]);
-  const selectedDomainId = domains.length === 0
-    ? domainId
-    : (domains.some((domain) => domain.id === domainId) ? domainId : (domains[0]?.id ?? ""));
-  const selectView = (next: View) => {
-    if (next === "diagram") {
-      if (!diagramRoute) onNavigate(domainDiagramPath(projectId, selectedDomainId));
-    } else if (diagramRoute) {
-      onNavigate(`/playground/${encodeURIComponent(projectId)}${selectedDomainId ? `/${encodeURIComponent(selectedDomainId)}` : ""}`);
-    }
-    setView(next);
+  const [view, setView] = useState<WorkspaceView>("playground");
+  const selectView = (next: WorkspaceView, selectedDomainId: string) => {
+    if (next === "diagram") onNavigate(domainDiagramPath(projectId, selectedDomainId));
+    else setView(next);
   };
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const bodyRef = useRef<HTMLDivElement>(null);
-  // The main menu stays on screen while the page scrolls. Its height runs from its current top to the viewport
-  // bottom, capped at the body's bottom, so it never extends past the body or grows the page as it scrolls.
-  useLayoutEffect(() => {
-    const body = bodyRef.current;
-    const sidebar = body?.querySelector<HTMLElement>(".root-sidebar");
-    if (!body || !sidebar) return;
-    const update = () => {
-      if (window.innerWidth <= 760) {
-        sidebar.style.height = "";
-        return;
-      }
-      const top = Math.max(0, sidebar.getBoundingClientRect().top);
-      const bottom = Math.min(window.innerHeight, body.getBoundingClientRect().bottom);
-      sidebar.style.height = `${Math.max(0, bottom - top)}px`;
-    };
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(body);
-    window.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-    };
-  }, []);
-  return <div className="root-workspace"><Header projects={projects} projectId={projectId} domains={domains} domainId={selectedDomainId} connectionStatus={connectionStatus} provider={provider} onSelectProject={(id) => { if (id) onNavigate(`/playground/${encodeURIComponent(id)}`); }} onSelectDomain={(id) => { if (!id) return; onNavigate(diagramRoute ? domainDiagramPath(projectId, id) : `/playground/${encodeURIComponent(projectId)}/${encodeURIComponent(id)}`); }} onOpenConnection={onOpenConnection} onNavigateHome={() => onNavigate("/")} /><div ref={bodyRef} className={`root-body${view === "playground" ? " playground-body" : ""}`}><Sidebar view={view} setView={selectView} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((collapsed) => !collapsed)} /><main className={view === "playground" ? "root-main-playground" : undefined}>{view === "overview" ? <Overview /> : view === "playground" ? <Playground queryId={queryId} projectId={projectId} domainId={selectedDomainId} /> : view === "queries" ? <Queries /> : view === "diagram" ? <DomainDiagramView projectId={projectId} domainId={selectedDomainId} domains={domains} onSelectDomain={(id) => onNavigate(domainDiagramPath(projectId, id))} /> : view === "explorer" ? <Explorer /> : view === "functions" ? <Functions /> : <Security />}</main></div><footer className="root-footer"><Icon name="schema" size={13} /> oQuery engine <span>Phase one</span><span>Data binding planned for phase two</span></footer></div>;
+  return <WorkspaceShell
+    view={view}
+    projects={projects}
+    projectId={projectId}
+    domainId={domainId}
+    connectionStatus={connectionStatus}
+    provider={provider}
+    onSelectView={selectView}
+    onSelectProject={(id) => { if (id) onNavigate(`/playground/${encodeURIComponent(id)}`); }}
+    onSelectDomain={(id) => { if (id) onNavigate(`/playground/${encodeURIComponent(projectId)}/${encodeURIComponent(id)}`); }}
+    onOpenConnection={onOpenConnection}
+    onNavigateHome={() => onNavigate("/")}
+  >
+    {({ domainId: selectedDomainId }) => view === "overview" ? <Overview /> : view === "playground" ? <Playground queryId={queryId} projectId={projectId} domainId={selectedDomainId} /> : view === "queries" ? <Queries /> : view === "explorer" ? <Explorer /> : view === "functions" ? <Functions /> : <Security />}
+  </WorkspaceShell>;
 }

@@ -16,6 +16,7 @@ const paths = {
   folder: <><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" /></>,
   group: <><rect x="3" y="4" width="11" height="11" rx="2" /><rect x="10" y="9" width="11" height="11" rx="2" /></>,
   "arrow-left": <><path d="m14 18-6-6 6-6M8 12h12" /></>,
+  "arrow-right": <><path d="m10 18 6-6-6-6M4 12h12" /></>,
   link: <><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /><path d="M8 12h8" /></>,
   remove: <><circle cx="12" cy="12" r="9" /><path d="M8 12h8" /></>,
   "relation-many-to-one": <><path d="M3 12h14M3 12l7-6M3 12l7 6M17 6v12" /></>,

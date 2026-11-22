@@ -2,14 +2,14 @@ import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import Icon from "../icon/icon";
 import { listProjects, type ProjectSummary } from "../../services/project-service";
-import "../projects/projects.css";
+import "./projects.css";
 
 function messageOf(error: unknown) {
   return error instanceof Error ? error.message : "Something went wrong.";
 }
 
 // With no project yet, the workspace goes straight to Create project.
-export default function WorkspacePage() {
+export default function ProjectListPage() {
   const [state, setState] = useState<{ projects: ProjectSummary[] | null; error: string }>({ projects: null, error: "" });
 
   useEffect(() => {

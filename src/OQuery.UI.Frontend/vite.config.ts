@@ -3,7 +3,8 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, process.cwd(), "");
-   const backendApiUrl = env.VITE_BACKEND_API_URL || "http://localhost:21210";
+   // Dev proxy target only; VITE_BACKEND_API_URL would make the app call the API cross-origin.
+   const backendApiUrl = env.OQUERY_API_PROXY_TARGET || env.VITE_BACKEND_API_URL || "http://localhost:21210";
   // const backendApiUrl = env.VITE_BACKEND_API_URL || "https://oquery-ui-1.onrender.com";
 
   return {

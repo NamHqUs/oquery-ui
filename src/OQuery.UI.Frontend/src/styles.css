@@ -130,3 +130,91 @@ footer { display: flex; align-items: center; justify-content: space-between; gap
 @media (max-width: 700px) { footer { align-items: flex-start; flex-direction: column; gap: 10px; }.analytics-consent { right: 12px; bottom: 12px; width: calc(100vw - 24px); flex-direction: column; gap: 14px; align-items: stretch; }.analytics-consent-actions { justify-content: flex-end; }.policy-page { padding-top: 32px; } }
 @media (max-width: 760px) { .workspace-context { align-items: stretch; flex-wrap: wrap; gap: 10px 18px; padding: 12px 14px; }.workspace-context-main { min-width: min(220px, calc(50% - 10px)); }.workspace-context-divider { display: none; }.workspace-context-actions { width: 100%; margin-left: 0; justify-content: space-between; }.topbar { height: auto; min-height: 70px; flex-wrap: wrap; padding-top: 9px; padding-bottom: 9px; }.header-brand-group { min-width: 165px; }.topbar-workspace-context { order: 3; width: 100%; flex-basis: 100%; padding: 8px 0 2px; border-top: 1px solid #252b38; }.topbar-workspace-context .workspace-context { gap: 12px; }.topbar-workspace-context .workspace-context-main { min-width: min(190px, calc(50% - 8px)); }.topbar-workspace-context .workspace-context-actions { display: none; }.top-actions { margin-left: auto; } }
 @media (max-width: 760px) { .workspace-navigation { align-items: flex-start; flex-direction: column; gap: 9px; padding: 12px 14px; }.workspace-navigation-group { width: 100%; align-items: flex-start; flex-direction: column; gap: 5px; }.workspace-navigation-links { width: 100%; overflow-x: auto; }.security-grid { grid-template-columns: 1fr; }.security-intro, .security-scope { align-items: flex-start; flex-direction: column; }.security-intro .button { margin-left: 0; }.security-scope-flow { flex-wrap: wrap; white-space: normal; } }
+/* Sidebar layout for project workspace routes. Colors reuse the purple tokens from styles.css. */
+.workspace-shell:has(> .workspace-navigation) {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-areas:
+    "top top"
+    "nav subnav"
+    "nav content"
+    "foot foot";
+  max-width: 1600px;
+  padding: 0;
+}
+.workspace-shell:has(> .workspace-navigation) > .query-builder-domain-bar {
+  grid-area: subnav;
+  margin: 0;
+  padding: 12px 28px;
+  border-right: 0;
+  border-left: 0;
+}
+.workspace-shell:has(> .workspace-navigation) > .topbar {
+  grid-area: top;
+  margin: 0;
+  padding: 0 28px;
+}
+.workspace-shell:has(> .workspace-navigation) > .workspace-navigation {
+  grid-area: nav;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin: 0;
+  padding: 22px 14px;
+  border-right: 1px solid var(--line);
+  border-bottom: 0;
+  background: linear-gradient(180deg, #0c0f16, #090b11);
+}
+.workspace-shell:has(> .workspace-navigation) > .page-content {
+  grid-area: content;
+  min-width: 0;
+  padding: 0 28px 28px;
+}
+.workspace-shell:has(> .workspace-navigation) > footer {
+  grid-area: foot;
+}
+.workspace-shell:has(> .workspace-navigation) .workspace-navigation-group {
+  display: grid;
+  gap: 6px;
+}
+.workspace-shell:has(> .workspace-navigation) .workspace-navigation-label {
+  padding-left: 12px;
+}
+.workspace-shell:has(> .workspace-navigation) .workspace-navigation-links {
+  display: grid;
+  gap: 4px;
+}
+.workspace-shell:has(> .workspace-navigation) .workspace-navigation-link {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+}
+
+@media (max-width: 860px) {
+  .workspace-shell:has(> .workspace-navigation) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "top"
+      "nav"
+      "subnav"
+      "content"
+      "foot";
+  }
+  .workspace-shell:has(> .workspace-navigation) > .query-builder-domain-bar {
+    padding: 12px 16px;
+  }
+  .workspace-shell:has(> .workspace-navigation) > .topbar {
+    padding: 0 16px;
+  }
+  .workspace-shell:has(> .workspace-navigation) > .workspace-navigation {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 14px 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .workspace-shell:has(> .workspace-navigation) > .page-content {
+    padding: 0 16px 24px;
+  }
+}

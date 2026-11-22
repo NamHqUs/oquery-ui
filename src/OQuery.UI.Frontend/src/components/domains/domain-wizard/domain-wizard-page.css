@@ -1,0 +1,82 @@
+.domain-wizard-page {
+  max-width: 1040px;
+  margin: 24px auto;
+  padding: 0 20px;
+}
+
+.domain-wizard-page .domain-schema-tables {
+  grid-template-columns: repeat(auto-fill, minmax(124px, 150px));
+  gap: 4px;
+}
+
+.domain-wizard-page .domain-schema-tables label {
+  padding: 5px 7px;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.domain-wizard-page .domain-schema-tables label span {
+  overflow-wrap: normal;
+}
+
+.domain-wizard-page .domain-final-details {
+  display: grid;
+  max-width: 620px;
+  gap: 20px;
+}
+
+.domain-wizard-page .domain-name {
+  display: grid;
+  gap: 8px;
+  max-width: 460px;
+  color: #c9c4d8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.domain-wizard-page .domain-name input {
+  padding: 10px 11px;
+  border: 1px solid #303847;
+  border-radius: 3px;
+  outline: 0;
+  color: #e9edf4;
+  background: #0e1117;
+}
+
+.domain-wizard-page .domain-name input:focus,
+.domain-wizard-page .domain-description textarea:focus {
+  border-color: #8064e8;
+}
+
+.domain-wizard-page .domain-description {
+  display: grid;
+  gap: 8px;
+  color: #c9c4d8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.domain-wizard-page .domain-description > span {
+  display: flex;
+  gap: 5px;
+  align-items: baseline;
+}
+
+.domain-wizard-page .domain-description > span small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.domain-wizard-page .domain-description textarea {
+  width: 100%;
+  resize: vertical;
+  padding: 10px 11px;
+  border: 1px solid #303847;
+  border-radius: 3px;
+  outline: 0;
+  color: #e9edf4;
+  background: #0e1117;
+  font-size: 12px;
+  line-height: 1.5;
+}
