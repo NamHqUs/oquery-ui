@@ -52,7 +52,17 @@ function toDatabaseTableOptions(schema: unknown): DatabaseTableOption[] {
 const encode = (segment: string) => encodeURIComponent(segment);
 
 export default function DomainPage({ route, projects, connectionStatus, provider, onNavigate, onOpenConnection }: DomainPageProps) {
-  if (route.kind !== "view") return <DomainWizardPage mode={route.kind} projectId={route.projectId} />;
+  if (route.kind !== "view") {
+    // Cancel closes the wizard and returns to the diagram of the domain it was opened from (Main for create).
+    const returnDomainId = route.kind === "edit" ? route.domainId : MAIN_DOMAIN_ID;
+    return (
+      <DomainWizardPage
+        mode={route.kind}
+        projectId={route.projectId}
+        onCancel={() => onNavigate(domainDiagramPath(route.projectId, returnDomainId))}
+      />
+    );
+  }
   const { projectId } = route;
   const onSelectView = (view: WorkspaceView, domainId: string) => {
     if (view === "diagram") return;
@@ -259,6 +269,14 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
                 <span className="metadata-editor-heading-icon"><Icon name="table" size={18} /></span>
                 <h3>{draft?.name || "Select an entity"}</h3>
               </div>
+            </div>
+            <div className="editor-actions domain-entity-actions" role="toolbar" aria-label="Entity actions">
+              <button className="domain-action-button create" type="button" title="Add a new entity to the Main domain" aria-label="New entity" onClick={createEntity} disabled={!isMainDomain || loading || saving}>
+                <Icon name="plus" size={14} /> New entity
+              </button>
+              <button className="domain-action-button danger" type="button" title="Remove the selected entity and its relations" aria-label="Remove entity" onClick={removeEntity} disabled={!isMainDomain || !draft || loading || saving}>
+                <Icon name="trash" size={14} /> Remove entity
+              </button>
             </div>
           </div>
           <EntityDefinition

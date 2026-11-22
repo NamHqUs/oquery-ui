@@ -8,6 +8,9 @@ import "./main-layout-compat.css";
 export type WorkspaceView = "overview" | "playground" | "queries" | "diagram" | "explorer" | "functions" | "security";
 export type WorkspaceDomain = { id: string; name: string };
 
+// Domain lists per project, kept across MainLayout mounts so page changes don't flash an empty selector.
+const projectDomainsCache = new Map<string, WorkspaceDomain[]>();
+
 const items: Array<[WorkspaceView, string, IconName]> = [
   ["overview", "Overview", "grid"], ["playground", "Playground", "play"], ["queries", "Queries", "file-text"],
   ["diagram", "Domain Diagram", "schema"], ["explorer", "Database explorer", "database"],
@@ -98,7 +101,8 @@ type MainLayoutProps = {
 };
 
 export default function MainLayout({ view, projects, projectId, domainId, connectionStatus, provider, onSelectView, onSelectProject, onSelectDomain, onOpenConnection, onNavigateHome, children }: MainLayoutProps) {
-  const [domains, setDomains] = useState<WorkspaceDomain[]>([]);
+  // Remounts (e.g. moving from another page) would otherwise render an empty Active Domain list until the fetch returns.
+  const [domains, setDomains] = useState<WorkspaceDomain[]>(() => projectDomainsCache.get(projectId) ?? []);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -107,9 +111,13 @@ export default function MainLayout({ view, projects, projectId, domainId, connec
       setDomains([]);
       return;
     }
+    setDomains(projectDomainsCache.get(projectId) ?? []);
     getProject(projectId)
       .then((details) => {
-        if (active) setDomains(details.domains.map((domain) => ({ id: domain.id, name: domain.name })));
+        if (!active) return;
+        const next = details.domains.map((domain) => ({ id: domain.id, name: domain.name }));
+        projectDomainsCache.set(projectId, next);
+        setDomains(next);
       })
       .catch(() => {
         if (active) setDomains([]);

@@ -3,7 +3,7 @@ using OQuery.UI.Abstracts.Dto;
 namespace OQuery.UI.Abstracts.Repositories;
 
 /// <summary>
-/// Stores each project as a folder named by its ID: project.json, domains/fulldomain.json and one file per sub-domain.
+/// Stores each project as a folder named by its ID: project.json and one file per domain. The Main domain file also holds the FullDomain.
 /// Queries and functions are stored in the same folder through their own repositories.
 /// </summary>
 public interface IProjectRepository

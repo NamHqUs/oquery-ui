@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import Icon from "../shared/icon/icon";
 import "../data-sources/database-connection/database-connection.css";
 import { getConnectionOptions } from "../../services/database-connection-service";
@@ -8,6 +9,8 @@ import "./projects.css";
 
 export const DEFAULT_PROJECT_NAME = "Default";
 export const DEFAULT_PROJECT_DESCRIPTION = "the first project";
+// The server creates exactly one sub-domain for a new project; it has this fixed ID.
+const MAIN_DOMAIN_ID = "main";
 
 type Feedback = { tone: "success" | "error"; message: string };
 
@@ -15,8 +18,10 @@ function messageOf(error: unknown) {
   return error instanceof Error ? error.message : "Something went wrong.";
 }
 
-// Test and create results stay on this page: success or the server's error details, each with an icon.
+// Test results stay on this page. A successful create opens the Playground on the new Main domain;
+// any failure stays here with the server's error details.
 export default function CreateProjectPage() {
+  const navigate = useNavigate();
   const [name, setName] = useState(DEFAULT_PROJECT_NAME);
   const [description, setDescription] = useState(DEFAULT_PROJECT_DESCRIPTION);
   const [providers, setProviders] = useState<string[]>([]);
@@ -76,13 +81,13 @@ export default function CreateProjectPage() {
     setBusy("create");
     setFeedback(null);
     try {
-      await createProjectFromDatabase({
+      const created = await createProjectFromDatabase({
         name: name.trim(),
         description: description.trim(),
         provider,
         connectionString,
       });
-      setFeedback({ tone: "success", message: `Project "${name.trim()}" created successfully.` });
+      navigate(`/playground/${encodeURIComponent(created.id)}/${MAIN_DOMAIN_ID}`);
     } catch (error) {
       setFeedback({ tone: "error", message: messageOf(error) });
     } finally {

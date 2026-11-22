@@ -14,12 +14,14 @@ A `ProjectDto` is the unit of metadata. Projects are stored as files only.
 projects/{projectId}/
   project.json        Id, Name, Description, DbConnectionProfile (name only)
   domains/
-    fulldomain.json   FullDomain: every entity, field, and relation from the DB schema
+    main.json         Main domain, plus the FullDomain (every entity, field, and relation from the DB schema)
     {subDomain}.json  one SubDomain per file
   queries/            as before
   functions/          as before
 ```
 
+- Legacy `domains/fulldomain.json` files are merged into `main.json` and deleted the first time
+  the project's domains or FullDomain are read.
 - `FullDomain` is generated from `LoadDatabaseSchema`. Entity and field names
   are the original physical names.
 - A `SubDomain` lists only the entities it exposes. An entity that is not

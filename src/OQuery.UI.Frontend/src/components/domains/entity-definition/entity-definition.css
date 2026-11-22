@@ -47,7 +47,6 @@
 .metadata-empty { min-height: 600px; display: grid; align-content: center; justify-items: center; gap: 12px; color: var(--muted); font-size: 11px; text-align: center; }
 .metadata-empty svg { color: #6d5baf; }
 .metadata-empty p { margin: 0; }
-.metadata-diagram-editor .metadata-editor-compact .metadata-editor-heading { padding: 12px 16px 10px; }
 .metadata-diagram-editor .metadata-editor-compact .metadata-editor-heading h3 { margin: 0; font-size: 14px; }
 .metadata-diagram-editor .metadata-editor-compact .metadata-form { padding: 14px 16px 20px; }
 .metadata-diagram-editor .metadata-editor-compact .metadata-form-grid { gap: 10px; }

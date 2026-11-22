@@ -1,0 +1,10 @@
+{
+  "Id": "p3DvEmLv",
+  "Name": "Default",
+  "Description": "the first project",
+  "DbConnectionProfile": "",
+  "Connection": {
+    "Provider": "SqlServer",
+    "EncryptedConnectionString": "qmIAWl/EmmXlbfEJks/rIqPR4Wumdeajt6\u002BGoZ1/KR4gVmZFfp7WDi7rJ1JpZbmVVO8NaTWU8bgROOXdG/EJ5yf8piJ21\u002BZvNVuqXSDXSfj32hrPzKDpkV8SywBK3Y8bdGmrlYaRWMj9Ji51XxhSjiJPfBtZTJNMZWgu/NUX43wz4ypc8JvvgecYyKPGq7QlEpcgiUNP"
+  }
+}

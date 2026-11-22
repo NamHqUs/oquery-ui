@@ -7,14 +7,17 @@ using System.Text.Json;
 namespace OQuery.UI.Storage.Files;
 
 /// <summary>
-/// Stores each project in <c>projects/{projectId}</c>: <c>project.json</c>, <c>domains/fulldomain.json</c>
-/// and one <c>domains/{domainId}.json</c> per sub-domain.
+/// Stores each project in <c>projects/{projectId}</c>: <c>project.json</c> and one <c>domains/{domainId}.json</c>
+/// per domain. The Main domain file also holds the project's FullDomain. Legacy <c>domains/fulldomain.json</c>
+/// files are merged into <c>main.json</c> the first time the project's domains or FullDomain are read.
 /// </summary>
 public sealed class ProjectFileRepository(FilePathResolver filePathResolver) : IProjectRepository
 {
     private const string PROJECT_FILE = "project.json";
     private const string DOMAINS_FOLDER = "domains";
-    private const string FULL_DOMAIN_NAME = "fulldomain";
+    private const string MAIN_DOMAIN_ID = "main";
+    private const string MAIN_DOMAIN_NAME = "Main";
+    private const string LEGACY_FULL_DOMAIN_NAME = "fulldomain";
     private const string ID_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static readonly JsonSerializerOptions WriteOptions = new() { WriteIndented = true };
 
@@ -76,24 +79,30 @@ public sealed class ProjectFileRepository(FilePathResolver filePathResolver) : I
     }
 
     public FullDomainDto? GetFullDomain(string userSectionId, string projectId)
-        => ReadOptional<FullDomainDto>(FullDomainPath(userSectionId, projectId));
+    {
+        MigrateLegacyFullDomain(userSectionId, projectId);
+        return ReadOptional<MainDomainFile>(DomainPath(userSectionId, projectId, MAIN_DOMAIN_ID))?.FullDomain;
+    }
 
     public void SaveFullDomain(string userSectionId, string projectId, FullDomainDto fullDomain)
     {
         ArgumentNullException.ThrowIfNull(fullDomain);
-        var path = FullDomainPath(userSectionId, projectId);
+        var path = DomainPath(userSectionId, projectId, MAIN_DOMAIN_ID);
+        var main = ReadOptional<MainDomainFile>(path) ?? new MainDomainFile { Id = MAIN_DOMAIN_ID, Name = MAIN_DOMAIN_NAME };
+        main.FullDomain = fullDomain;
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        WriteJson(path, fullDomain);
+        WriteJson(path, main);
+        MigrateLegacyFullDomain(userSectionId, projectId);
     }
 
     public IReadOnlyList<DomainDto> GetDomains(string userSectionId, string projectId)
     {
+        MigrateLegacyFullDomain(userSectionId, projectId);
         var folder = DomainsFolder(userSectionId, projectId);
         if (!Directory.Exists(folder))
             return [];
 
         return Directory.EnumerateFiles(folder, "*.json")
-            .Where(path => !Path.GetFileNameWithoutExtension(path).Equals(FULL_DOMAIN_NAME, StringComparison.OrdinalIgnoreCase))
             .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
             .Select(ReadDomain)
             .ToArray();
@@ -110,7 +119,22 @@ public sealed class ProjectFileRepository(FilePathResolver filePathResolver) : I
         ArgumentNullException.ThrowIfNull(domain);
         var path = DomainPath(userSectionId, projectId, domain.Id);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        WriteJson(path, domain);
+        if (!domain.Id.Equals(MAIN_DOMAIN_ID, StringComparison.OrdinalIgnoreCase))
+        {
+            WriteJson(path, domain);
+            return;
+        }
+
+        // Keeps the FullDomain already stored in main.json; only the domain's own fields change.
+        var fullDomain = ReadOptional<MainDomainFile>(path)?.FullDomain;
+        WriteJson(path, new MainDomainFile
+        {
+            Id = domain.Id,
+            Name = domain.Name,
+            Description = domain.Description,
+            Entities = domain.Entities,
+            FullDomain = fullDomain,
+        });
     }
 
     public bool DeleteDomain(string userSectionId, string projectId, string domainId)
@@ -129,15 +153,31 @@ public sealed class ProjectFileRepository(FilePathResolver filePathResolver) : I
     private string DomainsFolder(string userSectionId, string projectId)
         => Path.Combine(ProjectFolder(userSectionId, projectId), DOMAINS_FOLDER);
 
-    private string FullDomainPath(string userSectionId, string projectId)
-        => Path.Combine(DomainsFolder(userSectionId, projectId), $"{FULL_DOMAIN_NAME}.json");
-
     private string DomainPath(string userSectionId, string projectId, string domainId)
     {
         var name = ValidFileName(domainId, "Domain ID");
-        if (name.Equals(FULL_DOMAIN_NAME, StringComparison.OrdinalIgnoreCase))
+        if (name.Equals(LEGACY_FULL_DOMAIN_NAME, StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Domain ID is reserved.", nameof(domainId));
         return Path.Combine(DomainsFolder(userSectionId, projectId), $"{name}.json");
+    }
+
+    /// <summary>
+    /// Moves a legacy <c>domains/fulldomain.json</c> into <c>main.json</c> and deletes it. A no-op once migrated.
+    /// The main file's own FullDomain wins if both exist.
+    /// </summary>
+    private void MigrateLegacyFullDomain(string userSectionId, string projectId)
+    {
+        var legacyPath = Path.Combine(DomainsFolder(userSectionId, projectId), $"{LEGACY_FULL_DOMAIN_NAME}.json");
+        if (!File.Exists(legacyPath))
+            return;
+
+        var legacy = ReadOptional<FullDomainDto>(legacyPath)
+            ?? throw new InvalidDataException($"Legacy full domain file '{legacyPath}' is missing.");
+        var mainPath = DomainPath(userSectionId, projectId, MAIN_DOMAIN_ID);
+        var main = ReadOptional<MainDomainFile>(mainPath) ?? new MainDomainFile { Id = MAIN_DOMAIN_ID, Name = MAIN_DOMAIN_NAME };
+        main.FullDomain ??= legacy;
+        WriteJson(mainPath, main);
+        File.Delete(legacyPath);
     }
 
     private static string ValidFileName(string value, string label)
@@ -170,4 +210,14 @@ public sealed class ProjectFileRepository(FilePathResolver filePathResolver) : I
 
     private static void WriteJson<T>(string path, T value)
         => File.WriteAllText(path, JsonSerializer.Serialize(value, WriteOptions));
+
+    /// <summary>The Main domain file: the domain's fields plus the FullDomain it is built from.</summary>
+    private sealed class MainDomainFile
+    {
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+        public List<SubDomainEntityDto> Entities { get; set; } = [];
+        public FullDomainDto? FullDomain { get; set; }
+    }
 }

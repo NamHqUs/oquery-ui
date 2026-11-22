@@ -20,6 +20,7 @@ type DomainWizardProps = {
   onBack: () => void;
   onNext: () => void;
   onGenerate: () => void;
+  onCancel: () => void;
   children: ReactNode;
 };
 
@@ -37,6 +38,7 @@ export default function DomainWizard({
   onBack,
   onNext,
   onGenerate,
+  onCancel,
   children,
 }: DomainWizardProps) {
   const steps = mode === "edit"
@@ -73,8 +75,9 @@ export default function DomainWizard({
         ))}
       </div>
       <footer className="domain-wizard-footer">
-        <button type="button" className="domain-secondary" onClick={onBack} disabled={step === 1 || saving}><Icon name="arrow-left" size={14} /> Back</button>
-        <button type="button" className="domain-primary" onClick={onNext} disabled={step === finalStep || !canContinue || saving}>Next <Icon name="arrow-right" size={14} /></button>
+        <button type="button" className="button secondary" onClick={onBack} disabled={step === 1 || saving}><Icon name="arrow-left" size={14} /> Back</button>
+        <button type="button" className="button primary" onClick={onNext} disabled={step === finalStep || !canContinue || saving}>Next <Icon name="arrow-right" size={14} /></button>
+        <button type="button" className="button secondary domain-footer-cancel" onClick={onCancel}>Cancel</button>
       </footer>
     </aside>
   );
@@ -89,6 +92,7 @@ export default function DomainWizard({
         </div>
         <div className="domain-wizard-header-actions">
           <span className="domain-progress">STEP {step} OF {finalStep}</span>
+          <button type="button" className="button secondary" onClick={onCancel}>Cancel</button>
         </div>
       </header>
       <div className="domain-source-picker" role="group" aria-label="Domain metadata source">

@@ -49,15 +49,33 @@ internal sealed class FileRepositoryProviderTests
     }
 
     [Test]
-    public void DomainFilesAndFullDomainLiveInsideTheProjectFolder()
+    public void FullDomainIsStoredInsideTheMainDomainFile()
     {
         _provider.Projects.Save(Section, new ProjectFileDto("p1", "Sales", "", ""));
         _provider.Projects.SaveFullDomain(Section, "p1", new FullDomainDto());
+        _provider.Projects.SaveDomain(Section, "p1", new DomainDto { Id = "main", Name = "Main" });
         _provider.Projects.SaveDomain(Section, "p1", new DomainDto { Id = "d1", Name = "Sub" });
 
         Assert.That(_provider.Projects.GetFullDomain(Section, "p1"), Is.Not.Null);
-        Assert.That(_provider.Projects.GetDomains(Section, "p1").Select(domain => domain.Name), Is.EqualTo(new[] { "Sub" }));
-        Assert.That(File.Exists(Path.Combine(_root, Section, "projects", "p1", "domains", "fulldomain.json")), Is.True);
+        Assert.That(_provider.Projects.GetDomains(Section, "p1").Select(domain => domain.Name), Is.EqualTo(new[] { "Sub", "Main" }));
+        Assert.That(File.Exists(Path.Combine(_root, Section, "projects", "p1", "domains", "main.json")), Is.True);
+        Assert.That(File.Exists(Path.Combine(_root, Section, "projects", "p1", "domains", "fulldomain.json")), Is.False);
+    }
+
+    [Test]
+    public void LegacyFullDomainFileIsMergedIntoMainAndRemoved()
+    {
+        _provider.Projects.Save(Section, new ProjectFileDto("p1", "Sales", "", ""));
+        var domains = Path.Combine(_root, Section, "projects", "p1", "domains");
+        Directory.CreateDirectory(domains);
+        File.WriteAllText(Path.Combine(domains, "fulldomain.json"),
+            """{ "Entities": [ { "Name": "Clients", "Fields": [], "RawSql": "" } ], "Relations": [] }""");
+        File.WriteAllText(Path.Combine(domains, "main.json"),
+            """{ "Id": "main", "Name": "Main", "Description": "", "Entities": [] }""");
+
+        Assert.That(_provider.Projects.GetDomains(Section, "p1").Select(domain => domain.Id), Is.EqualTo(new[] { "main" }));
+        Assert.That(_provider.Projects.GetFullDomain(Section, "p1")!.Entities.Select(entity => entity.Name), Is.EqualTo(new[] { "Clients" }));
+        Assert.That(File.Exists(Path.Combine(domains, "fulldomain.json")), Is.False);
     }
 
     [Test]

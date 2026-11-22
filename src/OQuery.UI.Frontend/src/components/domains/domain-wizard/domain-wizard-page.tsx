@@ -38,9 +38,10 @@ function messageOf(error: unknown) {
 type DomainWizardPageProps = {
   mode: "create" | "edit";
   projectId: string;
+  onCancel: () => void;
 };
 
-export default function DomainWizardPage({ mode, projectId }: DomainWizardPageProps) {
+export default function DomainWizardPage({ mode, projectId, onCancel }: DomainWizardPageProps) {
   const dispatch = useDispatch<AppDispatch>();
   const database = useSelector((state: RootState) => state.database);
   const connected = database.connectionStatus === "succeeded";
@@ -344,6 +345,7 @@ export default function DomainWizardPage({ mode, projectId }: DomainWizardPagePr
         onBack={() => goTo(Math.max(1, step - 1) as WizardStep)}
         onNext={() => goTo(Math.min(3, step + 1) as WizardStep)}
         onGenerate={generate}
+        onCancel={onCancel}
       >
         {step === 1 && sourceStep}
         {step === 2 && designStep}

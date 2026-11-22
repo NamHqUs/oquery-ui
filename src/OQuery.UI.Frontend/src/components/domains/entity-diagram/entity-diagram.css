@@ -37,9 +37,15 @@
 .metadata-diagram-mode-content > .panel-splitter.horizontal { position: relative; top: auto; right: auto; bottom: auto; left: auto; z-index: 5; grid-column: 1; grid-row: 2; width: auto; height: 8px; }
 .metadata-diagram-mode-content > .panel-splitter.horizontal .panel-splitter-handle { top: 0; }
 .metadata-diagram-mode-content > .metadata-diagram-editor { display: flex; grid-column: 1; grid-row: 3; min-height: 0; flex-direction: column; overflow: visible; background: linear-gradient(160deg, #171923, #11141c); }
-.metadata-diagram-editor .metadata-editor-heading { flex: 0 0 auto; align-items: center; margin: 0; padding: 0px 16px; border: 0; border-top: 2px solid #35364a; border-radius: 0; background: linear-gradient(105deg, #262238a6, #1a1c29a6); }
-.metadata-diagram-editor .metadata-editor-heading .table-details-title h3 { margin: 0; color: #f0edfb; font-size: 15px; letter-spacing: -.2px; }
+.metadata-diagram-editor .metadata-editor-heading { flex: 0 0 auto; align-items: center; min-height: 52px; margin: 0; padding: 0px 16px; border: 0; border-top: 2px solid #35364a; border-radius: 0; background: linear-gradient(105deg, #262238a6, #1a1c29a6); }
+.metadata-diagram-editor .metadata-editor-heading .table-details-title,
+.metadata-diagram-editor .metadata-editor-heading .metadata-editor-heading-title { display: flex; align-items: center; min-width: 0; gap: 8px; }
+.metadata-diagram-editor .metadata-editor-heading .table-details-title h3 { margin: 0; line-height: 1; color: #f0edfb; font-size: 15px; letter-spacing: -.2px; }
 .metadata-diagram-editor .metadata-editor-heading .editor-actions { gap: 6px; }
+.domain-entity-actions { flex: 0 0 auto; margin-left: auto; }
+.domain-entity-actions .domain-action-button { gap: 6px; min-height: 28px; padding: 0 10px; font-size: 11px; white-space: nowrap; }
+.domain-action-button.danger { border-color: #7a3d4a; color: #f0a6ae; }
+.domain-action-button.danger:hover:not(:disabled) { border-color: #e0707f; color: #ffd6db; }
 .metadata-diagram-editor .metadata-editor-heading .definition-action-button { background: #131720 !important; }
 .metadata-diagram-editor .metadata-editor-heading .definition-action-button.create { background: #131720 !important; }
 .metadata-diagram-editor .metadata-editor-heading .definition-action-button.labeled { width: auto; grid-auto-flow: column; gap: 6px; white-space: nowrap; }

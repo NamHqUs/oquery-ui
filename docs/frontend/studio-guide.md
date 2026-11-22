@@ -79,6 +79,8 @@ redirects there. If no sub-domain is selected, or the current ID no longer
 exists, it selects the first returned sub-domain before loading its graph.
 The wizard routes are `/domains/diagrams/create/:projectId` and
 `/domains/diagrams/edit/:projectId/:domainId`; the old `/domains/diagram` paths are removed.
+The wizard header has a **Cancel** button (disabled while saving) that closes the wizard and returns to
+the domain diagram: `/domains/diagrams/:projectId/main` for create, or `/domains/diagrams/:projectId/:domainId` for edit.
 The project page shows the FullDomain read-only and owns the generate action.
 Sub-domain editing never changes physical columns, raw SQL or reference columns.
 
