@@ -435,28 +435,25 @@ function WorkspaceContextBar({
 
   return (
     <section className="workspace-context" aria-label="Workspace context">
-      <div className="workspace-context-main">
-        <span className="workspace-context-kicker">CURRENT PROJECT</span>
-        <label className="workspace-context-select">
-          <Icon name="folder" size={15} />
-          <select aria-label="Current project" value={projectId} onChange={(event) => selectProject(event.target.value)}>
-            {projects && projects.length === 0 && <option value="">No projects yet</option>}
-            {projects && projects.length > 0 && !projectId && <option value="">Choose a project</option>}
-            {projects?.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-        </label>
-      </div>
-      <span className="workspace-context-divider" aria-hidden="true" />
-      <div className="workspace-context-main workspace-context-domain">
-        <span className="workspace-context-kicker">ACTIVE DOMAIN</span>
-        <label className="workspace-context-select">
-          <Icon name="table" size={15} />
-          <select aria-label="Active sub-domain" value={domainId} onChange={(event) => selectDomain(event.target.value)} disabled={!project?.domains.length}>
-            {!project?.domains.length && <option value="">{projectId ? "Create a sub-domain to query" : "Choose a project first"}</option>}
-            {project?.domains.map((domain) => <option key={domain.id} value={domain.id}>{domain.name}</option>)}
-          </select>
-        </label>
-      </div>
+      <label className="workspace-context-pill">
+        <Icon name="folder" size={14} />
+        <span className="workspace-context-pill-prefix">Project:</span>
+        <select aria-label="Current project" value={projectId} onChange={(event) => selectProject(event.target.value)}>
+          {projects && projects.length === 0 && <option value="">No projects yet</option>}
+          {projects && projects.length > 0 && !projectId && <option value="">Choose a project</option>}
+          {projects?.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+        </select>
+        <Icon name="chevron-down" size={12} />
+      </label>
+      <label className="workspace-context-pill">
+        <Icon name="table" size={14} />
+        <span className="workspace-context-pill-prefix">Domain:</span>
+        <select aria-label="Active sub-domain" value={domainId} onChange={(event) => selectDomain(event.target.value)} disabled={!project?.domains.length}>
+          {!project?.domains.length && <option value="">{projectId ? "Create a sub-domain to query" : "Choose a project first"}</option>}
+          {project?.domains.map((domain) => <option key={domain.id} value={domain.id}>{domain.name}</option>)}
+        </select>
+        <Icon name="chevron-down" size={12} />
+      </label>
       <div className="workspace-context-actions">
         <span className="workspace-context-status"><span className="workspace-context-status-dot" /> Project workspace</span>
         <button type="button" className="workspace-context-create" onClick={() => onNavigate(`${DOMAINS_PATH}${projectId ? `?project=${encodeURIComponent(projectId)}` : ""}`)}>

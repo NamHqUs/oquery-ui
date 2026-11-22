@@ -4,8 +4,9 @@ import Icon, { type IconName } from "../shared/icon/icon";
 export type SelectOption = { value: string; label: string };
 
 // A borderless trigger with a custom popup list, replacing the native select.
-export default function MainLayoutSelect({ label, icon, value, options, placeholder, disabled = false, onChange }: {
+export default function MainLayoutSelect({ label, prefix, icon, value, options, placeholder, disabled = false, onChange }: {
   label: string;
+  prefix: string;
   icon: IconName;
   value: string;
   options: SelectOption[];
@@ -34,11 +35,11 @@ export default function MainLayoutSelect({ label, icon, value, options, placehol
   }, [open]);
 
   return <div className="main-layout-select" ref={rootRef}>
-    <small>{label}</small>
     <button type="button" className="main-layout-select-trigger" aria-label={label} aria-haspopup="listbox" aria-expanded={open}
       disabled={disabled} onClick={() => setOpen((current) => !current)}>
       <Icon name={icon} size={14} />
-      <span>{selected?.label ?? placeholder}</span>
+      <span className="main-layout-select-prefix">{prefix}:</span>
+      <span className="main-layout-select-value">{selected?.label ?? placeholder}</span>
       <Icon name="chevron-down" size={12} />
     </button>
     {open && options.length > 0 && <ul className="main-layout-select-menu" role="listbox" aria-label={label}>

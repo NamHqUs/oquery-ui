@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Icon, { type IconName } from "../shared/icon/icon";
+import { Heading } from "../main-layout/main-layout";
 import OQueryEditor, { type OQueryEditorHandle } from "../oquery-editor/oquery-editor";
 import { getOQuerySuggestionData } from "../oquery-editor/oquery-suggestion-data";
 import { getOqueryContextBlocks } from "../oquery-editor/oquery-monaco-adapters";
@@ -94,7 +95,7 @@ function rowAt(offsets: number[], y: number) {
 }
 
 function PlaygroundHeading() {
-  return <div className="playground-heading"><div><span className="playground-heading-icon"><Icon name="query" size={23} /></span><span><h1>Query playground</h1><p>Ask questions across your business data</p></span></div><div className="playground-heading-actions"><button type="button" className="button secondary"><Icon name="code" size={14} />Format</button><button type="button" className="button secondary"><Icon name="save" size={14} />Save</button></div></div>;
+  return <Heading icon="query" title="Query playground" text="Ask questions across your business data" actions={<><button type="button" className="button secondary"><Icon name="code" size={14} />Format</button><button type="button" className="button secondary"><Icon name="save" size={14} />Save</button></>} />;
 }
 
 function Splitter({ label, hidden = false, minimized = false, onDrag }: { label: string; hidden?: boolean; minimized?: boolean; onDrag: (delta: number) => void }) {

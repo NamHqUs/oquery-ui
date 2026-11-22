@@ -47,16 +47,17 @@ function Header({ projects, projectId, domains, domainId, connectionStatus, prov
     <button type="button" className="main-layout-logo" onClick={onNavigateHome} aria-label="Go to home"><img src="/brand-concepts/23-oquery-orbit-core.svg" alt="" /><small>DATA QUERY ENGINE</small></button>
     <div className="main-layout-context">
       <MainLayoutSelect
-        label="CURRENT PROJECT"
+        label="Current project"
+        prefix="Project"
         icon="folder"
         value={projectId}
         placeholder={projects.length ? "Choose a project" : "No projects yet"}
         options={projects.map((project) => ({ value: project.id, label: project.name }))}
         onChange={onSelectProject}
       />
-      <i />
       <MainLayoutSelect
-        label="ACTIVE DOMAIN"
+        label="Active domain"
+        prefix="Domain"
         icon="table"
         value={domainId}
         placeholder={projectId ? "No domains" : "Choose a project first"}
@@ -87,8 +88,8 @@ function Sidebar({ view, setView, collapsed, onToggle }: { view: WorkspaceView; 
   </aside>;
 }
 
-export function Heading({ icon, title, text, action }: { icon: IconName; title: string; text: string; action?: string }) {
-  return <div className="main-layout-heading"><div><span className="main-layout-heading-icon"><Icon name={icon} size={23} /></span><span><h1>{title}</h1><p>{text}</p></span></div>{action && <button className="main-layout-primary" type="button"><Icon name="plus" size={14} /> {action}</button>}</div>;
+export function Heading({ icon, title, text, action, actions }: { icon: IconName; title: string; text: string; action?: string; actions?: React.ReactNode }) {
+  return <div className="main-layout-heading"><div><span className="main-layout-heading-icon"><Icon name={icon} size={23} /></span><span><h1>{title}</h1><p>{text}</p></span></div>{actions && <div className="main-layout-heading-actions">{actions}</div>}{action && <button className="main-layout-primary" type="button"><Icon name="plus" size={14} /> {action}</button>}</div>;
 }
 
 type MainLayoutProps = {
