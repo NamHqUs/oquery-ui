@@ -1,5 +1,4 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
 import Icon from "../shared/icon/icon";
 import "../data-sources/database-connection/database-connection.css";
 import { getConnectionOptions } from "../../services/database-connection-service";
@@ -18,7 +17,6 @@ function messageOf(error: unknown) {
 
 // Test and create results stay on this page: success or the server's error details, each with an icon.
 export default function CreateProjectPage() {
-  const navigate = useNavigate();
   const [name, setName] = useState(DEFAULT_PROJECT_NAME);
   const [description, setDescription] = useState(DEFAULT_PROJECT_DESCRIPTION);
   const [providers, setProviders] = useState<string[]>([]);
@@ -78,15 +76,16 @@ export default function CreateProjectPage() {
     setBusy("create");
     setFeedback(null);
     try {
-      const project = await createProjectFromDatabase({
+      await createProjectFromDatabase({
         name: name.trim(),
         description: description.trim(),
         provider,
         connectionString,
       });
-      navigate(`/playground/${encodeURIComponent(project.id)}`);
+      setFeedback({ tone: "success", message: `Project "${name.trim()}" created successfully.` });
     } catch (error) {
       setFeedback({ tone: "error", message: messageOf(error) });
+    } finally {
       setBusy(null);
     }
   };

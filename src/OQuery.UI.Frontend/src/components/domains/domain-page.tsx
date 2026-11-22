@@ -94,7 +94,7 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
   const [baseline, setBaseline] = useState<DomainGraph>(EMPTY_GRAPH);
   const [working, setWorking] = useState<DomainGraph>(EMPTY_GRAPH);
   const [databaseTables, setDatabaseTables] = useState<DatabaseTableOption[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(() => Boolean(projectId && domainId));
   const [saving, setSaving] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
   const [selectedName, setSelectedName] = useState("");

@@ -144,7 +144,7 @@ configured `OQuery:Security:EncryptionKey` before they are saved.
 | --- | --- | --- |
 | `GET /db/connections` via the database connection service | Page load | Fills the DBMS list from the dialects registered in DI. |
 | `ProjectService.testProjectConnection(provider, connectionString)` (`POST /metadata/projects/test-connection`) | Test Connection | Opens the connection and returns a success result or the error details. Nothing is saved. |
-| `ProjectService.createProjectFromDatabase(...)` (`POST /metadata/projects/from-database`) | Create Project | Creates the project, FullDomain and `Main` domain in one server call, then navigates to `/playground/{projectId}/main`. |
+| `ProjectService.createProjectFromDatabase(...)` (`POST /metadata/projects/from-database`) | Create Project | Creates the project, FullDomain and `Main` domain in one server call. The page stays open and shows a success message; it does not navigate to the playground. |
 
 Any failure (validation, connection, schema load, or write) keeps the user on
 this page and shows the server's error details. The server removes any partly

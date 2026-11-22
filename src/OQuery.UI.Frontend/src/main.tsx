@@ -467,23 +467,23 @@ function WorkspaceContextBar({
   );
 }
 
+// Refreshes on every route change, but keeps the last loaded list while refreshing so the shell does not unmount.
 function useWorkspaceProjects(refreshKey: string) {
-  const [state, setState] = useState<{ key: string; projects: ProjectSummary[] | null; failed: boolean }>({ key: "", projects: null, failed: false });
+  const [state, setState] = useState<{ projects: ProjectSummary[] | null; failed: boolean }>({ projects: null, failed: false });
   useEffect(() => {
     let active = true;
-    setState({ key: refreshKey, projects: null, failed: false });
     listProjects()
       .then((projects) => {
-        if (active) setState({ key: refreshKey, projects, failed: false });
+        if (active) setState({ projects, failed: false });
       })
       .catch(() => {
-        if (active) setState({ key: refreshKey, projects: null, failed: true });
+        if (active) setState({ projects: null, failed: true });
       });
     return () => {
       active = false;
     };
   }, [refreshKey]);
-  return state.key === refreshKey ? state : { key: refreshKey, projects: null, failed: false };
+  return state;
 }
 
 function WorkspaceGate({
