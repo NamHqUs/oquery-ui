@@ -39,6 +39,14 @@ internal class QueryDefinitionOQueryParserTest : TestBase
         Assert.That(query.Projections!.Select(p => (p.Field as FieldDefinition)!.FieldName).ToArray(), Is.EqualTo(expectedProjection));
     }
 
+    [TestCase("User:\nId, Name")]
+    [TestCase("User:\r\nId, Name")]
+    public void ParseProjectionOnUnindentedLineAfterHeader(string input)
+    {
+        var query = QueryDefinitionOQueryParser.Parse(input);
+        Assert.That(query.Projections!.Select(p => (p.Field as FieldDefinition)!.FieldName).ToArray(), Is.EqualTo(new[] { "Id", "Name" }));
+    }
+
     [Test]
     public void ParseProjectionAliasSeparatedByWhitespace()
     {
