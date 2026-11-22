@@ -68,6 +68,7 @@ const FIELD_ROW_HEIGHT = 21;
 const FIELD_LIST_PADDING = 4;
 const DEFAULT_VISIBLE_FIELD_ROWS = 8;
 const BOARD_MARGIN = 20;
+const COMPACT_TOP_INSET = 6;
 const ARROW_CLEARANCE = 8;
 const TABLE_DOMAINS = {
   Locations: ["HR", "Healthcare"],
@@ -716,7 +717,6 @@ export default function DiagramView({
   const [graphPan, setGraphPan] = useState({ x: 0, y: 0 });
   const [boardSize, setBoardSize] = useState({ width: 720, height: 360 });
   const [layoutSize, setLayoutSize] = useState({ width: 720, height: 360 });
-  const [autoRange, setAutoRange] = useState(true);
   const [compactLayout, setCompactLayout] = useState<CompactLayout | null>(null);
   const drag = useRef(null);
   const graphDrag = useRef(null);
@@ -734,13 +734,11 @@ export default function DiagramView({
         setLayoutSize({ width: nextWidth, height: nextHeight });
         hasInitialLayoutSize.current = true;
       }
-      if (autoRange) {
-        setLayoutSize((current) =>
-          current.width === nextWidth && current.height === nextHeight
-            ? current
-            : { width: nextWidth, height: nextHeight },
-        );
-      }
+      setLayoutSize((current) =>
+        current.width === nextWidth && current.height === nextHeight
+          ? current
+          : { width: nextWidth, height: nextHeight },
+      );
       setBoardSize((current) => current.width === nextWidth && current.height === nextHeight
         ? current
         : { width: nextWidth, height: nextHeight });
@@ -752,7 +750,7 @@ export default function DiagramView({
     });
     observer.observe(scrollElement);
     return () => observer.disconnect();
-  }, [autoRange, scrollElement, suppliedTables]);
+  }, [scrollElement, suppliedTables]);
 
   const groups = useMemo(() => {
     if (suppliedGroups?.length) {
@@ -795,7 +793,7 @@ export default function DiagramView({
     [renderedGroup, schema.relationships, suppliedRelationships],
   );
 
-  const layoutSource = autoRange ? boardSize : layoutSize;
+  const layoutSource = layoutSize;
   const layoutDirection = layoutSource.width > layoutSource.height * 1.15 ? "RIGHT" : "DOWN";
 
   const layoutKey = JSON.stringify({
@@ -830,7 +828,7 @@ export default function DiagramView({
   }, [layoutKey]);
 
   const compactOffsetX = Math.max(0, (layoutSize.width - (compactLayout?.width || 0)) / 2);
-  const compactOffsetY = Math.max(0, (layoutSize.height - (compactLayout?.height || 0)) / 2);
+  const compactOffsetY = COMPACT_TOP_INSET - BOARD_MARGIN;
   const layout = useMemo(() => {
     const next = createLayout(renderedGroup?.tables || [], relationships, layoutSize.width, layoutSize.height, compactCards);
     const centeredCompactPositions = Object.fromEntries(Object.entries(compactLayout?.positions || {}).map(([key, position]) => [
@@ -1101,35 +1099,8 @@ export default function DiagramView({
 
   return (
     <section className="database-diagram" aria-label="Database relationship diagram">
-      <div className="diagram-toolbar">
-        <div>
-          {suppliedTables
-            ? <strong className="diagram-toolbar-title">Metadata</strong>
-            : <>
-              <span className="section-kicker">DATABASE SCHEMA</span>
-              <p>Choose a domain to explore its relationships. Drag tables to adjust the layout; expand a table to inspect its columns. Double-click a table header to preview its first 10 rows.</p>
-            </>}
-        </div>
+      <div className="diagram-content">
         <div className="diagram-layout-controls">
-          <button
-            type="button"
-            className={`diagram-layout-auto${autoRange ? " active" : ""}`}
-            aria-label={`Toggle automatic layout (${autoRange ? "on" : "off"})`}
-            aria-pressed={autoRange}
-            title={`Automatic layout ${autoRange ? "on" : "off"}`}
-            onClick={() => {
-              const enabled = !autoRange;
-              setAutoRange(enabled);
-              if (enabled) {
-                setLayoutSize(boardSize);
-                setPositions({});
-                setGraphPan({ x: 0, y: 0 });
-              }
-            }}
-          >
-            <Icon name="sliders" size={14} />
-            <span>Auto</span>
-          </button>
           {navigationActions}
           <button
             type="button"
@@ -1145,8 +1116,6 @@ export default function DiagramView({
             <Icon name="reset" size={14} />
           </button>
         </div>
-      </div>
-      <div className="diagram-content">
         <div className="diagram-scroll" ref={setScrollElement}>
         <div
           className="diagram-board"

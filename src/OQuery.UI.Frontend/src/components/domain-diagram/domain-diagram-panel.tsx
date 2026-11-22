@@ -6,7 +6,7 @@ import { metadataEntityFromDto, type DomainRelation, type MetadataEntity } from 
 import DefinitionActions from "../metadata-builder/definition-actions/definition-actions";
 import DomainDiagram from "./domain-diagram";
 import EntityDefinition, { type DatabaseTableOption } from "./entity-definition/entity-definition";
-import { renameEntityInRelations, toEditable, toEntityPayload, toRelationPayload, type EditableEntity } from "./entity-definition/types";
+import { removeEntityFromRelations, renameEntityInRelations, toEditable, toEntityPayload, toRelationPayload, type EditableEntity } from "./entity-definition/types";
 
 type DomainDiagramPanelProps = {
   projectId: string;
@@ -135,6 +135,17 @@ export default function DomainDiagramPanel({ projectId, domainId, domainOptions,
     setSelectedName(name);
   };
 
+  // Removes the entity and its relations from the in-memory domain only; nothing is persisted until save.
+  const removeEntity = () => {
+    if (!isMainDomain || !selectedName) return;
+    setWorking((current) => ({
+      ...current,
+      entities: current.entities.filter((entity) => entity.name !== selectedName),
+      relations: removeEntityFromRelations(current.relations, selectedName),
+    }));
+    setSelectedName("");
+  };
+
   const selectTable = (table: DatabaseTableOption) => {
     changeDraft((current) => ({ ...current, schema: table.schema, dbTable: table.name, rawSql: table.name }));
   };
@@ -165,6 +176,7 @@ export default function DomainDiagramPanel({ projectId, domainId, domainOptions,
     dirty: false,
     saving: false,
     onNew: isMainDomain ? createEntity : undefined,
+    onDelete: isMainDomain ? removeEntity : undefined,
   };
   const entityHeaderActions = <DefinitionActions adapter={entityActionAdapter} />;
 
