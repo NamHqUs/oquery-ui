@@ -7,6 +7,7 @@ import MainLayout, { Heading, type WorkspaceView } from "../main-layout/main-lay
 import DiagramView, { diagramGroupTone } from "./entity-diagram/diagram-view";
 import { toDiagramRelationships, toDiagramTables } from "./entity-diagram/diagram-model";
 import PanelSplitter from "../shared/panel-splitter/panel-splitter";
+import { useMessageBox } from "../shared/message-box/message-box";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
 import "./entity-diagram/entity-diagram.css";
 import EntityDefinition, { type DatabaseTableOption } from "./entity-definition/entity-definition";
@@ -110,6 +111,7 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
   const [selectedName, setSelectedName] = useState("");
   const dirty = JSON.stringify(working) !== JSON.stringify(baseline);
   const panel = useResizablePanel("metadata-entity-diagram-height", 480, 280, 900);
+  const showMessageBox = useMessageBox();
 
   useEffect(() => {
     let active = true;
@@ -225,9 +227,28 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
     }
   };
 
-  const reload = () => {
-    if (dirty && !window.confirm("Discard unsaved changes and reload the domain from the server?")) return;
+  const confirmDiscard = async (title: string, message: string, confirmLabel: string) => {
+    const choice = await showMessageBox({
+      eyebrow: "Unsaved changes",
+      title,
+      message,
+      actions: [
+        { value: "cancel", label: "Cancel" },
+        { value: "discard", label: confirmLabel, variant: "danger" },
+      ],
+    });
+    return choice === "discard";
+  };
+
+  const reload = async () => {
+    if (dirty && !(await confirmDiscard("Reload domain?", "Discard unsaved changes and reload the domain from the server?", "Reload"))) return;
     setReloadToken((token) => token + 1);
+  };
+
+  // Create always navigates, but unsaved changes would be lost, so remind the user before leaving.
+  const openCreateWizard = async () => {
+    if (dirty && !(await confirmDiscard("Create domain?", "You have unsaved changes. Leaving now will discard them. Continue to create a domain?", "Continue"))) return;
+    onNavigate(domainCreatePath(projectId));
   };
 
   const toolbarActions = (
@@ -235,13 +256,13 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
       <button className="domain-action-button primary" type="button" title="Save domain" aria-label="Save domain" onClick={() => void save()} disabled={!isMainDomain || !dirty || saving}>
         <Icon name="save" size={15} /> Save
       </button>
-      <button className="domain-action-button" type="button" title="Reload domain from the server" aria-label="Reload domain" onClick={reload} disabled={loading || saving}>
+      <button className="domain-action-button" type="button" title="Reload domain from the server" aria-label="Reload domain" onClick={() => void reload()} disabled={loading || saving}>
         <Icon name="reset" size={15} /> Reload
       </button>
-      <button className="domain-action-button" type="button" title="Edit the Main domain in the wizard" aria-label="Edit domain" onClick={() => onNavigate(domainEditPath(projectId, domainId))} disabled={!isMainDomain || dirty || loading || saving}>
+      <button className="domain-action-button" type="button" title="Edit the Main domain in the wizard" aria-label="Edit domain"       onClick={() => onNavigate(domainEditPath(projectId, domainId))}>
         <Icon name="edit" size={15} /> Edit
       </button>
-      <button className="domain-action-button create" type="button" title="Create a domain in the wizard" aria-label="Create domain" onClick={() => onNavigate(domainCreatePath(projectId))} disabled={dirty || loading || saving}>
+            <button className="domain-action-button create" type="button" title="Create a domain in the wizard" aria-label="Create domain" onClick={() => void openCreateWizard()}>
         <Icon name="file-plus" size={15} /> Create
       </button>
     </div>

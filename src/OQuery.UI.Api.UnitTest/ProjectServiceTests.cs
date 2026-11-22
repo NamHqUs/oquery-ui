@@ -132,7 +132,7 @@ internal sealed class ProjectServiceTests
                 },
             ],
         });
-        var domainId = _service.GetDomainNames(project.Id).Single().Id;
+        var domainId = _service.GetDomainNames(project.Id).Single(domain => domain.Name == "Customers view").Id;
 
         var resolved = _service.GetResolvedDomain(project.Id, domainId);
 
