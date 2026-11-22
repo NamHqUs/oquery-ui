@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import type { ReactNode } from "react";
 import Icon from "../../shared/icon/icon";
 import "./domain-wizard.css";
 
@@ -45,28 +44,8 @@ export default function DomainWizard({
     ? [["1", "Append Sources", "Existing and new tables or entities"], ["2", "Design entities", "Existing and new entity fields"], ["3", "Apply changes", "Review domain updates"]]
     : [["1", "Source", "Database or file"], ["2", "Design entities", "Entity fields and relations"], ["3", "Generate", "Domain identity"]];
   const finalStep = 3;
-  const [railFloating, setRailFloating] = useState(false);
-  const [railLeft, setRailLeft] = useState<number | null>(null);
-  const wizardBodyRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const updateRailPosition = () => {
-      const documentScrollTop = document.scrollingElement?.scrollTop ?? 0;
-      setRailLeft(wizardBodyRef.current?.getBoundingClientRect().left ?? 22);
-      setRailFloating(Math.max(window.scrollY, document.documentElement.scrollTop, documentScrollTop) > 220);
-    };
-    updateRailPosition();
-    window.addEventListener("scroll", updateRailPosition, { passive: true });
-    document.addEventListener("scroll", updateRailPosition, { passive: true, capture: true });
-    return () => {
-      window.removeEventListener("scroll", updateRailPosition);
-      document.removeEventListener("scroll", updateRailPosition, { capture: true });
-    };
-  }, []);
   const sidebar = (
-    <aside
-      className={`domain-wizard-sidebar${railFloating ? " is-floating" : ""}`}
-      style={railFloating && railLeft !== null ? { left: `${railLeft}px` } : undefined}
-    >
+    <aside className="domain-wizard-sidebar">
       <div className="domain-steps" aria-label={`Domain ${mode} steps`}>
         {steps.map(([number, label, description]) => (
           <button key={number} type="button" className={step === Number(number) ? "active" : step > Number(number) ? "complete" : ""} onClick={() => onStepChange(Number(number) as WizardStep)} disabled={!canNavigateToStep(Number(number) as WizardStep)}>
@@ -104,10 +83,8 @@ export default function DomainWizard({
         </button>
       </div>
       {error && <p className="domain-error" role="alert">{error}</p>}
-      <div ref={wizardBodyRef} className="domain-wizard-body">
-        {railFloating
-          ? createPortal(<div className="domain-create-view domain-wizard-portal">{sidebar}</div>, document.body)
-          : sidebar}
+      <div className="domain-wizard-body">
+        {sidebar}
         <div className="domain-step-panel">{children}</div>
       </div>
     </div>

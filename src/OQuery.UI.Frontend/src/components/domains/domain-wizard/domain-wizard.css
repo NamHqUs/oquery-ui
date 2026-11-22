@@ -8,14 +8,13 @@
 }
 .domain-workspace.domain-create-view { grid-template-columns: minmax(0, 1fr); overflow: visible; border: 0; border-radius: 0; }
 .domain-create-view .domain-wizard { width: 100%; max-width: none; }
-.domain-create-view .domain-wizard { display: block; }
+.domain-create-view .domain-wizard { display: block; overflow: visible; }
 .domain-create-view .domain-wizard-body { display: grid; grid-template-columns: 220px minmax(0, 1fr); }
 .domain-create-view .domain-editor { grid-column: 1; width: 100%; padding: 0; }
 .domain-create-view .domain-editor-heading { display: none; }
 .domain-create-view .domain-wizard-header { border-bottom: 0; }
 .domain-create-view .domain-wizard .domain-error { margin: 16px 28px 12px; }
 .domain-create-view .domain-wizard-sidebar { position: sticky; top: 20px; align-self: start; padding: 24px 18px; border-right: 3px solid transparent; border-image: linear-gradient(180deg,#8064e8 0%,#3b315c 48%,#56a985 100%) 1; }
-.domain-create-view .domain-wizard-sidebar.is-floating { position: fixed; top: 145px; left: 22px; z-index: 10; width: 220px; }
 .domain-create-view .domain-steps { display: grid; grid-template-columns: 1fr; align-content: start; gap: 24px; width: auto; max-width: none; margin: 0; padding: 0; border: 0; background: transparent; }
 .domain-create-view .domain-steps button { align-items: center; flex-direction: row; gap: 9px; padding: 0; }
 .domain-create-view .domain-steps button span { display: grid; gap: 2px; white-space: normal; }
@@ -156,7 +155,6 @@
 @media (max-width: 760px) {
   .domain-create-view .domain-wizard-body { display: block; }
   .domain-create-view .domain-wizard-sidebar { position: static; padding: 0; border-right: 0; }
-  .domain-create-view .domain-wizard-sidebar.is-floating { position: static; width: auto; }
   .domain-create-view .domain-steps { display: grid; grid-template-columns: repeat(4,1fr); gap: 4px; padding: 12px 10px; border-right: 0; border-bottom: 1px solid #293141; }
   .domain-create-view .domain-steps button { align-items: center; flex-direction: row; gap: 7px; }
   .domain-create-view .domain-steps button:not(:last-child)::after { top: 15px; right: -2px; bottom: auto; left: 34px; border-top: 1px solid #3a4252; border-left: 0; }
