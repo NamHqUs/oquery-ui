@@ -287,7 +287,7 @@ public sealed class FunctionMetadataTests
             function => function.Name,
             StringComparer.OrdinalIgnoreCase);
 
-        Assert.That(functions.Keys, Does.Contain("DateSub").And.Contain("MonthSub").And.Contain("YearSub")
+        Assert.That(functions.Keys, Does.Contain("DaysTo").And.Contain("MonthsTo").And.Contain("YearsTo")
             .And.Contain("DateAdd").And.Contain("MonthAdd").And.Contain("YearAdd").And.Contain("DateFormat"));
         Assert.That(functions.Keys, Does.Not.Contain("DATEDIFF").And.Not.Contain("STRFTIME"));
         Assert.That(functions.Keys, Does.Contain("Count").And.Contain("Sum").And.Contain("Avg")

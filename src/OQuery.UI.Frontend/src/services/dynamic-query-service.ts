@@ -57,16 +57,13 @@ export type QueryResult = {
 /** Executes OQuery text and returns the result rows. */
 export async function requestQueryResultFromText(text: string, projectId: string, domainId: string): Promise<QueryResult> {
   const payload = await executeOQueryText(text, projectId, domainId);
-  if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows) || payload.rows.some((row: unknown) => typeof row !== "string") || typeof payload.totalRecords !== "number" || !Number.isFinite(payload.totalRecords) || payload.totalRecords < -1) {
-    throw new Error("Query API must return a name, an array of row strings, and a valid total record count.");
+  if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows) || payload.rows.some((row: unknown) => !isStringRow(row)) || !Array.isArray(payload.columns) || typeof payload.totalRecords !== "number" || !Number.isFinite(payload.totalRecords) || payload.totalRecords < -1) {
+    throw new Error("Query API must return a name, column names, an array of string rows, and a valid total record count.");
   }
-  const responseColumns = typeof payload.columns === "string"
-    ? payload.columns.split(",").filter((column: string) => column.trim())
-    : [];
   return {
     name: payload.name,
-    columns: responseColumns,
-    rows: payload.rows.map((row: string) => row.split(",")),
+    columns: payload.columns,
+    rows: payload.rows,
     totalRecords: payload.totalRecords,
   };
 }
@@ -74,18 +71,19 @@ export async function requestQueryResultFromText(text: string, projectId: string
 /** Executes one OQuery context and returns its result rows. */
 export async function requestContextResultFromText(text: string, context: string, projectId: string, domainId: string): Promise<QueryResult> {
   const payload = await executeOQueryContext(text, context, projectId, domainId);
-  if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows) || typeof payload.totalRecords !== "number") {
+  if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows) || payload.rows.some((row: unknown) => !isStringRow(row)) || !Array.isArray(payload.columns) || typeof payload.totalRecords !== "number") {
     throw new Error("Query API returned an invalid context result.");
   }
-  const responseColumns = typeof payload.columns === "string"
-    ? payload.columns.split(",").filter((column: string) => column.trim())
-    : [];
   return {
     name: payload.name,
-    columns: responseColumns,
-    rows: payload.rows.map((row: string) => row.split(",")),
+    columns: payload.columns,
+    rows: payload.rows,
     totalRecords: payload.totalRecords,
   };
+}
+
+function isStringRow(row: unknown): row is string[] {
+  return Array.isArray(row) && row.every((value) => typeof value === "string");
 }
 
 /** Returns the engine-generated SQL for OQuery text. */

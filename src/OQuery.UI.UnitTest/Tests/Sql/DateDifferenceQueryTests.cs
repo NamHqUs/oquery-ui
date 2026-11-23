@@ -57,7 +57,7 @@ internal sealed class DateDifferenceQueryTests
                 new(new FieldDefinition("Customer.Name")),
                 new(new FieldDefinition("InvoiceDate")),
                 new(
-                    new FunctionFieldDefinition("DateSub",
+                    new FunctionFieldDefinition("DaysTo",
                     [
                         new FieldDefinition("DueDate"),
                         new FunctionFieldDefinition("GETDATE", [])
@@ -141,9 +141,9 @@ internal sealed class DateDifferenceQueryTests
         using var context = CreateTypedContext(connection);
 
         var receiverSql = context.Query(CreateReceiverQuery(
-            new FunctionFieldDefinition("InvoiceDate.DateSub", [new FieldDefinition("DueDate")]))).ToSql().CommandText;
+            new FunctionFieldDefinition("InvoiceDate.DaysTo", [new FieldDefinition("DueDate")]))).ToSql().CommandText;
         var explicitSql = context.Query(CreateReceiverQuery(
-            new FunctionFieldDefinition("DateSub", [new FieldDefinition("InvoiceDate"), new FieldDefinition("DueDate")]))).ToSql().CommandText;
+            new FunctionFieldDefinition("DaysTo", [new FieldDefinition("InvoiceDate"), new FieldDefinition("DueDate")]))).ToSql().CommandText;
 
         Assert.That(receiverSql, Is.EqualTo(explicitSql));
     }
@@ -154,7 +154,7 @@ internal sealed class DateDifferenceQueryTests
         using var connection = new SqliteConnection("Data Source=:memory:");
         using var context = CreateTypedContext(connection);
         var query = CreateReceiverQuery(
-            new FunctionFieldDefinition("InvoiceNumber.DateSub", [new FieldDefinition("DueDate")]));
+            new FunctionFieldDefinition("InvoiceNumber.DaysTo", [new FieldDefinition("DueDate")]));
 
         Assert.That(() => context.Query(query).ToSql(),
             Throws.InstanceOf<FormatException>().With.Message.Contains("InvoiceNumber"));
@@ -186,7 +186,7 @@ internal sealed class DateDifferenceQueryTests
                 ])
         };
         var definition = QueryDefinitionOQueryParser.Parse(
-            "Departments: Id, Employees.Avg(HireDate.DateSub(<2025-10-31>) / 365.25) AverageTenureYears");
+            "Departments: Id, Employees.Avg(HireDate.DaysTo(<2025-10-31>) / 365.25) AverageTenureYears");
         using var connection = new SqliteConnection("Data Source=:memory:");
         using var context = new OQueryEngine(connection, new MetadataProvider(collectionMetadata),
             new FunctionProvider(new SqliteDialect()), new SqliteDialect());
@@ -271,7 +271,7 @@ internal sealed class DateDifferenceQueryTests
                 ])
         };
         var definition = QueryDefinitionOQueryParser.Parse(
-            "Seller: Id\n  Where Members.Any(Salary > <80000> AND HireDate.DateSub(<2025-10-31>) >= <5>)");
+            "Seller: Id\n  Where Members.Any(Salary > <80000> AND HireDate.DaysTo(<2025-10-31>) >= <5>)");
         using var connection = new SqliteConnection("Data Source=:memory:");
         using var context = new OQueryEngine(connection, new MetadataProvider(sellerMetadata),
             new FunctionProvider(new SqliteDialect()), new SqliteDialect());

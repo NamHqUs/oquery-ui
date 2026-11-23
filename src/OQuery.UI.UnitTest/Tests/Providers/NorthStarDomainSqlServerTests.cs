@@ -46,7 +46,7 @@ internal sealed class NorthStarDomainSqlServerTests
               Take 10
             """),
         ["Sales 3"] = (SalesDomain, """
-            Seller: Id SalesRepId,
+            Sellers: Id SalesRepId,
                 Concat(FirstName, < >, LastName) SalesRep,
                 Location.City HomeCity,
                 Department.Name Department,
@@ -190,7 +190,7 @@ internal sealed class NorthStarDomainSqlServerTests
                 Policies.Sum(Claims.CountIf(Status = <Paid>)) PaidClaims,
                 Policies.Sum(Claims.CountIf(Status = <Denied>)) DeniedClaims,
                 (100.0 * DeniedClaims / NullIf(ClaimsReceived, <0>)).Round(<2>) DenialPercent,
-                (Policies.Sum(Claims.Sum(DateSub(ClaimDate, ProcessedDate))) * 1.0
+                (Policies.Sum(Claims.Sum(DaysTo(ClaimDate, ProcessedDate))) * 1.0
                     / NullIf(Policies.Sum(Claims.Count(ProcessedDate)), <0>)).Round(<1>) AverageProcessingDays,
                 Policies.Sum(Claims.Sum(PaidAmount)).Round(<2>) TotalPaid
               Where ClaimsReceived > <0>
@@ -242,7 +242,7 @@ internal sealed class NorthStarDomainSqlServerTests
                 Employees.CountIf(EmploymentType = <Full-time>) FullTime,
                 Employees.CountIf(EmploymentType = <Part-time>) PartTime,
                 Employees.CountIf(EmploymentType = <Contract>) Contractors,
-                Employees.Avg(HireDate.ElapsedYears(<2025-10-31>)).Round(<1>) AverageTenureYears,
+                Employees.Avg(HireDate.YearsTo(<2025-10-31>)).Round(<1>) AverageTenureYears,
                 Employees.Sum(Salary).Round(<2>) AnnualPayroll
               Where Headcount > <0>
               Order Headcount DESC, AnnualPayroll DESC
@@ -278,7 +278,7 @@ internal sealed class NorthStarDomainSqlServerTests
     {
         ["Sales 1"] = ("OrderItems", "one category and channel"),
         ["Sales 2"] = ("Customers", "one customer"),
-        ["Sales 3"] = ("Seller", "one sales representative"),
+        ["Sales 3"] = ("Sellers", "one sales representative"),
         ["Sales 4"] = ("Products", "one product"),
         ["Sales 5"] = ("Orders", "one month"),
         ["Healthcare 1"] = ("Visits", "one diagnosis and clinic"),
@@ -467,7 +467,7 @@ internal sealed class NorthStarDomainSqlServerTests
                 CountIf(Status = <Paid>) PaidClaims,
                 CountIf(Status = <Denied>) DeniedClaims,
                 (100.0 * DeniedClaims / NullIf(ClaimsReceived, <0>)).Round(<2>) DenialPercent,
-                (Sum(DateSub(ClaimDate, ProcessedDate)) * 1.0 / NullIf(Count(ProcessedDate), <0>)).Round(<1>) AverageProcessingDays,
+                (Sum(DaysTo(ClaimDate, ProcessedDate)) * 1.0 / NullIf(Count(ProcessedDate), <0>)).Round(<1>) AverageProcessingDays,
                 Sum(PaidAmount).Round(<2>) TotalPaid
               Order ClaimsReceived DESC
               Take 10

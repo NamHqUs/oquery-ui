@@ -10,8 +10,7 @@ namespace OQuery.UnitTest.Tests.Providers;
 internal sealed class BuiltinFunctionExamplesTests
 {
     private const string ReferenceDialect = "Sqlite";
-    private const string ExamplesDomain = "Examples_Domain.json";
-    private const string InsuranceDomain = "INSURANCE_DOMAIN.json";
+    private const string SalesDomain = "Sales_Domain.json";
 
     private static readonly Regex IsoDate = new(@"^\d{4}-\d{2}-\d{2}", RegexOptions.Compiled);
     private static readonly Regex UsDate = new(@"^\d{2}/\d{2}/\d{4}$", RegexOptions.Compiled);
@@ -29,8 +28,8 @@ internal sealed class BuiltinFunctionExamplesTests
         new("SapHana", TestDatabase.GetNorthStarSapHanaConnection, () => new SapHanaDialect(), UsesSchemas: false),
     ];
 
-    // One example per built-in function, taken from builtin-function-catalog.json. Where the catalog names
-    // fields the demo data does not have, the example keeps the same function and shape on the closest demo fields.
+    // One example per built-in function, copied verbatim from builtin-function-catalog.json so each one
+    // runs as-is on the Sales demo domain.
     private static readonly IReadOnlyList<BuiltinExample> Examples =
     [
         new("Count", "Customers: City, Count() CustomerCount, Count(LastName) NamedCustomerCount"),
@@ -43,35 +42,31 @@ internal sealed class BuiltinFunctionExamplesTests
         new("AvgIf", "OrderItems: ProductId, AvgIf(UnitPrice, Quantity >= <5>) BulkUnitPrice"),
         new("MinIf", "OrderItems: ProductId, MinIf(UnitPrice, Quantity >= <5>) LowestBulkPrice"),
         new("MaxIf", "OrderItems: ProductId, MaxIf(UnitPrice, DiscountAmount > <0>) HighestDiscountedPrice"),
-        new("MedicalLossRatio", "InsurancePlans: Tier, MedicalLossRatio(Deductible, MonthlyPremium) LossRatioPercent"),
-        new("CountOver", "Seller: Id, DepartmentId, CountOver(Id, DepartmentId) DepartmentHeadcount"),
-        new("SumOver", "Seller: Id, DepartmentId, Salary, SumOver(Salary, DepartmentId) DepartmentPayroll"),
-        new("AverageOver", "Seller: Id, DepartmentId, Salary, AverageOver(Salary, DepartmentId) DepartmentAverageSalary"),
-        new("MaxOver", "Seller: Id, DepartmentId, Salary, MaxOver(Salary, DepartmentId) DepartmentMaximumSalary"),
-        new("MinOver", "Seller: Id, DepartmentId, Salary, MinOver(Salary, DepartmentId) DepartmentMinimumSalary"),
+        new("MedicalLossRatio", "Products: Category, MedicalLossRatio(CostPrice, UnitPrice) LossRatioPercent"),
+        new("CountOver", "Sellers: Id, DepartmentId, CountOver(Id, DepartmentId) DepartmentHeadcount"),
+        new("SumOver", "Sellers: Id, DepartmentId, Salary, SumOver(Salary, DepartmentId) DepartmentPayroll"),
+        new("AverageOver", "Sellers: Id, DepartmentId, Salary, AverageOver(Salary, DepartmentId) DepartmentAverageSalary"),
+        new("MaxOver", "Sellers: Id, DepartmentId, Salary, MaxOver(Salary, DepartmentId) DepartmentMaximumSalary"),
+        new("MinOver", "Sellers: Id, DepartmentId, Salary, MinOver(Salary, DepartmentId) DepartmentMinimumSalary"),
         new("Lag", "OrderItems: Id, UnitPrice, Lag(UnitPrice, <1>, Id) PreviousUnitPrice"),
         new("WindowSum", "OrderItems: Id, Quantity, WindowSum(Quantity, Id) RunningQuantity"),
-        new("Rank", "OrderItems: Id, Rank(ProductId, UnitPrice) PriceRankInProduct"),
-        new("RowNumber", "Orders: Id, UserId, OrderDate, RowNumber(UserId, Id) OrderSequenceNewestFirst"),
-        new("NullIf", "OrderItems: Id, NullIf(Quantity, <0>) NonZeroQuantity"),
-        new("IfNull", "Seller: Id, FirstName, IfNull(Salary, <0>) SalaryOrZero"),
-        new("Concat", "Seller: Id, Concat(LastName, <,>, FirstName) FullName"),
+        new("Rank", "Products: Id, Category, UnitPrice, Rank(Category, UnitPrice) PriceRankInCategory"),
+        new("RowNumber", "Orders: Id, UserId, OrderDate, RowNumber(UserId, OrderDate) OrderSequenceNewestFirst"),
+        new("NullIf", "Products: Id, CostPrice / NullIf(UnitPrice, <0>) CostRatio"),
+        new("IfNull", "Sellers: Id, FirstName, IfNull(Salary, <0>) SalaryOrZero"),
+        new("Concat", "Sellers: Id, Concat(LastName, <,>, FirstName) FullName"),
         new("MonthKey", "Orders: OrderDate.MonthKey() OrderMonth, Count() OrderCount"),
-        new("Day", "Seller: Id, HireDate.Day() HireDay"),
-        new("Month", "Seller: Id, HireDate.Month() HireMonth"),
-        new("Year", "Seller: Id, HireDate.Year() HireYear"),
-        new("DateSub", "Seller: Id, HireDate.DateSub(<2025-10-31>) TenureDays"),
+        new("Day", "Sellers: Id, HireDate.Day() HireDay"),
+        new("Month", "Sellers: Id, HireDate.Month() HireMonth"),
+        new("Year", "Sellers: Id, HireDate.Year() HireYear"),
         new("DateAdd", "Orders: Id, OrderDate.DateAdd(<30>) DueDate"),
-        new("MonthSub", "Seller: Id, HireDate.MonthSub(<2025-10-31>) MonthBoundaries"),
         new("MonthAdd", "Orders: Id, OrderDate.MonthAdd(<12>) RenewalDate"),
-        new("YearSub", "Seller: Id, HireDate.YearSub(<2025-10-31>) YearBoundaries"),
         new("YearAdd", "Orders: Id, OrderDate.YearAdd(<2>) ExpiryDate"),
-        new("ElapsedYears", "Seller: Id, HireDate.ElapsedYears(<2025-10-31>) ServiceYears"),
-        new("YearsTo", "Seller: Id, HireDate.YearsTo(<2025-10-31>) CompletedYears"),
-        new("MonthsTo", "Seller: Id, HireDate.MonthsTo(<2025-10-31>) CompletedMonths"),
-        new("DaysTo", "Seller: Id, HireDate.DaysTo(<2025-10-31>) CompletedDays"),
-        new("YearsToNow", "Seller: Id, HireDate.YearsToNow() TenureYears"),
-        new("MonthsToNow", "Seller: Id, HireDate.MonthsToNow() TenureMonths"),
+        new("YearsTo", "Sellers: Id, HireDate.YearsTo(<2025-10-31>) CompletedYears"),
+        new("MonthsTo", "Sellers: Id, HireDate.MonthsTo(<2025-10-31>) CompletedMonths"),
+        new("DaysTo", "Sellers: Id, HireDate.DaysTo(<2025-10-31>) CompletedDays"),
+        new("YearsToNow", "Sellers: Id, HireDate.YearsToNow() TenureYears"),
+        new("MonthsToNow", "Sellers: Id, HireDate.MonthsToNow() TenureMonths"),
         new("DaysToNow", "Orders: Id, OrderDate.DaysToNow() DaysOld"),
         new("Any", "Customers: Id, FirstName, Orders.Any(Status = <Open>) HasOpenOrders"),
         new("NotAny", "Customers: Id, FirstName, Orders.NotAny() HasNoOrders"),
@@ -197,11 +192,7 @@ internal sealed class BuiltinFunctionExamplesTests
     private static List<OQuery.Entity> LoadMetadata()
     {
         var domains = NorthStarDomainSqlServerTests.GetDomainsRoot();
-        var entities = NorthStarDomainSqlServerTests.LoadDomain(Path.Combine(domains, ExamplesDomain)).ToList();
-        var known = entities.Select(entity => entity.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        entities.AddRange(NorthStarDomainSqlServerTests.LoadDomain(Path.Combine(domains, InsuranceDomain))
-            .Where(entity => known.Add(entity.Name)));
-        return entities;
+        return NorthStarDomainSqlServerTests.LoadDomain(Path.Combine(domains, SalesDomain)).ToList();
     }
 
     private sealed record Snapshot(IReadOnlyList<string> Columns, IReadOnlyList<string> Rows);

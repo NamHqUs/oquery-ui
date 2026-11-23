@@ -308,6 +308,18 @@ describe("reply validation", () => {
     await expect(services.schema.getTablePreview("Users")).rejects.toThrow("Database table API must return");
   });
 
+  it("keeps cell values that contain commas intact in query results", async () => {
+    const services = await loadServices();
+    mockFetch(() => respond({ name: "Employees", columns: ["Id", "FullName"], rows: [["1", "Anderson,Lewis"]], totalRecords: 1 }));
+
+    await expect(services.dynamic.requestQueryResultFromText("Employees:", "p1", "d1")).resolves.toEqual({
+      name: "Employees",
+      columns: ["Id", "FullName"],
+      rows: [["1", "Anderson,Lewis"]],
+      totalRecords: 1,
+    });
+  });
+
   it("throws when saving a function definition returns no body", async () => {
     const services = await loadServices();
     mockFetch(() => respond(undefined));

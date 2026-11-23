@@ -44,18 +44,15 @@ export const deletePlayground = createAsyncThunk(
 
 type ContextPayload = { name?: unknown; columns?: unknown; rows?: unknown; totalRecords?: unknown } | null;
 
-// Maps an execute response (name, comma-separated columns, comma-separated rows) to a QueryResult.
+// Maps an execute response (name, column names, rows of cell values) to a QueryResult.
 function toQueryResult(payload: ContextPayload): QueryResult {
-  if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows) || typeof payload.totalRecords !== "number") {
+  if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows) || !Array.isArray(payload.columns) || typeof payload.totalRecords !== "number") {
     throw new Error("Query API returned an invalid context result.");
   }
-  const columns = typeof payload.columns === "string"
-    ? payload.columns.split(",").filter((column) => column.trim())
-    : [];
   return {
     name: payload.name,
-    columns,
-    rows: payload.rows.map((row: string) => row.split(",")),
+    columns: payload.columns,
+    rows: payload.rows,
     totalRecords: payload.totalRecords,
   };
 }

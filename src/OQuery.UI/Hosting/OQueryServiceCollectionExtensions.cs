@@ -52,7 +52,7 @@ public static class OQueryServiceCollectionExtensions
         // The host registers the IAnalyticsRepository implementation (for example PostgresAnalyticsRepository).
         services.AddSingleton<RequestUsageCollector>();
         services.AddSingleton<RequestUsageMiddleware>();
-        services.AddHostedService<AnalyticsUsageFlushService>();
+        //services.AddHostedService<AnalyticsUsageFlushService>();
 
         services.AddOptions<MvcOptions>()
             .Configure<IOptions<OQueryOptions>>((mvc, options) =>

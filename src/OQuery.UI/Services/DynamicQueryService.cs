@@ -67,8 +67,8 @@ public sealed class DynamicQueryService(
 
         var data = new TableDataDto(
             Name: preparedQuery.Entity,
-            Columns: string.Join(",", result.Columns),
-            Rows: result.Records.Select(row => string.Join(",", row.Select(value => value.Value))).ToArray(),
+            Columns: result.Columns.ToArray(),
+            Rows: result.Records.Select(row => row.Select(value => value.Value?.ToString() ?? string.Empty).ToArray()).ToArray(),
             Page: query.Skip is { } skip && query.Take is { } take
                 ? skip / take + 1
                 : null,
