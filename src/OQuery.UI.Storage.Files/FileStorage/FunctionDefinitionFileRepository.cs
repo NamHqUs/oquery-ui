@@ -7,13 +7,13 @@ using System.Text.Json;
 namespace OQuery.UI.Storage.Files.FileStorage;
 
 /// <summary>
-/// Stores user-defined function DTOs in one JSON file per database folder.
+/// Stores user-defined function DTOs in one JSON file per database folder under {userSection}/sqlfunctions.
 /// Built-in functions are not stored here; the consumer supplies them from its dialects.
 /// </summary>
 public sealed class FunctionDefinitionFileRepository(FilePathResolver filePathResolver)
     : FileRepositoryBase<FunctionDefinitionDto>(filePathResolver, FOLDER_NAME), IFunctionDefinitionRepository
 {
-    private const string FOLDER_NAME = "functions";
+    private const string FOLDER_NAME = "sqlfunctions";
 
     public override IReadOnlyCollection<FunctionDefinitionDto> GetAll(StorageScope scope)
     {
@@ -73,12 +73,12 @@ public sealed class FunctionDefinitionFileRepository(FilePathResolver filePathRe
     {
         if (string.IsNullOrWhiteSpace(dbType) || Path.GetFileName(dbType) != dbType)
             throw new ArgumentException("SQL template key is not a valid database folder name.", nameof(dbType));
-        return PathResolver.GetProjectStoreFolder(scope, Path.Combine(FOLDER_NAME, dbType));
+        return PathResolver.GetUserStoreFolder(scope.UserSectionId, Path.Combine(FOLDER_NAME, dbType));
     }
 
     private IEnumerable<string> GetDbTypeFolders(StorageScope scope)
     {
-        var root = PathResolver.GetProjectStoreFolder(scope, FOLDER_NAME);
+        var root = PathResolver.GetUserStoreFolder(scope.UserSectionId, FOLDER_NAME);
         return Directory.Exists(root) ? Directory.EnumerateDirectories(root) : Enumerable.Empty<string>();
     }
 

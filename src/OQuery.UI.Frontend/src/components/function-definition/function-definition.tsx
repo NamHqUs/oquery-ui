@@ -21,7 +21,6 @@ import {
 import "./function-definition.css";
 
 type FunctionDefinitionWorkspaceProps = {
-  projectId: string;
   onNavigationGuardChange?: (guard: ((continueNavigation: () => void, cancelNavigation?: () => void) => void) | null) => void;
 };
 
@@ -81,9 +80,9 @@ function toPayload(draft: EditableFunctionDefinition): FunctionDefinitionPayload
   };
 }
 
-export default function FunctionDefinitionWorkspace({ projectId, onNavigationGuardChange }: FunctionDefinitionWorkspaceProps) {
+export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }: FunctionDefinitionWorkspaceProps) {
   const dispatch = useDispatch<AppDispatch>();
-  const { definitions, projectId: functionDefinitionsProjectId, status: functionDefinitionsStatus } = useSelector((state: RootState) => state.functionDefinitions);
+  const { definitions, status: functionDefinitionsStatus } = useSelector((state: RootState) => state.functionDefinitions);
   const providers = useSelector((state: RootState) => state.database.providers);
   const showMessageBox = useMessageBox();
   const panel = useResizablePanel("metadata-functions");
@@ -102,15 +101,10 @@ export default function FunctionDefinitionWorkspace({ projectId, onNavigationGua
   }, [dispatch]);
 
   const loadDefinitions = async (selectFirst = false, preferredName = selectedName) => {
-    if (!projectId) {
-      setStatus("failed");
-      setMessage("Choose a project to manage its custom functions.");
-      return false;
-    }
     setStatus("loading");
     setMessage("");
     try {
-      const result = await dispatch(fetchFunctionDefinitions(projectId));
+      const result = await dispatch(fetchFunctionDefinitions());
       if (!fetchFunctionDefinitions.fulfilled.match(result)) {
         throw new Error(String(result.payload || "Unable to load function definitions."));
       }
@@ -130,15 +124,6 @@ export default function FunctionDefinitionWorkspace({ projectId, onNavigationGua
   };
 
   useEffect(() => {
-    if (!projectId) {
-      setStatus("failed");
-      setMessage("Choose a project to manage its custom functions.");
-      return;
-    }
-    if (functionDefinitionsProjectId !== projectId) {
-      void loadDefinitions(true);
-      return;
-    }
     if (functionDefinitionsStatus === "succeeded") {
       const next = definitions[0];
       setSelectedName(next?.name || "");
@@ -150,7 +135,7 @@ export default function FunctionDefinitionWorkspace({ projectId, onNavigationGua
     if (functionDefinitionsStatus === "idle" || functionDefinitionsStatus === "failed") {
       void loadDefinitions(true);
     }
-  }, [projectId, definitions, functionDefinitionsProjectId, functionDefinitionsStatus]);
+  }, [definitions, functionDefinitionsStatus]);
 
   const discardChanges = () => {
     const original = definitions.find((definition) => definition.name === selectedName);
@@ -179,7 +164,7 @@ export default function FunctionDefinitionWorkspace({ projectId, onNavigationGua
     setStatus("saving");
     setMessage("");
     try {
-      const savedDefinition = await functionDefinitionService.saveDefinition(projectId, selectedName || undefined, payload);
+      const savedDefinition = await functionDefinitionService.saveDefinition(selectedName || undefined, payload);
       dispatch(invalidateFunctionDefinitions());
       await loadDefinitions(false, savedDefinition.name);
       setSelectedName(savedDefinition.name);
@@ -234,7 +219,7 @@ export default function FunctionDefinitionWorkspace({ projectId, onNavigationGua
     const choice = await showMessageBox({
       eyebrow: "Delete function",
       title: `Delete "${selectedName}"?`,
-      message: "This permanently deletes the custom function from the project.",
+      message: "This permanently deletes the custom function.",
       actions: [
         { value: "cancel", label: "Cancel" },
         { value: "delete", label: "Delete", variant: "danger" },
@@ -244,7 +229,7 @@ export default function FunctionDefinitionWorkspace({ projectId, onNavigationGua
     setStatus("saving");
     setMessage("");
     try {
-      await functionDefinitionService.deleteDefinition(projectId, selectedName);
+      await functionDefinitionService.deleteDefinition(selectedName);
       setSelectedName("");
       dispatch(invalidateFunctionDefinitions());
       await loadDefinitions(true);
@@ -278,7 +263,7 @@ export default function FunctionDefinitionWorkspace({ projectId, onNavigationGua
       <Heading
         icon="function"
         title="Custom functions"
-        text="Reusable business logic for this project's queries"
+        text="Reusable business logic shared by all projects"
         actionItems={headerActions}
         status={dirty ? <span className="page-header-status">Unsaved</span> : null}
       />

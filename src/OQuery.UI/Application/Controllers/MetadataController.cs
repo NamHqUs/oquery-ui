@@ -7,7 +7,6 @@ namespace OQuery.UI.Application.Controllers;
 [Route("metadata/projects")]
 public sealed class MetadataController(
     IProjectService projectService,
-    IFunctionDefinitionService functionDefinitionService,
     ILogger<MetadataController> logger) : ControllerBase
 {
     [HttpGet]
@@ -77,31 +76,6 @@ public sealed class MetadataController(
     public IActionResult DeleteDomain(string projectId, string domainId)
     {
         projectService.DeleteDomain(projectId, domainId);
-        return NoContent();
-    }
-
-    [HttpGet("{projectId}/functions")]
-    public ActionResult<IReadOnlyList<FunctionDefinitionDto>> GetFunctionDefinitions(string projectId)
-        => Ok(functionDefinitionService.GetAll(projectId));
-
-    [HttpPost("{projectId}/functions")]
-    public ActionResult<FunctionDefinitionDto> CreateFunctionDefinition(
-        string projectId,
-        [FromBody] FunctionDefinitionDto definition)
-        => Created($"/metadata/projects/{Uri.EscapeDataString(projectId)}/functions/{Uri.EscapeDataString(definition.Name)}",
-            functionDefinitionService.Create(projectId, definition));
-
-    [HttpPut("{projectId}/functions/{functionName}")]
-    public ActionResult<FunctionDefinitionDto> UpdateFunctionDefinition(
-        string projectId,
-        string functionName,
-        [FromBody] FunctionDefinitionDto definition)
-        => Ok(functionDefinitionService.Update(projectId, functionName, definition));
-
-    [HttpDelete("{projectId}/functions/{functionName}")]
-    public IActionResult DeleteFunctionDefinition(string projectId, string functionName)
-    {
-        functionDefinitionService.Delete(projectId, functionName);
         return NoContent();
     }
 }

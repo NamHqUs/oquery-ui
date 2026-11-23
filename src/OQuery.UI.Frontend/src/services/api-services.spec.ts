@@ -97,14 +97,14 @@ const endpoints: Endpoint[] = [
     call: (s) => s.query.saveQueryPayload("p1", "d1", {}, "q1") },
   { name: "deleteQueryRequestById", method: "DELETE", url: "/query-request/q1?projectId=p1",
     call: (s) => s.query.deleteQueryRequestById("q1", "p1", "d1") },
-  { name: "getDefinitions", method: "GET", url: "/metadata/projects/p1/functions", reply: [functionDefinition],
-    call: (s) => s.functions.getDefinitions("p1") },
-  { name: "saveDefinition (create)", method: "POST", url: "/metadata/projects/p1/functions", reply: functionDefinition,
-    call: (s) => s.functions.saveDefinition("p1", undefined, functionDefinition as never) },
-  { name: "saveDefinition (update)", method: "PUT", url: "/metadata/projects/p1/functions/Upper", reply: functionDefinition,
-    call: (s) => s.functions.saveDefinition("p1", "Upper", functionDefinition as never) },
-  { name: "deleteDefinition", method: "DELETE", url: "/metadata/projects/p1/functions/Upper",
-    call: (s) => s.functions.deleteDefinition("p1", "Upper") },
+  { name: "getDefinitions", method: "GET", url: "/metadata/sqlfunctions", reply: [functionDefinition],
+    call: (s) => s.functions.getDefinitions() },
+  { name: "saveDefinition (create)", method: "POST", url: "/metadata/sqlfunctions", reply: functionDefinition,
+    call: (s) => s.functions.saveDefinition(undefined, functionDefinition as never) },
+  { name: "saveDefinition (update)", method: "PUT", url: "/metadata/sqlfunctions/Upper", reply: functionDefinition,
+    call: (s) => s.functions.saveDefinition("Upper", functionDefinition as never) },
+  { name: "deleteDefinition", method: "DELETE", url: "/metadata/sqlfunctions/Upper",
+    call: (s) => s.functions.deleteDefinition("Upper") },
 ];
 
 beforeEach(() => {
@@ -191,14 +191,6 @@ describe("request bodies", () => {
     expect(calls[0].url).toBe("/query-request?projectId=my%20project&domainId=my%20domain");
   });
 
-  it("encodes the project id in function definition URLs", async () => {
-    const services = await loadServices();
-    const calls = mockFetch(() => respond([functionDefinition]));
-
-    await services.functions.getDefinitions("my project");
-
-    expect(calls[0].url).toBe("/metadata/projects/my%20project/functions");
-  });
 });
 
 describe("caching and invalidation", () => {
@@ -257,18 +249,14 @@ describe("caching and invalidation", () => {
     ]);
   });
 
-  it("caches function definitions per project and applies the scalar default receiver", async () => {
+  it("caches function definitions for the user section and applies the scalar default receiver", async () => {
     const services = await loadServices();
     const calls = mockFetch(() => respond([functionDefinition]));
 
-    const [first] = await services.functions.getDefinitions("p1");
-    await services.functions.getDefinitions("p1");
-    await services.functions.getDefinitions("p2");
+    const [first] = await services.functions.getDefinitions();
+    await services.functions.getDefinitions();
 
-    expect(calls.map((call) => call.url)).toEqual([
-      "/metadata/projects/p1/functions",
-      "/metadata/projects/p2/functions",
-    ]);
+    expect(calls.map((call) => call.url)).toEqual(["/metadata/sqlfunctions"]);
     expect(first.applyFor).toBe(allScalarApplyFor);
   });
 
@@ -324,7 +312,7 @@ describe("reply validation", () => {
     const services = await loadServices();
     mockFetch(() => respond(undefined));
 
-    await expect(services.functions.saveDefinition("p1", "Upper", functionDefinition as never))
+    await expect(services.functions.saveDefinition("Upper", functionDefinition as never))
       .rejects.toThrow("Function definition API did not return the saved definition.");
   });
 });

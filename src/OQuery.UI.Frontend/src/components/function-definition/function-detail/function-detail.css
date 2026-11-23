@@ -21,7 +21,6 @@
 .function-form input, .function-form select { width: 100%; min-width: 0; color: #dce1eb; background: #191e28; border: 1px solid #323947; border-radius: 3px; outline: 0; padding: 9px 10px; font: 12px "Manrope", sans-serif; }
 .function-form input:focus, .function-form select:focus { border-color: #7054d4; }
 .function-general-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-.function-example-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding: 10px 14px; color: #858fa1; background: #151923; border: 1px dashed #2f3746; border-radius: 3px; font-size: 12px; }
 .function-example-card { display: grid; gap: 14px; margin: 0 28px 16px; padding: 18px 20px; background: linear-gradient(180deg, #13101f, #10131a); border: 1px solid #2f2750; border-left: 3px solid #8058ff; border-radius: 4px; }
 .function-example-card-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
 .function-example-badges { display: flex; flex-wrap: wrap; gap: 6px; }

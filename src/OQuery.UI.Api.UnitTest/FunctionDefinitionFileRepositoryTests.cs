@@ -11,7 +11,7 @@ internal sealed class FunctionDefinitionFileRepositoryTests
 {
     private const string Section = "section-1";
     private const string FunctionName = "TestDouble";
-    private static readonly StorageScope Scope = new(Section, "project-1");
+    private static readonly StorageScope Scope = new(Section);
 
     private string _root = string.Empty;
     private string _functionsRoot = string.Empty;
@@ -21,7 +21,7 @@ internal sealed class FunctionDefinitionFileRepositoryTests
     public void SetUp()
     {
         _root = Path.Combine(Path.GetTempPath(), "function-definitions-" + Guid.NewGuid().ToString("N"));
-        _functionsRoot = Path.Combine(_root, Section, "projects", "project-1", "functions");
+        _functionsRoot = Path.Combine(_root, Section, "sqlfunctions");
         _repository = new FunctionDefinitionFileRepository(new FilePathResolver(_root));
     }
 

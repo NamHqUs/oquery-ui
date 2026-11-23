@@ -1,11 +1,8 @@
-import type { ProjectSummary } from "../../services/project-service";
-import MainLayout, { CUSTOM_FUNCTIONS_PATH, type WorkspaceView } from "../main-layout/main-layout";
-import { domainDiagramPath } from "../domains/domain-routes";
+import MainLayout, { type WorkspaceView } from "../main-layout/main-layout";
+import Icon from "../shared/icon/icon";
 import FunctionDefinitionWorkspace from "./function-definition";
 
 type CustomFunctionsPageProps = {
-  projectId: string;
-  projects: ProjectSummary[];
   connectionStatus: string;
   provider: string;
   onNavigate: (path: string) => void;
@@ -13,34 +10,31 @@ type CustomFunctionsPageProps = {
   onNavigationGuardChange: (guard: ((continueNavigation: () => void, cancelNavigation?: () => void) => void) | null) => void;
 };
 
-const encode = (segment: string) => encodeURIComponent(segment);
+// Custom functions live in the user section, so the page has no project or domain. Views that need a project
+// open the project chooser first.
+const PROJECT_CHOOSER_PATH = "/workspace";
 
-// Custom functions is project-scoped, so the domain selector opens that domain's playground and the views
-// route the same way the domain diagram does.
-export default function CustomFunctionsPage({ projectId, projects, connectionStatus, provider, onNavigate, onOpenConnection, onNavigationGuardChange }: CustomFunctionsPageProps) {
-  const onSelectView = (view: WorkspaceView, domainId: string) => {
+export default function CustomFunctionsPage({ connectionStatus, provider, onNavigate, onOpenConnection, onNavigationGuardChange }: CustomFunctionsPageProps) {
+  const onSelectView = (view: WorkspaceView) => {
     if (view === "functions") return;
-    if (view === "diagram") {
-      onNavigate(domainDiagramPath(projectId, domainId));
-      return;
-    }
-    onNavigate(`/playground/${encode(projectId)}${domainId ? `/${encode(domainId)}` : ""}${view === "playground" ? "" : `?view=${encodeURIComponent(view)}`}`);
+    onNavigate(PROJECT_CHOOSER_PATH);
   };
   return (
     <MainLayout
       view="functions"
-      projects={projects}
-      projectId={projectId}
+      projects={[]}
+      projectId=""
       domainId=""
+      headerContext={<div className="function-scope-label" aria-label="Scope"><Icon name="function" size={14} /><span>Shared across all projects</span></div>}
       connectionStatus={connectionStatus}
       provider={provider}
       onSelectView={onSelectView}
-      onSelectProject={(id) => { if (id) onNavigate(`${CUSTOM_FUNCTIONS_PATH}?${new URLSearchParams({ project: id }).toString()}`); }}
-      onSelectDomain={(id) => { if (id) onNavigate(`/playground/${encode(projectId)}/${encode(id)}`); }}
+      onSelectProject={() => undefined}
+      onSelectDomain={() => undefined}
       onOpenConnection={onOpenConnection}
       onNavigateHome={() => onNavigate("/")}
     >
-      {() => <FunctionDefinitionWorkspace projectId={projectId} onNavigationGuardChange={onNavigationGuardChange} />}
+      {() => <FunctionDefinitionWorkspace onNavigationGuardChange={onNavigationGuardChange} />}
     </MainLayout>
   );
 }

@@ -30,9 +30,9 @@ export const apiUrls = {
     domains: (projectId: string) => `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/domains`,
     domainById: (projectId: string, domainId: string) =>
       `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/domains/${encodeURIComponent(domainId)}`,
-    functions: (projectId: string) => `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/functions`,
-    functionByName: (projectId: string, functionName: string) =>
-      `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/functions/${encodeURIComponent(functionName)}`,
+    sqlFunctions: `${backendApiUrl}/metadata/sqlfunctions`,
+    sqlFunctionByName: (functionName: string) =>
+      `${backendApiUrl}/metadata/sqlfunctions/${encodeURIComponent(functionName)}`,
   },
   dynamicQuery: {
     execute: `${backendApiUrl}/dynamic-query/query`,

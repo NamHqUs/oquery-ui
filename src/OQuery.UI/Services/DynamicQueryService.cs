@@ -33,7 +33,7 @@ public sealed class DynamicQueryService(
         using var context = new OQueryEngine(
             connection,
             metadataProvider,
-            CreateFunctionProvider(dialect, projectId),
+            CreateFunctionProvider(dialect),
             dialect);
         var preparedQuery = EnsureDefaultProjection(PrepareQuery(query, metadataProvider), metadataProvider);
         return context.Query(preparedQuery).ToSql().CommandText;
@@ -56,7 +56,7 @@ public sealed class DynamicQueryService(
         using var context = new OQueryEngine(
             connection,
             metadataProvider,
-            CreateFunctionProvider(dialect, projectId),
+            CreateFunctionProvider(dialect),
             dialect);
         var preparedQuery = EnsureDefaultProjection(PrepareQuery(query, metadataProvider), metadataProvider);
         var result = await context.Query(preparedQuery)
@@ -92,10 +92,10 @@ public sealed class DynamicQueryService(
     public string GetContextSqlQueryString(string text, string contextName, string projectId, string domainId)
         => GetSqlQueryString(QueryDefinitionOQueryParser.Parse(text, contextName), projectId, domainId);
 
-    private IFunctionProvider CreateFunctionProvider(ISqlDialect dialect, string projectId)
+    private IFunctionProvider CreateFunctionProvider(ISqlDialect dialect)
         => new FunctionProvider(
             dialect,
-            functionDefinitionService.GetAll(projectId).Select(definition => definition.ToFunctionDefinition()));
+            functionDefinitionService.GetAll().Select(definition => definition.ToFunctionDefinition()));
 
     private static QueryDefinition EnsureDefaultProjection(
         QueryDefinition query,

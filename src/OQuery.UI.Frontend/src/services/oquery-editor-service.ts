@@ -12,7 +12,7 @@ export async function load(
 ): Promise<void> {
   const tasks: Promise<unknown>[] = [
     getDomain(projectId, domainId),
-    store.dispatch(fetchFunctionDefinitions(projectId)),
+    store.dispatch(fetchFunctionDefinitions()),
   ];
   if (options.includeQueryRequests) tasks.push(store.dispatch(fetchQueryRequests({ projectId, domainId })));
   await Promise.all(tasks);

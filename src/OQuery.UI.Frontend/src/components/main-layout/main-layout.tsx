@@ -32,9 +32,11 @@ type HeaderProps = {
   onSelectDomain: (domainId: string) => void;
   onOpenConnection: () => void;
   onNavigateHome: () => void;
+  // Replaces the default Project/Domain selectors when a page is not project-scoped.
+  headerContext?: ReactNode;
 };
 
-function Header({ projects, projectId, domains, domainId, connectionStatus, provider, onSelectProject, onSelectDomain, onOpenConnection, onNavigateHome }: HeaderProps) {
+function Header({ projects, projectId, domains, domainId, connectionStatus, provider, onSelectProject, onSelectDomain, onOpenConnection, onNavigateHome, headerContext }: HeaderProps) {
   const connectionState = connectionStatus === "loading" ? "connecting"
     : connectionStatus === "failed" ? "failed"
       : connectionStatus === "succeeded" ? "connected" : "";
@@ -43,7 +45,7 @@ function Header({ projects, projectId, domains, domainId, connectionStatus, prov
       : connectionStatus === "succeeded" ? (provider || "Connecting") : "Not connected";
   return <header className="root-header">
     <button type="button" className="main-layout-logo" onClick={onNavigateHome} aria-label="Go to home"><img src="/brand-concepts/23-oquery-orbit-core.svg" alt="" /><small>DATA QUERY ENGINE</small></button>
-    <div className="main-layout-context">
+    {headerContext ?? <div className="main-layout-context">
       <MainLayoutSelect
         label="Current project"
         prefix="Project"
@@ -63,7 +65,7 @@ function Header({ projects, projectId, domains, domainId, connectionStatus, prov
         options={domains.map((domain) => ({ value: domain.id, label: domain.name }))}
         onChange={onSelectDomain}
       />
-    </div>
+    </div>}
     <div className="main-layout-actions">
       <button type="button" className={`database-status${connectionState ? ` ${connectionState}` : ""}`} onClick={onOpenConnection} aria-live="polite">
         <span className="database-status-dot" />
@@ -92,13 +94,13 @@ type MainLayoutProps = {
   onSelectDomain: (domainId: string) => void;
   onOpenConnection: () => void;
   onNavigateHome: () => void;
+  headerContext?: ReactNode;
   children: (context: { domains: WorkspaceDomain[]; domainId: string }) => ReactNode;
 };
 
-export default function MainLayout({ view, projects, projectId, domainId, connectionStatus, provider, onSelectView, onSelectProject, onSelectDomain, onOpenConnection, onNavigateHome, children }: MainLayoutProps) {
+export default function MainLayout({ view, projects, projectId, domainId, connectionStatus, provider, onSelectView, onSelectProject, onSelectDomain, onOpenConnection, onNavigateHome, headerContext, children }: MainLayoutProps) {
   // Remounts (e.g. moving from another page) would otherwise render an empty Active Domain list until the fetch returns.
   const [domains, setDomains] = useState<WorkspaceDomain[]>(() => projectDomainsCache.get(projectId) ?? []);
-  const [domainsLoaded, setDomainsLoaded] = useState(() => projectDomainsCache.has(projectId));
   const [domainsVersion, setDomainsVersion] = useState(0);
   const sidebar = useSidebarCollapse();
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -117,23 +119,19 @@ export default function MainLayout({ view, projects, projectId, domainId, connec
     let active = true;
     if (!projectId) {
       setDomains([]);
-      setDomainsLoaded(true);
       return;
     }
     setDomains(projectDomainsCache.get(projectId) ?? []);
-    setDomainsLoaded(projectDomainsCache.has(projectId));
     getProject(projectId)
       .then((details) => {
         if (!active) return;
         const next = details.domains.map((domain) => ({ id: domain.id, name: domain.name }));
         projectDomainsCache.set(projectId, next);
         setDomains(next);
-        setDomainsLoaded(true);
       })
       .catch(() => {
         if (!active) return;
         setDomains([]);
-        setDomainsLoaded(true);
       });
     return () => {
       active = false;
@@ -168,5 +166,5 @@ export default function MainLayout({ view, projects, projectId, domainId, connec
       window.removeEventListener("resize", update);
     };
   }, []);
-  return <div className="root-workspace"><Header projects={projects} projectId={projectId} domains={domains} domainId={selectedDomainId} connectionStatus={connectionStatus} provider={provider} onSelectProject={onSelectProject} onSelectDomain={onSelectDomain} onOpenConnection={onOpenConnection} onNavigateHome={onNavigateHome} /><div ref={bodyRef} className={`root-body${view === "playground" ? " playground-body" : ""}`}><MainLayoutSidebar view={view} hasDomain={!domainsLoaded || domains.length > 0} collapsed={sidebar.collapsed} onToggle={sidebar.toggle} onSelect={(next) => onSelectView(next, selectedDomainId)} /><main className={view === "playground" ? "root-main-playground" : undefined}>{children({ domains, domainId: selectedDomainId })}</main></div><footer className="root-footer"><Icon name="schema" size={13} /> oQuery engine <span>Phase one</span><span>Data binding planned for phase two</span></footer></div>;
+  return <div className="root-workspace"><Header projects={projects} projectId={projectId} domains={domains} domainId={selectedDomainId} connectionStatus={connectionStatus} provider={provider} onSelectProject={onSelectProject} onSelectDomain={onSelectDomain} onOpenConnection={onOpenConnection} onNavigateHome={onNavigateHome} headerContext={headerContext} /><div ref={bodyRef} className={`root-body${view === "playground" ? " playground-body" : ""}`}><MainLayoutSidebar view={view} collapsed={sidebar.collapsed} onToggle={sidebar.toggle} onSelect={(next) => onSelectView(next, selectedDomainId)} /><main className={view === "playground" || view === "functions" ? "root-main-playground" : undefined}>{children({ domains, domainId: selectedDomainId })}</main></div><footer className="root-footer"><Icon name="schema" size={13} /> oQuery engine <span>Phase one</span><span>Data binding planned for phase two</span></footer></div>;
 }

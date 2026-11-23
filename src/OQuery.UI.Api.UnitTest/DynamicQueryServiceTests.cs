@@ -114,9 +114,9 @@ internal sealed class DynamicQueryServiceTests
 
     private sealed class FakeFunctionDefinitionService : IFunctionDefinitionService
     {
-        public IReadOnlyList<FunctionDefinitionDto> GetAll(string projectId) => [];
-        public FunctionDefinitionDto Create(string projectId, FunctionDefinitionDto dto) => throw new NotSupportedException();
-        public FunctionDefinitionDto Update(string projectId, string functionName, FunctionDefinitionDto dto) => throw new NotSupportedException();
-        public void Delete(string projectId, string functionName) => throw new NotSupportedException();
+        public IReadOnlyList<FunctionDefinitionDto> GetAll() => [];
+        public FunctionDefinitionDto Create(FunctionDefinitionDto dto) => throw new NotSupportedException();
+        public FunctionDefinitionDto Update(string functionName, FunctionDefinitionDto dto) => throw new NotSupportedException();
+        public void Delete(string functionName) => throw new NotSupportedException();
     }
 }

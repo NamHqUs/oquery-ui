@@ -4,7 +4,7 @@ import { FunctionDefinition } from "../types";
 import "./function-list.css";
 
 type FunctionGroup = {
-  id: "custom" | "builtin";
+  id: "builtin"| "custom";
   title: string;
   count: number;
   content: ReactNode[];
@@ -25,7 +25,7 @@ export default function FunctionList({
   onSelect,
 }: FunctionListProps) {
   const [filter, setFilter] = useState("");
-  const [activeTab, setActiveTab] = useState<FunctionGroup["id"]>("custom");
+  const [activeTab, setActiveTab] = useState<FunctionGroup["id"]>("builtin");
   const visibleDefinitions = definitions.filter((definition) =>
     definition.name.toLowerCase().includes(filter.toLowerCase()),
   );
@@ -55,28 +55,24 @@ export default function FunctionList({
   );
   const groups: FunctionGroup[] = [
     {
-      id: "custom",
-      title: "Custom",
-      count: customDefinitions.length,
-      content: customDefinitions.map(renderDefinition),
-      emptyMessage: status !== "loading" && !customDefinitions.length ? "No custom functions." : undefined,
-    },
-    {
       id: "builtin",
       title: "Builtin",
       count: builtInDefinitions.length,
       content: builtInDefinitions.map(renderDefinition),
       emptyMessage: status !== "loading" && !builtInDefinitions.length ? "No built-in functions." : undefined,
     },
+    {
+      id: "custom",
+      title: "Custom",
+      count: customDefinitions.length,
+      content: customDefinitions.map(renderDefinition),
+      emptyMessage: status !== "loading" && !customDefinitions.length ? "No custom functions." : undefined,
+    },
   ];
   const activeGroup = groups.find((group) => group.id === activeTab) ?? groups[0];
 
   return (
     <aside className="function-list split-panel">
-      <header className="function-list-header">
-        <h3>FUNCTIONS</h3>
-        <small>{definitions.length}</small>
-      </header>
       <input
         className="function-list-search"
         type="search"

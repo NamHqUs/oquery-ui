@@ -502,7 +502,7 @@ function WorkspaceGate({
         <div>
           <span className="section-kicker">CHOOSE A PROJECT</span>
           <h2>Open a project workspace</h2>
-          <p>Playground, domains, and custom functions all run inside one project.</p>
+          <p>Playground and domains run inside one project. Custom functions are shared across all projects.</p>
         </div>
       </div>
       <div className="workspace-gate-grid">
@@ -814,14 +814,9 @@ function App() {
   }
 
   if (page === "functions") {
-    if (!workspaceProjects.projects && !workspaceProjects.failed) return <main className="app-shell"><p className="metadata-message">Loading projects…</p></main>;
-    // Custom functions is project-scoped; an unknown or missing ?project= shows the project selector with no project chosen.
-    const functionsProjectId = workspaceProjects.projects?.some((item) => item.id === workspaceProjectId) ? workspaceProjectId : "";
     return (
       <>
         <CustomFunctionsPage
-          projectId={functionsProjectId}
-          projects={workspaceProjects.projects ?? []}
           connectionStatus={database.connectionStatus}
           provider={database.connectedProvider}
           onNavigate={navigateWorkspace}

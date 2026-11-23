@@ -88,13 +88,12 @@ export function useSidebarCollapse() {
 
 type MainLayoutSidebarProps = {
   view: WorkspaceView;
-  hasDomain: boolean;
   collapsed: boolean;
   onToggle: () => void;
   onSelect: (view: WorkspaceView) => void;
 };
 
-export default function MainLayoutSidebar({ view, hasDomain, collapsed, onToggle, onSelect }: MainLayoutSidebarProps) {
+export default function MainLayoutSidebar({ view, collapsed, onToggle, onSelect }: MainLayoutSidebarProps) {
   return <aside className={`root-sidebar${collapsed ? " collapsed" : ""}`} aria-label="Main menu">
     <button type="button" className="root-sidebar-toggle" aria-label={collapsed ? "Expand main menu" : "Collapse main menu"} aria-expanded={!collapsed} onClick={onToggle}>
       <Icon name={collapsed ? "chevron-right" : "chevron-left"} size={14} />
@@ -102,9 +101,7 @@ export default function MainLayoutSidebar({ view, hasDomain, collapsed, onToggle
     <nav aria-label="Workspace">
       {SIDEBAR_GROUPS.map((group) => <div key={group.id} className="root-sidebar-group" role="group" aria-label={group.label}>
         <span className="root-sidebar-label" aria-hidden="true">{group.label}</span>
-        {group.id === "domain" && !hasDomain
-          ? <span className="root-sidebar-hint">Create a domain to use these tools.</span>
-          : group.items.map((item) => <button
+        {group.items.map((item) => <button
             key={item.view}
             type="button"
             className={view === item.view ? "active" : ""}

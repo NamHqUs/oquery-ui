@@ -49,7 +49,7 @@ export default function PlaygroundWorkspace({ projectId, domainId, queryId, proj
   });
   const selectView = (next: WorkspaceView, selectedDomainId: string) => {
     if (next === "diagram") onNavigate(domainDiagramPath(projectId, selectedDomainId));
-    else if (next === "functions") onNavigate(`${CUSTOM_FUNCTIONS_PATH}?${new URLSearchParams({ project: projectId }).toString()}`);
+    else if (next === "functions") onNavigate(CUSTOM_FUNCTIONS_PATH);
     else setView(next);
   };
   return <MainLayout

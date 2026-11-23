@@ -7,7 +7,6 @@ import {
   EditableFunctionArgument,
   EditableFunctionDefinition,
   EditableFunctionTemplate,
-  createForeachExample,
   emptyFunctionArgument,
   emptyFunctionTemplate,
   functionArgumentDataTypes,
@@ -149,18 +148,6 @@ export default function FunctionDetail({
           {message && <p className="metadata-alert" role="alert">{message}</p>}
           {usage && <FunctionExampleCard usage={usage} />}
           <fieldset className="function-form" disabled={!canEdit}>
-        {!selectedName && (
-          <div className="function-example-bar">
-            <span>Start from a sample definition, then adjust it before saving.</span>
-            <button
-              className="button secondary compact"
-              type="button"
-              onClick={() => updateDraft(() => createForeachExample(providers))}
-            >
-              <Icon name="function" size={13} /> Load ForEach example
-            </button>
-          </div>
-        )}
         <section className="function-section" aria-labelledby="function-general-title">
           <h4 id="function-general-title" className="function-section-title">General</h4>
           <div className="function-general-grid">
