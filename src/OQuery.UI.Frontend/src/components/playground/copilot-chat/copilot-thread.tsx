@@ -20,8 +20,8 @@ export default function CopilotThread() {
         </ThreadPrimitive.Messages>
       </ThreadPrimitive.Viewport>
       <ComposerPrimitive.Root className="playground-chat-composer">
-        <ComposerPrimitive.Input placeholder="e.g. Show top customers by revenue" rows={4} />
-        <ComposerPrimitive.Send className="playground-chat-send" aria-label="Send" title="Send"><Icon name="send" size={14} /></ComposerPrimitive.Send>
+        <ComposerPrimitive.Input placeholder="Ask a question about your data..." rows={1} />
+        <ComposerPrimitive.Send className="playground-chat-send" aria-label="Send" title="Send"><Icon name="send" size={11} /></ComposerPrimitive.Send>
       </ComposerPrimitive.Root>
     </ThreadPrimitive.Root>
   </AssistantRuntimeProvider>;

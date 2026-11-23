@@ -1368,47 +1368,65 @@ button.playground-saved-item {
 
 .playground-chat-composer {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-  padding-bottom: 14px;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 4px 4px 4px 10px;
+  margin-bottom: 6px;
+  border: 1px solid #242b3d;
+  border-radius: 6px;
+  background: #0d1119;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+
+.playground-chat-composer:focus-within {
+  border-color: #5b4bd6;
 }
 
 .playground-copilot .playground-chat-composer textarea {
+  flex: 1 1 auto;
   width: 100%;
-  min-height: 96px;
-  max-height: 220px;
-  padding: 8px 10px;
-  border: 1px solid #1d5d9e;
-  border-radius: 6px;
+  min-width: 0;
+  min-height: 28px;
+  max-height: 160px;
+  padding: 4px 0;
+  border: 0;
   outline: 0;
-  color: #dff0ff;
-  background: #0e1117;
+  color: #e9edf4;
+  background: transparent;
   font: inherit;
   font-size: 11px;
-  line-height: 1.5;
-  resize: vertical;
   box-sizing: border-box;
+}
+
+.playground-copilot .playground-chat-composer textarea::placeholder {
+  color: #6b7389;
 }
 
 .playground-chat-send {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  align-self: flex-end;
-  padding: 0 2px 6px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
   border: 0;
-  background: none;
-  color: #5fa8ff;
+  border-radius: 5px;
+  background: linear-gradient(135deg, #8b6cff 0%, #6a4bf0 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(106, 75, 240, 0.35);
   cursor: pointer;
+  transition: filter 0.15s ease, opacity 0.15s ease;
 }
 
 .playground-chat-send:hover {
-  color: #dff0ff;
+  filter: brightness(1.12);
 }
 
 .playground-chat-send:disabled {
-  opacity: 0.35;
+  opacity: 0.4;
+  box-shadow: none;
   cursor: default;
 }
 

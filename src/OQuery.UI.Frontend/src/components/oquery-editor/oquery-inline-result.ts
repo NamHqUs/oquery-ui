@@ -126,7 +126,7 @@ export function buildInlineResultView(
   clear.title = "Clear result";
   clear.setAttribute("aria-label", `Clear ${contextName} result`);
   clear.addEventListener("click", onClear);
-  head.append(title, buildModeToggle(contextName, mode, onModeChange));
+  head.append(buildModeToggle(contextName, mode, onModeChange), title);
   if (mode === "sql" && entry.sql) head.append(buildCopyButton(contextName, entry.sql));
   head.append(clear);
 
