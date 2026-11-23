@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using NUnit.Framework;
 using OQuery;
 using OQuery.UI.Abstracts.Dto;

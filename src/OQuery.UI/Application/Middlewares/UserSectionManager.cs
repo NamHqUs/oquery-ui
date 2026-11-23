@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using OQuery.UI.Abstracts.Application;
 
 namespace OQuery.UI.Application.Middlewares;

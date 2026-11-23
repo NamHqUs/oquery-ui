@@ -1,7 +1,6 @@
 using OQuery.UI.Abstracts.Repositories;
 using OQuery.UI.Abstracts.Services;
 using OQuery.UI.Storage.Files;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace OQuery.UI.Services;
 

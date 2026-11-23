@@ -1,16 +1,7 @@
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Http.Json;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using OQuery;
 using OQuery.QueryDefinitions.Parsers;
 using OQuery.UI.Abstracts.Application;
-using OQuery.UI.Abstracts.Repositories;
 using OQuery.UI.Services;
-using OQuery.UI.Application;
 using OQuery.UI.Application.Analytics;
 using OQuery.UI.Application.Middlewares;
 using OQuery.UI.Storage.Files;

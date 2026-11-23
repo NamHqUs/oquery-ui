@@ -2,8 +2,6 @@ using IBM.Data.Db2;
 using System.Data;
 using OQuery.Database.Scripts;
 
-using OQuery.UnitTest.Setup;
-
 namespace OQuery.UnitTest.Setup.DbInstances;
 
 public sealed class Db2DbInstance(string connectionString, string[] scriptFiles, string dbVersion)

@@ -2,8 +2,6 @@ using System.Data;
 using FirebirdSql.Data.FirebirdClient;
 using OQuery.Database.Scripts;
 
-using OQuery.UnitTest.Setup;
-
 namespace OQuery.UnitTest.Setup.DbInstances;
 
 public sealed class FirebirdDbInstance(string connectionString, string[] scriptFiles, string dbVersion)

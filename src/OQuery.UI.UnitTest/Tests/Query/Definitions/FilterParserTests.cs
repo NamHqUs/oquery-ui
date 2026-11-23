@@ -1,5 +1,4 @@
 using OQuery.QueryDefinitions.Parsers;
-using OQuery.UnitTest;
 
 namespace OQuery.UnitTest.Tests.Query.Definitions;
 

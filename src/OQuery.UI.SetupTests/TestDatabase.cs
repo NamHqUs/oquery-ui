@@ -1,13 +1,7 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
-using Npgsql;
-using FirebirdSql.Data.FirebirdClient;
-using Oracle.ManagedDataAccess.Client;
-using MySqlConnector;
 using Sap.Data.Hana;
-using IBM.Data.Db2;
 using System.Data;
-using System.Security.Cryptography;
 using System.Text;
 
 using OQuery;

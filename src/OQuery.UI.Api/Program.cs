@@ -1,4 +1,3 @@
-using Namh.Configuration.Template;
 using Microsoft.Extensions.Options;
 using OQuery.UI.Abstracts.Repositories;
 using OQuery.UI.Application;

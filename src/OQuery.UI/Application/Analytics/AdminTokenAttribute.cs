@@ -1,8 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.Extensions.Configuration;
 
 namespace OQuery.UI.Application.Analytics;
 

@@ -1,5 +1,3 @@
-using OQuery;
-
 namespace OQuery.UI.Abstracts.Services;
 
 public interface IDynamicQueryService

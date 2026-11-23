@@ -1,6 +1,5 @@
 using OQuery.UI.Abstracts.Repositories;
 using OQuery.UI.Hosting;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace OQuery.UI.Application.Analytics;

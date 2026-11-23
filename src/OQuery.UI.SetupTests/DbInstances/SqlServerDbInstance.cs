@@ -2,8 +2,6 @@ using Microsoft.Data.SqlClient;
 using System.Data;
 using OQuery.Database.Scripts;
 
-using OQuery.UnitTest.Setup;
-
 namespace OQuery.UnitTest.Setup.DbInstances;
 
 public class SqlServerDbInstance(string connectionString, string[] scriptFiles, string dbVersion)

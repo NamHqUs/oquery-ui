@@ -1,5 +1,3 @@
-using OQuery;
-
 namespace OQuery.UI.Abstracts.Dto;
 
 public sealed record DomainNameDto(string Id, string Name);

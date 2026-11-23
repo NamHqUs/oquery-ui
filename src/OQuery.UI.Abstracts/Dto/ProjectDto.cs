@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace OQuery.UI.Abstracts.Dto;
+﻿namespace OQuery.UI.Abstracts.Dto;
 
 /// <summary>
 /// A project aggregate: its domains, each mapped to database tables.

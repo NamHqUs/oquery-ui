@@ -1,7 +1,5 @@
 using OQuery.UI.Abstracts.Services;
 using OQuery.UI.Abstracts.Dto;
-using OQuery.Database;
-using Microsoft.AspNetCore.Mvc;
 using System.Data.Common;
 
 namespace OQuery.UI.Application.Controllers;

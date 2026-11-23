@@ -1,6 +1,5 @@
 using OQuery.UI.Abstracts.Services;
 using OQuery.Database;
-using Microsoft.Extensions.Logging;
 using OQuery;
 using OQuery.QueryDefinitions.Parsers;
 

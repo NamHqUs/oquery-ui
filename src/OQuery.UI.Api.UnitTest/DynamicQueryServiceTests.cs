@@ -5,7 +5,6 @@ using OQuery.UI.Services;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
-using OQuery;
 using OQuery.QueryDefinitions.Parsers;
 
 namespace OQuery.UI.Api.UnitTest;

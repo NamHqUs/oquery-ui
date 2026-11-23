@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-
 namespace OQuery.UI.Application.Controllers;
 
 [ApiController]

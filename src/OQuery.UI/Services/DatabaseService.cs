@@ -1,9 +1,6 @@
-using OQuery;
 using OQuery.Database;
-using OQuery.UI.Abstracts.Dto;
 using OQuery.UI.Abstracts.Services;
 using OQuery.UI.Hosting;
-using OQuery.UI.Services;
 using Microsoft.Extensions.Options;
 using System.Data;
 

@@ -1,6 +1,4 @@
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
-using OQuery;
 using System.Data.Common;
 using System.Text.Json;
 

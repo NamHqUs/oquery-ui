@@ -1,6 +1,4 @@
 using OQuery.UI.Abstracts.Services;
-using Microsoft.AspNetCore.Mvc;
-using OQuery;
 using System.Text;
 
 namespace OQuery.UI.Application.Controllers;

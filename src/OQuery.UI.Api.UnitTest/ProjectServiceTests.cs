@@ -3,7 +3,6 @@ using Microsoft.Extensions.Options;
 using OQuery;
 using OQuery.UI.Abstracts.Application;
 using OQuery.UI.Abstracts.Dto;
-using OQuery.UI.Abstracts.Repositories;
 using OQuery.UI.Abstracts.Services;
 using OQuery.UI.Hosting;
 using OQuery.UI.Services;

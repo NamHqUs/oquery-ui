@@ -5,8 +5,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using OQuery.Database.Scripts;
 
-using OQuery.UnitTest.Setup;
-
 namespace OQuery.UnitTest.Setup.DbInstances;
 
 public class SqliteDbInstance : DbInstance, IDisposable

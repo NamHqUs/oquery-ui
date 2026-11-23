@@ -1,7 +1,5 @@
 using Microsoft.Data.Sqlite;
 using OQuery.QueryDefinitions.Parsers;
-using OQuery.UnitTest;
-using System.Text.Json;
 
 namespace OQuery.UnitTest.Tests.Query.Definitions;
 

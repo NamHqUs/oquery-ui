@@ -1,5 +1,4 @@
 using Microsoft.Data.Sqlite;
-using OQuery.UnitTest;
 
 namespace OQuery.UnitTest.Tests.Query.Execution;
 
