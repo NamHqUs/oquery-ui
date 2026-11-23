@@ -21,6 +21,7 @@ import { getProject, listProjects, type ProjectSummary } from "./services/projec
 import { store, type RootState } from "./store/store";
 import "./styles.css";
 import PlaygroundWorkspace from "./components/playground/playground-workspace";
+import { rememberPlaygroundSelection, rememberedPlaygroundPath } from "./components/playground/playground-memory";
 import { domainDiagramPath, domainDiagramRouteOf, isDomainDiagramPath } from "./components/domains/domain-routes";
 import DomainPage from "./components/domains/domain-page";
 
@@ -42,7 +43,6 @@ const PLAYGROUND_PATH = "/playground";
 const LEGACY_BUILDER_PATH = "/query-builder";
 const WORKSPACE_PATH = "/workspace";
 const PROJECT_CREATE_PATH = "/projects/create";
-const LAST_BUILDER_PROJECT_STORAGE_KEY = "oquery.builder.last-project";
 // Not linked from the navigation. Admins open it by URL; the page asks for the admin token.
 const ADMIN_PATH = "/admin";
 const PRIVACY_PATH = "/privacy";
@@ -537,7 +537,7 @@ function WorkspaceNavigation({
     const query = params.toString();
     return query ? `${path}?${query}` : path;
   };
-  const builderLink = projectId ? builderPath(projectId, domainId ?? "") : WORKSPACE_PATH;
+  const builderLink = projectId ? builderPath(projectId, domainId ?? "") : (rememberedPlaygroundPath() ?? WORKSPACE_PATH);
   const items = [
     {
       group: "BUILD",
@@ -738,8 +738,8 @@ function App() {
   );
 
   useEffect(() => {
-    const projectId = builderProjectIdOf(location.pathname);
-    if (projectId) window.sessionStorage.setItem(LAST_BUILDER_PROJECT_STORAGE_KEY, projectId);
+    const route = playgroundRouteOf(location.pathname);
+    if (route?.projectId) rememberPlaygroundSelection(route.projectId, route.domainId);
   }, [location.pathname]);
 
   useEffect(() => {
@@ -754,9 +754,8 @@ function App() {
   const navigateToPage = (nextPage: Page, fromHome = false, metadataPath?: string) => {
     if (nextPage === page && !(nextPage === "builder" && fromHome) && !(nextPage === "metadata" && metadataPath)) return;
     const rememberedMetadataRoute = window.sessionStorage.getItem(METADATA_LAST_ROUTE_STORAGE_KEY);
-    const lastBuilderProject = window.sessionStorage.getItem(LAST_BUILDER_PROJECT_STORAGE_KEY) ?? "";
     const destination = nextPage === "builder"
-      ? (fromHome ? WORKSPACE_PATH : (lastBuilderProject ? builderPath(lastBuilderProject) : WORKSPACE_PATH))
+      ? (fromHome ? WORKSPACE_PATH : (rememberedPlaygroundPath() ?? WORKSPACE_PATH))
       : nextPage === "metadata"
         ? metadataPath ?? (rememberedMetadataRoute?.startsWith(`${PAGE_PATHS.metadata}/`)
           ? rememberedMetadataRoute
