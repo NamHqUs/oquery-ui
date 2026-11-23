@@ -12,6 +12,8 @@ import DiagramView, { diagramGroupTone } from "./entity-diagram/diagram-view";
 import { changedEntityNames, dbSchemaChangedEntityNames, toDiagramRelationships, toDiagramTables } from "./entity-diagram/diagram-model";
 import PanelSplitter from "../shared/panel-splitter/panel-splitter";
 import ToastNotice from "../shared/toast-notice/toast-notice";
+import type { HeaderAction } from "../shared/page-header/page-header-actions";
+import PageHeaderActions from "../shared/page-header/page-header-actions";
 import { useMessageBox } from "../shared/message-box/message-box";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
 import "./entity-diagram/entity-diagram.css";
@@ -91,10 +93,7 @@ export default function DomainPage({ route, projects, connectionStatus, provider
       onNavigateHome={() => onNavigate("/")}
     >
       {({ domains, domainId }) => (
-        <>
-          <Heading icon="schema" title="Domain Diagram" text="Explore your data model, understand relationships, and get AI-powered insights" />
-          <DomainDiagramContent projectId={projectId} domainId={domainId} domainOptions={domains} onNavigate={onNavigate} />
-        </>
+        <DomainDiagramContent projectId={projectId} domainId={domainId} domainOptions={domains} onNavigate={onNavigate} />
       )}
     </MainLayout>
   );
@@ -308,25 +307,13 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
     onNavigate(domainDiagramPath(projectId, nextDomain.id));
   };
 
-  const toolbarActions = (
-    <div className="editor-actions domain-diagram-actions" role="toolbar" aria-label="Metadata domain actions">
-      <button className="domain-action-button danger" type="button" title={nextDomain ? "Delete this domain" : "A project needs at least one other domain to delete this one"} aria-label="Delete domain" onClick={() => void deleteCurrentDomain()} disabled={!nextDomain || loading || saving}>
-        <Icon name="trash" size={15} /> Delete
-      </button>
-      <button className="domain-action-button primary" type="button" title="Save domain" aria-label="Save domain" onClick={() => void save()} disabled={!dirty || saving}>
-        <Icon name="save" size={15} /> Save
-      </button>
-      <button className="domain-action-button" type="button" title="Reload domain from the server" aria-label="Reload domain" onClick={() => void reload()} disabled={loading || saving}>
-        <Icon name="reset" size={15} /> Reload
-      </button>
-      <button className="domain-action-button" type="button" title="Edit this domain in the wizard" aria-label="Edit domain" onClick={() => onNavigate(domainEditPath(projectId, domainId))}>
-        <Icon name="edit" size={15} /> Edit
-      </button>
-      <button className="domain-action-button create" type="button" title="Create a domain in the wizard" aria-label="Create domain" onClick={() => void openCreate()} disabled={saving}>
-        <Icon name="file-plus" size={15} /> Create
-      </button>
-    </div>
-  );
+  const headerActions: HeaderAction[] = [
+    { key: "delete", label: "Delete", icon: "trash", onSelect: () => void deleteCurrentDomain(), disabled: !nextDomain || loading || saving, title: nextDomain ? "Delete this domain" : "A project needs at least one other domain to delete this one", className: "domain-action-button danger", danger: true },
+    { key: "save", label: "Save", icon: "save", onSelect: () => void save(), disabled: !dirty || saving, title: "Save domain", className: "domain-action-button primary" },
+    { key: "reload", label: "Reload", icon: "reset", onSelect: () => void reload(), disabled: loading || saving, title: "Reload domain from the server", className: "domain-action-button" },
+    { key: "edit", label: "Edit", icon: "edit", onSelect: () => onNavigate(domainEditPath(projectId, domainId)), title: "Edit this domain in the wizard", className: "domain-action-button" },
+    { key: "create", label: "Create", icon: "file-plus", onSelect: () => void openCreate(), disabled: saving, title: "Create a domain in the wizard", className: "domain-action-button create" },
+  ];
 
   const displayedEntities = working.entities.map((entity) => (draft && entity.name === selectedName ? draft : entity));
   const changedNames = useMemo(() => changedEntityNames(baseline, working), [baseline, working]);
@@ -340,10 +327,14 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
     tables: toDiagramTables(option.id === domainId || (!domainId && option.id === "All") ? displayedEntities : [], idOf),
   }));
   const activeDomain = domainOptions.find((option) => option.id === domainId);
+  const entityActions: HeaderAction[] = [
+    { key: "remove", label: "Remove entity", icon: "trash", onSelect: removeEntity, disabled: !draft || loading || saving, title: "Remove the selected entity and its relations", className: "domain-action-button danger", danger: true },
+    { key: "new", label: "New entity", icon: "plus", onSelect: createEntity, disabled: loading || saving, title: "Add a new entity to this domain", className: "domain-action-button create" },
+  ];
 
   return (
     <>
-      <div className="domain-diagram-toolbar">{toolbarActions}</div>
+      <Heading icon="schema" title="Domain Diagram" text="Explore your data model, understand relationships, and get AI-powered insights" actionItems={headerActions} status={dirty ? <span className="page-header-status">Unsaved</span> : null} />
       <div className="metadata-diagram-mode-content split-workspace" style={panel.style}>
         <section className="metadata-diagram-editor split-panel" aria-label="Entity definition editor">
           <div className="table-details-heading metadata-editor-heading">
@@ -353,13 +344,8 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
                 <h3>{draft?.name || "Select an entity"}</h3>
               </div>
             </div>
-            <div className="editor-actions domain-entity-actions" role="toolbar" aria-label="Entity actions">
-              <button className="domain-action-button danger" type="button" title="Remove the selected entity and its relations" aria-label="Remove entity" onClick={removeEntity} disabled={!draft || loading || saving}>
-                <Icon name="trash" size={14} /> Remove entity
-              </button>
-              <button className="domain-action-button create" type="button" title="Add a new entity to this domain" aria-label="New entity" onClick={createEntity} disabled={loading || saving}>
-                <Icon name="plus" size={14} /> New entity
-              </button>
+            <div className="editor-actions domain-entity-actions">
+              <PageHeaderActions label="Entity actions" actions={entityActions} />
             </div>
           </div>
           <EntityDefinition

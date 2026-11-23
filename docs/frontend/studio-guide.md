@@ -25,13 +25,14 @@ toolbar is a layout host; it does not merge action groups, choose buttons, or
 contain page state. Button visibility, disabled state, dirty state, and action
 handlers belong to the page that renders the buttons.
 
-Pages must not reuse another page's toolbar action component or action state.
+Pages must not share another page's action state. They may reuse the shared page header
+(`Heading` with `actionItems`) for their own actions.
 The Projects page owns the **Create project** action and the project's
 sub-domain actions. The Diagram page owns its own **Reload domain** and
 sub-domain actions. Neither page shares action state with the other.
 
-On the Diagram page, the toolbar has **Save**, **Reload**, **Edit**, and **Create**.
-**Edit** opens `/domains/diagrams/edit/:projectId/main`, the domain wizard for the Main
+On the Diagram page, the section header has **Delete**, **Save**, **Reload**, **Edit**, and **Create**
+(the diagram has no separate toolbar). **Edit** opens `/domains/diagrams/edit/:projectId/main`, the domain wizard for the Main
 domain. The wizard and the diagram share one in-memory draft of the domain, so unsaved
 diagram edits are visible in the wizard and wizard changes are visible in the diagram.
 Step 1 connects to the database when no connection is active (the existing connection form

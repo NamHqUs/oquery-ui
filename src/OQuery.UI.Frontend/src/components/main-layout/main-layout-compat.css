@@ -561,17 +561,59 @@
   min-width: 0;
 }
 
-.playground-header {
-  position: relative;
-  z-index: 10;
-  container-type: inline-size;
+.page-header {
   min-width: 0;
 }
 
-.playground-header-inline {
+/* The menu panel is positioned inside the actions group, so the group rises above the AI assistant while the menu is open. */
+.page-header-actions:has(.page-header-menu-panel) {
+  z-index: 30;
+}
+
+/* Fills the space left by the title, so the fit row's width never depends on the buttons it holds. */
+.main-layout-heading-actions.is-fluid {
+  flex: 1 1 0;
+  min-width: 0;
+  /* Cancels 4px of the heading's 20px margin so the group's right edge matches the 16px-inset entity toolbar. */
+  margin-right: -4px;
+  justify-content: flex-end;
+}
+
+.page-header-actions {
+  position: relative;
   display: flex;
+  flex: 1 1 0;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+}
+
+.page-header-fit {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.page-header-fit > *,
+.page-header-measure > * {
+  flex: none;
+}
+
+.page-header-measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  gap: 8px;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 .playground-root {
@@ -710,19 +752,20 @@
   background: #151923;
 }
 
-.playground-status {
+.page-header-status {
   padding: 0 4px;
   color: #8993a5;
   font-size: 11px;
   white-space: nowrap;
 }
 
-.playground-menu {
+.page-header-menu {
   position: relative;
   display: inline-flex;
+  flex: none;
 }
 
-.playground-menu-panel {
+.page-header-menu-panel {
   position: absolute;
   top: calc(100% + 4px);
   right: 0;
@@ -738,7 +781,7 @@
   box-shadow: 0 8px 24px #00000066;
 }
 
-.playground-menu-item {
+.page-header-menu-item {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -752,37 +795,23 @@
   cursor: pointer;
 }
 
-.playground-menu-item:hover:not(:disabled) {
+.page-header-menu-item:hover:not(:disabled) {
   background: #1b202b;
 }
 
-.playground-menu-item:disabled {
+.page-header-menu-item:disabled {
   opacity: .45;
   cursor: not-allowed;
 }
 
-.playground-menu-item.danger {
+.page-header-menu-item.danger {
   color: #f0a6ae;
 }
 
-.playground-menu-divider {
+.page-header-menu-divider {
   height: 1px;
   margin: 4px 2px;
   background: #252b38;
-}
-
-.playground-menu-compact {
-  display: none;
-}
-
-@container (max-width: 760px) {
-  .playground-header-inline {
-    display: none;
-  }
-
-  .playground-menu-compact {
-    display: flex;
-  }
 }
 
 .playground-name-backdrop {

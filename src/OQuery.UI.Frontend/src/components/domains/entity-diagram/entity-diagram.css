@@ -1,6 +1,4 @@
 .entity-diagram { min-height: 640px; overflow: hidden; background: #10141c; border-radius: 5px; color: #b7bfce; }
-.domain-diagram-toolbar { display: flex; justify-content: flex-end; padding: 10px 16px; border-bottom: 1px solid #252b38; background: #11151d; }
-.domain-diagram-actions { display: flex; align-items: center; gap: 8px; }
 .domain-action-button { display: inline-flex; align-items: center; border: 1px solid #303847; border-radius: 3px; color: #c9ced9; background: #151923; }
 .domain-action-button:hover:not(:disabled) { border-color: #a78bfa; color: #eeeaff; }
 .domain-action-button.primary { border-color: #8064e8; color: #fff; background: linear-gradient(135deg,#6049a0,#443078); }
@@ -42,7 +40,7 @@
 .metadata-diagram-editor .metadata-editor-heading .metadata-editor-heading-title { display: flex; align-items: center; min-width: 0; gap: 8px; }
 .metadata-diagram-editor .metadata-editor-heading .table-details-title h3 { margin: 0; line-height: 1; color: #f0edfb; font-size: 15px; letter-spacing: -.2px; }
 .metadata-diagram-editor .metadata-editor-heading .editor-actions { gap: 6px; }
-.domain-entity-actions { flex: 0 0 auto; margin-left: auto; }
+.domain-entity-actions { display: flex; flex: 1 1 0; min-width: 0; }
 .domain-entity-actions .domain-action-button { gap: 6px; min-height: 28px; padding: 0 10px; font-size: 11px; white-space: nowrap; }
 .domain-action-button.danger { border-color: #7a3d4a; color: #f0a6ae; }
 .domain-action-button.danger:hover:not(:disabled) { border-color: #e0707f; color: #ffd6db; }

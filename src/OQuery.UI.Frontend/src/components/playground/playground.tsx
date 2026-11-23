@@ -25,6 +25,7 @@ import {
 } from "../domains/domain-model";
 import { builtinFilterOperators } from "../oquery-editor/filter-operators";
 import CopilotThread from "./copilot-chat/copilot-thread";
+import type { HeaderAction } from "../shared/page-header/page-header-actions";
 
 const ENTITY_ROW_HEIGHT = 28;
 const FIELD_ROW_HEIGHT = 24;
@@ -111,49 +112,19 @@ function rowAt(offsets: number[], y: number) {
   return low;
 }
 
-// Overflow menu for the less frequent header actions. Closes on outside click, item choice, or Escape.
-// Run and Save appear in this menu only when the header is too narrow for the inline buttons (see .playground-menu-compact).
-function PlaygroundOverflowMenu({ disabled, onRun, onSave, saving, onDelete, onNew, onReload, deleting }: { disabled: boolean; onRun: () => void; onSave: () => void; saving: boolean; onDelete?: () => void; onNew: () => void; onReload: () => void; deleting: boolean }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const closeOnOutside = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", closeOnOutside);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("mousedown", closeOnOutside);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [open]);
-  const choose = (action: () => void) => {
-    setOpen(false);
-    action();
-  };
-  return <div className="playground-menu" ref={rootRef}>
-    <button type="button" className="button secondary" aria-label="More playground actions" aria-haspopup="menu" aria-expanded={open} disabled={disabled} onClick={() => setOpen((current) => !current)}>
-      <span aria-hidden="true">⋯</span>
-    </button>
-    {open && <div className="playground-menu-panel" role="menu">
-      <button type="button" role="menuitem" className="playground-menu-item playground-menu-compact" onClick={() => choose(onRun)} disabled={disabled}><Icon name="play" size={14} />Run</button>
-      <button type="button" role="menuitem" className="playground-menu-item playground-menu-compact" onClick={() => choose(onSave)} disabled={disabled}><Icon name="save" size={14} />{saving ? "Saving..." : "Save"}</button>
-      <div className="playground-menu-divider playground-menu-compact" role="separator" />
-      <button type="button" role="menuitem" className="playground-menu-item" disabled title="Not available yet"><Icon name="code" size={14} />Format</button>
-      <button type="button" role="menuitem" className="playground-menu-item" onClick={() => choose(onReload)} disabled={disabled}><Icon name="refresh" size={14} />Reload</button>
-      <button type="button" role="menuitem" className="playground-menu-item" onClick={() => choose(onNew)} disabled={disabled}><Icon name="file-plus" size={14} />New</button>
-      {onDelete && <button type="button" role="menuitem" className="playground-menu-item danger" onClick={() => choose(onDelete)} disabled={disabled}><Icon name="trash" size={14} />{deleting ? "Deleting..." : "Delete"}</button>}
-    </div>}
-  </div>;
-}
-
+// Run and Save are listed first, then the other actions; the ⋯ menu takes whatever does not fit.
+// Format is a placeholder that stays in the menu until it is wired up.
 function PlaygroundHeading({ title, dirty, onRun, onDelete, onNew, onReload, onSave, saving, deleting }: { title: string; dirty: boolean; onRun: () => void; onDelete?: () => void; onNew: () => void; onReload: () => void; onSave: () => void; saving: boolean; deleting: boolean }) {
   const busy = saving || deleting;
-  return <Heading icon="query" title={title} text="Ask questions across your business data" actions={<>{dirty && <span className="playground-status">Unsaved</span>}<span className="playground-header-inline"><button type="button" className="button primary" onClick={onRun} disabled={busy}><Icon name="play" size={14} />Run</button><button type="button" className="button secondary" onClick={onSave} disabled={busy}><Icon name="save" size={14} />{saving ? "Saving..." : "Save"}</button></span><PlaygroundOverflowMenu disabled={busy} onRun={onRun} onSave={onSave} saving={saving} onDelete={onDelete} onNew={onNew} onReload={onReload} deleting={deleting} /></>} />;
+  const actions: HeaderAction[] = [
+    { key: "run", label: "Run", icon: "play", onSelect: onRun, disabled: busy, className: "button primary" },
+    { key: "save", label: saving ? "Saving..." : "Save", icon: "save", onSelect: onSave, disabled: busy, className: "button secondary" },
+    { key: "format", label: "Format", icon: "code", onSelect: () => undefined, disabled: true, title: "Not available yet", overflowOnly: true },
+    { key: "reload", label: "Reload", icon: "refresh", onSelect: onReload, disabled: busy, className: "button secondary" },
+    { key: "new", label: "New", icon: "file-plus", onSelect: onNew, disabled: busy, className: "button secondary" },
+  ];
+  if (onDelete) actions.push({ key: "delete", label: deleting ? "Deleting..." : "Delete", icon: "trash", onSelect: onDelete, disabled: busy, danger: true, className: "button danger" });
+  return <Heading icon="query" title={title} text="Ask questions across your business data" actionItems={actions} status={dirty ? <span className="page-header-status">Unsaved</span> : null} />;
 }
 
 // Shown when the current playground has unsaved changes and another playground (or New) is requested.
@@ -675,9 +646,7 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
   };
 
   return <div className="playground-shell">
-    <div className="playground-header">
       <PlaygroundHeading title={savedPlaygroundId ? headerTitleOf(playgroundName) || "Saved playground" : "Query playground"} dirty={isDirty} onRun={runEntry} onNew={() => requestAction({ kind: "new" })} onReload={reloadCurrent} onSave={savePlaygroundClick} onDelete={savedPlaygroundId ? requestDelete : undefined} saving={saveStatus === "saving"} deleting={deleting} />
-    </div>
   <div className="playground-root" style={{ gridTemplateColumns: `minmax(0,1fr) 6px ${copilotCollapsed ? COPILOT_COLLAPSED_WIDTH : copilotWidth}px` }}>
     <div className="playground-main">
       {nameDraft !== null && <PlaygroundNameDialog initial={nameDraft} onConfirm={confirmSave} onCancel={() => { setNameDraft(null); setPendingAction(null); }} />}

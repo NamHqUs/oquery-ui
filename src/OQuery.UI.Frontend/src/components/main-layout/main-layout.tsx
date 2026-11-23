@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import Icon, { type IconName } from "../shared/icon/icon";
+import PageHeaderActions, { type HeaderAction } from "../shared/page-header/page-header-actions";
 import { getProject, type ProjectSummary } from "../../services/project-service";
 import MainLayoutSelect from "./main-layout-select";
 import "./main-layout.css";
@@ -88,8 +89,8 @@ function Sidebar({ view, setView, collapsed, onToggle }: { view: WorkspaceView; 
   </aside>;
 }
 
-export function Heading({ icon, title, text, action, actions }: { icon: IconName; title: string; text: string; action?: string; actions?: React.ReactNode }) {
-  return <div className="main-layout-heading"><div><span className="main-layout-heading-icon"><Icon name={icon} size={23} /></span><span><h1>{title}</h1><p>{text}</p></span></div>{actions && <div className="main-layout-heading-actions">{actions}</div>}{action && <button className="main-layout-primary" type="button"><Icon name="plus" size={14} /> {action}</button>}</div>;
+export function Heading({ icon, title, text, action, actions, actionItems, status }: { icon: IconName; title: string; text: string; action?: string; actions?: React.ReactNode; actionItems?: HeaderAction[]; status?: React.ReactNode }) {
+  return <div className="page-header"><div className="main-layout-heading"><div><span className="main-layout-heading-icon"><Icon name={icon} size={23} /></span><span><h1>{title}</h1><p>{text}</p></span></div>{actions && <div className="main-layout-heading-actions">{actions}</div>}{actionItems && <div className="main-layout-heading-actions is-fluid"><PageHeaderActions actions={actionItems} status={status} /></div>}{action && <button className="main-layout-primary" type="button"><Icon name="plus" size={14} /> {action}</button>}</div></div>;
 }
 
 type MainLayoutProps = {

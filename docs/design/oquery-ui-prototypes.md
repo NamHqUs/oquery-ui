@@ -20,13 +20,12 @@ visualization area, and query copilot panel.
 
 ### Playground header redesign
 
-- **Actions:** **Run** (primary, runs the entry context) and **Save** stay visible. **Format**,
-  **Reload**, **New**, and **Delete** move into a `⋯` overflow menu. Delete appears in the menu only
-  for a saved playground.
+- **Actions:** **Run** (primary, runs the entry context) and **Save** come first. **Reload**, **New**, and
+  **Delete** (saved playgrounds only) follow, and **Format** is a placeholder that always stays in the `⋯` menu.
 - **Layout:** the header row spans the full page width, above the editor and the AI assistant. The
   assistant starts below the header, and the action group sits at the far right.
-- **Narrow header:** when the header row is 760px or less, Run and Save collapse into the `⋯` menu
-  (container query). Format, Reload, New, and Delete stay in the menu at all widths.
+- **Responsive actions:** the action group shows as many actions inline as the width allows, in the order
+  above. The rest move into the `⋯` menu, which is listed below the inline actions.
 - **Status:** an "Unsaved" label sits next to the actions while the playground has unsaved changes.
 - **Explorer tabs:** Saved and Entities use an underline style, scoped to the explorer panel. The
   editor's document tabs are unchanged.
@@ -39,6 +38,21 @@ visualization area, and query copilot panel.
   saved items are opened first, then renamed.
 - **Results:** results stay inline under the context block that produced them. A separate results
   panel is out of scope, because inline results are the existing execution model.
+
+## Shared page header
+
+Every page header uses one component, `Heading` in [main-layout.tsx](/D:/SourceCode/Github/public/oquery-ui/src/OQuery.UI.Frontend/src/components/main-layout/main-layout.tsx). Its right-hand action group is data-driven (`actionItems`), so pages reuse the same layout and collapse behavior without copying markup.
+
+- **Layout:** title on the left; a status label (for example "Unsaved") and the action group on the right.
+- **Actions:** each action has a label, icon, handler, optional `disabled`, optional `title`, and a button `className`
+  for its inline style. Button styles stay as they are today (`.button` on the Playground, `.domain-action-button` on the Domain Diagram).
+- **Overflow:** an action marked `overflowOnly` always appears only in the `⋯` menu. Other actions appear inline
+  in order while they fit; the rest move into the menu. The split is measured, so it updates on every resize.
+- **Stacking:** the open menu raises its header above the AI assistant, using `:has()` on the menu panel.
+
+
+Pages using it: the Playground (Run, Save; Reload, New, Delete, and a disabled Format in the menu) and the Domain Diagram
+(Delete, Save, Reload, Edit, Create). The diagram no longer has a separate toolbar above the canvas.
 
 ## Saved queries
 
