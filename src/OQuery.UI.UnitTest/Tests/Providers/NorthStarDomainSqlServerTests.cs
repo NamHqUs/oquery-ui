@@ -242,7 +242,7 @@ internal sealed class NorthStarDomainSqlServerTests
                 Employees.CountIf(EmploymentType = <Full-time>) FullTime,
                 Employees.CountIf(EmploymentType = <Part-time>) PartTime,
                 Employees.CountIf(EmploymentType = <Contract>) Contractors,
-                Employees.Avg(HireDate.YearsTo(<2025-10-31>)).Round(<1>) AverageTenureYears,
+                Employees.Avg(HireDate.DaysTo(<2025-10-31>) / 365.25).Round(<1>) AverageTenureYears,
                 Employees.Sum(Salary).Round(<2>) AnnualPayroll
               Where Headcount > <0>
               Order Headcount DESC, AnnualPayroll DESC
