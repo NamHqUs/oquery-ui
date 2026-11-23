@@ -754,6 +754,8 @@ export default function DiagramView({
   const [boardSize, setBoardSize] = useState({ width: 720, height: 360 });
   const [layoutSize, setLayoutSize] = useState({ width: 720, height: 360 });
   const [compactLayout, setCompactLayout] = useState<CompactLayout | null>(null);
+  // The layout key the current compactLayout was calculated for; until they match, cards would jump when ELK finishes.
+  const [compactLayoutKey, setCompactLayoutKey] = useState<string | null>(null);
   const drag = useRef(null);
   const graphDrag = useRef(null);
   const resizeDrag = useRef(null);
@@ -842,6 +844,7 @@ export default function DiagramView({
   useEffect(() => {
     if (!renderedGroup?.tables?.length) {
       setCompactLayout(null);
+      setCompactLayoutKey(layoutKey);
       return undefined;
     }
     let cancelled = false;
@@ -852,16 +855,22 @@ export default function DiagramView({
       .then((nextLayout) => {
         if (!cancelled) {
           setCompactLayout(nextLayout);
+          setCompactLayoutKey(layoutKey);
         }
       })
       .catch((error) => {
         console.error("Unable to calculate diagram layout.", error);
-        if (!cancelled) setCompactLayout(null);
+        if (!cancelled) {
+          setCompactLayout(null);
+          setCompactLayoutKey(layoutKey);
+        }
       });
     return () => {
       cancelled = true;
     };
   }, [layoutKey]);
+  // Cards are hidden (layout kept, so measurement still works) until the layout for the current tables is ready.
+  const layoutPending = Boolean(renderedGroup?.tables?.length) && compactLayoutKey !== layoutKey;
 
   const compactOffsetX = Math.max(0, (layoutSize.width - (compactLayout?.width || 0)) / 2);
   const compactOffsetY = COMPACT_TOP_INSET - BOARD_MARGIN;
@@ -1152,7 +1161,7 @@ export default function DiagramView({
             <Icon name="reset" size={14} />
           </button>
         </div>
-        <div className="diagram-scroll" ref={setScrollElement}>
+        <div className="diagram-scroll" ref={setScrollElement} style={layoutPending ? { visibility: "hidden" } : undefined}>
         <div
           className="diagram-board"
           style={renderedBoardSize}
