@@ -512,6 +512,7 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
     setSavedPlaygroundId(null);
     setPlaygroundName("");
     setBaseline(snapshotOf(tabs, ""));
+    dispatch(fetchSavedPlaygrounds({ projectId, domainId }));
   }, [dispatch, projectId, domainId]);
 
   // Tab text is raw OQuery text; it is stored as typed without parsing or validation.

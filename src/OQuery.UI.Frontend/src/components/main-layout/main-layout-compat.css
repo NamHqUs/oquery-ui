@@ -563,7 +563,7 @@
 
 .playground-header {
   position: relative;
-  z-index: 30;
+  z-index: 10;
   container-type: inline-size;
   min-width: 0;
 }

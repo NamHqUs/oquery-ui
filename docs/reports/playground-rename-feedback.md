@@ -26,6 +26,11 @@
 - **Icon shift:** the global `button` rule in `styles.css` sets `padding: 6px 10px !important`, which made button rows 4px wider than edit rows. The saved row now sets `padding: 0 6px !important` on `button.playground-saved-item`, so the icon keeps the same x-position when the input appears.
 - Measured in the browser with injected row markup: row height 30px in both modes, icon at the same x-position, pencil color `rgb(240, 180, 41)`.
 
+## Round 5
+
+- **Header z-index:** `.playground-header` dropped from `z-index: 30` to `10`. It tied with the Project/Domain menu (`.main-layout-select-menu`, also 30) and, being later in the DOM, painted over the dropdown. It still sits above page content.
+- **Domain switching:** the Domain dropdown options are clickable again. Checked in the browser: the menu receives the click, Main shows no saved playgrounds, and switching back to Examples lists "123".
+
 ## Files
 
 - `src/OQuery.UI.Frontend/src/components/playground/playground.tsx`: `snapshotOf` includes the playground name; `renameSaved` replaced by in-memory `setPlaygroundName`; `SavedPlaygroundItem` and `PlaygroundTabButton` keep their icon during edit.
