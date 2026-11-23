@@ -4,6 +4,22 @@
 .function-form input, .function-form select { width: 100%; min-width: 0; color: #dce1eb; background: #191e28; border: 1px solid #323947; border-radius: 3px; outline: 0; padding: 9px 10px; font: 12px "Manrope", sans-serif; }
 .function-form input:focus, .function-form select:focus { border-color: #7054d4; }
 .function-signature { display: flex; align-items: center; gap: 10px; padding: 14px; background: #10131a; }
+.function-example-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding: 10px 14px; color: #858fa1; background: #151923; border: 1px dashed #2f3746; border-radius: 3px; font-size: 12px; }
+.function-example-card { display: grid; gap: 14px; margin: 0 28px 16px; padding: 18px 20px; background: linear-gradient(180deg, #13101f, #10131a); border: 1px solid #2f2750; border-left: 3px solid #8058ff; border-radius: 4px; }
+.function-example-card-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.function-example-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.function-example-badge { padding: 3px 8px; color: #c9ced9; background: #191e28; border: 1px solid #2a3140; border-radius: 999px; font: 500 10px "Manrope", sans-serif; letter-spacing: .4px; }
+.function-example-badge.category { color: #d6ccff; background: #1e1838; border-color: #3d2d7a; text-transform: uppercase; letter-spacing: .8px; }
+.function-example-signature { padding: 5px 10px; color: #e7e2ff; background: #0b0d12; border: 1px solid #262d3b; border-radius: 3px; font: 12px/1.4 ui-monospace, Consolas, monospace; }
+.function-example-description { margin: 0; color: #c9ced9; font-size: 13px; line-height: 1.6; }
+.function-example-code { display: grid; gap: 0; overflow: hidden; border: 1px solid #262d3b; border-radius: 4px; }
+.function-example-code-bar { display: flex; align-items: center; justify-content: space-between; padding: 7px 12px; color: #858fa1; background: #151923; border-bottom: 1px solid #262d3b; font: 500 10px "Manrope", sans-serif; letter-spacing: .8px; text-transform: uppercase; }
+.function-example-code pre { margin: 0; padding: 14px 16px; overflow-x: auto; color: #dce1eb; background: #0b0d12; font: 13px/1.7 ui-monospace, Consolas, monospace; white-space: pre; }
+.function-example-explanation { display: grid; gap: 4px; margin: 0; padding: 10px 14px; color: #c9ced9; background: #151923; border-radius: 3px; font-size: 12px; line-height: 1.6; }
+.function-example-explanation strong { color: #b9a6ff; font: 500 10px "Manrope", sans-serif; letter-spacing: .8px; text-transform: uppercase; }
+.function-example-sql { color: #858fa1; font-size: 11px; }
+.function-example-sql summary { cursor: pointer; color: #858fa1; }
+.function-example-sql code { display: block; margin-top: 6px; padding: 8px 10px; color: #aeb6c5; background: #0b0d12; border-radius: 3px; font: 11px/1.5 ui-monospace, Consolas, monospace; overflow-x: auto; white-space: pre; }
 .signature-name { flex: 0 0 190px; }
 .signature-arguments { flex: 1 1 auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
 .signature-paren, .signature-arrow { color: #8f7fca; font: 500 20px "Manrope", sans-serif; }

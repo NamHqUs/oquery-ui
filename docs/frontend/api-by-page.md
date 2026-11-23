@@ -210,10 +210,12 @@ sub-domain detail and the FullDomain are loaded only for the selected project.
 | `DbSchemaService.getSchema()` | Connected explorer load | Loads tables, columns, and relationships. |
 | `GET /db/data/{tableName}?schema={schema}&limit=10` | Table Data tab | Loads a maximum of 10 preview rows. |
 
-### Function Definitions (`/function-definitions`)
+### Custom functions (`/sqlfunctions?project=`)
 
 Uses `FunctionDefinitionService.getDefinitions()`, `saveDefinition()` and
-`deleteDefinition()`. The page produces global function data; Home and the
+`deleteDefinition()`. The page is wrapped in `MainLayout` (`custom-functions-page.tsx`). Its header
+actions are Save, Reload, and New function. Delete is in the editor header. Save and Delete are disabled
+for built-in functions. Delete asks for confirmation. The page produces global function data; Home and the
 playground consume it through `OQueryEditorService`.
 
 ### Filter operators

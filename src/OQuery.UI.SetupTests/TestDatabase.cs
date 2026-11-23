@@ -72,8 +72,9 @@ public sealed class TestDatabase
     public static IDbConnection GetNorthStarSqliteDockerConnection()
     {
         var dockerRoot = Path.Combine(GetRepositoryRoot(), "oquery", "docker", "sqlite-data");
+        // Each call ATTACHes the same databases, so the connection must not be pooled and reused.
         var cn = new SqliteConnection(
-            $"Data Source={Path.Combine(dockerRoot, "main.db")}");
+            $"Data Source={Path.Combine(dockerRoot, "main.db")};Pooling=False");
         cn.Open();
 
         var dataPath = dockerRoot.Replace("\\", "/", StringComparison.Ordinal);

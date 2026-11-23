@@ -536,6 +536,57 @@
   display: none;
 }
 
+/* Grouped main menu. Labels become thin dividers when the menu is collapsed to icons. */
+.root-sidebar nav {
+  gap: 14px;
+}
+
+.root-sidebar-group {
+  display: grid;
+  gap: 4px;
+}
+
+.root-sidebar-label {
+  padding: 0 10px 2px;
+  color: #625b78;
+  font: 700 9px "Space Grotesk", "Manrope", sans-serif;
+  letter-spacing: 1.25px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.root-sidebar-hint {
+  padding: 6px 10px;
+  color: #687385;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.root-sidebar.collapsed .root-sidebar-label {
+  height: 1px;
+  margin: 0 8px 4px;
+  padding: 0;
+  overflow: hidden;
+  color: transparent;
+  background: #252b38;
+}
+
+.root-sidebar.collapsed .root-sidebar-group:first-child .root-sidebar-label,
+.root-sidebar.collapsed .root-sidebar-hint {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .root-sidebar-group {
+    display: contents;
+  }
+
+  .root-sidebar-label,
+  .root-sidebar-hint {
+    display: none;
+  }
+}
+
 .root-body > main {
   padding: 0px 4px;
 }

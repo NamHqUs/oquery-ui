@@ -13,6 +13,7 @@ import {
   clearInlineResult,
   deletePlayground,
   executeContextFromText,
+  executeQueryFromText,
   fetchSavedPlaygrounds,
   savePlayground,
 } from "./playground-slice";
@@ -114,10 +115,10 @@ function rowAt(offsets: number[], y: number) {
 
 // Run and Save are listed first, then the other actions; the ⋯ menu takes whatever does not fit.
 // Format is a placeholder that stays in the menu until it is wired up.
-function PlaygroundHeading({ title, dirty, onRun, onDelete, onNew, onReload, onSave, saving, deleting }: { title: string; dirty: boolean; onRun: () => void; onDelete?: () => void; onNew: () => void; onReload: () => void; onSave: () => void; saving: boolean; deleting: boolean }) {
+function PlaygroundHeading({ title, dirty, onRun, onDelete, onNew, onReload, onSave, saving, deleting, running }: { title: string; dirty: boolean; onRun: () => void; onDelete?: () => void; onNew: () => void; onReload: () => void; onSave: () => void; saving: boolean; deleting: boolean; running: boolean }) {
   const busy = saving || deleting;
   const actions: HeaderAction[] = [
-    { key: "run", label: "Run", icon: "play", onSelect: onRun, disabled: busy, className: "button primary" },
+    { key: "run", label: running ? "Running..." : "Run", icon: "play", onSelect: onRun, disabled: busy || running, className: "button primary" },
     { key: "save", label: saving ? "Saving..." : "Save", icon: "save", onSelect: onSave, disabled: busy, className: "button secondary" },
     { key: "format", label: "Format", icon: "code", onSelect: () => undefined, disabled: true, title: "Not available yet", overflowOnly: true },
     { key: "reload", label: "Reload", icon: "refresh", onSelect: onReload, disabled: busy, className: "button secondary" },
@@ -371,6 +372,8 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
   const functionDefinitions = useSelector((state: RootState) => state.functionDefinitions.definitions);
   const filterOperators = builtinFilterOperators;
   const inlineResults = useSelector((state: RootState) => state.playground.inlineResults);
+  const runState = useSelector((state: RootState) => state.playground.run);
+  const runStatus = runState.status;
   const dispatch = useDispatch();
   const editorRef = useRef<OQueryEditorHandle>(null);
   const nextTabNumber = useRef(2);
@@ -635,18 +638,18 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
     dispatch(executeContextFromText({ text: editorRef.current?.getText() ?? activeTab.text, context: contextName, projectId, domainId }));
   };
   // Run executes the first context block, the entry point of the query.
+  // Run posts the whole tab text; the API detects the entry point and the result renders under its context block.
   const runEntry = () => {
-    const query = editorRef.current?.getText() ?? activeTab.text;
-    const entry = getOqueryContextBlocks(query)[0]?.contextName;
-    if (!entry) {
-      setMessage("Add a context header such as Customer: to run the query.");
+    if (!projectId || !domainId) {
+      setMessage("Choose a project and an active domain before running a query.");
       return;
     }
-    runContext(entry);
+    setMessage("");
+    dispatch(executeQueryFromText({ text: editorRef.current?.getText() ?? activeTab.text, projectId, domainId }));
   };
 
   return <div className="playground-shell">
-      <PlaygroundHeading title={savedPlaygroundId ? headerTitleOf(playgroundName) || "Saved playground" : "Query playground"} dirty={isDirty} onRun={runEntry} onNew={() => requestAction({ kind: "new" })} onReload={reloadCurrent} onSave={savePlaygroundClick} onDelete={savedPlaygroundId ? requestDelete : undefined} saving={saveStatus === "saving"} deleting={deleting} />
+      <PlaygroundHeading title={savedPlaygroundId ? headerTitleOf(playgroundName) || "Saved playground" : "Query playground"} dirty={isDirty} onRun={runEntry} onNew={() => requestAction({ kind: "new" })} onReload={reloadCurrent} onSave={savePlaygroundClick} onDelete={savedPlaygroundId ? requestDelete : undefined} saving={saveStatus === "saving"} deleting={deleting} running={runStatus === "running"} />
   <div className="playground-root" style={{ gridTemplateColumns: `minmax(0,1fr) 6px ${copilotCollapsed ? COPILOT_COLLAPSED_WIDTH : copilotWidth}px` }}>
     <div className="playground-main">
       {nameDraft !== null && <PlaygroundNameDialog initial={nameDraft} onConfirm={confirmSave} onCancel={() => { setNameDraft(null); setPendingAction(null); }} />}
@@ -710,7 +713,7 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
           onClearInlineResult={(name) => dispatch(clearInlineResult(name))}
         />
       </div>
-      {message && <p className="playground-message error">{message}</p>}
+      {(message || runState.error) && <p className="playground-message error">{message || runState.error}</p>}
     </section>
       </div>
     </div>

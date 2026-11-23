@@ -7,7 +7,7 @@ import type { AppDispatch, RootState } from "../../store/store";
 import { isSameSchema, metadataEntityFromDto, type DomainRelation, type MetadataEntity } from "./domain-model";
 import { clearDomainDraft, domainDraftSaved, setDomainDraftWorking, type DomainGraph } from "./domain-draft-slice";
 import { loadDomainDraft } from "./domain-draft-actions";
-import MainLayout, { Heading, notifyWorkspaceDomainsChanged, type WorkspaceView } from "../main-layout/main-layout";
+import MainLayout, { Heading, CUSTOM_FUNCTIONS_PATH, notifyWorkspaceDomainsChanged, type WorkspaceView } from "../main-layout/main-layout";
 import DiagramView, { diagramGroupTone } from "./entity-diagram/diagram-view";
 import { changedEntityNames, dbSchemaChangedEntityNames, toDiagramRelationships, toDiagramTables } from "./entity-diagram/diagram-model";
 import PanelSplitter from "../shared/panel-splitter/panel-splitter";
@@ -76,7 +76,11 @@ export default function DomainPage({ route, projects, connectionStatus, provider
   const { projectId } = route;
   const onSelectView = (view: WorkspaceView, domainId: string) => {
     if (view === "diagram") return;
-    onNavigate(`/playground/${encode(projectId)}${domainId ? `/${encode(domainId)}` : ""}`);
+    if (view === "functions") {
+      onNavigate(`${CUSTOM_FUNCTIONS_PATH}?${new URLSearchParams({ project: projectId }).toString()}`);
+      return;
+    }
+    onNavigate(`/playground/${encode(projectId)}${domainId ? `/${encode(domainId)}` : ""}${view === "playground" ? "" : `?view=${encodeURIComponent(view)}`}`);
   };
   return (
     <MainLayout

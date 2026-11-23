@@ -42,6 +42,24 @@ export const deletePlayground = createAsyncThunk(
   },
 );
 
+type ContextPayload = { name?: unknown; columns?: unknown; rows?: unknown; totalRecords?: unknown } | null;
+
+// Maps an execute response (name, comma-separated columns, comma-separated rows) to a QueryResult.
+function toQueryResult(payload: ContextPayload): QueryResult {
+  if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows) || typeof payload.totalRecords !== "number") {
+    throw new Error("Query API returned an invalid context result.");
+  }
+  const columns = typeof payload.columns === "string"
+    ? payload.columns.split(",").filter((column) => column.trim())
+    : [];
+  return {
+    name: payload.name,
+    columns,
+    rows: payload.rows.map((row: string) => row.split(",")),
+    totalRecords: payload.totalRecords,
+  };
+}
+
 export const executeContextFromText = createAsyncThunk(
   "playground/executeContextFromText",
   async ({ text, context, projectId, domainId }: { text: string; context: string; projectId: string; domainId: string }, { rejectWithValue }) => {
@@ -50,22 +68,25 @@ export const executeContextFromText = createAsyncThunk(
         dynamicQueryService.executeOQueryContext(text, context, projectId, domainId),
         dynamicQueryService.oqueryContextToSql(text, context, projectId, domainId).catch(() => null),
       ]);
-      if (!payload || typeof payload.name !== "string" || !Array.isArray(payload.rows)
-        || typeof payload.totalRecords !== "number") {
-        return rejectWithValue("Query API returned an invalid context result.");
-      }
-      const responseColumns = typeof payload.columns === "string"
-        ? payload.columns.split(",").filter((column: string) => column.trim())
-        : [];
-      const result = {
-        name: payload.name,
-        columns: responseColumns,
-        rows: payload.rows.map((row: string) => row.split(",")),
-        totalRecords: payload.totalRecords,
-      } as QueryResult;
-      return { result, sql: typeof sql === "string" ? sql : null };
+      return { result: toQueryResult(payload), sql: typeof sql === "string" ? sql : null };
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : "Unable to execute context.");
+    }
+  },
+);
+
+// Run posts the whole tab text; the API detects the entry point and returns its context name, which keys the inline result.
+export const executeQueryFromText = createAsyncThunk(
+  "playground/executeQueryFromText",
+  async ({ text, projectId, domainId }: { text: string; projectId: string; domainId: string }, { rejectWithValue }) => {
+    try {
+      const [payload, sql] = await Promise.all([
+        dynamicQueryService.executeOQueryText(text, projectId, domainId),
+        dynamicQueryService.oqueryTextToSql(text, projectId, domainId).catch(() => null),
+      ]);
+      return { result: toQueryResult(payload), sql: typeof sql === "string" ? sql : null };
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : "Unable to run query.");
     }
   },
 );
@@ -98,6 +119,10 @@ const playgroundSlice = createSlice({
     },
     saveStatus: "idle" as "idle" | "saving" | "failed",
     saveError: "",
+    run: {
+      status: "idle" as "idle" | "running" | "failed",
+      error: "",
+    },
   },
   reducers: {
     clearInlineResult(state, action: PayloadAction<string>) {
@@ -117,6 +142,16 @@ const playgroundSlice = createSlice({
       })
       .addCase(executeContextFromText.rejected, (state, action) => {
         markInlineFailed(state, action.meta.arg.context, String(action.payload || action.error.message || "Unable to execute context."));
+      })
+      .addCase(executeQueryFromText.pending, (state) => {
+        state.run = { status: "running", error: "" };
+      })
+      .addCase(executeQueryFromText.fulfilled, (state, action) => {
+        markInlineSucceeded(state, action.payload.result.name, action.payload.result, action.payload.sql);
+        state.run = { status: "idle", error: "" };
+      })
+      .addCase(executeQueryFromText.rejected, (state, action) => {
+        state.run = { status: "failed", error: String(action.payload || action.error.message || "Unable to run query.") };
       })
       .addCase(fetchSavedPlaygrounds.pending, (state) => {
         state.saved.status = "loading";

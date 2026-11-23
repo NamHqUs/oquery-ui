@@ -1,6 +1,26 @@
 # Sidebar collapse behavior (design)
 
-Status: proposal. Defines when side panels collapse. No code is changed by this document.
+Status: proposal. Defines when side panels collapse.
+
+## Implemented (main menu)
+
+The main menu in `src/OQuery.UI.Frontend/src/components/main-layout/main-layout-sidebar.tsx` implements:
+
+- Groups: **Domain** (Playground, Queries, Domain Diagram), **Project** (Overview, Database explorer,
+  Security), and **Library** (Custom functions). When the project has no domains, the Domain group
+  shows a hint instead of its items. Collapsed, group labels become thin dividers.
+- Collapse state `auto` / `expanded` / `collapsed`, stored in local storage under `oquery.main-sidebar`.
+  `auto` collapses below 1280px with a 150ms resize debounce; an explicit toggle is kept across
+  pages and reloads.
+- Menu items on the Domain Diagram page open the matching view. Custom functions opens the route
+  `/sqlfunctions` (`CUSTOM_FUNCTIONS_PATH`), with the project passed as `?project=`, and renders inside the
+  same `MainLayout` shell as the Playground and Domain Diagram. The old `/function-definitions` and
+  `/functions` URLs redirect there.
+
+Not yet implemented: the 1024px overlay, keyboard shortcuts, the Reset layout action, and the
+Playground entities panel rules below. Custom functions still require a project, because the
+function-definition API is scoped per project; without a valid `?project=` the page shows the project
+selector with no project chosen.
 
 ## Problem
 

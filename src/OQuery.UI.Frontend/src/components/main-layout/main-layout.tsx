@@ -3,11 +3,14 @@ import Icon, { type IconName } from "../shared/icon/icon";
 import PageHeaderActions, { type HeaderAction } from "../shared/page-header/page-header-actions";
 import { getProject, type ProjectSummary } from "../../services/project-service";
 import MainLayoutSelect from "./main-layout-select";
+import MainLayoutSidebar, { useSidebarCollapse } from "./main-layout-sidebar";
 import "./main-layout.css";
 import "./main-layout-compat.css";
 
 export type WorkspaceView = "overview" | "playground" | "queries" | "diagram" | "explorer" | "functions" | "security";
 export type WorkspaceDomain = { id: string; name: string };
+// Custom functions is project-scoped data, but its URL carries no project or domain; the project is passed as ?project=.
+export const CUSTOM_FUNCTIONS_PATH = "/sqlfunctions";
 
 // Domain lists per project, kept across MainLayout mounts so page changes don't flash an empty selector.
 const projectDomainsCache = new Map<string, WorkspaceDomain[]>();
@@ -17,12 +20,6 @@ const domainListListeners = new Set<(projectId: string) => void>();
 export function notifyWorkspaceDomainsChanged(projectId: string) {
   domainListListeners.forEach((listener) => listener(projectId));
 }
-
-const items: Array<[WorkspaceView, string, IconName]> = [
-  ["overview", "Overview", "grid"], ["playground", "Playground", "play"], ["queries", "Queries", "file-text"],
-  ["diagram", "Domain Diagram", "schema"], ["explorer", "Database explorer", "database"],
-  ["functions", "Custom functions", "function"], ["security", "Security", "shield"],
-];
 
 type HeaderProps = {
   projects: ProjectSummary[];
@@ -79,18 +76,8 @@ function Header({ projects, projectId, domains, domainId, connectionStatus, prov
   </header>;
 }
 
-function Sidebar({ view, setView, collapsed, onToggle }: { view: WorkspaceView; setView: (view: WorkspaceView) => void; collapsed: boolean; onToggle: () => void }) {
-  return <aside className={`root-sidebar${collapsed ? " collapsed" : ""}`}>
-    <button type="button" className="root-sidebar-toggle" aria-label={collapsed ? "Expand main menu" : "Collapse main menu"} onClick={onToggle}>
-      <Icon name={collapsed ? "chevron-right" : "chevron-left"} size={14} />
-    </button>
-    <nav>{items.map(([id, label, icon]) => <button key={id} type="button" className={view === id ? "active" : ""} title={label} aria-label={label} onClick={() => setView(id)}><Icon name={icon} size={19} /><span>{label}</span></button>)}</nav>
-    {!collapsed && <p>Smarter queries.<br />Deeper insights.</p>}
-  </aside>;
-}
-
-export function Heading({ icon, title, text, action, actions, actionItems, status }: { icon: IconName; title: string; text: string; action?: string; actions?: React.ReactNode; actionItems?: HeaderAction[]; status?: React.ReactNode }) {
-  return <div className="page-header"><div className="main-layout-heading"><div><span className="main-layout-heading-icon"><Icon name={icon} size={23} /></span><span><h1>{title}</h1><p>{text}</p></span></div>{actions && <div className="main-layout-heading-actions">{actions}</div>}{actionItems && <div className="main-layout-heading-actions is-fluid"><PageHeaderActions actions={actionItems} status={status} /></div>}{action && <button className="main-layout-primary" type="button"><Icon name="plus" size={14} /> {action}</button>}</div></div>;
+export function Heading({ icon, title, text, action, onAction, actions, actionItems, status }: { icon: IconName; title: string; text: string; action?: string; onAction?: () => void; actions?: React.ReactNode; actionItems?: HeaderAction[]; status?: React.ReactNode }) {
+  return <div className="page-header"><div className="main-layout-heading"><div><span className="main-layout-heading-icon"><Icon name={icon} size={23} /></span><span><h1>{title}</h1><p>{text}</p></span></div>{actions && <div className="main-layout-heading-actions">{actions}</div>}{actionItems && <div className="main-layout-heading-actions is-fluid"><PageHeaderActions actions={actionItems} status={status} /></div>}{action && <button className="main-layout-primary" type="button" onClick={onAction}><Icon name="plus" size={14} /> {action}</button>}</div></div>;
 }
 
 type MainLayoutProps = {
@@ -111,8 +98,9 @@ type MainLayoutProps = {
 export default function MainLayout({ view, projects, projectId, domainId, connectionStatus, provider, onSelectView, onSelectProject, onSelectDomain, onOpenConnection, onNavigateHome, children }: MainLayoutProps) {
   // Remounts (e.g. moving from another page) would otherwise render an empty Active Domain list until the fetch returns.
   const [domains, setDomains] = useState<WorkspaceDomain[]>(() => projectDomainsCache.get(projectId) ?? []);
+  const [domainsLoaded, setDomainsLoaded] = useState(() => projectDomainsCache.has(projectId));
   const [domainsVersion, setDomainsVersion] = useState(0);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const sidebar = useSidebarCollapse();
   const bodyRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const listener = (changedProjectId: string) => {
@@ -129,18 +117,23 @@ export default function MainLayout({ view, projects, projectId, domainId, connec
     let active = true;
     if (!projectId) {
       setDomains([]);
+      setDomainsLoaded(true);
       return;
     }
     setDomains(projectDomainsCache.get(projectId) ?? []);
+    setDomainsLoaded(projectDomainsCache.has(projectId));
     getProject(projectId)
       .then((details) => {
         if (!active) return;
         const next = details.domains.map((domain) => ({ id: domain.id, name: domain.name }));
         projectDomainsCache.set(projectId, next);
         setDomains(next);
+        setDomainsLoaded(true);
       })
       .catch(() => {
-        if (active) setDomains([]);
+        if (!active) return;
+        setDomains([]);
+        setDomainsLoaded(true);
       });
     return () => {
       active = false;
@@ -175,5 +168,5 @@ export default function MainLayout({ view, projects, projectId, domainId, connec
       window.removeEventListener("resize", update);
     };
   }, []);
-  return <div className="root-workspace"><Header projects={projects} projectId={projectId} domains={domains} domainId={selectedDomainId} connectionStatus={connectionStatus} provider={provider} onSelectProject={onSelectProject} onSelectDomain={onSelectDomain} onOpenConnection={onOpenConnection} onNavigateHome={onNavigateHome} /><div ref={bodyRef} className={`root-body${view === "playground" ? " playground-body" : ""}`}><Sidebar view={view} setView={(next) => onSelectView(next, selectedDomainId)} collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((collapsed) => !collapsed)} /><main className={view === "playground" ? "root-main-playground" : undefined}>{children({ domains, domainId: selectedDomainId })}</main></div><footer className="root-footer"><Icon name="schema" size={13} /> oQuery engine <span>Phase one</span><span>Data binding planned for phase two</span></footer></div>;
+  return <div className="root-workspace"><Header projects={projects} projectId={projectId} domains={domains} domainId={selectedDomainId} connectionStatus={connectionStatus} provider={provider} onSelectProject={onSelectProject} onSelectDomain={onSelectDomain} onOpenConnection={onOpenConnection} onNavigateHome={onNavigateHome} /><div ref={bodyRef} className={`root-body${view === "playground" ? " playground-body" : ""}`}><MainLayoutSidebar view={view} hasDomain={!domainsLoaded || domains.length > 0} collapsed={sidebar.collapsed} onToggle={sidebar.toggle} onSelect={(next) => onSelectView(next, selectedDomainId)} /><main className={view === "playground" ? "root-main-playground" : undefined}>{children({ domains, domainId: selectedDomainId })}</main></div><footer className="root-footer"><Icon name="schema" size={13} /> oQuery engine <span>Phase one</span><span>Data binding planned for phase two</span></footer></div>;
 }

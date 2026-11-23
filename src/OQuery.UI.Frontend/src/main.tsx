@@ -7,7 +7,7 @@ import Icon, { getDatabaseIconName } from "./components/shared/icon/icon";
 import DataSources from "./components/data-sources/data-sources";
 import DatabaseConnection from "./components/data-sources/database-connection/database-connection";
 import { fetchDbProvider } from "./components/data-sources/database-slice";
-import FunctionDefinitionsWorkspace from "./components/function-definition/function-definition";
+import CustomFunctionsPage from "./components/function-definition/custom-functions-page";
 import Home from "./components/home/home";
 import Documentation from "./components/documentation/documentation";
 import AdminAnalytics from "./components/admin/admin-analytics";
@@ -29,12 +29,13 @@ const PAGE_PATHS = {
   builder: "/playground/:projectId",
   metadata: "/metadata",
   sources: "/data-sources",
-  functions: "/function-definitions",
+  functions: "/sqlfunctions",
   security: "/security",
   documentation: "/documentation",
 } as const;
 
 const LEGACY_FUNCTIONS_PATH = "/functions";
+const LEGACY_FUNCTION_DEFINITIONS_PATH = "/function-definitions";
 // Playground URL: /playground/:projectId/:domainId/:queryId (domain and query segments are optional).
 const PLAYGROUND_PATH = "/playground";
 // The Query Builder moved from /query-builder to /playground/:projectId. The old URLs redirect.
@@ -337,15 +338,9 @@ function PageSubnav({
                 : undefined}
             >{item}</button>;
             })}
-            {page === "functions" && (
-              <div className="function-subnav-intro">
-                <strong>Custom functions</strong>
-                <span>Extend the OQuery vocabulary with reusable business logic.</span>
-              </div>
-            )}
           </>}
         </div>
-        <div className={`app-subnav-actions${page === "metadata" || page === "functions" || page === "builder" ? "" : " app-subnav-actions-hidden"}`} id="metadata-toolbar-actions">
+        <div className={`app-subnav-actions${page === "metadata" || page === "builder" ? "" : " app-subnav-actions-hidden"}`} id="metadata-toolbar-actions">
         </div>
       </nav>
       {page === "builder" && <div className="query-builder-domain-bar diagram-toolbar">
@@ -666,11 +661,10 @@ function App() {
   const page = pageForPath(location.pathname);
   const workspaceProjects = useWorkspaceProjects(`${location.pathname}${location.search}`);
   const workspaceProjectId = builderProjectIdOf(location.pathname) || new URLSearchParams(location.search).get("project") || "";
-  const workspaceNeedsProject = page === "builder" || page === "metadata" || page === "functions" || page === "security";
+  const workspaceNeedsProject = page === "builder" || page === "metadata" || page === "security";
   const showWorkspaceGate = workspaceNeedsProject
     && (!workspaceProjects.projects || !workspaceProjects.projects.some((item) => item.id === workspaceProjectId));
   const [metadataVisited, setMetadataVisited] = useState(() => location.pathname === PAGE_PATHS.metadata || pageForPath(location.pathname) === "metadata");
-  const [functionDefinitionsVisited, setFunctionDefinitionsVisited] = useState(() => location.pathname === PAGE_PATHS.functions);
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
   const [analyticsConsent, setAnalyticsConsent] = useState<"granted" | "declined" | null>(readAnalyticsConsent);
   const connectionPromptShown = useRef(false);
@@ -680,6 +674,7 @@ function App() {
   const updateFunctionNavigationGuard = useCallback((guard: NavigationGuard | null) => {
     functionNavigationGuard.current = guard;
   }, []);
+  // Custom functions has its own route; its unsaved-changes guard blocks leaving that page.
   const guardForPage = (targetPage: Page | null) => {
     if (targetPage === "functions") return functionNavigationGuard.current;
     return null;
@@ -720,7 +715,6 @@ function App() {
 
   useEffect(() => {
     if (location.pathname === PAGE_PATHS.metadata || pageForPath(location.pathname) === "metadata") setMetadataVisited(true);
-    if (location.pathname === PAGE_PATHS.functions) setFunctionDefinitionsVisited(true);
   }, [location.pathname]);
   useEffect(() => {
     if (page !== "metadata"
@@ -770,7 +764,6 @@ function App() {
       : PAGE_PATHS[nextPage];
     const continueNavigation = () => {
       if (nextPage === "metadata") setMetadataVisited(true);
-      if (nextPage === "functions") setFunctionDefinitionsVisited(true);
       if (nextPage === "builder" || (nextPage === "metadata" && metadataPath)) window.scrollTo({ top: 0 });
       approvedNavigation.current = destination;
       routerNavigate(destination);
@@ -818,6 +811,26 @@ function App() {
   };
   if (domainRoute?.kind === "create" || domainRoute?.kind === "edit") {
     return <DomainPage route={domainRoute} {...domainPageProps} />;
+  }
+
+  if (page === "functions") {
+    if (!workspaceProjects.projects && !workspaceProjects.failed) return <main className="app-shell"><p className="metadata-message">Loading projects…</p></main>;
+    // Custom functions is project-scoped; an unknown or missing ?project= shows the project selector with no project chosen.
+    const functionsProjectId = workspaceProjects.projects?.some((item) => item.id === workspaceProjectId) ? workspaceProjectId : "";
+    return (
+      <>
+        <CustomFunctionsPage
+          projectId={functionsProjectId}
+          projects={workspaceProjects.projects ?? []}
+          connectionStatus={database.connectionStatus}
+          provider={database.connectedProvider}
+          onNavigate={navigateWorkspace}
+          onOpenConnection={requestDatabaseConnection}
+          onNavigationGuardChange={updateFunctionNavigationGuard}
+        />
+        {connectionDialogOpen && <ConnectionDialog onClose={() => setConnectionDialogOpen(false)} />}
+      </>
+    );
   }
 
   const playgroundRoute = playgroundRouteOf(location.pathname);
@@ -921,9 +934,9 @@ function App() {
           <Route path={DOMAINS_PATH} element={null} />
           <Route path={DIAGRAMS_PATH} element={<LegacyMetadataDiagramRedirect />} />
           <Route path={DATABASE_EXPLORER_PATH} element={null} />
-          <Route path={PAGE_PATHS.functions} element={null} />
           <Route path={PAGE_PATHS.security} element={showWorkspaceGate ? null : <div className="page-transition page-transition-no-slide"><SecurityPage /></div>} />
           <Route path={LEGACY_FUNCTIONS_PATH} element={<Navigate to={PAGE_PATHS.functions} replace />} />
+          <Route path={LEGACY_FUNCTION_DEFINITIONS_PATH} element={<Navigate to={PAGE_PATHS.functions} replace />} />
           <Route path={PAGE_PATHS.sources} element={<div className="page-transition page-transition-no-slide"><DataSources onRequestConnection={requestDatabaseConnection} /></div>} />
           <Route path={ADMIN_PATH} element={<div className="page-transition page-transition-no-slide"><AdminAnalytics /></div>} />
           <Route path={PRIVACY_PATH} element={<PolicyPage kind="privacy" />} />
@@ -941,9 +954,6 @@ function App() {
       )}
       {connectionDialogOpen && <ConnectionDialog onClose={() => setConnectionDialogOpen(false)} />}
       {metadataVisited && page === "metadata" && !showWorkspaceGate && location.pathname === DATABASE_EXPLORER_PATH && <DataSources onRequestConnection={requestDatabaseConnection} />}
-      {functionDefinitionsVisited && !showWorkspaceGate && <div hidden={page !== "functions"} className={page === "functions" ? "page-transition page-transition-no-slide" : undefined}>
-        <FunctionDefinitionsWorkspace onNavigationGuardChange={updateFunctionNavigationGuard} />
-      </div>}
       </div>
       <footer>
         <span><span className="footer-mark">✦</span> oQuery engine</span>

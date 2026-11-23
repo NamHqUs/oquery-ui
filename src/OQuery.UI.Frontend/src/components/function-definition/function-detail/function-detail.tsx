@@ -1,9 +1,13 @@
+import { useState } from "react";
 import { useSelector } from "react-redux";
 import Icon from "../../shared/icon/icon";
+import builtinFunctionCatalog from "../builtin-function-catalog.json";
 import {
+  BuiltinFunctionEntry,
   EditableFunctionArgument,
   EditableFunctionDefinition,
   EditableFunctionTemplate,
+  createForeachExample,
   emptyFunctionArgument,
   emptyFunctionTemplate,
   functionArgumentDataTypes,
@@ -13,6 +17,7 @@ import {
   FunctionResultDataType,
 } from "../types";
 import type { RootState } from "../../../store/store";
+import PageHeaderActions, { type HeaderAction } from "../../shared/page-header/page-header-actions";
 import "./function-detail.css";
 
 type FunctionDetailProps = {
@@ -20,14 +25,64 @@ type FunctionDetailProps = {
   selectedName: string;
   canEdit: boolean;
   message: string;
+  actions: HeaderAction[];
   onDraftChange: (update: (current: EditableFunctionDefinition) => EditableFunctionDefinition) => void;
 };
+
+type FunctionExampleCardProps = {
+  usage: BuiltinFunctionEntry;
+};
+
+function FunctionExampleCard({ usage }: FunctionExampleCardProps) {
+  const [copied, setCopied] = useState(false);
+
+  const copyExample = async () => {
+    try {
+      await navigator.clipboard.writeText(usage.example.oquery);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <section className="function-example-card" aria-label="Function example">
+      <header className="function-example-card-top">
+        <div className="function-example-badges">
+          <span className="function-example-badge category">{usage.category}</span>
+          <span className="function-example-badge">Returns {usage.returns}</span>
+        </div>
+        <code className="function-example-signature">{usage.signature}</code>
+      </header>
+      <p className="function-example-description">{usage.description}</p>
+      <div className="function-example-code">
+        <div className="function-example-code-bar">
+          <span>OQuery example</span>
+          <button className="button secondary compact" type="button" onClick={copyExample}>
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
+        <pre><code>{usage.example.oquery}</code></pre>
+      </div>
+      <p className="function-example-explanation">
+        <strong>What it does</strong>
+        {usage.example.explanation}
+      </p>
+      <details className="function-example-sql">
+        <summary>SQL Server template</summary>
+        <code>{usage.sqlServerTemplate}</code>
+      </details>
+    </section>
+  );
+}
 
 export default function FunctionDetail({
   draft,
   selectedName,
   canEdit,
   message,
+  actions,
   onDraftChange,
 }: FunctionDetailProps) {
   const providers = useSelector((state: RootState) => state.database.providers);
@@ -63,18 +118,26 @@ export default function FunctionDetail({
   const availableDatabaseTypes = providers.filter((databaseType) =>
     !usedDatabaseTypes.has(databaseType),
   );
+  const usage = (builtinFunctionCatalog as BuiltinFunctionEntry[]).find((entry) => entry.name === selectedName);
 
   return (
     <div className="metadata-editor">
-      <div className="table-details-heading function-detail-heading" aria-label="Function definition details">
+      <div className="table-details-heading metadata-editor-heading function-detail-heading" aria-label="Function definition details">
         <div className="table-details-title">
-          <span className="section-kicker">FUNCTION DEFINITION</span>
-          <h3>{selectedName || (draft ? "New Function…" : "Select a function")}</h3>
+          <div className="metadata-editor-heading-title">
+            <span className="metadata-editor-heading-icon"><Icon name="function" size={18} /></span>
+            <h3>{selectedName || (draft ? "New Function…" : "Select a function")}</h3>
+          </div>
         </div>
         {draft && (
           <div className="table-details-summary">
             <span>{draft.arguments.length} arguments</span>
             <span>{draft.sqlTemplateRows.length} SQL templates</span>
+          </div>
+        )}
+        {draft && (
+          <div className="editor-actions">
+            <PageHeaderActions label="Function actions" actions={actions} />
           </div>
         )}
       </div>
@@ -85,7 +148,20 @@ export default function FunctionDetail({
           </div>
         : <>
           {message && <p className="metadata-alert" role="alert">{message}</p>}
+          {usage && <FunctionExampleCard usage={usage} />}
           <fieldset className="function-form" disabled={!canEdit}>
+        {!selectedName && (
+          <div className="function-example-bar">
+            <span>Start from a sample definition, then adjust it before saving.</span>
+            <button
+              className="button secondary compact"
+              type="button"
+              onClick={() => updateDraft(() => createForeachExample(providers))}
+            >
+              <Icon name="function" size={13} /> Load ForEach example
+            </button>
+          </div>
+        )}
         <section className="function-signature" aria-label="Function signature">
           <label className="signature-name">
             Function Name

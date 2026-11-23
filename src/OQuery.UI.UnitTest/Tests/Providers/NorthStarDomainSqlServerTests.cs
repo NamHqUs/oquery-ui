@@ -646,7 +646,7 @@ internal sealed class NorthStarDomainSqlServerTests
         _ => domainHeading,
     };
 
-    private static IReadOnlyCollection<OQuery.Entity> LoadDomain(string path)
+    internal static IReadOnlyCollection<OQuery.Entity> LoadDomain(string path)
     {
         var domain = JsonSerializer.Deserialize<DomainFile>(File.ReadAllText(path), JsonOptions)
             ?? throw new InvalidDataException($"Domain file '{path}' is empty.");
@@ -683,7 +683,7 @@ internal sealed class NorthStarDomainSqlServerTests
         return entities.Values.ToList();
     }
 
-    private static string GetDomainsRoot()
+    internal static string GetDomainsRoot()
         => Path.Combine(GetRepositoryRoot(), "oquery", "data-storage", "northstar-demo", "domains");
 
     private static string GetRepositoryRoot()

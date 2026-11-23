@@ -13,6 +13,15 @@ export const functionApplyForValues = [
   { value: 16, label: "Boolean" },
 ] as const;
 export type FunctionApplyFor = number;
+export type BuiltinFunctionEntry = {
+  name: string;
+  category: string;
+  returns: string;
+  signature: string;
+  sqlServerTemplate: string;
+  description: string;
+  example: { oquery: string; explanation: string };
+};
 export const allScalarApplyFor = 2 | 4 | 8 | 16;
 
 export type FunctionArgumentDefinition = {
@@ -108,4 +117,30 @@ export function toEditableFunction(definition: FunctionDefinition): EditableFunc
 
 function isFunctionDatabaseType(databaseType: string): databaseType is FunctionDatabaseType {
   return databaseType.length > 0;
+}
+
+// Aggregate-style example: joins each row's value with a separator (GROUP_CONCAT / STRING_AGG).
+const foreachExampleTemplates: Record<string, string> = {
+  Sqlite: "GROUP_CONCAT({1}, {2})",
+  Postgres: "STRING_AGG({1}, {2})",
+};
+
+export function createForeachExample(providers: string[]): EditableFunctionDefinition {
+  return {
+    ...emptyFunction(providers),
+    name: "ForEach",
+    arguments: [
+      { ...emptyFunctionArgument(), name: "value", dataType: "String" },
+      { ...emptyFunctionArgument(), name: "separator", dataType: "String", defaultValue: ",", defaultValueText: "," },
+    ],
+    resultType: "String",
+    applyFor: 1,
+    description: "Joins each row's value with a separator across the collection",
+    sqlTemplateRows: providers
+      .filter((databaseType) => foreachExampleTemplates[databaseType])
+      .map((databaseType) => ({
+        ...emptyFunctionTemplate(databaseType),
+        rawSqlTemplate: foreachExampleTemplates[databaseType],
+      })),
+  };
 }

@@ -4,7 +4,7 @@ import { FunctionDefinition } from "../types";
 import "./function-list.css";
 
 type FunctionGroup = {
-  id: string;
+  id: "custom" | "builtin";
   title: string;
   count: number;
   content: ReactNode[];
@@ -25,6 +25,7 @@ export default function FunctionList({
   onSelect,
 }: FunctionListProps) {
   const [filter, setFilter] = useState("");
+  const [activeTab, setActiveTab] = useState<FunctionGroup["id"]>("builtin");
   const visibleDefinitions = definitions.filter((definition) =>
     definition.name.toLowerCase().includes(filter.toLowerCase()),
   );
@@ -54,20 +55,21 @@ export default function FunctionList({
   );
   const groups: FunctionGroup[] = [
     {
-      id: "function-custom-list",
+      id: "custom",
       title: "Custom",
       count: customDefinitions.length,
       content: customDefinitions.map(renderDefinition),
       emptyMessage: status !== "loading" && !customDefinitions.length ? "No custom functions." : undefined,
     },
     {
-      id: "function-builtin-list",
+      id: "builtin",
       title: "Builtin",
       count: builtInDefinitions.length,
       content: builtInDefinitions.map(renderDefinition),
       emptyMessage: status !== "loading" && !builtInDefinitions.length ? "No built-in functions." : undefined,
     },
   ];
+  const activeGroup = groups.find((group) => group.id === activeTab) ?? groups[0];
 
   return (
     <aside className="function-list split-panel">
@@ -82,13 +84,26 @@ export default function FunctionList({
         value={filter}
         onChange={(event) => setFilter(event.target.value)}
       />
-      {status === "loading" && <p className="metadata-message">Loading function definitions…</p>}
-      {groups.map((group) => (
-        <section key={group.id} className="function-list-group">
-          <h4>{group.title} <small>{group.count}</small></h4>
-          {group.content.length ? group.content : <p className="metadata-message">{group.emptyMessage}</p>}
-        </section>
-      ))}
+      <div className="function-list-tabs" role="tablist" aria-label="Function types">
+        {groups.map((group) => (
+          <button
+            key={group.id}
+            id={`function-tab-${group.id}`}
+            className={`function-list-tab${group.id === activeGroup.id ? " active" : ""}`}
+            type="button"
+            role="tab"
+            aria-selected={group.id === activeGroup.id}
+            aria-controls="function-list-panel"
+            onClick={() => setActiveTab(group.id)}
+          >
+            {group.title} <small>{group.count}</small>
+          </button>
+        ))}
+      </div>
+      <div className="function-list-scroll" id="function-list-panel" role="tabpanel" aria-labelledby={`function-tab-${activeGroup.id}`}>
+        {status === "loading" && <p className="metadata-message">Loading function definitions…</p>}
+        {activeGroup.content.length ? activeGroup.content : <p className="metadata-message">{activeGroup.emptyMessage}</p>}
+      </div>
     </aside>
   );
 }

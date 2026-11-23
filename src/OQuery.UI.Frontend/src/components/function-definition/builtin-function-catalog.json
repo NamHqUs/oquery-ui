@@ -1,0 +1,506 @@
+[
+  {
+    "name": "Count",
+    "category": "Aggregate",
+    "returns": "Number",
+    "signature": "Count(value: Number = 1)",
+    "sqlServerTemplate": "COUNT({1})",
+    "description": "Counts rows, or counts the non-null values of an expression. Count() with no argument counts rows.",
+    "example": {
+      "oquery": "Customers: Region, Count() CustomerCount, Count(Email) EmailCount",
+      "explanation": "Per region, counts all customers and only the customers that have an Email value."
+    }
+  },
+  {
+    "name": "Sum",
+    "category": "Aggregate",
+    "returns": "Number",
+    "signature": "Sum(expression: Number)",
+    "sqlServerTemplate": "SUM({1})",
+    "description": "Returns the total of a numeric expression.",
+    "example": {
+      "oquery": "OrderItems: ProductId, Sum(Quantity * UnitPrice) Revenue",
+      "explanation": "Per product, adds up the line amounts of all order items."
+    }
+  },
+  {
+    "name": "Avg",
+    "category": "Aggregate",
+    "returns": "Number",
+    "signature": "Avg(expression: Number)",
+    "sqlServerTemplate": "AVG({1})",
+    "description": "Returns the average of a numeric expression.",
+    "example": {
+      "oquery": "OrderItems: ProductId, Avg(UnitPrice) AveragePrice",
+      "explanation": "Per product, returns the average unit price across its order items."
+    }
+  },
+  {
+    "name": "Max",
+    "category": "Aggregate",
+    "returns": "Number",
+    "signature": "Max(expression: Number)",
+    "sqlServerTemplate": "MAX({1})",
+    "description": "Returns the maximum value of a numeric expression.",
+    "example": {
+      "oquery": "OrderItems: ProductId, Max(UnitPrice) HighestPrice",
+      "explanation": "Per product, returns the highest unit price it was ordered at."
+    }
+  },
+  {
+    "name": "Min",
+    "category": "Aggregate",
+    "returns": "Number",
+    "signature": "Min(expression: Number)",
+    "sqlServerTemplate": "MIN({1})",
+    "description": "Returns the minimum value of a numeric expression.",
+    "example": {
+      "oquery": "OrderItems: ProductId, Min(UnitPrice) LowestPrice",
+      "explanation": "Per product, returns the lowest unit price it was ordered at."
+    }
+  },
+  {
+    "name": "CountIf",
+    "category": "Conditional aggregate",
+    "returns": "Number",
+    "signature": "CountIf(expression: Number = 1, predicate: Boolean)",
+    "sqlServerTemplate": "COUNT(CASE WHEN {2} THEN {1} END)",
+    "description": "Counts related rows that match a predicate. With two arguments, counts the non-null expression values on matching rows. The predicate is the last argument.",
+    "example": {
+      "oquery": "Customers: Region, CountIf(Status = <Active>) ActiveCustomers",
+      "explanation": "Per region, counts only the customers whose Status is Active."
+    }
+  },
+  {
+    "name": "SumIf",
+    "category": "Conditional aggregate",
+    "returns": "Number",
+    "signature": "SumIf(expression: Number, predicate: Boolean)",
+    "sqlServerTemplate": "SUM(CASE WHEN {2} THEN {1} END)",
+    "description": "Sums an expression over the rows that match a predicate.",
+    "example": {
+      "oquery": "Orders: CustomerId, SumIf(TotalAmount, Status = <Paid>) PaidTotal",
+      "explanation": "Per customer, adds up TotalAmount for paid orders only."
+    }
+  },
+  {
+    "name": "AvgIf",
+    "category": "Conditional aggregate",
+    "returns": "Number",
+    "signature": "AvgIf(expression: Number, predicate: Boolean)",
+    "sqlServerTemplate": "AVG(CASE WHEN {2} THEN {1} END)",
+    "description": "Averages an expression over the rows that match a predicate.",
+    "example": {
+      "oquery": "OrderItems: ProductId, AvgIf(UnitPrice, Quantity >= <5>) BulkUnitPrice",
+      "explanation": "Per product, averages the unit price only over order lines of 5 or more units."
+    }
+  },
+  {
+    "name": "MinIf",
+    "category": "Conditional aggregate",
+    "returns": "Number",
+    "signature": "MinIf(expression: Number, predicate: Boolean)",
+    "sqlServerTemplate": "MIN(CASE WHEN {2} THEN {1} END)",
+    "description": "Returns the minimum of an expression over the rows that match a predicate.",
+    "example": {
+      "oquery": "OrderItems: ProductId, MinIf(UnitPrice, Quantity >= <5>) LowestBulkPrice",
+      "explanation": "Per product, returns the lowest unit price among order lines of 5 or more units."
+    }
+  },
+  {
+    "name": "MaxIf",
+    "category": "Conditional aggregate",
+    "returns": "Number",
+    "signature": "MaxIf(expression: Number, predicate: Boolean)",
+    "sqlServerTemplate": "MAX(CASE WHEN {2} THEN {1} END)",
+    "description": "Returns the maximum of an expression over the rows that match a predicate.",
+    "example": {
+      "oquery": "OrderItems: ProductId, MaxIf(UnitPrice, Status = <Returned>) HighestReturnedPrice",
+      "explanation": "Per product, returns the highest unit price among returned order lines."
+    }
+  },
+  {
+    "name": "MedicalLossRatio",
+    "category": "Aggregate",
+    "returns": "Number",
+    "signature": "MedicalLossRatio(claimsPaid: Number, premiumRevenue: Number)",
+    "sqlServerTemplate": "ROUND(100.0 * COALESCE(MAX({1}), 0) / NULLIF(MAX({2}), 0), 2)",
+    "description": "Returns paid claims as a percentage of premium revenue, rounded to 2 decimal places. Returns null-safe 0 when claims are missing and avoids division by zero.",
+    "example": {
+      "oquery": "Plans: Region, MedicalLossRatio(ClaimsPaid, PremiumRevenue) LossRatioPercent",
+      "explanation": "Per region, shows paid claims as a percentage of premium revenue."
+    }
+  },
+  {
+    "name": "CountOver",
+    "category": "Window",
+    "returns": "Number",
+    "signature": "CountOver(expression: Number, partitionBy: Number = *)",
+    "sqlServerTemplate": "COUNT({1}) OVER (PARTITION BY {2})",
+    "description": "Counts values within a window partition. Each detail row is kept, so the count is repeated on every row of the partition.",
+    "example": {
+      "oquery": "Employees: Id, DepartmentId, CountOver(Id, DepartmentId) DepartmentHeadcount",
+      "explanation": "Every employee row shows the headcount of their department, and no rows are collapsed."
+    }
+  },
+  {
+    "name": "SumOver",
+    "category": "Window",
+    "returns": "Number",
+    "signature": "SumOver(expression: Number, partitionBy: Number = *)",
+    "sqlServerTemplate": "SUM({1}) OVER (PARTITION BY {2})",
+    "description": "Sums values within a window partition while keeping each detail row.",
+    "example": {
+      "oquery": "Employees: Id, DepartmentId, Salary, SumOver(Salary, DepartmentId) DepartmentPayroll",
+      "explanation": "Every employee row shows the total payroll of their department."
+    }
+  },
+  {
+    "name": "AverageOver",
+    "category": "Window",
+    "returns": "Number",
+    "signature": "AverageOver(expression: Number, partitionBy: Number = *)",
+    "sqlServerTemplate": "AVG({1}) OVER (PARTITION BY {2})",
+    "description": "Averages values within a window partition while keeping each detail row.",
+    "example": {
+      "oquery": "Employees: Id, DepartmentId, Salary, AverageOver(Salary, DepartmentId) DepartmentAverageSalary",
+      "explanation": "Every employee row shows the average salary of their department."
+    }
+  },
+  {
+    "name": "MaxOver",
+    "category": "Window",
+    "returns": "Number",
+    "signature": "MaxOver(expression: Number, partitionBy: Number = *)",
+    "sqlServerTemplate": "MAX({1}) OVER (PARTITION BY {2})",
+    "description": "Returns the maximum within a window partition while keeping each detail row.",
+    "example": {
+      "oquery": "Employees: Id, DepartmentId, Salary, MaxOver(Salary, DepartmentId) DepartmentMaximumSalary",
+      "explanation": "Every employee row shows the highest salary in their department."
+    }
+  },
+  {
+    "name": "MinOver",
+    "category": "Window",
+    "returns": "Number",
+    "signature": "MinOver(expression: Number, partitionBy: Number = *)",
+    "sqlServerTemplate": "MIN({1}) OVER (PARTITION BY {2})",
+    "description": "Returns the minimum within a window partition while keeping each detail row.",
+    "example": {
+      "oquery": "Employees: Id, DepartmentId, Salary, MinOver(Salary, DepartmentId) DepartmentMinimumSalary",
+      "explanation": "Every employee row shows the lowest salary in their department."
+    }
+  },
+  {
+    "name": "Lag",
+    "category": "Window",
+    "returns": "Number",
+    "signature": "Lag(expression: Number, offset: Number, orderBy: String)",
+    "sqlServerTemplate": "LAG({1}, {2}) OVER (ORDER BY {3} ASC)",
+    "description": "Returns the value of an expression from the row that is offset rows before the current row, in ascending orderBy order.",
+    "example": {
+      "oquery": "Orders: Id, OrderDate, TotalAmount, Lag(TotalAmount, <1>, OrderDate) PreviousAmount",
+      "explanation": "Each order shows the TotalAmount of the previous order by OrderDate."
+    }
+  },
+  {
+    "name": "WindowSum",
+    "category": "Window",
+    "returns": "Number",
+    "signature": "WindowSum(expression: Number, orderBy: String)",
+    "sqlServerTemplate": "SUM({1}) OVER (ORDER BY {2} ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)",
+    "description": "Returns a running total in ascending orderBy order.",
+    "example": {
+      "oquery": "Orders: Id, OrderDate, TotalAmount, WindowSum(TotalAmount, OrderDate) RunningTotal",
+      "explanation": "Each order shows the sum of all orders up to and including its OrderDate."
+    }
+  },
+  {
+    "name": "Rank",
+    "category": "Window",
+    "returns": "Number",
+    "signature": "Rank(partitionBy: Number, orderBy: Number)",
+    "sqlServerTemplate": "RANK() OVER (PARTITION BY {1} ORDER BY {2} DESC)",
+    "description": "Ranks rows within each partition by orderBy, highest value first. Tied values share a rank.",
+    "example": {
+      "oquery": "Products: Id, CategoryId, Price, Rank(CategoryId, Price) PriceRankInCategory",
+      "explanation": "Within each category, the most expensive product gets rank 1."
+    }
+  },
+  {
+    "name": "RowNumber",
+    "category": "Window",
+    "returns": "Number",
+    "signature": "RowNumber(partitionBy: Number, orderBy: Datetime)",
+    "sqlServerTemplate": "ROW_NUMBER() OVER (PARTITION BY {1} ORDER BY {2} DESC)",
+    "description": "Numbers rows within each partition by orderBy, newest first. Each row gets a distinct number, even when values tie.",
+    "example": {
+      "oquery": "Orders: Id, CustomerId, OrderDate, RowNumber(CustomerId, OrderDate) OrderSequenceNewestFirst",
+      "explanation": "For each customer, the latest order gets number 1."
+    }
+  },
+  {
+    "name": "NullIf",
+    "category": "Scalar",
+    "returns": "Number",
+    "signature": "NullIf(value: Number, otherValue: Number)",
+    "sqlServerTemplate": "NULLIF({1}, {2})",
+    "description": "Returns null when the two values are equal; otherwise returns the first value. Use it to avoid division by zero.",
+    "example": {
+      "oquery": "OrderItems: Id, Amount / NullIf(Quantity, <0>) UnitAmount",
+      "explanation": "Quantity 0 becomes null, so the division returns null instead of failing."
+    }
+  },
+  {
+    "name": "IfNull",
+    "category": "Scalar",
+    "returns": "Number",
+    "signature": "IfNull(value: Number, fallback: Number)",
+    "sqlServerTemplate": "COALESCE({1}, {2})",
+    "description": "Returns the first value when it is not null, otherwise returns the fallback.",
+    "example": {
+      "oquery": "Customers: Id, Name, IfNull(CreditLimit, <0>) CreditLimitOrZero",
+      "explanation": "Customers without a credit limit show 0."
+    }
+  },
+  {
+    "name": "Concat",
+    "category": "Scalar",
+    "returns": "String",
+    "signature": "Concat(first: String, separator: String, last: String)",
+    "sqlServerTemplate": "CONCAT({1}, {2}, {3})",
+    "description": "Joins three text values in order, placing the separator between the first and last values.",
+    "example": {
+      "oquery": "Employees: Id, Concat(LastName, <,>, FirstName) FullName",
+      "explanation": "Produces text such as 'Smith,John' for each employee."
+    }
+  },
+  {
+    "name": "MonthKey",
+    "category": "Date",
+    "returns": "String",
+    "signature": "MonthKey(value: Datetime)",
+    "sqlServerTemplate": "CONVERT(char(7), {1}, 126)",
+    "description": "Formats a date as a year-month key in YYYY-MM form, useful for grouping by month.",
+    "example": {
+      "oquery": "Orders: OrderDate.MonthKey() OrderMonth, Sum(TotalAmount) MonthlyRevenue",
+      "explanation": "Groups revenue by month, with keys such as 2025-10."
+    }
+  },
+  {
+    "name": "Day",
+    "category": "Date",
+    "returns": "Number",
+    "signature": "Day(extractDate: Datetime)",
+    "sqlServerTemplate": "DAY({1})",
+    "description": "Returns the day-of-month part of a date.",
+    "example": {
+      "oquery": "Employees: Id, HireDate.Day() HireDay",
+      "explanation": "Returns the day of the month when each employee was hired."
+    }
+  },
+  {
+    "name": "Month",
+    "category": "Date",
+    "returns": "Number",
+    "signature": "Month(extractDate: Datetime)",
+    "sqlServerTemplate": "MONTH({1})",
+    "description": "Returns the month part of a date.",
+    "example": {
+      "oquery": "Employees: Id, HireDate.Month() HireMonth",
+      "explanation": "Returns the month number (1-12) when each employee was hired."
+    }
+  },
+  {
+    "name": "Year",
+    "category": "Date",
+    "returns": "Number",
+    "signature": "Year(extractDate: Datetime)",
+    "sqlServerTemplate": "YEAR({1})",
+    "description": "Returns the year part of a date.",
+    "example": {
+      "oquery": "Employees: Id, HireDate.Year() HireYear",
+      "explanation": "Returns the calendar year when each employee was hired."
+    }
+  },
+  {
+    "name": "DateSub",
+    "category": "Date",
+    "returns": "Number",
+    "signature": "DateSub(startDate: Datetime, endDate: Datetime)",
+    "sqlServerTemplate": "DATEDIFF(day, {1}, {2})",
+    "description": "Returns the number of elapsed whole days from startDate to endDate.",
+    "example": {
+      "oquery": "Employees: Id, HireDate.DateSub(<2025-10-31>) TenureDays",
+      "explanation": "Counts the whole days from each HireDate to 31 October 2025."
+    }
+  },
+  {
+    "name": "DateAdd",
+    "category": "Date",
+    "returns": "Datetime",
+    "signature": "DateAdd(value: Datetime, amount: Number)",
+    "sqlServerTemplate": "DATEADD(day, {2}, {1})",
+    "description": "Adds the given number of days to a date or date-time.",
+    "example": {
+      "oquery": "Orders: Id, OrderDate.DateAdd(<30>) DueDate",
+      "explanation": "Each order's due date is 30 days after its OrderDate."
+    }
+  },
+  {
+    "name": "MonthSub",
+    "category": "Date",
+    "returns": "Number",
+    "signature": "MonthSub(startDate: Datetime, endDate: Datetime)",
+    "sqlServerTemplate": "DATEDIFF(month, {1}, {2})",
+    "description": "Returns the number of calendar-month boundaries from startDate to endDate. It does not count completed months; use MonthsTo for that.",
+    "example": {
+      "oquery": "Employees: Id, HireDate.MonthSub(<2025-10-31>) MonthBoundaries",
+      "explanation": "Counts how many calendar-month boundaries lie between each HireDate and 31 October 2025."
+    }
+  },
+  {
+    "name": "MonthAdd",
+    "category": "Date",
+    "returns": "Datetime",
+    "signature": "MonthAdd(value: Datetime, amount: Number)",
+    "sqlServerTemplate": "DATEADD(month, {2}, {1})",
+    "description": "Adds the given number of months to a date or date-time.",
+    "example": {
+      "oquery": "Subscriptions: Id, StartDate.MonthAdd(<12>) RenewalDate",
+      "explanation": "Each subscription renews 12 months after its StartDate."
+    }
+  },
+  {
+    "name": "YearSub",
+    "category": "Date",
+    "returns": "Number",
+    "signature": "YearSub(startDate: Datetime, endDate: Datetime)",
+    "sqlServerTemplate": "DATEDIFF(year, {1}, {2})",
+    "description": "Returns the number of calendar-year boundaries from startDate to endDate. It does not count completed years; use YearsTo for that.",
+    "example": {
+      "oquery": "Employees: Id, HireDate.YearSub(<2025-10-31>) YearBoundaries",
+      "explanation": "Counts calendar-year boundaries between each HireDate and 31 October 2025."
+    }
+  },
+  {
+    "name": "YearAdd",
+    "category": "Date",
+    "returns": "Datetime",
+    "signature": "YearAdd(value: Datetime, amount: Number)",
+    "sqlServerTemplate": "DATEADD(year, {2}, {1})",
+    "description": "Adds the given number of years to a date or date-time.",
+    "example": {
+      "oquery": "Contracts: Id, StartDate.YearAdd(<2>) ExpiryDate",
+      "explanation": "Each contract expires two years after its StartDate."
+    }
+  },
+  {
+    "name": "ElapsedYears",
+    "category": "Date",
+    "returns": "Number",
+    "signature": "ElapsedYears(startDate: Datetime, endDate: Datetime)",
+    "sqlServerTemplate": "(DATEDIFF(day, {1}, {2}) / 365.2425)",
+    "description": "Returns the fractional number of years between two dates, using 365.2425 days per year.",
+    "example": {
+      "oquery": "Employees: Id, HireDate.ElapsedYears(<2025-10-31>) ServiceYears",
+      "explanation": "Returns a decimal such as 4.73 for employees with about 4 years and 9 months of service."
+    }
+  },
+  {
+    "name": "YearsTo",
+    "category": "Date",
+    "returns": "Number",
+    "signature": "YearsTo(startDate: Datetime, endDate: Datetime)",
+    "sqlServerTemplate": "(DATEDIFF(year, {1}, {2}) - CASE WHEN DATEPART(month, {2}) * 100 + DATEPART(day, {2}) < DATEPART(month, {1}) * 100 + DATEPART(day, {1}) THEN 1 ELSE 0 END)",
+    "description": "Returns the number of completed years between startDate and endDate. A year is counted only after its anniversary date has passed.",
+    "example": {
+      "oquery": "Employees: Id, HireDate.YearsTo(<2025-10-31>) CompletedYears",
+      "explanation": "An employee hired on 1 November 2020 has 4 completed years on 31 October 2025."
+    }
+  },
+  {
+    "name": "MonthsTo",
+    "category": "Date",
+    "returns": "Number",
+    "signature": "MonthsTo(startDate: Datetime, endDate: Datetime)",
+    "sqlServerTemplate": "(MonthSub({1}, {2}) - CASE WHEN Day({2}) < Day({1}) THEN 1 ELSE 0 END)",
+    "description": "Returns the number of completed calendar months between startDate and endDate.",
+    "example": {
+      "oquery": "Employees: Id, HireDate.MonthsTo(<2025-10-31>) CompletedMonths",
+      "explanation": "Counts full months of service up to 31 October 2025."
+    }
+  },
+  {
+    "name": "DaysTo",
+    "category": "Date",
+    "returns": "Number",
+    "signature": "DaysTo(startDate: Datetime, endDate: Datetime)",
+    "sqlServerTemplate": "DATEDIFF(day, {1}, {2})",
+    "description": "Returns the number of completed days between startDate and endDate.",
+    "example": {
+      "oquery": "Employees: Id, HireDate.DaysTo(<2025-10-31>) CompletedDays",
+      "explanation": "Counts whole days of service up to 31 October 2025."
+    }
+  },
+  {
+    "name": "YearsToNow",
+    "category": "Date",
+    "returns": "Number",
+    "signature": "YearsToNow(startDate: Datetime)",
+    "sqlServerTemplate": "YearsTo({1}, GETDATE())",
+    "description": "Returns the number of completed years from startDate until the current time. The result changes as time passes.",
+    "example": {
+      "oquery": "Employees: Id, HireDate.YearsToNow() TenureYears",
+      "explanation": "Shows each employee's completed years of service as of today."
+    }
+  },
+  {
+    "name": "MonthsToNow",
+    "category": "Date",
+    "returns": "Number",
+    "signature": "MonthsToNow(startDate: Datetime)",
+    "sqlServerTemplate": "MonthsTo({1}, GETDATE())",
+    "description": "Returns the number of completed months from startDate until the current time.",
+    "example": {
+      "oquery": "Employees: Id, HireDate.MonthsToNow() TenureMonths",
+      "explanation": "Shows each employee's completed months of service as of today."
+    }
+  },
+  {
+    "name": "DaysToNow",
+    "category": "Date",
+    "returns": "Number",
+    "signature": "DaysToNow(startDate: Datetime)",
+    "sqlServerTemplate": "DaysTo({1}, GETDATE())",
+    "description": "Returns the number of completed days from startDate until the current time.",
+    "example": {
+      "oquery": "Invoices: Id, DueDate.DaysToNow() DaysOverdue",
+      "explanation": "Shows how many whole days have passed since each invoice's DueDate."
+    }
+  },
+  {
+    "name": "Any",
+    "category": "Collection predicate",
+    "returns": "Boolean",
+    "signature": "Any(predicate: Boolean)",
+    "sqlServerTemplate": "EXISTS (SELECT 1 FROM @Context WHERE {1} AND @JoinedConditions)",
+    "description": "Returns true when a related collection has at least one row matching the optional predicate. Without a predicate, returns true when any related row exists.",
+    "example": {
+      "oquery": "Customers: Id, Name, Orders.Any(Status = <Open>) HasOpenOrders",
+      "explanation": "Shows whether each customer has at least one open order."
+    }
+  },
+  {
+    "name": "NotAny",
+    "category": "Collection predicate",
+    "returns": "Boolean",
+    "signature": "NotAny(predicate: Boolean)",
+    "sqlServerTemplate": "NOT EXISTS (SELECT 1 FROM @Context WHERE {1} AND @JoinedConditions)",
+    "description": "Returns true when no related collection row matches the optional predicate. It is the negative form of Any.",
+    "example": {
+      "oquery": "Customers: Id, Name, Orders.NotAny() HasNoOrders",
+      "explanation": "Shows the customers that have never placed an order."
+    }
+  }
+]
