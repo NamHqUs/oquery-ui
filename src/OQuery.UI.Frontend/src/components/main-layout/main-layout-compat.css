@@ -552,6 +552,28 @@
 }
 
 /* Playground layout and components. Formerly playground/playground.css. */
+/* The header row spans the full width, so the AI assistant starts below it and the actions sit at the far right.
+   Container queries collapse Run and Save into the overflow menu when the row is too narrow. */
+.playground-shell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.playground-header {
+  position: relative;
+  z-index: 30;
+  container-type: inline-size;
+  min-width: 0;
+}
+
+.playground-header-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .playground-root {
   display: grid;
   flex: 1;
@@ -597,6 +619,8 @@
   height: 100%;
   min-width: 0;
   overflow: hidden;
+  box-sizing: border-box;
+  border-top: 1px solid #252b38;
 }
 
 .playground-entities.is-collapsed {
@@ -628,6 +652,188 @@
   background: transparent;
   font: inherit;
   font-size: 10px !important;
+}
+
+.playground-entities .playground-tabs {
+  min-height: 28px;
+}
+
+.playground-entities .playground-tab {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+}
+
+.playground-entities .playground-tab > button:first-child {
+  flex: 1;
+  justify-content: center;
+  padding: 4px 6px;
+}
+
+.playground-entities .playground-tab.active {
+  color: #e9edf4;
+  background: transparent;
+  border-bottom-color: #8064e8;
+}
+
+.playground-saved-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.playground-saved-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 3px;
+  color: #c8ced9;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.playground-saved-item:hover,
+.playground-saved-item.active {
+  background: #151923;
+}
+
+.playground-status {
+  padding: 0 4px;
+  color: #8993a5;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.playground-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.playground-menu-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 170px;
+  padding: 4px;
+  border: 1px solid #252b38;
+  border-radius: 4px;
+  background: #151923;
+  box-shadow: 0 8px 24px #00000066;
+}
+
+.playground-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 3px;
+  color: #c8ced9;
+  background: transparent;
+  font: 500 12px "Manrope", sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.playground-menu-item:hover:not(:disabled) {
+  background: #1b202b;
+}
+
+.playground-menu-item:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.playground-menu-item.danger {
+  color: #f0a6ae;
+}
+
+.playground-menu-divider {
+  height: 1px;
+  margin: 4px 2px;
+  background: #252b38;
+}
+
+.playground-menu-compact {
+  display: none;
+}
+
+@container (max-width: 760px) {
+  .playground-header-inline {
+    display: none;
+  }
+
+  .playground-menu-compact {
+    display: flex;
+  }
+}
+
+.playground-name-backdrop {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #05060bcc;
+}
+
+.playground-name-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  width: min(360px, calc(100vw - 32px));
+  padding: 18px;
+  border: 1px solid #252b38;
+  border-radius: 6px;
+  color: #e9edf4;
+  background: #0e1117;
+}
+
+.playground-name-dialog h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.playground-name-dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: #8993a5;
+}
+
+.playground-name-dialog input {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid #252b38;
+  border-radius: 4px;
+  color: #e9edf4;
+  background: #151923;
+  font: inherit;
+}
+
+.playground-name-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .playground-list {
@@ -773,7 +979,7 @@
   margin: 0;
   padding: 12px 16px;
   color: #8993a5;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .playground-message.error {
@@ -808,7 +1014,7 @@
   top: 0;
   bottom: 0;
   left: 2px;
-  width: 1px;
+  width: 2px;
   background: #252b38;
 }
 
@@ -844,15 +1050,38 @@
   gap: 0px;
   min-width: 0;
   min-height: 0;
+  border-top: 1px solid #252b38;
 }
 
 .playground-tabs {
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
   gap: 4px;
-  min-height: 36px;
+  min-height: 28px;
   overflow-x: auto;
   border-bottom: 1px solid #252b38;
+}
+
+/* The strip's bottom line is drawn as a pseudo-element so the selected tab can sit above it and hide it. */
+.playground-editor-area .playground-tabs {
+  position: relative;
+  border-bottom: 0;
+}
+
+.playground-editor-area .playground-tabs::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  background: #252b38;
+  pointer-events: none;
+}
+
+.playground-editor-area .playground-tab.active {
+  position: relative;
+  z-index: 1;
 }
 
 .playground-tab {
@@ -871,11 +1100,12 @@
   background: #151923;
 }
 
-.playground-tab > button:first-child {
+.playground-tab > button:first-child,
+.playground-tab > .playground-tab-editing {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 10px;
+  padding: 4px 10px;
   border: 0;
   color: inherit;
   background: transparent;
@@ -890,12 +1120,100 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
+  padding: 4px;
   border: 0;
   border-radius: 3px;
   color: #8993a5;
   background: transparent;
   cursor: pointer;
+}
+
+.playground-tab-input {
+  width: 120px;
+  height: 20px;
+  margin: 0 6px;
+  padding: 0 2px;
+  box-sizing: border-box;
+  border: 0;
+  outline: 0;
+  border-radius: 2px;
+  color: #e9edf4;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+}
+
+.playground-saved-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: inherit;
+}
+
+.playground-saved-item.is-edit .playground-saved-icon {
+  color: #f0b429;
+}
+
+/* The global button rule uses !important for padding; the saved row keeps its own so the icon stays put when the name becomes an input. */
+button.playground-saved-item {
+  padding: 0 6px !important;
+}
+
+.playground-saved-item .playground-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playground-saved-item .playground-tab-input {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  height: 20px;
+  margin: 0;
+  padding: 0 4px;
+  background: #0d1017;
+}
+
+.playground-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 420px;
+  padding: 8px 8px 8px 12px;
+  border: 1px solid #3b4356;
+  border-radius: 4px;
+  color: #e9edf4;
+  background: #151923;
+  box-shadow: 0 6px 20px #05060bcc;
+  font-size: 11px;
+}
+
+.playground-toast.success > svg {
+  color: #4df0cb;
+}
+
+.playground-toast.error {
+  border-color: #7a3d4a;
+}
+
+.playground-toast.error > svg {
+  color: #f0a6ae;
+}
+
+.playground-toast > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.playground-icon-button.pinned {
+  color: #e9edf4;
+  background: #252b38;
 }
 
 .playground-tab-close {
@@ -908,6 +1226,7 @@
   gap: 8px;
   margin-right: 16px;
 }
+
 
 .playground-editor-host {
   flex: 0 0 auto;
@@ -951,6 +1270,7 @@
   overflow: hidden;
   padding: 0 14px;
   border: 0;
+  border-top: 1px solid #252b38;
   border-radius: 0;
   background: linear-gradient(135deg, #11141c, #0f1218);
 }

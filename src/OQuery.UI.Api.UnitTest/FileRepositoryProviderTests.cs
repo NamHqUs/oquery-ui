@@ -49,6 +49,39 @@ internal sealed class FileRepositoryProviderTests
     }
 
     [Test]
+    public void PlaygroundIsStoredInsideDomainPlaygroundFolder()
+    {
+        _provider.Projects.Save(Section, new ProjectFileDto("p1", "Sales", "", ""));
+        var scope = new StorageScope(Section, "p1");
+        var id = _provider.Playgrounds.CreateId(scope, "d1");
+        _provider.Playgrounds.Save(scope, new PlaygroundDto("Customer")
+        {
+            Id = id,
+            Name = "Top customers",
+            DomainId = "d1",
+            Tabs = [new PlaygroundTabDto("Tab 1", "Customer:\n  Name")],
+        });
+
+        Assert.That(File.Exists(Path.Combine(_root, Section, "projects", "p1", "d1", "playground", id + ".json")), Is.True);
+        Assert.That(_provider.Playgrounds.GetAll(scope, "d1").Single().Name, Is.EqualTo("Top customers"));
+        Assert.That(_provider.Playgrounds.GetAll(scope, "d1").Single().Tabs[0].Content, Is.EqualTo("Customer:\n  Name"));
+        Assert.That(_provider.Playgrounds.GetAll(scope, "d2"), Is.Empty);
+    }
+
+    [Test]
+    public void DeletingPlaygroundRemovesOnlyItsDomainCopy()
+    {
+        _provider.Projects.Save(Section, new ProjectFileDto("p1", "Sales", "", ""));
+        var scope = new StorageScope(Section, "p1");
+        var id = _provider.Playgrounds.CreateId(scope, "d1");
+        _provider.Playgrounds.Save(scope, new PlaygroundDto("Customer") { Id = id, DomainId = "d1" });
+
+        Assert.That(_provider.Playgrounds.Delete(scope, "d2", id), Is.False);
+        Assert.That(_provider.Playgrounds.Delete(scope, "d1", id), Is.True);
+        Assert.That(_provider.Playgrounds.Get(scope, "d1", id), Is.Null);
+    }
+
+    [Test]
     public void DomainsAreStoredOneFilePerDomain()
     {
         _provider.Projects.Save(Section, new ProjectFileDto("p1", "Sales", "", ""));

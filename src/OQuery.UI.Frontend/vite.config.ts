@@ -23,6 +23,7 @@ export default defineConfig(({ mode, command }) => {
         },
         "/dynamic-query": { target: backendApiUrl, changeOrigin: true },
         "/query-request": { target: backendApiUrl, changeOrigin: true },
+        "/playgrounds": { target: backendApiUrl, changeOrigin: true },
         "/analytics": { target: backendApiUrl, changeOrigin: true },
       },
     },

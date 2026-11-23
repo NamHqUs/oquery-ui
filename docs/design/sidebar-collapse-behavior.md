@@ -4,7 +4,7 @@ Status: proposal. Defines when side panels collapse. No code is changed by this 
 
 ## Problem
 
-Side panels (the workspace sidebar and the Playground's Available entities panel) need to free space on
+Side panels (the workspace sidebar and the Playground's Saved | Entities panel) need to free space on
 narrow screens. Collapsing them without the user asking can hide content they are working with, so the
 rule must separate automatic layout from user intent.
 

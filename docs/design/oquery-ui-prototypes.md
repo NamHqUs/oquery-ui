@@ -18,6 +18,28 @@ database status, workspace navigation, entity visualization, and an inspector pa
 The playground reference defines the query editor layout, entity/field palette, result tabs,
 visualization area, and query copilot panel.
 
+### Playground header redesign
+
+- **Actions:** **Run** (primary, runs the entry context) and **Save** stay visible. **Format**,
+  **Reload**, **New**, and **Delete** move into a `⋯` overflow menu. Delete appears in the menu only
+  for a saved playground.
+- **Layout:** the header row spans the full page width, above the editor and the AI assistant. The
+  assistant starts below the header, and the action group sits at the far right.
+- **Narrow header:** when the header row is 760px or less, Run and Save collapse into the `⋯` menu
+  (container query). Format, Reload, New, and Delete stay in the menu at all widths.
+- **Status:** an "Unsaved" label sits next to the actions while the playground has unsaved changes.
+- **Explorer tabs:** Saved and Entities use an underline style, scoped to the explorer panel. The
+  editor's document tabs are unchanged.
+- **Styling constraint:** `.main-layout-heading` is shared by every page. Playground changes must not
+  override it. Buttons keep the canonical `.button` styles.
+- **Sections:** the Saved/Entities explorer, the editor, and the AI assistant each start with a 1px top border (`#252b38`).
+- **Rename saved playground:** double-click the open saved item to edit its name inline. Enter or blur
+  applies, Escape cancels, and an empty name keeps the old one. The new name stays in memory like any
+  other edit (the item shows the unsaved marker) and is written only when Save is clicked. Non-open
+  saved items are opened first, then renamed.
+- **Results:** results stay inline under the context block that produced them. A separate results
+  panel is out of scope, because inline results are the existing execution model.
+
 ## Saved queries
 
 ![Saved queries prototype](./assets/queries.png)

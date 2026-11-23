@@ -18,9 +18,11 @@ public sealed class FileRepositoryProvider
         Projects = new ProjectFileRepository(filePathResolver);
         Queries = new QueryRequestFileRepository(filePathResolver, builtinQueries);
         Functions = new FunctionDefinitionFileRepository(filePathResolver);
+        Playgrounds = new PlaygroundFileRepository(filePathResolver);
     }
 
     public IProjectRepository Projects { get; }
     public IQueryRequestRepository Queries { get; }
     public IFunctionDefinitionRepository Functions { get; }
+    public IPlaygroundRepository Playgrounds { get; }
 }

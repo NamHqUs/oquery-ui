@@ -31,4 +31,16 @@ public sealed class FilePathResolver(string userDataDirectory)
 
         return Path.Combine(GetProjectsFolder(scope.UserSectionId), scope.ProjectId, subDir);
     }
+
+    /// <summary>Returns the folder of one domain's store (for example "playground") inside projects/{projectId}/{domainId}.</summary>
+    public string GetDomainStoreFolder(StorageScope scope, string domainId, string subDir)
+    {
+        if (string.IsNullOrWhiteSpace(scope.ProjectId) || Path.GetFileName(scope.ProjectId) != scope.ProjectId)
+            throw new ArgumentException("Project ID is not a valid folder name.", nameof(scope));
+        if (string.IsNullOrWhiteSpace(domainId) || Path.GetFileName(domainId) != domainId
+            || domainId is "domains" or "queries")
+            throw new ArgumentException("Domain ID is not a valid folder name.", nameof(domainId));
+
+        return Path.Combine(GetProjectsFolder(scope.UserSectionId), scope.ProjectId, domainId, subDir);
+    }
 }

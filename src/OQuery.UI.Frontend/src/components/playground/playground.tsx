@@ -6,11 +6,15 @@ import OQueryEditor, { type OQueryEditorHandle } from "../oquery-editor/oquery-e
 import { getOQuerySuggestionData } from "../oquery-editor/oquery-suggestion-data";
 import { getOqueryContextBlocks } from "../oquery-editor/oquery-monaco-adapters";
 import * as oQueryEditorService from "../../services/oquery-editor-service";
+import type { PlaygroundPayload, SavedPlayground } from "../../services/playground-service";
 import type { RootState } from "../../store/store";
 import {
   clearAllInlineResults,
   clearInlineResult,
+  deletePlayground,
   executeContextFromText,
+  fetchSavedPlaygrounds,
+  savePlayground,
 } from "./playground-slice";
 import {
   relationsForEntity,
@@ -26,17 +30,30 @@ const ENTITY_ROW_HEIGHT = 28;
 const FIELD_ROW_HEIGHT = 24;
 const RELATION_ROW_HEIGHT = 24;
 const ROW_OVERSCAN = 6;
-const ENTITY_WIDTH = { default: 150, min: 0, max: 420 };
+const ENTITY_WIDTH = { default: 240, min: 0, max: 420 };
 const ENTITY_HIDDEN_WIDTH = 48;
 const COPILOT_WIDTH = { default: 250, min: 200, max: 460 };
 const COPILOT_COLLAPSED_WIDTH = 36;
 // Gap between the screen top and the entity list while it is pinned during scroll.
 const ENTITY_PIN_TOP = 6;
 type EditorTab = { id: string; title: string; text: string };
+// A transient save or error message. It hides after 5 seconds unless the user pins it.
+type Notice = { id: number; text: string; kind: "success" | "error"; pinned: boolean };
+const NOTICE_TIMEOUT_MS = 5000;
+// What the user asked to switch to: a fresh New playground or a saved one.
+type PlaygroundAction = { kind: "new" } | { kind: "open"; item: SavedPlayground };
+// Compares the playground name, tab titles and text. The current playground is dirty when this differs from its last loaded or saved snapshot.
+const snapshotOf = (items: EditorTab[], name: string) => JSON.stringify({ name, tabs: items.map(({ title, text }) => ({ title, text })) });
 type ExplorerRow =
   | { kind: "entity"; key: string; entity: MetadataEntity; open: boolean }
   | { kind: "field"; key: string; field: MetadataField }
   | { kind: "relation"; key: string; relation: EntityRelationView };
+
+// Long saved names are cut to a fixed length so the heading always stays on one line and keeps its height.
+const HEADER_TITLE_MAX = 32;
+function headerTitleOf(name: string) {
+  return name.length > HEADER_TITLE_MAX ? `${name.slice(0, HEADER_TITLE_MAX - 1)}…` : name;
+}
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -94,8 +111,185 @@ function rowAt(offsets: number[], y: number) {
   return low;
 }
 
-function PlaygroundHeading() {
-  return <Heading icon="query" title="Query playground" text="Ask questions across your business data" actions={<><button type="button" className="button secondary"><Icon name="code" size={14} />Format</button><button type="button" className="button secondary"><Icon name="save" size={14} />Save</button></>} />;
+// Overflow menu for the less frequent header actions. Closes on outside click, item choice, or Escape.
+// Run and Save appear in this menu only when the header is too narrow for the inline buttons (see .playground-menu-compact).
+function PlaygroundOverflowMenu({ disabled, onRun, onSave, saving, onDelete, onNew, onReload, deleting }: { disabled: boolean; onRun: () => void; onSave: () => void; saving: boolean; onDelete?: () => void; onNew: () => void; onReload: () => void; deleting: boolean }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutside = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+  const choose = (action: () => void) => {
+    setOpen(false);
+    action();
+  };
+  return <div className="playground-menu" ref={rootRef}>
+    <button type="button" className="button secondary" aria-label="More playground actions" aria-haspopup="menu" aria-expanded={open} disabled={disabled} onClick={() => setOpen((current) => !current)}>
+      <span aria-hidden="true">⋯</span>
+    </button>
+    {open && <div className="playground-menu-panel" role="menu">
+      <button type="button" role="menuitem" className="playground-menu-item playground-menu-compact" onClick={() => choose(onRun)} disabled={disabled}><Icon name="play" size={14} />Run</button>
+      <button type="button" role="menuitem" className="playground-menu-item playground-menu-compact" onClick={() => choose(onSave)} disabled={disabled}><Icon name="save" size={14} />{saving ? "Saving..." : "Save"}</button>
+      <div className="playground-menu-divider playground-menu-compact" role="separator" />
+      <button type="button" role="menuitem" className="playground-menu-item" disabled title="Not available yet"><Icon name="code" size={14} />Format</button>
+      <button type="button" role="menuitem" className="playground-menu-item" onClick={() => choose(onReload)} disabled={disabled}><Icon name="refresh" size={14} />Reload</button>
+      <button type="button" role="menuitem" className="playground-menu-item" onClick={() => choose(onNew)} disabled={disabled}><Icon name="file-plus" size={14} />New</button>
+      {onDelete && <button type="button" role="menuitem" className="playground-menu-item danger" onClick={() => choose(onDelete)} disabled={disabled}><Icon name="trash" size={14} />{deleting ? "Deleting..." : "Delete"}</button>}
+    </div>}
+  </div>;
+}
+
+function PlaygroundHeading({ title, dirty, onRun, onDelete, onNew, onReload, onSave, saving, deleting }: { title: string; dirty: boolean; onRun: () => void; onDelete?: () => void; onNew: () => void; onReload: () => void; onSave: () => void; saving: boolean; deleting: boolean }) {
+  const busy = saving || deleting;
+  return <Heading icon="query" title={title} text="Ask questions across your business data" actions={<>{dirty && <span className="playground-status">Unsaved</span>}<span className="playground-header-inline"><button type="button" className="button primary" onClick={onRun} disabled={busy}><Icon name="play" size={14} />Run</button><button type="button" className="button secondary" onClick={onSave} disabled={busy}><Icon name="save" size={14} />{saving ? "Saving..." : "Save"}</button></span><PlaygroundOverflowMenu disabled={busy} onRun={onRun} onSave={onSave} saving={saving} onDelete={onDelete} onNew={onNew} onReload={onReload} deleting={deleting} /></>} />;
+}
+
+// Shown when the current playground has unsaved changes and another playground (or New) is requested.
+function UnsavedChangesDialog({ saving, onSave, onDiscard, onCancel }: { saving: boolean; onSave: () => void; onDiscard: () => void; onCancel: () => void }) {
+  return <div className="playground-name-backdrop" onClick={onCancel}>
+    <div className="playground-name-dialog" role="dialog" aria-modal="true" aria-labelledby="playground-unsaved-title" onClick={(event) => event.stopPropagation()} onKeyDown={(event) => { if (event.key === "Escape") onCancel(); }}>
+      <h2 id="playground-unsaved-title">Unsaved changes</h2>
+      <p>Save changes to the current playground before continuing?</p>
+      <div className="playground-name-actions">
+        <button type="button" className="button secondary" onClick={onCancel}>Cancel</button>
+        <button type="button" className="button secondary" onClick={onDiscard} disabled={saving}>Discard</button>
+        <button type="button" className="button" onClick={onSave} disabled={saving}>{saving ? "Saving..." : "Save"}</button>
+      </div>
+    </div>
+  </div>;
+}
+
+// Generic yes/no dialog rendered in the app's style. Escape or the backdrop cancels.
+function ConfirmDialog({ title, message, confirmLabel, onConfirm, onCancel }: { title: string; message: string; confirmLabel: string; onConfirm: () => void; onCancel: () => void }) {
+  return <div className="playground-name-backdrop" onClick={onCancel}>
+    <div className="playground-name-dialog" role="dialog" aria-modal="true" aria-labelledby="playground-confirm-title" onClick={(event) => event.stopPropagation()} onKeyDown={(event) => { if (event.key === "Escape") onCancel(); }}>
+      <h2 id="playground-confirm-title">{title}</h2>
+      <p>{message}</p>
+      <div className="playground-name-actions">
+        <button type="button" className="button secondary" onClick={onCancel}>Cancel</button>
+        <button type="button" className="button danger" onClick={onConfirm}>{confirmLabel}</button>
+      </div>
+    </div>
+  </div>;
+}
+
+// Double-click the tab title to rename it. Enter or blur commits; Escape cancels. An empty name keeps the old one.
+function PlaygroundTabButton({ tab, active, canClose, onSelect, onRename, onClose }: { tab: EditorTab; active: boolean; canClose: boolean; onSelect: () => void; onRename: (title: string) => void; onClose: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(tab.title);
+  // Blur also fires when Enter or Escape removes the input, so a finished edit must not finish twice.
+  const finished = useRef(false);
+  const startEditing = () => {
+    finished.current = false;
+    setDraft(tab.title);
+    setEditing(true);
+  };
+  const finish = (save: boolean) => {
+    if (finished.current) return;
+    finished.current = true;
+    setEditing(false);
+    const next = draft.trim();
+    if (save && next && next !== tab.title) onRename(next);
+  };
+  return <div className={`playground-tab${active ? " active" : ""}`}>
+    {editing
+      ? <div className="playground-tab-editing">
+        <Icon name="file-text" size={13} />
+        <input className="playground-tab-input" aria-label="Tab name" autoFocus value={draft} onChange={(event) => setDraft(event.target.value)} onBlur={() => finish(true)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") finish(true);
+            else if (event.key === "Escape") finish(false);
+          }} />
+      </div>
+      : <button type="button" role="tab" aria-selected={active} title="Double-click to rename" onClick={onSelect} onDoubleClick={startEditing}>
+        <Icon name="file-text" size={13} />{tab.title}
+      </button>}
+    {canClose && <button type="button" className="playground-tab-close" aria-label={`Close ${tab.title}`} onClick={onClose}><Icon name="close" size={11} /></button>}
+  </div>;
+}
+
+// Asks for the playground name before a save. Enter confirms, Escape or the backdrop cancels.
+function PlaygroundNameDialog({ initial, onConfirm, onCancel }: { initial: string; onConfirm: (name: string) => void; onCancel: () => void }) {
+  const [name, setName] = useState(initial);
+  const trimmed = name.trim();
+  return <div className="playground-name-backdrop" onClick={onCancel}>
+    <form
+      className="playground-name-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="playground-name-title"
+      onClick={(event) => event.stopPropagation()}
+      onKeyDown={(event) => { if (event.key === "Escape") onCancel(); }}
+      onSubmit={(event) => { event.preventDefault(); if (trimmed) onConfirm(trimmed); }}
+    >
+      <h2 id="playground-name-title">Save playground</h2>
+      <label>Playground name<input autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Top customers by revenue" /></label>
+      <div className="playground-name-actions">
+        <button type="button" className="button secondary" onClick={onCancel}>Cancel</button>
+        <button type="submit" className="button" disabled={!trimmed}>Save</button>
+      </div>
+    </form>
+  </div>;
+}
+
+// Double-click the open playground to rename it. The new name stays in memory until Save. Enter or blur applies; Escape cancels. An empty name keeps the old one.
+function SavedPlaygroundItem({ name, active, dirty, onOpen, onRename }: { name: string; active: boolean; dirty: boolean; onOpen: () => void; onRename: (name: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(name);
+  // Blur also fires when Enter or Escape removes the input, so a finished edit must not finish twice.
+  const finished = useRef(false);
+  const startEditing = () => {
+    if (!active) return;
+    finished.current = false;
+    setDraft(name);
+    setEditing(true);
+  };
+  const finish = (save: boolean) => {
+    if (finished.current) return;
+    finished.current = true;
+    setEditing(false);
+    const next = draft.trim();
+    if (save && next && next !== name) onRename(next);
+  };
+  const pencil = editing || (dirty && active);
+  const className = `playground-saved-item${active ? " active" : ""}${pencil ? " is-edit" : ""}`;
+  const leadingIcon = pencil ? "edit" : "file-text";
+  const content = <>
+    <span className="playground-saved-icon"><Icon name={leadingIcon} size={13} /></span>
+    {editing
+      ? <input className="playground-tab-input" aria-label="Playground name" autoFocus value={draft} onChange={(event) => setDraft(event.target.value)} onBlur={() => finish(true)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") finish(true);
+          else if (event.key === "Escape") finish(false);
+        }} />
+      : <span className="playground-name">{name || "Untitled playground"}</span>}
+  </>;
+  if (editing) return <div className={className}>{content}</div>;
+  return <button type="button" className={className} aria-current={active} title={active ? "Double-click to rename" : undefined} onClick={onOpen} onDoubleClick={startEditing}>{content}</button>;
+}
+
+function SavedPlaygroundList({ items, status, error, activeId, activeName, dirty, onOpen, onRename }: { items: SavedPlayground[]; status: string; error: string; activeId: string | null; activeName: string; dirty: boolean; onOpen: (item: SavedPlayground) => void; onRename: (name: string) => void }) {
+  if (error) return <p className="playground-message error">{error}</p>;
+  if (status === "loading" && items.length === 0) return <p className="playground-message">Loading saved playgrounds...</p>;
+  if (items.length === 0) return <p className="playground-message">No saved playgrounds in this domain</p>;
+  return <div className="playground-saved-list">
+    {items.map((item) => {
+      const active = item.id === activeId;
+      return <SavedPlaygroundItem key={item.id} name={active ? activeName : item.name} active={active} dirty={dirty} onOpen={() => onOpen(item)} onRename={onRename} />;
+    })}
+  </div>;
 }
 
 function Splitter({ label, hidden = false, minimized = false, onDrag }: { label: string; hidden?: boolean; minimized?: boolean; onDrag: (delta: number) => void }) {
@@ -146,7 +340,6 @@ function EntityExplorer({ entities, relations, error }: { entities: MetadataEnti
   const last = Math.min(rows.length, rowAt(offsets, scrollTop + viewportHeight) + 1 + ROW_OVERSCAN);
 
   return <>
-    <h2 className="playground-eyebrow">Available entities</h2>
     <label className="playground-search"><Icon name="search" size={14} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search entities or fields..." aria-label="Search entities or fields" /></label>
     {error && <p className="playground-message error">{error}</p>}
     {!error && rows.length === 0 && <p className="playground-message">{entities.length ? "No matches" : "No entities in this domain"}</p>}
@@ -214,13 +407,38 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
   const entitiesRef = useRef<HTMLElement>(null);
   const entitiesSlotRef = useRef<HTMLDivElement>(null);
   const [tabs, setTabs] = useState<EditorTab[]>(() => [{ id: "tab-1", title: queryId || "Untitled query", text: "" }]);
+  // Snapshot of the tabs as last loaded or saved. Changes compare against it to detect unsaved edits.
+  const [baseline, setBaseline] = useState(() => snapshotOf(tabs, ""));
   const [activeTabId, setActiveTabId] = useState("tab-1");
   const [message, setMessage] = useState("");
   const [loadError, setLoadError] = useState("");
   const [entityWidth, setEntityWidth] = useState(ENTITY_WIDTH.default);
   const [copilotWidth, setCopilotWidth] = useState(COPILOT_WIDTH.default);
   const [copilotCollapsed, setCopilotCollapsed] = useState(false);
+  const [sidePanel, setSidePanel] = useState<"entities" | "saved">("saved");
+  const [savedPlaygroundId, setSavedPlaygroundId] = useState<string | null>(null);
+  const [playgroundName, setPlaygroundName] = useState("");
+  // null means the name dialog is closed; otherwise it holds the name shown in the dialog.
+  const [nameDraft, setNameDraft] = useState<string | null>(null);
+  // Set when the user asked to switch playgrounds while the current one has unsaved changes.
+  const [pendingAction, setPendingAction] = useState<PlaygroundAction | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const [reloadConfirmOpen, setReloadConfirmOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const noticeId = notice?.id;
+  const noticePinned = notice?.pinned;
+  // Hides the notice after the timeout. Pinning cancels the timer, so the notice stays until closed.
+  useEffect(() => {
+    if (noticeId === undefined || noticePinned) return;
+    const timer = window.setTimeout(() => setNotice(null), NOTICE_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [noticeId, noticePinned]);
+  const notify = (text: string, kind: Notice["kind"]) => setNotice({ id: Date.now(), text, kind, pinned: false });
+  const savedPlaygrounds = useSelector((state: RootState) => state.playground.saved);
+  const saveStatus = useSelector((state: RootState) => state.playground.saveStatus);
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
+  const isDirty = snapshotOf(tabs, playgroundName) !== baseline;
   const suggestionData = useMemo(() => getOQuerySuggestionData(metadata, metadataRelations), [metadata, metadataRelations]);
 
   // The entity panel's top sticks to the screen top once the layout scrolls above it, and its bottom always stays
@@ -288,7 +506,130 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
       .catch((reason: unknown) => setLoadError(reason instanceof Error ? reason.message : "Unable to load domain metadata."));
   }, [projectId, domainId]);
 
+  // Switching domains leaves the saved selection. Typed text stays as a New playground, which is not dirty.
+  useEffect(() => {
+    if (!projectId || !domainId) return;
+    setSavedPlaygroundId(null);
+    setPlaygroundName("");
+    setBaseline(snapshotOf(tabs, ""));
+  }, [dispatch, projectId, domainId]);
+
+  // Tab text is raw OQuery text; it is stored as typed without parsing or validation.
+  const buildPlaygroundPayload = (name: string): PlaygroundPayload => {
+    const tabsPayload = tabs.map((tab) => ({ title: tab.title, content: tab.text }));
+    const entity = tabsPayload.map((tab) => getOqueryContextBlocks(tab.content)[0]?.contextName).find(Boolean) ?? "";
+    return { name, entity, domainId, tabs: tabsPayload };
+  };
+
+  // Save first asks for the playground name; the request is sent only after the name is confirmed.
+  const savePlaygroundClick = () => {
+    if (!projectId || !domainId) {
+      notify("Choose a project and an active domain before saving.", "error");
+      return;
+    }
+    setMessage("");
+    if (saveExisting()) confirmSave(playgroundName);
+    else setNameDraft(playgroundName);
+  };
+
+  // Saves the current playground. A pending switch runs only after the save succeeds.
+  const confirmSave = async (name: string) => {
+    const snapshot = snapshotOf(tabs, name);
+    const pending = pendingAction;
+    setNameDraft(null);
+    setPlaygroundName(name);
+    const result = await dispatch(savePlayground({ projectId, playground: buildPlaygroundPayload(name), id: savedPlaygroundId ?? undefined }));
+    if (!savePlayground.fulfilled.match(result)) {
+      setPendingAction(null);
+      notify(String(result.payload ?? "Unable to save playground."), "error");
+      return;
+    }
+    setSavedPlaygroundId(result.payload.id);
+    setBaseline(snapshot);
+    notify(`Saved "${name}"`, "success");
+    setPendingAction(null);
+    if (pending) applyAction(pending);
+  };
+
+  // An existing playground saves directly (update); only a new one asks for its name first.
+  const saveExisting = () => savedPlaygroundId !== null && playgroundName.trim() !== "";
+  const saveFromPrompt = () => {
+    if (saveExisting()) confirmSave(playgroundName);
+    else setNameDraft(playgroundName);
+  };
+
+  // Replaces the editor with a New playground or a saved one, and records the result as the clean baseline.
+  const applyAction = (action: PlaygroundAction) => {
+    setMessage("");
+    dispatch(clearAllInlineResults());
+    const source = action.kind === "open" ? action.item.tabs : [];
+    const next = (source.length ? source : [{ title: "Untitled query", content: "" }]).map((tab) => ({
+      // New ids remount the editor so it shows the loaded text instead of the previous tab's text.
+      id: `tab-${nextTabNumber.current++}`,
+      title: tab.title,
+      text: tab.content,
+    }));
+    setTabs(next);
+    setActiveTabId(next[0].id);
+    setBaseline(snapshotOf(next, action.kind === "open" ? action.item.name : ""));
+    if (action.kind === "open") {
+      setSavedPlaygroundId(action.item.id);
+      setPlaygroundName(action.item.name);
+    } else {
+      setSavedPlaygroundId(null);
+      setPlaygroundName("");
+    }
+  };
+
+  // Every switch checks the current playground first: unsaved changes ask to save, discard, or cancel.
+  const requestAction = (action: PlaygroundAction) => {
+    if (action.kind === "open" && action.item.id === savedPlaygroundId) return;
+    if (isDirty) setPendingAction(action);
+    else applyAction(action);
+  };
+
+  const requestDelete = () => {
+    if (savedPlaygroundId) setDeleteConfirmOpen(true);
+  };
+
+  const performDelete = async () => {
+    if (!savedPlaygroundId || !projectId || !domainId) return;
+    setMessage("");
+    setDeleting(true);
+    const result = await dispatch(deletePlayground({ projectId, domainId, id: savedPlaygroundId }));
+    setDeleting(false);
+    if (deletePlayground.fulfilled.match(result)) {
+      notify("Playground deleted", "success");
+      applyAction({ kind: "new" });
+    } else {
+      notify(String(result.payload ?? "Unable to delete playground."), "error");
+    }
+  };
+
+  // Refreshes the saved list and reloads the open playground from it.
+  const performReload = async () => {
+    if (!projectId || !domainId) return;
+    setMessage("");
+    const result = await dispatch(fetchSavedPlaygrounds({ projectId, domainId }));
+    if (!fetchSavedPlaygrounds.fulfilled.match(result) || !savedPlaygroundId) return;
+    const item = result.payload.find((saved) => saved.id === savedPlaygroundId);
+    if (item) applyAction({ kind: "open", item });
+    else notify("This playground no longer exists.", "error");
+  };
+
+  // Unsaved edits need confirmation before a reload discards them.
+  const reloadCurrent = () => {
+    if (isDirty) setReloadConfirmOpen(true);
+    else performReload();
+  };
+
+  const selectSidePanel = (panel: "entities" | "saved") => {
+    setSidePanel(panel);
+    if (panel === "saved" && projectId && domainId) dispatch(fetchSavedPlaygrounds({ projectId, domainId }));
+  };
+
   const updateTabText = (id: string, text: string) => setTabs((current) => current.map((tab) => (tab.id === id ? { ...tab, text } : tab)));
+  const renameTab = (id: string, title: string) => setTabs((current) => current.map((tab) => (tab.id === id ? { ...tab, title } : tab)));
   // Results stay until the user clears them, so opening or switching tabs never wipes a grid.
   const selectTab = (id: string) => {
     if (id === activeTabId) return;
@@ -332,24 +673,50 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
     runContext(entry);
   };
 
-  return <div className="playground-root" style={{ gridTemplateColumns: `minmax(0,1fr) 6px ${copilotCollapsed ? COPILOT_COLLAPSED_WIDTH : copilotWidth}px` }}>
+  return <div className="playground-shell">
+    <div className="playground-header">
+      <PlaygroundHeading title={savedPlaygroundId ? headerTitleOf(playgroundName) || "Saved playground" : "Query playground"} dirty={isDirty} onRun={runEntry} onNew={() => requestAction({ kind: "new" })} onReload={reloadCurrent} onSave={savePlaygroundClick} onDelete={savedPlaygroundId ? requestDelete : undefined} saving={saveStatus === "saving"} deleting={deleting} />
+    </div>
+  <div className="playground-root" style={{ gridTemplateColumns: `minmax(0,1fr) 6px ${copilotCollapsed ? COPILOT_COLLAPSED_WIDTH : copilotWidth}px` }}>
     <div className="playground-main">
-      <PlaygroundHeading />
+      {nameDraft !== null && <PlaygroundNameDialog initial={nameDraft} onConfirm={confirmSave} onCancel={() => { setNameDraft(null); setPendingAction(null); }} />}
+      {pendingAction && nameDraft === null && <UnsavedChangesDialog saving={saveStatus === "saving"} onSave={saveFromPrompt} onDiscard={() => { const action = pendingAction; setPendingAction(null); applyAction(action); }} onCancel={() => setPendingAction(null)} />}
+      {deleteConfirmOpen && <ConfirmDialog title="Delete playground?" message={`"${playgroundName || "This playground"}" will be deleted. This cannot be undone.`} confirmLabel="Delete" onConfirm={() => { setDeleteConfirmOpen(false); performDelete(); }} onCancel={() => setDeleteConfirmOpen(false)} />}
+      {reloadConfirmOpen && <ConfirmDialog title="Discard unsaved changes?" message="Reloading replaces the editor with the saved playground. Unsaved changes will be lost." confirmLabel="Discard and reload" onConfirm={() => { setReloadConfirmOpen(false); performReload(); }} onCancel={() => setReloadConfirmOpen(false)} />}
+      {notice && <div className={`playground-toast ${notice.kind}`} role="status" aria-live="polite">
+        <Icon name={notice.kind === "error" ? "close" : "check"} size={14} />
+        <span>{notice.text}</span>
+        <button type="button" className={`playground-icon-button${notice.pinned ? " pinned" : ""}`} aria-pressed={notice.pinned} aria-label={notice.pinned ? "Unpin message" : "Pin message"} title={notice.pinned ? "Unpin message" : "Pin message"} onClick={() => setNotice((current) => current && { ...current, pinned: !current.pinned })}><Icon name="pin" size={13} /></button>
+        <button type="button" className="playground-icon-button" aria-label="Close message" title="Close" onClick={() => setNotice(null)}><Icon name="close" size={12} /></button>
+      </div>}
       <div className="playground-layout" style={{ gridTemplateColumns: `${entityWidth}px 6px minmax(0,1fr)` }}>
     <div ref={entitiesSlotRef} className="playground-entities-slot">
       <aside ref={entitiesRef} className={`playground-entities${entityWidth < ENTITY_HIDDEN_WIDTH ? " is-collapsed" : ""}`}>
-        <EntityExplorer entities={metadata} relations={metadataRelations} error={loadError} />
+        <div className="playground-tabs" role="tablist">
+          <div className={`playground-tab${sidePanel === "saved" ? " active" : ""}`}>
+            <button type="button" role="tab" aria-selected={sidePanel === "saved"} onClick={() => selectSidePanel("saved")}><Icon name="pin" size={13} />Saved</button>
+          </div>
+          <div className={`playground-tab${sidePanel === "entities" ? " active" : ""}`}>
+            <button type="button" role="tab" aria-selected={sidePanel === "entities"} onClick={() => selectSidePanel("entities")}>Entities</button>
+          </div>
+        </div>
+        {sidePanel === "entities"
+          ? <EntityExplorer entities={metadata} relations={metadataRelations} error={loadError} />
+          : <SavedPlaygroundList items={savedPlaygrounds.items} status={savedPlaygrounds.status} error={savedPlaygrounds.error} activeId={savedPlaygroundId} activeName={playgroundName} dirty={isDirty} onOpen={(item) => requestAction({ kind: "open", item })} onRename={setPlaygroundName} />}
       </aside>
     </div>
     <Splitter minimized={entityWidth <= ENTITY_HIDDEN_WIDTH} label="Resize available entities" onDrag={(delta) => setEntityWidth((width) => clamp(width + delta, ENTITY_WIDTH.min, ENTITY_WIDTH.max))} />
     <section className="playground-editor-area">
       <div className="playground-tabs" role="tablist">
-        {tabs.map((tab) => <div key={tab.id} className={`playground-tab${tab.id === activeTab.id ? " active" : ""}`}>
-          <button type="button" role="tab" aria-selected={tab.id === activeTab.id} onClick={() => selectTab(tab.id)}>
-            <Icon name="file-text" size={13} />{tab.title}
-          </button>
-          {tabs.length > 1 && <button type="button" className="playground-tab-close" aria-label={`Close ${tab.title}`} onClick={() => closeTab(tab.id)}><Icon name="close" size={11} /></button>}
-        </div>)}
+        {tabs.map((tab) => <PlaygroundTabButton
+          key={tab.id}
+          tab={tab}
+          active={tab.id === activeTab.id}
+          canClose={tabs.length > 1}
+          onSelect={() => selectTab(tab.id)}
+          onRename={(title) => renameTab(tab.id, title)}
+          onClose={() => closeTab(tab.id)}
+        />)}
         <button type="button" className="playground-tab-add" aria-label="New query tab" onClick={addTab}><Icon name="plus" size={13} /></button>
       </div>
       <div className="playground-editor-host">
@@ -381,5 +748,6 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
     <div ref={copilotSlotRef} className="playground-copilot-slot">
       <CopilotAside collapsed={copilotCollapsed} onToggle={() => setCopilotCollapsed((collapsed) => !collapsed)} />
     </div>
+        </div>
   </div>;
 }

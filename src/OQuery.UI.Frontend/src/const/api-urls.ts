@@ -54,4 +54,9 @@ export const apiUrls = {
     create: `${backendApiUrl}/query-request`,
     byId: (id: string) => `${backendApiUrl}/query-request/${encodeURIComponent(id)}`,
   },
+  playgrounds: {
+    list: `${backendApiUrl}/playgrounds`,
+    create: `${backendApiUrl}/playgrounds`,
+    byId: (id: string) => `${backendApiUrl}/playgrounds/${encodeURIComponent(id)}`,
+  },
 } as const;

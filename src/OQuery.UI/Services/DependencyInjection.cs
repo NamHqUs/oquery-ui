@@ -13,6 +13,7 @@ public static class DependencyInjection
         services.AddSingleton<IProjectRepository>(sp => sp.GetRequiredService<FileRepositoryProvider>().Projects);
         services.AddSingleton<IQueryRequestRepository>(sp => sp.GetRequiredService<FileRepositoryProvider>().Queries);
         services.AddSingleton<IFunctionDefinitionRepository>(sp => sp.GetRequiredService<FileRepositoryProvider>().Functions);
+        services.AddSingleton<IPlaygroundRepository>(sp => sp.GetRequiredService<FileRepositoryProvider>().Playgrounds);
         return services;
     }
 
@@ -24,6 +25,7 @@ public static class DependencyInjection
         services.AddSingleton<IFunctionDefinitionService, FunctionDefinitionService>();
         services.AddSingleton<IDynamicQueryService, DynamicQueryService>();
         services.AddSingleton<IQueryRequestService, QueryRequestService>();
+        services.AddSingleton<IPlaygroundService, PlaygroundService>();
         services.AddSingleton<DatabaseService>();
         services.AddSingleton<IDbConnectionService, DbConnectionService>();
         services.AddSingleton<IDatabaseService>(sp => sp.GetRequiredService<DatabaseService>());
