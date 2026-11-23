@@ -25,7 +25,7 @@ export default function FunctionList({
   onSelect,
 }: FunctionListProps) {
   const [filter, setFilter] = useState("");
-  const [activeTab, setActiveTab] = useState<FunctionGroup["id"]>("builtin");
+  const [activeTab, setActiveTab] = useState<FunctionGroup["id"]>("custom");
   const visibleDefinitions = definitions.filter((definition) =>
     definition.name.toLowerCase().includes(filter.toLowerCase()),
   );

@@ -265,12 +265,12 @@ export default function FunctionDefinitionWorkspace({ projectId, onNavigationGua
 
   const saving = status === "saving";
   const headerActions: HeaderAction[] = [
+    ...(selectedName && canEditSelectedDefinition
+      ? [{ key: "delete", label: "Delete", icon: "trash" as const, onSelect: () => void removeDefinition(), disabled: saving, title: "Delete this custom function", className: "domain-action-button danger", danger: true }]
+      : []),
     { key: "save", label: "Save", icon: "save", onSelect: () => void save(), disabled: !dirty || !draft || !canEditSelectedDefinition || saving, title: "Save function", className: "domain-action-button primary" },
     { key: "reload", label: "Reload", icon: "reset", onSelect: discardChanges, disabled: !dirty || saving, title: "Discard unsaved changes", className: "domain-action-button" },
     { key: "new", label: "New function", icon: "plus", onSelect: () => void createDefinition(), disabled: saving, title: "Create a custom function", className: "domain-action-button create" },
-  ];
-  const editorActions: HeaderAction[] = [
-    { key: "delete", label: "Delete", icon: "trash", onSelect: () => void removeDefinition(), disabled: !selectedName || selectedIsBuiltin || saving, title: selectedIsBuiltin ? "Built-in functions cannot be deleted" : "Delete this function", className: "domain-action-button danger", danger: true },
   ];
 
   return (
@@ -298,7 +298,6 @@ export default function FunctionDefinitionWorkspace({ projectId, onNavigationGua
           selectedName={selectedName}
           canEdit={canEditSelectedDefinition}
           message={message}
-          actions={editorActions}
           onDraftChange={updateDraft}
         />
       </section>

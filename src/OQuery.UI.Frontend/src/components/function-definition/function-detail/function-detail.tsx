@@ -17,7 +17,6 @@ import {
   FunctionResultDataType,
 } from "../types";
 import type { RootState } from "../../../store/store";
-import PageHeaderActions, { type HeaderAction } from "../../shared/page-header/page-header-actions";
 import "./function-detail.css";
 
 type FunctionDetailProps = {
@@ -25,7 +24,6 @@ type FunctionDetailProps = {
   selectedName: string;
   canEdit: boolean;
   message: string;
-  actions: HeaderAction[];
   onDraftChange: (update: (current: EditableFunctionDefinition) => EditableFunctionDefinition) => void;
 };
 
@@ -82,7 +80,6 @@ export default function FunctionDetail({
   selectedName,
   canEdit,
   message,
-  actions,
   onDraftChange,
 }: FunctionDetailProps) {
   const providers = useSelector((state: RootState) => state.database.providers);
@@ -119,34 +116,36 @@ export default function FunctionDetail({
     !usedDatabaseTypes.has(databaseType),
   );
   const usage = (builtinFunctionCatalog as BuiltinFunctionEntry[]).find((entry) => entry.name === selectedName);
+  const origin = !selectedName ? "New" : canEdit ? "Custom" : "Built-in";
+  const argumentCount = draft?.arguments.length ?? 0;
+  const templateCount = draft?.sqlTemplateRows.length ?? 0;
 
   return (
-    <div className="metadata-editor">
-      <div className="table-details-heading metadata-editor-heading function-detail-heading" aria-label="Function definition details">
-        <div className="table-details-title">
-          <div className="metadata-editor-heading-title">
-            <span className="metadata-editor-heading-icon"><Icon name="function" size={18} /></span>
-            <h3>{selectedName || (draft ? "New Function…" : "Select a function")}</h3>
+    <div className="metadata-editor function-detail">
+      <header className="function-detail-header" aria-label="Function definition details">
+        <div className="function-detail-title">
+          <span className="function-detail-icon" aria-hidden="true"><Icon name="function" size={18} /></span>
+          <div className="function-detail-title-text">
+            <div className="function-detail-name-row">
+              <h3>{selectedName || (draft ? "New function" : "Select a function")}</h3>
+              {draft && <span className={`function-origin-badge ${origin.toLowerCase()}`}>{origin}</span>}
+            </div>
+            {draft && (
+              <p className="function-detail-meta">
+                <span>{argumentCount} {argumentCount === 1 ? "argument" : "arguments"}</span>
+                <span>Returns {draft.resultType}</span>
+                <span>{templateCount} SQL {templateCount === 1 ? "template" : "templates"}</span>
+              </p>
+            )}
           </div>
         </div>
-        {draft && (
-          <div className="table-details-summary">
-            <span>{draft.arguments.length} arguments</span>
-            <span>{draft.sqlTemplateRows.length} SQL templates</span>
-          </div>
-        )}
-        {draft && (
-          <div className="editor-actions">
-            <PageHeaderActions label="Function actions" actions={actions} />
-          </div>
-        )}
-      </div>
+      </header>
       {!draft
         ? <div className="metadata-empty">
             <Icon name="function" size={32} />
             <p>{message || "Select a function to view its definition."}</p>
           </div>
-        : <>
+        : <div className="function-detail-body">
           {message && <p className="metadata-alert" role="alert">{message}</p>}
           {usage && <FunctionExampleCard usage={usage} />}
           <fieldset className="function-form" disabled={!canEdit}>
@@ -162,32 +161,52 @@ export default function FunctionDetail({
             </button>
           </div>
         )}
-        <section className="function-signature" aria-label="Function signature">
-          <label className="signature-name">
-            Function Name
-            <input
-              value={draft.name}
-              onChange={(event) => updateDraft((current) => ({ ...current, name: event.target.value }))}
-              placeholder="e.g. DATE_TRUNC"
-            />
-          </label>
-          <div className="signature-arguments">
-            <span className="signature-paren">(</span>
-            <div className="signature-argument-list">
-              <div className="function-argument-table-wrap">
-                <div className="function-argument-table-header">
-                  <strong>Arguments</strong>
-                  <button
-                    className="button primary compact"
-                    type="button"
-                    onClick={() => updateDraft((current) => ({
-                      ...current,
-                      arguments: [...current.arguments, emptyFunctionArgument()],
-                    }))}
-                  >
-                    <Icon name="plus" size={13} /> Argument
-                  </button>
-                </div>
+        <section className="function-section" aria-labelledby="function-general-title">
+          <h4 id="function-general-title" className="function-section-title">General</h4>
+          <div className="function-general-grid">
+            <label>
+              Function name
+              <input
+                value={draft.name}
+                onChange={(event) => updateDraft((current) => ({ ...current, name: event.target.value }))}
+                placeholder="e.g. DATE_TRUNC"
+              />
+            </label>
+            <label>
+              Result type
+              <select
+                value={draft.resultType}
+                onChange={(event) => updateDraft((current) => ({
+                  ...current,
+                  resultType: event.target.value as FunctionResultDataType,
+                }))}
+              >
+                {functionResultDataTypes.map((type) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section className="function-section" aria-labelledby="function-arguments-title">
+          <div className="function-section-head">
+            <div>
+              <h4 id="function-arguments-title" className="function-section-title">Arguments</h4>
+              <p className="function-section-hint">{argumentCount} defined. Placeholders in SQL templates refer to these names or positions.</p>
+            </div>
+            <button
+              className="button primary compact"
+              type="button"
+              onClick={() => updateDraft((current) => ({
+                ...current,
+                arguments: [...current.arguments, emptyFunctionArgument()],
+              }))}
+            >
+              <Icon name="plus" size={13} /> Add argument
+            </button>
+          </div>
+          <div className="function-argument-table-wrap">
                 <table className="function-argument-table">
                   <thead>
                     <tr>
@@ -251,27 +270,11 @@ export default function FunctionDetail({
                     ))}
                   </tbody>
                 </table>
-              </div>
-            </div>
-            <span className="signature-paren">)</span>
           </div>
-          <span className="signature-arrow" aria-hidden="true">→</span>
-          <label className="signature-result">
-            Result Type
-            <select
-              value={draft.resultType}
-              onChange={(event) => updateDraft((current) => ({
-                ...current,
-                resultType: event.target.value as FunctionResultDataType,
-              }))}
-            >
-              {functionResultDataTypes.map((type) => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-          </label>
         </section>
 
+        <section className="function-section" aria-labelledby="function-behavior-title">
+          <h4 id="function-behavior-title" className="function-section-title">Behavior</h4>
         <div className="metadata-form-grid function-metadata-fields">
           <label className="function-description">
             Description
@@ -301,11 +304,12 @@ export default function FunctionDetail({
             ))}
           </fieldset>
         </div>
+        </section>
 
-        <section className="editor-section">
+        <section className="function-section editor-section" aria-labelledby="function-sql-title">
           <div className="editor-section-head">
             <div>
-              <h3>Raw SQL Template</h3>
+              <h3 id="function-sql-title">Raw SQL Template</h3>
               <p>Use argument names or positions such as {"{value}"} or {"{1}"} as placeholders.</p>
             </div>
             <button
@@ -391,7 +395,7 @@ export default function FunctionDetail({
           </div>
         </section>
           </fieldset>
-        </>}
+        </div>}
     </div>
   );
 }
