@@ -1,3 +1,16 @@
+.database-explorer-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid #333847;
+  border-radius: 3px;
+  color: #c6ccda;
+  background: #11151e;
+  font-size: 12px;
+}
+
 .database-browser {
   position: relative;
   min-height: 480px;

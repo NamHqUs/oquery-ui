@@ -10,7 +10,7 @@
 .function-origin-badge.built-in { color: #9cc4ff; background: #111e33; border-color: #244673; }
 .function-origin-badge.new { color: #f3d28a; background: #2a2212; border-color: #5c4a1f; }
 .function-detail-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; color: #858fa1; font-size: 12px; }
-.function-detail-body { display: flex; flex-direction: column; gap: 0; }
+.function-detail-body { display: flex; flex-direction: column; }
 .function-detail-body > .metadata-alert { margin: 18px 28px 0; }
 .function-section { display: grid; gap: 12px; min-width: 0; }
 .function-section-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 16px; }

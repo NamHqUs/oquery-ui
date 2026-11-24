@@ -205,6 +205,10 @@ sub-domain detail and the FullDomain are loaded only for the selected project.
 
 ### Metadata: Database Explorer (`/metadata/explorer`)
 
+The page is wrapped in `MainLayout` (`database-explorer-page.tsx`), the same way as Custom functions, and renders the
+`DataSources` component. It is not project-scoped; the header shows the connected data source. Sidebar items
+navigate to the other views and return to the last playground selection.
+
 | Service call | Trigger | Purpose |
 | --- | --- | --- |
 | `DbSchemaService.getSchema()` | Connected explorer load | Loads tables, columns, and relationships. |

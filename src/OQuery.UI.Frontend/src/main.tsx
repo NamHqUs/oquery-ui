@@ -8,6 +8,7 @@ import DataSources from "./components/data-sources/data-sources";
 import DatabaseConnection from "./components/data-sources/database-connection/database-connection";
 import { fetchDbProvider } from "./components/data-sources/database-slice";
 import CustomFunctionsPage from "./components/function-definition/custom-functions-page";
+import DatabaseExplorerPage from "./components/data-sources/database-explorer-page";
 import Home from "./components/home/home";
 import Documentation from "./components/documentation/documentation";
 import AdminAnalytics from "./components/admin/admin-analytics";
@@ -24,6 +25,7 @@ import PlaygroundWorkspace from "./components/playground/playground-workspace";
 import { rememberPlaygroundSelection, rememberedPlaygroundPath } from "./components/playground/playground-memory";
 import { domainDiagramPath, domainDiagramRouteOf, isDomainDiagramPath } from "./components/domains/domain-routes";
 import DomainPage from "./components/domains/domain-page";
+import { DATABASE_EXPLORER_PATH } from "./components/main-layout/main-layout";
 
 const PAGE_PATHS = {
   home: "/",
@@ -49,7 +51,6 @@ const PRIVACY_PATH = "/privacy";
 const TERMS_PATH = "/terms";
 const DOMAINS_PATH = "/metadata/domains";
 const DIAGRAMS_PATH = "/metadata/diagrams";
-const DATABASE_EXPLORER_PATH = "/metadata/explorer";
 const METADATA_LAST_ROUTE_STORAGE_KEY = "oquery.metadata.last-route";
 
 type Page = keyof typeof PAGE_PATHS;
@@ -664,7 +665,6 @@ function App() {
   const workspaceNeedsProject = page === "builder" || page === "metadata" || page === "security";
   const showWorkspaceGate = workspaceNeedsProject
     && (!workspaceProjects.projects || !workspaceProjects.projects.some((item) => item.id === workspaceProjectId));
-  const [metadataVisited, setMetadataVisited] = useState(() => location.pathname === PAGE_PATHS.metadata || pageForPath(location.pathname) === "metadata");
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
   const [analyticsConsent, setAnalyticsConsent] = useState<"granted" | "declined" | null>(readAnalyticsConsent);
   const connectionPromptShown = useRef(false);
@@ -714,9 +714,6 @@ function App() {
   });
 
   useEffect(() => {
-    if (location.pathname === PAGE_PATHS.metadata || pageForPath(location.pathname) === "metadata") setMetadataVisited(true);
-  }, [location.pathname]);
-  useEffect(() => {
     if (page !== "metadata"
       || location.pathname === PAGE_PATHS.metadata) return;
     window.sessionStorage.setItem(
@@ -762,7 +759,6 @@ function App() {
           : DOMAINS_PATH)
       : PAGE_PATHS[nextPage];
     const continueNavigation = () => {
-      if (nextPage === "metadata") setMetadataVisited(true);
       if (nextPage === "builder" || (nextPage === "metadata" && metadataPath)) window.scrollTo({ top: 0 });
       approvedNavigation.current = destination;
       routerNavigate(destination);
@@ -810,6 +806,20 @@ function App() {
   };
   if (domainRoute?.kind === "create" || domainRoute?.kind === "edit") {
     return <DomainPage route={domainRoute} {...domainPageProps} />;
+  }
+
+  if (location.pathname === DATABASE_EXPLORER_PATH) {
+    return (
+      <>
+        <DatabaseExplorerPage
+          connectionStatus={database.connectionStatus}
+          provider={database.connectedProvider}
+          onNavigate={navigateWorkspace}
+          onOpenConnection={requestDatabaseConnection}
+        />
+        {connectionDialogOpen && <ConnectionDialog onClose={() => setConnectionDialogOpen(false)} />}
+      </>
+    );
   }
 
   if (page === "functions") {
@@ -927,7 +937,6 @@ function App() {
           <Route path={PAGE_PATHS.metadata} element={null} />
           <Route path={DOMAINS_PATH} element={null} />
           <Route path={DIAGRAMS_PATH} element={<LegacyMetadataDiagramRedirect />} />
-          <Route path={DATABASE_EXPLORER_PATH} element={null} />
           <Route path={PAGE_PATHS.security} element={showWorkspaceGate ? null : <div className="page-transition page-transition-no-slide"><SecurityPage /></div>} />
           <Route path={LEGACY_FUNCTIONS_PATH} element={<Navigate to={PAGE_PATHS.functions} replace />} />
           <Route path={LEGACY_FUNCTION_DEFINITIONS_PATH} element={<Navigate to={PAGE_PATHS.functions} replace />} />
@@ -947,7 +956,6 @@ function App() {
         />
       )}
       {connectionDialogOpen && <ConnectionDialog onClose={() => setConnectionDialogOpen(false)} />}
-      {metadataVisited && page === "metadata" && !showWorkspaceGate && location.pathname === DATABASE_EXPLORER_PATH && <DataSources onRequestConnection={requestDatabaseConnection} />}
       </div>
       <footer>
         <span><span className="footer-mark">✦</span> oQuery engine</span>

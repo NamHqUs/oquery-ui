@@ -1,4 +1,4 @@
-import MainLayout, { type WorkspaceView } from "../main-layout/main-layout";
+import MainLayout, { DATABASE_EXPLORER_PATH, type WorkspaceView } from "../main-layout/main-layout";
 import Icon from "../shared/icon/icon";
 import { domainDiagramPath } from "../domains/domain-routes";
 import { rememberedPlaygroundPath, rememberedPlaygroundSelection } from "../playground/playground-memory";
@@ -19,6 +19,10 @@ const PROJECT_CHOOSER_PATH = "/workspace";
 export default function CustomFunctionsPage({ connectionStatus, provider, onNavigate, onOpenConnection, onNavigationGuardChange }: CustomFunctionsPageProps) {
   const onSelectView = (view: WorkspaceView) => {
     if (view === "functions") return;
+    if (view === "explorer") {
+      onNavigate(DATABASE_EXPLORER_PATH);
+      return;
+    }
     if (view === "diagram") {
       const selection = rememberedPlaygroundSelection();
       onNavigate(selection ? domainDiagramPath(selection.projectId, selection.domainId) : PROJECT_CHOOSER_PATH);

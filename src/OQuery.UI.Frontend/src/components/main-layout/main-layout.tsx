@@ -11,6 +11,7 @@ export type WorkspaceView = "overview" | "playground" | "queries" | "diagram" | 
 export type WorkspaceDomain = { id: string; name: string };
 // Custom functions is project-scoped data, but its URL carries no project or domain; the project is passed as ?project=.
 export const CUSTOM_FUNCTIONS_PATH = "/sqlfunctions";
+export const DATABASE_EXPLORER_PATH = "/metadata/explorer";
 
 // Domain lists per project, kept across MainLayout mounts so page changes don't flash an empty selector.
 const projectDomainsCache = new Map<string, WorkspaceDomain[]>();
@@ -166,5 +167,5 @@ export default function MainLayout({ view, projects, projectId, domainId, connec
       window.removeEventListener("resize", update);
     };
   }, []);
-  return <div className="root-workspace"><Header projects={projects} projectId={projectId} domains={domains} domainId={selectedDomainId} connectionStatus={connectionStatus} provider={provider} onSelectProject={onSelectProject} onSelectDomain={onSelectDomain} onOpenConnection={onOpenConnection} onNavigateHome={onNavigateHome} headerContext={headerContext} /><div ref={bodyRef} className={`root-body${view === "playground" ? " playground-body" : ""}`}><MainLayoutSidebar view={view} collapsed={sidebar.collapsed} onToggle={sidebar.toggle} onSelect={(next) => onSelectView(next, selectedDomainId)} /><main className={view === "playground" || view === "functions" ? "root-main-playground" : undefined}>{children({ domains, domainId: selectedDomainId })}</main></div><footer className="root-footer"><Icon name="schema" size={13} /> oQuery engine <span>Phase one</span><span>Data binding planned for phase two</span></footer></div>;
+  return <div className="root-workspace"><Header projects={projects} projectId={projectId} domains={domains} domainId={selectedDomainId} connectionStatus={connectionStatus} provider={provider} onSelectProject={onSelectProject} onSelectDomain={onSelectDomain} onOpenConnection={onOpenConnection} onNavigateHome={onNavigateHome} headerContext={headerContext} /><div ref={bodyRef} className={`root-body${view === "playground" ? " playground-body" : ""}`}><MainLayoutSidebar view={view} collapsed={sidebar.collapsed} onToggle={sidebar.toggle} onSelect={(next) => onSelectView(next, selectedDomainId)} /><main className={view === "playground" || view === "functions" || view === "explorer" ? "root-main-playground" : undefined}>{children({ domains, domainId: selectedDomainId })}</main></div><footer className="root-footer"><Icon name="schema" size={13} /> oQuery engine <span>Phase one</span><span>Data binding planned for phase two</span></footer></div>;
 }

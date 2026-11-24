@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import MainLayout, { Heading, CUSTOM_FUNCTIONS_PATH, DATABASE_EXPLORER_PATH, type WorkspaceView } from "../main-layout/main-layout";
 import Icon, { type IconName } from "../shared/icon/icon";
 import type { ProjectSummary } from "../../services/project-service";
 import Playground from "./playground";
 import { domainDiagramPath } from "../domains/domain-routes";
-import MainLayout, { Heading, CUSTOM_FUNCTIONS_PATH, type WorkspaceView } from "../main-layout/main-layout";
 
-// Views rendered inside the playground shell; custom functions and the diagram have their own routes.
-const LOCAL_VIEWS: WorkspaceView[] = ["overview", "playground", "queries", "explorer", "security"];
+// Views rendered inside the playground shell; custom functions, the explorer, and the diagram have their own routes.
+const LOCAL_VIEWS: WorkspaceView[] = ["overview", "playground", "queries", "security"];
 
 const queries = ["Top customers by revenue", "Monthly order performance", "Unpaid orders audit", "Product conversion funnel", "Customer retention cohort"];
 
@@ -21,10 +21,6 @@ function Overview() {
 
 function Queries() {
   return <><Heading icon="file-text" title="Saved queries" text="Organize, reuse, and collaborate on your data questions" action="New query" /><div className="main-layout-toolbar"><input placeholder="⌕  Search queries..." /><span>All　5</span><span>☆ Favorites 1</span><span>♧ Shared with me 2</span><span>◷ Recent</span></div><div className="main-layout-query-layout"><section className="main-layout-panel query-list">{queries.map((q, i) => <article className={i === 0 ? "selected" : ""} key={q}><Icon name="chart-bar" size={19} /><div><b>{q}</b><p>Find insights and track business performance across your data</p></div><small>{["Sarah Johnson", "Michael Chen", "Emily Rodriguez", "David Kim", "Laura Garcia"][i]}<br />Analyst</small><em>{["Revenue", "Operations", "Finance", "Marketing", "Analytics"][i]}</em><button className="main-layout-primary" type="button">▷ Run</button></article>)}</section><Panel title="Top customers by revenue" icon="chart-bar" className="query-inspector"><p>Find the top 10 customers by revenue in the last 3 months</p><b className="main-layout-badge">Healthy</b><h3>Query code</h3><pre>{`SELECT c.customer_id,\n  c.first_name,\n  SUM(o.total_amount) AS total_revenue\nFROM customer c\nJOIN order o ON c.customer_id = o.customer_id\nORDER BY total_revenue DESC\nLIMIT 10;`}</pre><h3>Entities used</h3><div className="main-layout-chips"><span>Customer</span><span>Order</span><span>Payment</span></div><button className="main-layout-primary" type="button">Open in playground</button><button type="button">Share query</button></Panel></div></>;
-}
-
-function Explorer() {
-  return <><Heading icon="database" title="Database explorer" text="Browse source tables and inspect your connected data" /><div className="main-layout-toolbar"><input placeholder="⌕  Search tables, columns or keywords..." /><span>Schema · public⌄</span><span>All tables　6</span><span>☆ Recently viewed</span></div><div className="main-layout-explorer"><Panel title="Table catalog" icon="database" className="catalog">{["customers", "orders", "products", "payments", "addresses", "inventory"].map(x => <button className={x === "orders" ? "selected" : ""} type="button" key={x}><Icon name="table" size={16} /><b>{x}<small>1,248,763 rows</small></b>›</button>)}</Panel><section className="main-layout-panel table-detail"><h2>▣　orders <small>Table</small></h2><p>Order transactions and purchase details</p><header><b>Columns</b><span>Data　 Indexes　 Relationships</span></header><h3>Table columns <small>8 columns</small></h3><table><thead><tr><th>#</th><th>Column name</th><th>Data type</th><th>Key</th><th>Nullable</th></tr></thead><tbody>{[["1", "id", "bigint", "PK", "No"], ["2", "customer_id", "bigint", "FK", "No"], ["3", "order_date", "timestamp", "-", "No"], ["4", "status", "varchar(20)", "-", "No"], ["5", "total_amount", "decimal(10,2)", "-", "No"]].map(row => <tr key={row[1]}>{row.map(x => <td key={x}>{x}</td>)}</tr>)}</tbody></table></section><Panel title="Table metadata" icon="database" className="metadata"><button className="main-layout-primary" type="button">◉ Preview data</button>{["Table size|182.4 MB", "Row count|1,248,763", "Indexes|3", "Relationships|3", "Last sync|2 min ago"].map(x => { const [a, b] = x.split("|"); return <p key={a}>{a}<b>{b}</b></p>; })}</Panel></div></>;
 }
 
 function Security() {
@@ -50,6 +46,7 @@ export default function PlaygroundWorkspace({ projectId, domainId, queryId, proj
   const selectView = (next: WorkspaceView, selectedDomainId: string) => {
     if (next === "diagram") onNavigate(domainDiagramPath(projectId, selectedDomainId));
     else if (next === "functions") onNavigate(CUSTOM_FUNCTIONS_PATH);
+    else if (next === "explorer") onNavigate(DATABASE_EXPLORER_PATH);
     else setView(next);
   };
   return <MainLayout
@@ -65,6 +62,6 @@ export default function PlaygroundWorkspace({ projectId, domainId, queryId, proj
     onOpenConnection={onOpenConnection}
     onNavigateHome={() => onNavigate("/")}
   >
-    {({ domainId: selectedDomainId }) => view === "overview" ? <Overview /> : view === "playground" ? <Playground queryId={queryId} projectId={projectId} domainId={selectedDomainId} /> : view === "queries" ? <Queries /> : view === "explorer" ? <Explorer /> : <Security />}
+    {({ domainId: selectedDomainId }) => view === "overview" ? <Overview /> : view === "playground" ? <Playground queryId={queryId} projectId={projectId} domainId={selectedDomainId} /> : view === "queries" ? <Queries /> : <Security />}
   </MainLayout>;
 }

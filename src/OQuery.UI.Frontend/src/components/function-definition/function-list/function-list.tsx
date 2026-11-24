@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Icon from "../../shared/icon/icon";
 import { FunctionDefinition } from "../types";
 import "./function-list.css";
@@ -18,6 +18,9 @@ type FunctionListProps = {
   onSelect: (definition: FunctionDefinition) => void;
 };
 
+const isBuiltInDefinition = (definition: FunctionDefinition) =>
+  definition.isBuiltin === true || definition.canDelete === false;
+
 export default function FunctionList({
   definitions,
   selectedName,
@@ -26,15 +29,16 @@ export default function FunctionList({
 }: FunctionListProps) {
   const [filter, setFilter] = useState("");
   const [activeTab, setActiveTab] = useState<FunctionGroup["id"]>("builtin");
+  // A newly saved custom function is selected by the workspace; show the tab that contains it.
+  useEffect(() => {
+    const selected = definitions.find((definition) => definition.name === selectedName);
+    if (selected) setActiveTab(isBuiltInDefinition(selected) ? "builtin" : "custom");
+  }, [definitions, selectedName]);
   const visibleDefinitions = definitions.filter((definition) =>
     definition.name.toLowerCase().includes(filter.toLowerCase()),
   );
-  const customDefinitions = visibleDefinitions.filter((definition) =>
-    definition.isBuiltin !== true && definition.canDelete !== false,
-  );
-  const builtInDefinitions = visibleDefinitions.filter((definition) =>
-    definition.isBuiltin === true || definition.canDelete === false,
-  );
+  const customDefinitions = visibleDefinitions.filter((definition) => !isBuiltInDefinition(definition));
+  const builtInDefinitions = visibleDefinitions.filter(isBuiltInDefinition);
   const renderDefinition = (definition: FunctionDefinition) => (
     <button
       className={`metadata-entity${definition.name === selectedName ? " active" : ""}`}

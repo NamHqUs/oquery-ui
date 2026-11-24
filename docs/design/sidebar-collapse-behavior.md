@@ -15,7 +15,8 @@ The main menu in `src/OQuery.UI.Frontend/src/components/main-layout/main-layout-
 - Menu items on the Domain Diagram page open the matching view. Custom functions opens the route
   `/sqlfunctions` (`CUSTOM_FUNCTIONS_PATH`), with the project passed as `?project=`, and renders inside the
   same `MainLayout` shell as the Playground and Domain Diagram. The old `/function-definitions` and
-  `/functions` URLs redirect there.
+  `/functions` URLs redirect there. Database explorer opens `/metadata/explorer` (`DATABASE_EXPLORER_PATH`) and
+  renders the `DataSources` component in the same shell.
 
 Not yet implemented: the 1024px overlay, keyboard shortcuts, the Reset layout action, and the
 Playground entities panel rules below. Custom functions still require a project, because the
