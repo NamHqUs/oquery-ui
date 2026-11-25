@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import Icon, { type IconName } from "../shared/icon/icon";
 import PageHeaderActions, { type HeaderAction } from "../shared/page-header/page-header-actions";
@@ -83,6 +83,13 @@ function DomainSwitch({ domains, domainId, projectId, onSelectDomain }: { domain
   const rowRef = useRef<HTMLDivElement>(null);
   // An invisible copy of every chip gives natural widths, so the visible row can be fitted without reflowing.
   const measureRef = useRef<HTMLDivElement>(null);
+  // Domains picked from "More..." move to the last visible slot, so the order is kept here and applied before fitting.
+  const [order, setOrder] = useState<string[]>([]);
+  const orderedDomains = useMemo(() => {
+    const byId = new Map(domains.map((domain) => [domain.id, domain]));
+    const ids = [...order.filter((id) => byId.has(id)), ...domains.map((domain) => domain.id).filter((id) => !order.includes(id))];
+    return ids.map((id) => byId.get(id)!);
+  }, [domains, order]);
   const [visibleCount, setVisibleCount] = useState(domains.length);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -92,26 +99,23 @@ function DomainSwitch({ domains, domainId, projectId, onSelectDomain }: { domain
     if (!row || !measure) return;
     const fit = () => {
       const chipWidths = Array.from(measure.querySelectorAll<HTMLElement>(".main-layout-domain-chip"), (chip) => chip.getBoundingClientRect().width);
-      const moreWidth = measure.querySelector<HTMLElement>(".main-layout-domain-more-measure")?.getBoundingClientRect().width ?? 0;
-      const total = chipWidths.reduce((sum, width) => sum + width + DOMAIN_CHIP_GAP, -DOMAIN_CHIP_GAP);
-      if (total <= row.clientWidth) {
+      const moreWidth = measure.querySelector<HTMLElement>(".main-layout-domain-more")?.getBoundingClientRect().width ?? 0;
+      // Width of the first `count` chips, separated by gaps.
+      const rowWidth = (count: number) => chipWidths.slice(0, count).reduce((sum, width) => sum + width + DOMAIN_CHIP_GAP, -DOMAIN_CHIP_GAP);
+      if (rowWidth(chipWidths.length) <= row.clientWidth) {
         setVisibleCount(chipWidths.length);
         return;
       }
-      let used = moreWidth + DOMAIN_CHIP_GAP;
       let count = 0;
-      for (const width of chipWidths) {
-        if (used + width > row.clientWidth) break;
-        used += width + DOMAIN_CHIP_GAP;
-        count++;
-      }
+      while (count < chipWidths.length && rowWidth(count + 1) + DOMAIN_CHIP_GAP + moreWidth <= row.clientWidth) count++;
       setVisibleCount(count);
     };
     fit();
     const observer = new ResizeObserver(fit);
     observer.observe(row);
     return () => observer.disconnect();
-  }, [domains]);
+  }, [orderedDomains]);
+
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -126,36 +130,46 @@ function DomainSwitch({ domains, domainId, projectId, onSelectDomain }: { domain
     setMenuOpen(false);
     onSelectDomain(id);
   };
-  const renderChip = (domain: WorkspaceDomain, index: number, extraClass = "") => (
+  // The picked domain takes the last visible slot; the chip that held it moves into "More...".
+  const selectHidden = (id: string) => {
+    setOrder(() => {
+      const ids = orderedDomains.map((domain) => domain.id).filter((domainId) => domainId !== id);
+      ids.splice(Math.max(visibleCount - 1, 0), 0, id);
+      return ids;
+    });
+    select(id);
+  };
+  const renderChip = (domain: WorkspaceDomain, onPick: (id: string) => void, extraClass = "") => (
     <button
       type="button"
       key={domain.id}
-      className={`main-layout-domain-chip tone-${DOMAIN_CHIP_TONES[index % DOMAIN_CHIP_TONES.length]}${domain.id === domainId ? " active" : ""}${extraClass}`}
+      className={`main-layout-domain-chip tone-${DOMAIN_CHIP_TONES[domains.indexOf(domain) % DOMAIN_CHIP_TONES.length]}${domain.id === domainId ? " active" : ""}${extraClass}`}
       aria-pressed={domain.id === domainId}
-      onClick={() => select(domain.id)}
+      onClick={() => onPick(domain.id)}
     >
       <span className="main-layout-domain-mark" aria-hidden="true" />
       <strong>{domain.name}</strong>
       <span className="main-layout-domain-count">{domain.entityCount ?? 0}</span>
     </button>
   );
-  const hidden = domains.slice(visibleCount);
+  const hidden = orderedDomains.slice(visibleCount);
 
   return <div className="main-layout-domain-switch" ref={switchRef} role="group" aria-label="Active domain">
     <div className="main-layout-domain-row" ref={rowRef}>
-      {domains.slice(0, visibleCount).map((domain, index) => renderChip(domain, index))}
+      {orderedDomains.slice(0, visibleCount).map((domain) => renderChip(domain, select))}
       {domains.length === 0 && <span className="main-layout-domain-empty">{projectId ? "No domains" : "Choose a project first"}</span>}
       {hidden.length > 0 && <button type="button" className="main-layout-domain-more" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>More...</button>}
     </div>
     {menuOpen && hidden.length > 0 && <div className="main-layout-domain-menu" role="menu">
-      {hidden.map((domain, index) => renderChip(domain, visibleCount + index, " menu-item"))}
+      {hidden.map((domain) => renderChip(domain, selectHidden, " menu-item"))}
     </div>}
     <div className="main-layout-domain-measure" ref={measureRef} aria-hidden="true">
-      {domains.map((domain, index) => renderChip(domain, index))}
-      <span className="main-layout-domain-more-measure">More...</span>
+      {orderedDomains.map((domain) => renderChip(domain, select))}
+      <button type="button" className="main-layout-domain-more" tabIndex={-1}>More...</button>
     </div>
   </div>;
 }
+
 
 function WorkspaceContext({ projects, projectId, domains, domainId, connectionStatus, provider, onSelectProject, onSelectDomain, onOpenConnection, hideDomainSelect }: Pick<MainLayoutProps, "projects" | "projectId" | "connectionStatus" | "provider" | "onSelectProject" | "onSelectDomain" | "onOpenConnection"> & { domains: WorkspaceDomain[]; domainId: string; hideDomainSelect?: boolean }) {
   const connectionState = connectionStatus === "loading" ? "connecting"

@@ -467,9 +467,14 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
       panel.style.height = `${Math.max(0, bottom - top)}px`;
     };
     update();
+    // Content above the row (header, chip strip) can resize without a scroll or window event, which shifts the row's top.
+    const observer = new ResizeObserver(update);
+    observer.observe(row);
+    observer.observe(document.body);
     window.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update);
     return () => {
+      observer.disconnect();
       window.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
     };
@@ -667,8 +672,6 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
 
   return <div className="playground-shell">
       <PlaygroundHeading title={savedPlaygroundId ? headerTitleOf(playgroundName) || "Saved playground" : "Query playground"} dirty={isDirty} onRun={runEntry} onNew={() => requestAction({ kind: "new" })} onReload={reloadCurrent} onSave={savePlaygroundClick} onDelete={savedPlaygroundId ? requestDelete : undefined} saving={saveStatus === "saving"} deleting={deleting} running={runStatus === "running"} />
-  <div className="playground-root" style={{ gridTemplateColumns: `minmax(0,1fr) 6px ${copilotCollapsed ? COPILOT_COLLAPSED_WIDTH : copilotWidth}px` }}>
-    <div className="playground-main">
       {nameDraft !== null && <PlaygroundNameDialog initial={nameDraft} onConfirm={confirmSave} onCancel={() => { setNameDraft(null); setPendingAction(null); }} />}
       {pendingAction && nameDraft === null && <UnsavedChangesDialog saving={saveStatus === "saving"} onSave={saveFromPrompt} onDiscard={() => { const action = pendingAction; setPendingAction(null); applyAction(action); }} onCancel={() => setPendingAction(null)} />}
       {deleteConfirmOpen && <ConfirmDialog title="Delete playground?" message={`"${playgroundName || "This playground"}" will be deleted. This cannot be undone.`} confirmLabel="Delete" onConfirm={() => { setDeleteConfirmOpen(false); performDelete(); }} onCancel={() => setDeleteConfirmOpen(false)} />}
@@ -679,7 +682,7 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
         <button type="button" className={`playground-icon-button${notice.pinned ? " pinned" : ""}`} aria-pressed={notice.pinned} aria-label={notice.pinned ? "Unpin message" : "Pin message"} title={notice.pinned ? "Unpin message" : "Pin message"} onClick={() => setNotice((current) => current && { ...current, pinned: !current.pinned })}><Icon name="pin" size={13} /></button>
         <button type="button" className="playground-icon-button" aria-label="Close message" title="Close" onClick={() => setNotice(null)}><Icon name="close" size={12} /></button>
       </div>}
-      <div className="playground-layout" style={{ gridTemplateColumns: `${entityWidth}px 6px minmax(0,1fr)` }}>
+  <div className="playground-root" style={{ gridTemplateColumns: `${entityWidth}px 6px minmax(0,1fr) 6px ${copilotCollapsed ? COPILOT_COLLAPSED_WIDTH : copilotWidth}px` }}>
     <div ref={entitiesSlotRef} className="playground-entities-slot">
       <aside ref={entitiesRef} className={`playground-entities${entityWidth < ENTITY_HIDDEN_WIDTH ? " is-collapsed" : ""}`}>
         <div className="playground-tabs" role="tablist">
@@ -732,8 +735,6 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
       </div>
       {(message || runState.error) && <p className="playground-message error">{message || runState.error}</p>}
     </section>
-      </div>
-    </div>
     <Splitter hidden={copilotCollapsed} label="Resize AI assistant" onDrag={(delta) => setCopilotWidth((width) => clamp(width - delta, COPILOT_WIDTH.min, COPILOT_WIDTH.max))} />
     <div ref={copilotSlotRef} className="playground-copilot-slot">
       <CopilotAside collapsed={copilotCollapsed} onToggle={() => setCopilotCollapsed((collapsed) => !collapsed)} />
