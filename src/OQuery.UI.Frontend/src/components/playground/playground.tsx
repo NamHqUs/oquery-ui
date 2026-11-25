@@ -380,7 +380,7 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
   const copilotSlotRef = useRef<HTMLDivElement>(null);
   const entitiesRef = useRef<HTMLElement>(null);
   const entitiesSlotRef = useRef<HTMLDivElement>(null);
-  const [tabs, setTabs] = useState<EditorTab[]>(() => [{ id: "tab-1", title: queryId || "Untitled query", text: "" }]);
+  const [tabs, setTabs] = useState<EditorTab[]>(() => [{ id: "tab-1", title: "Untitled query", text: "" }]);
   // Snapshot of the tabs as last loaded or saved. Changes compare against it to detect unsaved edits.
   const [baseline, setBaseline] = useState(() => snapshotOf(tabs, ""));
   const [activeTabId, setActiveTabId] = useState("tab-1");
@@ -562,6 +562,21 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
     if (isDirty) setPendingAction(action);
     else applyAction(action);
   };
+
+  // A saved playground in the URL (/playground/:projectId/:domainId/:queryId) opens once per URL value.
+  // Later list refreshes do not reopen it, so a new unsaved playground is not replaced.
+  const openedRouteId = useRef("");
+  useEffect(() => {
+    if (!queryId || !projectId || !domainId) return;
+    dispatch(fetchSavedPlaygrounds({ projectId, domainId }));
+  }, [queryId, projectId, domainId, dispatch]);
+  useEffect(() => {
+    if (!queryId || openedRouteId.current === queryId) return;
+    const item = savedPlaygrounds.items.find((saved) => saved.id === queryId);
+    if (!item) return;
+    openedRouteId.current = queryId;
+    applyAction({ kind: "open", item });
+  }, [queryId, savedPlaygrounds.items]);
 
   const requestDelete = () => {
     if (savedPlaygroundId) setDeleteConfirmOpen(true);

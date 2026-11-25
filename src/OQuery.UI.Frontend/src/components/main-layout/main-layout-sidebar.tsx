@@ -29,7 +29,6 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
     items: [
       { view: "overview", label: "Overview", icon: "grid" },
       { view: "explorer", label: "Database explorer", icon: "database" },
-      { view: "security", label: "Security", icon: "shield" },
     ],
   },
   {

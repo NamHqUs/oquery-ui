@@ -7,7 +7,7 @@ import MainLayoutSidebar, { useSidebarCollapse } from "./main-layout-sidebar";
 import "./main-layout.css";
 import "./main-layout-compat.css";
 
-export type WorkspaceView = "overview" | "playground" | "queries" | "diagram" | "explorer" | "functions" | "security" | "workspace";
+export type WorkspaceView = "overview" | "playground" | "queries" | "diagram" | "explorer" | "functions" | "workspace";
 export type WorkspaceDomain = { id: string; name: string };
 // Custom functions is project-scoped data, but its URL carries no project or domain; the project is passed as ?project=.
 export const CUSTOM_FUNCTIONS_PATH = "/sqlfunctions";

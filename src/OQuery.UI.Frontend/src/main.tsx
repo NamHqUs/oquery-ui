@@ -34,7 +34,6 @@ const PAGE_PATHS = {
   metadata: "/metadata",
   sources: "/data-sources",
   functions: "/sqlfunctions",
-  security: "/security",
   documentation: "/documentation",
 } as const;
 
@@ -72,7 +71,6 @@ const PAGE_SUBMENUS: Record<Exclude<Page, "home">, readonly string[]> = {
   sources: ["Connections", "Tables", "Schema"],
   metadata: ["Explore database"],
   functions: [],
-  security: ["Policies", "Query limits", "Audit log"],
   documentation: [],
 };
 const QUERY_DOMAIN_TONES = ["revenue", "customer", "product", "finance", "custom"] as const;
@@ -238,7 +236,6 @@ function LegacyMetadataDiagramRedirect() {
 function pageForPath(path: string): Page | null {
   if (builderProjectIdOf(path)) return "builder";
   if (path === DOMAINS_PATH || path === DIAGRAMS_PATH || isDatabaseExplorerPath(path)) return "metadata";
-  if (path === PAGE_PATHS.security) return "security";
   return (Object.keys(PAGE_PATHS) as Page[]).find((page) => PAGE_PATHS[page] === path) ?? null;
 }
 
@@ -558,7 +555,6 @@ function WorkspaceNavigation({
       group: "EXTEND",
       links: [
         { label: "Custom functions", hint: "Business vocabulary", icon: "function", path: PAGE_PATHS.functions, active: page === "functions" },
-        { label: "Security", hint: "Policies and controls", icon: "sliders", path: PAGE_PATHS.security, active: page === "security" },
       ],
     },
   ] as const;
@@ -588,74 +584,6 @@ function WorkspaceNavigation({
   );
 }
 
-function SecurityPage() {
-  const controls = [
-    {
-      title: "Access policies",
-      description: "Define who can use a project and which domains each role can query.",
-      status: "Design ready",
-      icon: "sliders",
-      tone: "purple",
-    },
-    {
-      title: "Query limits",
-      description: "Set row limits, execution timeouts, and allowed query operations.",
-      status: "Coming next",
-      icon: "schema",
-      tone: "blue",
-    },
-    {
-      title: "Audit log",
-      description: "Review query activity and policy decisions for this project.",
-      status: "Coming next",
-      icon: "chart-line",
-      tone: "green",
-    },
-  ] as const;
-
-  return (
-    <section className="security-page">
-      <header className="page-heading security-heading">
-        <div>
-          <span className="eyebrow">PROJECT SECURITY</span>
-          <h1>Security and access</h1>
-          <p>Keep authorization close to the project and domain that it protects.</p>
-        </div>
-        <span className="security-preview-badge">UI preview</span>
-      </header>
-      <div className="security-intro">
-        <div className="security-intro-mark"><Icon name="sliders" size={22} /></div>
-        <div>
-          <strong>One policy boundary for every query</strong>
-          <p>Policies will be evaluated after the project, domain, and query metadata are resolved—before SQL is generated.</p>
-        </div>
-        <button type="button" className="button primary" disabled><Icon name="plus" size={14} /> Create policy</button>
-      </div>
-      <div className="security-grid">
-        {controls.map((control) => (
-          <article className={`security-card security-card-${control.tone}`} key={control.title}>
-            <div className="security-card-icon"><Icon name={control.icon} size={18} /></div>
-            <span className="security-card-status">{control.status}</span>
-            <h2>{control.title}</h2>
-            <p>{control.description}</p>
-            <button type="button" className="security-card-link" disabled>Configure <span aria-hidden="true">→</span></button>
-          </article>
-        ))}
-      </div>
-      <div className="security-scope">
-        <div>
-          <span className="section-kicker">RECOMMENDED SCOPE</span>
-          <h2>Start with project access, then narrow by domain</h2>
-          <p>A project is the trust boundary. Sub-domains are the safe surface that users and applications query.</p>
-        </div>
-        <div className="security-scope-flow">
-          <span>Project</span><b>→</b><span>Sub-domain</span><b>→</b><span>Query</span>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function App() {
   const location = useLocation();
   const routerNavigate = useNavigate();
@@ -663,7 +591,7 @@ function App() {
   const page = pageForPath(location.pathname);
   const workspaceProjects = useWorkspaceProjects(`${location.pathname}${location.search}`);
   const workspaceProjectId = builderProjectIdOf(location.pathname) || new URLSearchParams(location.search).get("project") || "";
-  const workspaceNeedsProject = page === "builder" || page === "metadata" || page === "security";
+  const workspaceNeedsProject = page === "builder" || page === "metadata";
   const showWorkspaceGate = workspaceNeedsProject
     && (!workspaceProjects.projects || !workspaceProjects.projects.some((item) => item.id === workspaceProjectId));
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
@@ -957,7 +885,6 @@ function App() {
           <Route path={PAGE_PATHS.metadata} element={null} />
           <Route path={DOMAINS_PATH} element={null} />
           <Route path={DIAGRAMS_PATH} element={<LegacyMetadataDiagramRedirect />} />
-          <Route path={PAGE_PATHS.security} element={showWorkspaceGate ? null : <div className="page-transition page-transition-no-slide"><SecurityPage /></div>} />
           <Route path={LEGACY_FUNCTIONS_PATH} element={<Navigate to={PAGE_PATHS.functions} replace />} />
           <Route path={LEGACY_FUNCTION_DEFINITIONS_PATH} element={<Navigate to={PAGE_PATHS.functions} replace />} />
           <Route path={PAGE_PATHS.sources} element={<div className="page-transition page-transition-no-slide"><DataSources onRequestConnection={requestDatabaseConnection} /></div>} />
