@@ -162,6 +162,13 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
     void dispatch(loadDomainDraft({ projectId, domainId }));
   }, [projectId, domainId, dispatch]);
 
+  // Open the editor on a random entity once the domain graph has loaded.
+  useEffect(() => {
+    if (loading || selectedName || working.entities.length === 0) return;
+    const randomEntity = working.entities[Math.floor(Math.random() * working.entities.length)];
+    setSelectedName(randomEntity.name);
+  }, [loading, selectedName, working.entities]);
+
   const selected = working.entities.find((entity) => entity.name === selectedName) ?? null;
   const draft = useMemo(() => (selected ? toEditable(selected) : null), [selected]);
   const selectedTable = draft?.dbTable
