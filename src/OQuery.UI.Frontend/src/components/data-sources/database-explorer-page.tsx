@@ -1,4 +1,4 @@
-import MainLayout, { CUSTOM_FUNCTIONS_PATH, Heading, databaseExplorerPath, type WorkspaceView } from "../main-layout/main-layout";
+import MainLayout, { CUSTOM_FUNCTIONS_PATH, Heading, PageHeader, databaseExplorerPath, type WorkspaceView } from "../main-layout/main-layout";
 import type { ProjectSummary } from "../../services/project-service";
 import { domainDiagramPath } from "../domains/domain-routes";
 import { playgroundPath, rememberedPlaygroundPath, rememberedPlaygroundSelection } from "../playground/playground-memory";
@@ -58,7 +58,9 @@ export default function DatabaseExplorerPage({ projects, projectId, connectionSt
     >
       {() => (
         <>
-          <Heading icon="database" title="Database explorer" text="Browse source tables and inspect your connected data" />
+          <PageHeader>
+            <Heading icon="database" title="Database explorer" text="Browse source tables and inspect connected data" />
+          </PageHeader>
           <DataSources onRequestConnection={onOpenConnection} />
         </>
       )}

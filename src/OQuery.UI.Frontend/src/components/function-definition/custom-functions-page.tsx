@@ -1,5 +1,4 @@
 import MainLayout, { databaseExplorerPath, type WorkspaceView } from "../main-layout/main-layout";
-import Icon from "../shared/icon/icon";
 import { domainDiagramPath } from "../domains/domain-routes";
 import { rememberedPlaygroundPath, rememberedPlaygroundSelection } from "../playground/playground-memory";
 import FunctionDefinitionWorkspace from "./function-definition";
@@ -40,7 +39,7 @@ export default function CustomFunctionsPage({ connectionStatus, provider, onNavi
       projects={[]}
       projectId=""
       domainId=""
-      headerContext={<div className="function-scope-label" aria-label="Scope"><Icon name="function" size={14} /><span>Shared across all projects</span></div>}
+      showWorkspaceContext={false}
       connectionStatus={connectionStatus}
       provider={provider}
       onSelectView={onSelectView}

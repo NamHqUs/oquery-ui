@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import MainLayout, { CUSTOM_FUNCTIONS_PATH, databaseExplorerPath, type WorkspaceView } from "../main-layout/main-layout";
-import Icon from "../shared/icon/icon";
 import { domainDiagramPath } from "../domains/domain-routes";
 import { rememberedPlaygroundPath, rememberedPlaygroundSelection } from "../playground/playground-memory";
 import type { ProjectSummary } from "../../services/project-service";
@@ -36,7 +35,7 @@ export default function ProjectSetupLayout({ projects, connectionStatus, provide
       projectId=""
       domainId=""
       hideDomainSelect
-      headerContext={<div className="function-scope-label" aria-label="Scope"><Icon name="folder" size={14} /><span>Workspace projects</span></div>}
+      showWorkspaceContext={false}
       connectionStatus={connectionStatus}
       provider={provider}
       onSelectView={onSelectView}

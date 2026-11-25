@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import Icon from "../shared/icon/icon";
+import { Heading, PageHeader } from "../main-layout/main-layout";
 import "../data-sources/database-connection/database-connection.css";
 import { getConnectionOptions } from "../../services/database-connection-service";
 import { createProjectFromDatabase, testDatabaseConnection } from "../../services/project-service";
@@ -99,9 +100,11 @@ export default function CreateProjectPage() {
     : "");
 
   return (
-    <section className="projects-page connection-card" aria-labelledby="create-project-title">
-      <span className="section-kicker">NEW PROJECT</span>
-      <h2 id="create-project-title">Create project</h2>
+    <>
+      <PageHeader>
+        <Heading icon="folder" title="Create project" text="Connect a database to a new project" />
+      </PageHeader>
+    <section className="projects-page connection-card">
       <p className="connection-intro">
         The project reads its entities, fields and relations from this database into the Main domain.
         The connection string is encrypted before it is saved.
@@ -156,5 +159,6 @@ export default function CreateProjectPage() {
         </div>
       </form>
     </section>
+    </>
   );
 }

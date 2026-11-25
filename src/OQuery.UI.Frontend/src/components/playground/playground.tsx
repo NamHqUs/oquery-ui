@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Icon, { type IconName } from "../shared/icon/icon";
-import { Heading } from "../main-layout/main-layout";
+import { Heading, PageHeader } from "../main-layout/main-layout";
 import OQueryEditor, { type OQueryEditorHandle } from "../oquery-editor/oquery-editor";
 import { getOQuerySuggestionData } from "../oquery-editor/oquery-suggestion-data";
 import { getOqueryContextBlocks } from "../oquery-editor/oquery-monaco-adapters";
@@ -125,7 +125,9 @@ function PlaygroundHeading({ title, dirty, onRun, onDelete, onNew, onReload, onS
     { key: "new", label: "New", icon: "file-plus", onSelect: onNew, disabled: busy, className: "button secondary" },
   ];
   if (onDelete) actions.push({ key: "delete", label: deleting ? "Deleting..." : "Delete", icon: "trash", onSelect: onDelete, disabled: busy, danger: true, className: "button danger" });
-  return <Heading icon="query" title={title} text="Ask questions across your business data" actionItems={actions} status={dirty ? <span className="page-header-status">Unsaved</span> : null} />;
+  return <PageHeader>
+    <Heading icon="query" title={title} text="Ask questions across your business data" actionItems={actions} status={dirty ? <span className="page-header-status">Unsaved</span> : null} />
+  </PageHeader>;
 }
 
 // Shown when the current playground has unsaved changes and another playground (or New) is requested.

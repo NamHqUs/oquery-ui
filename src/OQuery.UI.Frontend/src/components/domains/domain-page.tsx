@@ -7,7 +7,7 @@ import type { AppDispatch, RootState } from "../../store/store";
 import { isSameSchema, metadataEntityFromDto, type DomainRelation, type MetadataEntity } from "./domain-model";
 import { clearDomainDraft, domainDraftSaved, setDomainDraftWorking, type DomainGraph } from "./domain-draft-slice";
 import { loadDomainDraft } from "./domain-draft-actions";
-import MainLayout, { Heading, CUSTOM_FUNCTIONS_PATH, notifyWorkspaceDomainsChanged, type WorkspaceView } from "../main-layout/main-layout";
+import MainLayout, { Heading, CUSTOM_FUNCTIONS_PATH, PageHeader, notifyWorkspaceDomainsChanged, type WorkspaceView } from "../main-layout/main-layout";
 import DiagramView, { diagramGroupTone } from "./entity-diagram/diagram-view";
 import { changedEntityNames, dbSchemaChangedEntityNames, toDiagramRelationships, toDiagramTables } from "./entity-diagram/diagram-model";
 import PanelSplitter from "../shared/panel-splitter/panel-splitter";
@@ -57,22 +57,6 @@ function toDatabaseTableOptions(schema: unknown): DatabaseTableOption[] {
 const encode = (segment: string) => encodeURIComponent(segment);
 
 export default function DomainPage({ route, projects, connectionStatus, provider, onNavigate, onOpenConnection }: DomainPageProps) {
-  if (route.kind !== "view") {
-    // Cancel closes the wizard and returns to the diagram of the domain it was opened from (Main for create).
-    // Edit shares the diagram's in-memory draft, so applying the wizard only changes that draft until Save.
-    const returnDomainId = route.kind === "edit" ? route.domainId : MAIN_DOMAIN_ID;
-    const returnToDiagram = () => onNavigate(domainDiagramPath(route.projectId, returnDomainId));
-    return (
-      <DomainWizardPage
-        mode={route.kind}
-        projectId={route.projectId}
-        domainId={returnDomainId}
-        onCancel={returnToDiagram}
-        onApplied={returnToDiagram}
-        onCreated={(newDomainId) => onNavigate(domainDiagramPath(route.projectId, newDomainId))}
-      />
-    );
-  }
   const { projectId } = route;
   const onSelectView = (view: WorkspaceView, domainId: string) => {
     if (view === "diagram") return;
@@ -86,6 +70,40 @@ export default function DomainPage({ route, projects, connectionStatus, provider
     }
     onNavigate(`/playground/${encode(projectId)}${domainId ? `/${encode(domainId)}` : ""}${view === "playground" ? "" : `?view=${encodeURIComponent(view)}`}`);
   };
+  if (route.kind !== "view") {
+    // Cancel closes the wizard and returns to the diagram of the domain it was opened from (Main for create).
+    // Edit shares the diagram's in-memory draft, so applying the wizard only changes that draft until Save.
+    const returnDomainId = route.kind === "edit" ? route.domainId : MAIN_DOMAIN_ID;
+    const returnToDiagram = () => onNavigate(domainDiagramPath(projectId, returnDomainId));
+    // The wizard is a full-page form, so it hides the project/domain selectors and renders its title in the root header.
+    return (
+      <MainLayout
+        view="diagram"
+        projects={projects}
+        projectId={projectId}
+        domainId={returnDomainId}
+        showWorkspaceContext={false}
+        connectionStatus={connectionStatus}
+        provider={provider}
+        onSelectView={onSelectView}
+        onSelectProject={() => undefined}
+        onSelectDomain={() => undefined}
+        onOpenConnection={onOpenConnection}
+        onNavigateHome={() => onNavigate("/")}
+      >
+        {() => (
+          <DomainWizardPage
+            mode={route.kind}
+            projectId={projectId}
+            domainId={returnDomainId}
+            onCancel={returnToDiagram}
+            onApplied={returnToDiagram}
+            onCreated={(newDomainId) => onNavigate(domainDiagramPath(projectId, newDomainId))}
+          />
+        )}
+      </MainLayout>
+    );
+  }
   return (
     <MainLayout
       view="diagram"
@@ -349,7 +367,9 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
 
   return (
     <>
-      <Heading icon="schema" title="Domain Diagram" text="Explore your data model, understand relationships, and get AI-powered insights" actionItems={headerActions} status={dirty ? <span className="page-header-status">Unsaved</span> : null} />
+      <PageHeader>
+        <Heading icon="schema" title="Domain Diagram" text="Explore your data model, understand relationships, and get AI-powered insights" actionItems={headerActions} status={dirty ? <span className="page-header-status">Unsaved</span> : null} />
+      </PageHeader>
       <div className="metadata-diagram-mode-content split-workspace" style={panel.style}>
         <section className="metadata-diagram-editor split-panel" aria-label="Entity definition editor">
           <div className="table-details-heading metadata-editor-heading">

@@ -7,7 +7,7 @@ import type { AppDispatch, RootState } from "../../store/store";
 import PanelSplitter from "../shared/panel-splitter/panel-splitter";
 import { useResizablePanel } from "../../utils/use-resizable-panel";
 import { useMessageBox } from "../shared/message-box/message-box";
-import { Heading } from "../main-layout/main-layout";
+import { Heading, PageHeader } from "../main-layout/main-layout";
 import type { HeaderAction } from "../shared/page-header/page-header-actions";
 import FunctionDetail from "./function-detail/function-detail";
 import FunctionList from "./function-list/function-list";
@@ -260,13 +260,15 @@ export default function FunctionDefinitionWorkspace({ onNavigationGuardChange }:
 
   return (
     <>
-      <Heading
-        icon="function"
-        title="Custom functions"
-        text="Reusable business logic shared by all projects"
-        actionItems={headerActions}
-        status={dirty ? <span className="page-header-status">Unsaved</span> : null}
-      />
+      <PageHeader>
+        <Heading
+          icon="function"
+          title="Custom functions"
+          text="Reusable business logic shared by all projects"
+          actionItems={headerActions}
+          status={dirty ? <span className="page-header-status">Unsaved</span> : null}
+        />
+      </PageHeader>
       <section
         className={`function-workspace split-workspace${panel.collapsed ? " panel-collapsed" : ""}`}
         style={panel.style}

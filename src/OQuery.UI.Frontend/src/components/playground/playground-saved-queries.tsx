@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Heading } from "../main-layout/main-layout";
+import { Heading, PageHeader } from "../main-layout/main-layout";
 import Icon from "../shared/icon/icon";
 import { fetchPlaygrounds, type SavedPlayground } from "../../services/playground-service";
 
@@ -39,7 +39,9 @@ export default function PlaygroundSavedQueries({ projectId, domainId, onOpenPlay
   }, [items, search]);
 
   return <>
-    <Heading icon="file-text" title="Saved queries" text="Playgrounds saved in this domain" action="New query" onAction={() => onOpenPlayground("")} />
+    <PageHeader>
+      <Heading icon="file-text" title="Saved queries" text="Playgrounds saved in this domain" action="New query" onAction={() => onOpenPlayground("")} />
+    </PageHeader>
     <div className="main-layout-toolbar">
       <input type="search" placeholder="Search queries..." aria-label="Search saved queries" value={search} onChange={(event) => setSearch(event.target.value)} />
       {items && <span>{items.length} saved</span>}

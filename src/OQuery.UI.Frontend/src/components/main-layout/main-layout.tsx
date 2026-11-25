@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import Icon, { type IconName } from "../shared/icon/icon";
 import PageHeaderActions, { type HeaderAction } from "../shared/page-header/page-header-actions";
 import { getProject, type ProjectSummary } from "../../services/project-service";
@@ -8,7 +9,9 @@ import "./main-layout.css";
 import "./main-layout-compat.css";
 
 export type WorkspaceView = "overview" | "playground" | "queries" | "diagram" | "explorer" | "functions" | "workspace";
-export type WorkspaceDomain = { id: string; name: string };
+export type WorkspaceDomain = { id: string; name: string; entityCount?: number };
+// Chip colors cycle through the diagram tones in the order the legacy domain chips used.
+const DOMAIN_CHIP_TONES = ["customer", "product", "finance", "custom", "revenue"] as const;
 // Custom functions is project-scoped data, but its URL carries no project or domain; the project is passed as ?project=.
 export const CUSTOM_FUNCTIONS_PATH = "/sqlfunctions";
 export const DATABASE_EXPLORER_PATH = "/database-explorer";
@@ -30,59 +33,23 @@ export function notifyWorkspaceDomainsChanged(projectId: string) {
 }
 
 type HeaderProps = {
-  projects: ProjectSummary[];
-  projectId: string;
-  domains: WorkspaceDomain[];
-  domainId: string;
-  connectionStatus: string;
-  provider: string;
-  onSelectProject: (projectId: string) => void;
-  onSelectDomain: (domainId: string) => void;
-  onOpenConnection: () => void;
   onNavigateHome: () => void;
-  // Replaces the default Project/Domain selectors when a page is not project-scoped.
-  headerContext?: ReactNode;
-  hideDomainSelect?: boolean;
 };
 
-function Header({ projects, projectId, domains, domainId, connectionStatus, provider, onSelectProject, onSelectDomain, onOpenConnection, onNavigateHome, headerContext, hideDomainSelect }: HeaderProps) {
-  const connectionState = connectionStatus === "loading" ? "connecting"
-    : connectionStatus === "failed" ? "failed"
-      : connectionStatus === "succeeded" ? "connected" : "";
-  const connectionLabel = connectionStatus === "loading" ? "Connecting…"
-    : connectionStatus === "failed" ? "Connection failed · Retry"
-      : connectionStatus === "succeeded" ? (provider || "Connecting") : "Not connected";
+function Header({ onNavigateHome, setSlot }: HeaderProps & { setSlot: (element: HTMLDivElement | null) => void }) {
   return <header className="root-header">
     <button type="button" className="main-layout-logo" onClick={onNavigateHome} aria-label="Go to home"><img src="/brand-concepts/23-oquery-orbit-core.svg" alt="" /><small>DATA QUERY ENGINE</small></button>
-    {headerContext ?? <div className="main-layout-context">
-      <MainLayoutSelect
-        label="Current project"
-        prefix="Project"
-        icon="folder"
-        value={projectId}
-        placeholder={projects.length ? "Choose a project" : "No projects yet"}
-        options={projects.map((project) => ({ value: project.id, label: project.name }))}
-        onChange={onSelectProject}
-      />
-      {!hideDomainSelect && <MainLayoutSelect
-        label="Active domain"
-        prefix="Domain"
-        icon="table"
-        value={domainId}
-        placeholder={projectId ? "No domains" : "Choose a project first"}
-        disabled={domains.length === 0}
-        options={domains.map((domain) => ({ value: domain.id, label: domain.name }))}
-        onChange={onSelectDomain}
-      />}
-    </div>}
-    <div className="main-layout-actions">
-      <button type="button" className={`database-status${connectionState ? ` ${connectionState}` : ""}`} onClick={onOpenConnection} aria-live="polite">
-        <span className="database-status-dot" />
-        <Icon name={connectionState === "connected" ? "check" : "database"} size={15} />
-        <span>{connectionLabel}</span>
-      </button>
-    </div>
+    <div className="root-header-page"><div className="root-header-slot" ref={setSlot} /></div>
   </header>;
+}
+
+// The root header owns one stable slot. Pages render their header through PageHeader, which portals into it,
+// so a page's header updates only re-render that page instead of looping through the layout.
+const PageHeaderSlotContext = createContext<HTMLDivElement | null>(null);
+
+export function PageHeader({ children }: { children: ReactNode }) {
+  const slot = useContext(PageHeaderSlotContext);
+  return slot ? createPortal(children, slot) : null;
 }
 
 export function Heading({ icon, title, text, action, onAction, actions, actionItems, status }: { icon: IconName; title: string; text: string; action?: string; onAction?: () => void; actions?: React.ReactNode; actionItems?: HeaderAction[]; status?: React.ReactNode }) {
@@ -101,18 +68,130 @@ type MainLayoutProps = {
   onSelectDomain: (domainId: string) => void;
   onOpenConnection: () => void;
   onNavigateHome: () => void;
-  headerContext?: ReactNode;
   // Project-only pages (such as the database explorer) hide the Domain selector.
   hideDomainSelect?: boolean;
+  // Scope selectors belong to the main content area for pages that work inside a project/domain.
+  showWorkspaceContext?: boolean;
   children: (context: { domains: WorkspaceDomain[]; domainId: string }) => ReactNode;
 };
 
-export default function MainLayout({ view, projects, projectId, domainId, connectionStatus, provider, onSelectView, onSelectProject, onSelectDomain, onOpenConnection, onNavigateHome, headerContext, hideDomainSelect, children }: MainLayoutProps) {
+const DOMAIN_CHIP_GAP = 6;
+
+// Shows as many domain chips as fit on one line; the rest move into a "More..." menu.
+function DomainSwitch({ domains, domainId, projectId, onSelectDomain }: { domains: WorkspaceDomain[]; domainId: string; projectId: string; onSelectDomain: (domainId: string) => void }) {
+  const switchRef = useRef<HTMLDivElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  // An invisible copy of every chip gives natural widths, so the visible row can be fitted without reflowing.
+  const measureRef = useRef<HTMLDivElement>(null);
+  const [visibleCount, setVisibleCount] = useState(domains.length);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useLayoutEffect(() => {
+    const row = rowRef.current;
+    const measure = measureRef.current;
+    if (!row || !measure) return;
+    const fit = () => {
+      const chipWidths = Array.from(measure.querySelectorAll<HTMLElement>(".main-layout-domain-chip"), (chip) => chip.getBoundingClientRect().width);
+      const moreWidth = measure.querySelector<HTMLElement>(".main-layout-domain-more-measure")?.getBoundingClientRect().width ?? 0;
+      const total = chipWidths.reduce((sum, width) => sum + width + DOMAIN_CHIP_GAP, -DOMAIN_CHIP_GAP);
+      if (total <= row.clientWidth) {
+        setVisibleCount(chipWidths.length);
+        return;
+      }
+      let used = moreWidth + DOMAIN_CHIP_GAP;
+      let count = 0;
+      for (const width of chipWidths) {
+        if (used + width > row.clientWidth) break;
+        used += width + DOMAIN_CHIP_GAP;
+        count++;
+      }
+      setVisibleCount(count);
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, [domains]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!switchRef.current?.contains(event.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+  }, [menuOpen]);
+
+  const select = (id: string) => {
+    setMenuOpen(false);
+    onSelectDomain(id);
+  };
+  const renderChip = (domain: WorkspaceDomain, index: number, extraClass = "") => (
+    <button
+      type="button"
+      key={domain.id}
+      className={`main-layout-domain-chip tone-${DOMAIN_CHIP_TONES[index % DOMAIN_CHIP_TONES.length]}${domain.id === domainId ? " active" : ""}${extraClass}`}
+      aria-pressed={domain.id === domainId}
+      onClick={() => select(domain.id)}
+    >
+      <span className="main-layout-domain-mark" aria-hidden="true" />
+      <strong>{domain.name}</strong>
+      <span className="main-layout-domain-count">{domain.entityCount ?? 0}</span>
+    </button>
+  );
+  const hidden = domains.slice(visibleCount);
+
+  return <div className="main-layout-domain-switch" ref={switchRef} role="group" aria-label="Active domain">
+    <div className="main-layout-domain-row" ref={rowRef}>
+      {domains.slice(0, visibleCount).map((domain, index) => renderChip(domain, index))}
+      {domains.length === 0 && <span className="main-layout-domain-empty">{projectId ? "No domains" : "Choose a project first"}</span>}
+      {hidden.length > 0 && <button type="button" className="main-layout-domain-more" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>More...</button>}
+    </div>
+    {menuOpen && hidden.length > 0 && <div className="main-layout-domain-menu" role="menu">
+      {hidden.map((domain, index) => renderChip(domain, visibleCount + index, " menu-item"))}
+    </div>}
+    <div className="main-layout-domain-measure" ref={measureRef} aria-hidden="true">
+      {domains.map((domain, index) => renderChip(domain, index))}
+      <span className="main-layout-domain-more-measure">More...</span>
+    </div>
+  </div>;
+}
+
+function WorkspaceContext({ projects, projectId, domains, domainId, connectionStatus, provider, onSelectProject, onSelectDomain, onOpenConnection, hideDomainSelect }: Pick<MainLayoutProps, "projects" | "projectId" | "connectionStatus" | "provider" | "onSelectProject" | "onSelectDomain" | "onOpenConnection"> & { domains: WorkspaceDomain[]; domainId: string; hideDomainSelect?: boolean }) {
+  const connectionState = connectionStatus === "loading" ? "connecting"
+    : connectionStatus === "failed" ? "failed"
+      : connectionStatus === "succeeded" ? "connected" : "";
+  const connectionLabel = connectionStatus === "loading" ? "Connecting…"
+    : connectionStatus === "failed" ? "Connection failed · Retry"
+      : connectionStatus === "succeeded" ? (provider || "Connecting") : "Not connected";
+  return <div className="main-layout-context root-main-context">
+    <div className="root-main-context-selectors">
+      <MainLayoutSelect
+        label="Current project"
+        prefix="Project"
+        icon="folder"
+        value={projectId}
+        placeholder={projects.length ? "Choose a project" : "No projects yet"}
+        options={projects.map((project) => ({ value: project.id, label: project.name }))}
+        onChange={onSelectProject}
+      />
+      {!hideDomainSelect && <DomainSwitch domains={domains} domainId={domainId} projectId={projectId} onSelectDomain={onSelectDomain} />}
+    </div>
+    <button type="button" className={`database-status button${connectionState ? ` ${connectionState}` : ""}`} onClick={onOpenConnection} aria-live="polite">
+      <span className="database-status-dot" />
+      <Icon name={connectionState === "connected" ? "check" : "database"} size={15} />
+      <span>{connectionLabel}</span>
+    </button>
+  </div>;
+}
+
+export default function MainLayout({ view, projects, projectId, domainId, connectionStatus, provider, onSelectView, onSelectProject, onSelectDomain, onOpenConnection, onNavigateHome, hideDomainSelect, showWorkspaceContext = true, children }: MainLayoutProps) {
   // Remounts (e.g. moving from another page) would otherwise render an empty Active Domain list until the fetch returns.
   const [domains, setDomains] = useState<WorkspaceDomain[]>(() => projectDomainsCache.get(projectId) ?? []);
   const [domainsVersion, setDomainsVersion] = useState(0);
   const sidebar = useSidebarCollapse();
   const bodyRef = useRef<HTMLDivElement>(null);
+  const [headerSlot, setHeaderSlot] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
     const listener = (changedProjectId: string) => {
       if (changedProjectId !== projectId) return;
@@ -134,7 +213,7 @@ export default function MainLayout({ view, projects, projectId, domainId, connec
     getProject(projectId)
       .then((details) => {
         if (!active) return;
-        const next = details.domains.map((domain) => ({ id: domain.id, name: domain.name }));
+        const next = details.domains.map((domain) => ({ id: domain.id, name: domain.name, entityCount: domain.entities.length }));
         projectDomainsCache.set(projectId, next);
         setDomains(next);
       })
@@ -175,5 +254,5 @@ export default function MainLayout({ view, projects, projectId, domainId, connec
       window.removeEventListener("resize", update);
     };
   }, []);
-  return <div className="root-workspace"><Header projects={projects} projectId={projectId} domains={domains} domainId={selectedDomainId} connectionStatus={connectionStatus} provider={provider} onSelectProject={onSelectProject} onSelectDomain={onSelectDomain} onOpenConnection={onOpenConnection} onNavigateHome={onNavigateHome} headerContext={headerContext} hideDomainSelect={hideDomainSelect} /><div ref={bodyRef} className={`root-body${view === "playground" ? " playground-body" : ""}`}><MainLayoutSidebar view={view} collapsed={sidebar.collapsed} onToggle={sidebar.toggle} onSelect={(next) => onSelectView(next, selectedDomainId)} /><main className={view === "playground" || view === "functions" || view === "explorer" ? "root-main-playground" : undefined}>{children({ domains, domainId: selectedDomainId })}</main></div><footer className="root-footer"><Icon name="schema" size={13} /> oQuery engine</footer></div>;
+  return <div className="root-workspace"><Header onNavigateHome={onNavigateHome} setSlot={setHeaderSlot} /><div ref={bodyRef} className={`root-body${view === "playground" ? " playground-body" : ""}`}><MainLayoutSidebar view={view} collapsed={sidebar.collapsed} onToggle={sidebar.toggle} onSelect={(next) => onSelectView(next, selectedDomainId)} /><main className={view === "playground" || view === "functions" || view === "explorer" ? "root-main-playground" : undefined}>{showWorkspaceContext && <WorkspaceContext projects={projects} projectId={projectId} domains={domains} domainId={selectedDomainId} connectionStatus={connectionStatus} provider={provider} onSelectProject={onSelectProject} onSelectDomain={onSelectDomain} onOpenConnection={onOpenConnection} hideDomainSelect={hideDomainSelect} />}<PageHeaderSlotContext.Provider value={headerSlot}>{children({ domains, domainId: selectedDomainId })}</PageHeaderSlotContext.Provider></main></div><footer className="root-footer"><Icon name="schema" size={13} /> oQuery engine</footer></div>;
 }

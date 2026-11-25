@@ -13,6 +13,26 @@
 }
 
 .root-header {
+  min-height: 56px;
+  height: auto;
+}
+
+.root-header-slot {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.root-header-slot > .page-header {
+  flex: 1;
+}
+
+.root-header .main-layout-heading {
+  min-height: 72px;
+  margin: 0;
+}
+
+.root-header {
   border-bottom-color: #29243f;
   background: linear-gradient(180deg, #0d0e17f2, #0a0c12e8);
 }
@@ -223,7 +243,7 @@
 .main-layout-select-trigger {
   display: inline-flex;
   max-width: 100%;
-  min-height: 36px;
+  min-height: 29px;
   align-items: center;
   gap: 8px !important;
   padding: 0 12px !important;
@@ -318,9 +338,14 @@
 }
 
 .main-layout-actions .database-status {
-  padding: 8px 11px;
+  display: inline-flex;
+  min-height: 36px;
+  box-sizing: border-box;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
   border: 1px solid #333847;
-  border-radius: 3px;
+  border-radius: 8px;
   color: #c6ccda;
   background: #11151e;
   font-size: 11px;

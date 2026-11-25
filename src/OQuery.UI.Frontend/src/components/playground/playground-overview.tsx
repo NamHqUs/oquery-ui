@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CUSTOM_FUNCTIONS_PATH, Heading, databaseExplorerPath } from "../main-layout/main-layout";
+import { CUSTOM_FUNCTIONS_PATH, Heading, PageHeader, databaseExplorerPath } from "../main-layout/main-layout";
 import Icon, { type IconName } from "../shared/icon/icon";
 import { fetchPlaygrounds, type SavedPlayground } from "../../services/playground-service";
 import { getDomain, type DomainDetails } from "../../services/project-service";
@@ -42,8 +42,9 @@ export default function PlaygroundOverview({ projectId, domainId, onOpenPlaygrou
 
   const { data, error } = state;
   return <>
-    <Heading icon="grid" title="Overview" text={data ? `Domain ${data.domain.name || domainId}` : "Your domain at a glance"} />
-    {error && <p className="connection-message error" role="alert">{error}</p>}
+    <PageHeader>
+      <Heading icon="grid" title="Overview" text={data ? `Domain ${data.domain.name || domainId}` : "Your domain at a glance"} />
+    </PageHeader> {error && <p className="connection-message error" role="alert">{error}</p>}
     {!data && !error && <p className="metadata-message">Loading overview…</p>}
     {data && <>
       <div className="main-layout-stats">

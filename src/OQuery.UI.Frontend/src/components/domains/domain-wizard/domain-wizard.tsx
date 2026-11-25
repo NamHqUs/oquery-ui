@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Icon from "../../shared/icon/icon";
+import { Heading, PageHeader } from "../../main-layout/main-layout";
 import "./domain-wizard.css";
 
 export type WizardStep = 1 | 2 | 3;
@@ -63,17 +64,17 @@ export default function DomainWizard({
 
   return (
     <div className="domain-wizard">
-      <header className="domain-wizard-header">
-        <div>
-          <h3>{mode === "edit" ? "Edit domain" : "New domain"}</h3>
-          {mode === "edit" && domainDisplayName && <strong className="domain-wizard-current-domain">{domainDisplayName}</strong>}
-          <p>{mode === "edit" ? "Update this existing domain by adding or removing entities, then apply the changes to the diagram." : "Choose a source, prepare its entities, and generate query-ready metadata."}</p>
-        </div>
-        <div className="domain-wizard-header-actions">
-          <span className="domain-progress">STEP {step} OF {finalStep}</span>
-          <button type="button" className="button secondary" onClick={onCancel}>Cancel</button>
-        </div>
-      </header>
+      <PageHeader>
+        <Heading
+          icon="schema"
+          title={mode === "edit" ? "Edit domain" : "New domain"}
+          text={mode === "edit" && domainDisplayName ? `Editing ${domainDisplayName}` : "Choose a source, prepare its entities, and generate query-ready metadata."}
+          actions={<>
+            <span className="domain-progress">STEP {step} OF {finalStep}</span>
+            <button type="button" className="button secondary" onClick={onCancel}>Cancel</button>
+          </>}
+        />
+      </PageHeader>
       <div className="domain-source-picker" role="group" aria-label="Domain metadata source">
         <button type="button" className={source === "database" ? "active" : ""} onClick={() => void onSourceChange("database")}>
           <strong>Database</strong><small>{mode === "edit" ? "Append tables from the connected database" : "Choose tables from a connected database"}</small>

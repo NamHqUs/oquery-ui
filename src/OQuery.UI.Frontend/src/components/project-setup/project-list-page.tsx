@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Icon from "../shared/icon/icon";
+import { Heading, PageHeader } from "../main-layout/main-layout";
 import { useMessageBox } from "../shared/message-box/message-box";
 import { deleteProject, importProjectFromDisk, listProjects, updateProject, type ProjectSummary } from "../../services/project-service";
 import { isFolderPickerSupported, pickProjectFolder, readProjectFolder } from "./project-folder-reader";
@@ -114,26 +115,28 @@ export default function ProjectListPage() {
   };
 
   return (
+    <>
+      <PageHeader>
+        <Heading
+          icon="folder"
+          title="Projects"
+          text="Your workspace"
+          actions={<>
+            <button
+              className="button secondary"
+              type="button"
+              onClick={loadFromDisk}
+              disabled={importing || !folderPickerSupported}
+              title={folderPickerSupported ? "Choose a project folder on this computer" : "Loading from disk needs a Chromium-based browser"}
+            >
+              <Icon name="folder" size={14} /> {importing ? "Loading project…" : "Load Project From Disk"}
+            </button>
+            <Link className="button primary" to="/projects/create"><Icon name="plus" size={14} /> New project</Link>
+          </>}
+        />
+      </PageHeader>
     <section className="projects-page projects-list-page">
-      <div className="projects-page-head">
-        <div>
-          <span className="section-kicker">YOUR WORKSPACE</span>
-          <h2>Projects</h2>
-          <p className="connection-intro">A focused home for your data, domains, and query work.</p>
-        </div>
-        <div className="projects-page-actions">
-          <button
-            className="button secondary"
-            type="button"
-            onClick={loadFromDisk}
-            disabled={importing || !folderPickerSupported}
-            title={folderPickerSupported ? "Choose a project folder on this computer" : "Loading from disk needs a Chromium-based browser"}
-          >
-            <Icon name="folder" size={14} /> {importing ? "Loading project…" : "Load Project From Disk"}
-          </button>
-          <Link className="button primary" to="/projects/create"><Icon name="plus" size={14} /> New project</Link>
-        </div>
-      </div>
+      <p className="connection-intro">A focused home for your data, domains, and query work.</p>
 
       {state.error && <p className="connection-message error" role="alert">{state.error}</p>}
       {state.projects && state.projects.length > 0 && (
@@ -216,5 +219,6 @@ export default function ProjectListPage() {
         </ul>
       )}
     </section>
+    </>
   );
 }

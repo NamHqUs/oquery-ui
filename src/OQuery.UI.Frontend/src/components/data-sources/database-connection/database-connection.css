@@ -148,13 +148,15 @@
 
 .connection-submit {
   display: inline-flex;
+  justify-self: start;
   min-height: 42px;
+  padding: 0 20px;
   align-items: center;
   justify-content: center;
   gap: 8px;
   border: 1px solid #806bc14d;
   border-radius: 4px;
-  color: #f2edff;
+  color: #ffffff;
   background: linear-gradient(135deg, #5a478c, #382a58);
   font-size: 12px;
   font-weight: 600;
