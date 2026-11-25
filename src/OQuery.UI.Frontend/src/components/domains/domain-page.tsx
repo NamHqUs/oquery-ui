@@ -368,7 +368,7 @@ function DomainDiagramContent({ projectId, domainId, domainOptions, onNavigate }
   return (
     <>
       <PageHeader>
-        <Heading icon="schema" title="Domain Diagram" text="Explore your data model, understand relationships, and get AI-powered insights" actionItems={headerActions} status={dirty ? <span className="page-header-status">Unsaved</span> : null} />
+        <Heading icon="schema" title="Domains" text="Explore your data model, understand relationships, and get AI-powered insights" actionItems={headerActions} status={dirty ? <span className="page-header-status">Unsaved</span> : null} />
       </PageHeader>
       <div className="metadata-diagram-mode-content split-workspace" style={panel.style}>
         <section className="metadata-diagram-editor split-panel" aria-label="Entity definition editor">

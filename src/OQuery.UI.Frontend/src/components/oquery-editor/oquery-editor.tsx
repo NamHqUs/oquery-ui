@@ -43,6 +43,7 @@ type OQueryEditorProps = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "onCh
   showLineNumbers?: boolean;
   showFoldControls?: boolean;
   gutterWidth?: number;
+  fontSize?: number;
   onBlur?: FocusEventHandler<HTMLElement>;
   onSelectionChange?: (text: string) => void;
   onExecuteSelectedText?: (text: string, contextName?: string) => void;
@@ -113,8 +114,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
   const {
     textOverride, disabled = false, onBlur,
     functionDefinitions, errorFunctionName = "", errorPosition = null, errorMessage = "",
-    compact = false, showGutter = true, showLineNumbers = true, showFoldControls = true, gutterWidth = 16,
-    onExecuteContext, suggestionEntitiesMetadata, inlineResults, onClearInlineResult,
+    compact = false, showGutter = true, showLineNumbers = true, showFoldControls = true, gutterWidth = 16, fontSize = 13,    onExecuteContext, suggestionEntitiesMetadata, inlineResults, onClearInlineResult,
   } = props;
   const instanceId = useId().replace(/[^A-Za-z0-9_-]/g, "");
   const hostRef = useRef<HTMLDivElement>(null);
@@ -379,7 +379,7 @@ const OqueryMonacoEditor = forwardRef<OQueryEditorHandle, OQueryEditorProps>((pr
       wordWrap: "off",
       scrollBeyondLastLine: false,
       fontFamily: "\"Cascadia Mono\", Consolas, ui-monospace, SFMono-Regular, Menlo, Monaco, \"Liberation Mono\", \"Courier New\", monospace",
-      fontSize: 13,
+      fontSize,
       fontWeight: "300",
       lineHeight: COMPACT_LINE_HEIGHT,
       tabSize: 2,

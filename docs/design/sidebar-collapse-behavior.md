@@ -6,7 +6,7 @@ Status: proposal. Defines when side panels collapse.
 
 The main menu in `src/OQuery.UI.Frontend/src/components/main-layout/main-layout-sidebar.tsx` implements:
 
-- Groups: **Domain** (Playground, Queries, Domain Diagram), **Project** (Overview, Database explorer,
+- Groups: **Domain** (Playground, Domains, Queries), **Project** (Overview, Database explorer,
   Security), and **Global** (Custom functions, Workspace). Workspace opens the project list
   (`/projects`), which stays inside the main layout. When the project has no domains, the Domain group
   shows a hint instead of its items. Collapsed, group labels become thin dividers.

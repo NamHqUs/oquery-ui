@@ -19,8 +19,8 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
     label: "Domain",
     items: [
       { view: "playground", label: "Playground", icon: "play" },
+      { view: "diagram", label: "Domains", icon: "schema" },
       { view: "queries", label: "Queries", icon: "file-text" },
-      { view: "diagram", label: "Domain Diagram", icon: "schema" },
     ],
   },
   {

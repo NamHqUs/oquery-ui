@@ -698,7 +698,6 @@
   min-width: 0;
   overflow: hidden;
   box-sizing: border-box;
-  border-top: 1px solid #252b38;
 }
 
 .playground-entities.is-collapsed {
@@ -1115,7 +1114,6 @@
   gap: 0px;
   min-width: 0;
   min-height: 0;
-  border-top: 1px solid #252b38;
 }
 
 .playground-tabs {
@@ -1335,7 +1333,6 @@ button.playground-saved-item {
   overflow: hidden;
   padding: 0 14px;
   border: 0;
-  border-top: 1px solid #252b38;
   border-radius: 0;
   background: linear-gradient(135deg, #11141c, #0f1218);
 }

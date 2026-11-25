@@ -23,7 +23,7 @@ export default function PlaygroundWorkspace({ projectId, domainId, queryId, proj
   onOpenConnection: () => void;
 }) {
   const [searchParams] = useSearchParams();
-  // Other pages open a specific view with ?view=<name>, such as the menu on the Domain Diagram page.
+  // Other pages open a specific view with ?view=<name>, such as the menu on the Domains page.
   const [view, setView] = useState<WorkspaceView>(() => {
     const requested = searchParams.get("view") as WorkspaceView | null;
     return requested && LOCAL_VIEWS.includes(requested) ? requested : "playground";

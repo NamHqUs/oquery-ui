@@ -11,7 +11,7 @@ type CustomFunctionsPageProps = {
   onNavigationGuardChange: (guard: ((continueNavigation: () => void, cancelNavigation?: () => void) => void) | null) => void;
 };
 
-// Custom functions live in the user section, so the page has no project or domain. Playground and Domain Diagram
+// Custom functions live in the user section, so the page has no project or domain. Playground and Domains
 // return to the last project and domain the user worked in; the project chooser is only used when none is remembered.
 const PROJECT_CHOOSER_PATH = "/projects";
 

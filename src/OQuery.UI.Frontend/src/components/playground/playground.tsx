@@ -727,6 +727,7 @@ export default function Playground({ queryId, projectId, domainId }: { queryId: 
           suggestionEntities={suggestionData.entities}
           suggestionEntitiesMetadata={suggestionData.entitiesMetadata}
           gutterWidth={2}
+          fontSize={12}
           onExecuteQuery={runEntry}
           onExecuteContext={runContext}
           inlineResults={inlineResults}
