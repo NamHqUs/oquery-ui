@@ -11,9 +11,9 @@ public sealed class RequestUsageCollector
     public const int MaxEntries = 100_000;
 
     private readonly object _gate = new();
-    private readonly Dictionary<(DateOnly Day, Guid SectionId, string Url, string Page), long> _counts = new();
+    private readonly Dictionary<(DateOnly Day, string SectionId, string Url, string Page), long> _counts = new();
 
-    public void Add(DateOnly day, Guid sectionId, string url, string page = "", long count = 1)
+    public void Add(DateOnly day, string sectionId, string url, string page = "", long count = 1)
     {
         lock (_gate)
         {

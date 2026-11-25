@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { useDispatch, useSelector } from "react-redux";
 import Icon from "../../shared/icon/icon";
 import SidebarList from "../../shared/sidebar-list/sidebar-list";
+import { useKeepSelectedInView } from "../../../utils/use-keep-selected-in-view";
 import { selectDbTable } from "../database-slice";
 import "./table-list.css";
 
@@ -51,30 +52,7 @@ export default function TableList({ scrollStyle }: TableListProps) {
     scrollStyle,
   ]);
 
-  useEffect(() => {
-    const tableList = tableListRef.current;
-    if (!tableList) return;
-
-    const scrollSelectedIntoView = () => {
-      const selectedItem = tableList.querySelector<HTMLElement>(".database-table-item[aria-current='page']");
-      if (!selectedItem) return;
-
-      const listRect = tableList.getBoundingClientRect();
-      const itemRect = selectedItem.getBoundingClientRect();
-      const visibleTop = listRect.top + tableList.clientTop;
-      const visibleBottom = visibleTop + tableList.clientHeight;
-      if (itemRect.top < visibleTop) {
-        tableList.scrollTop -= visibleTop - itemRect.top;
-      } else if (itemRect.bottom > visibleBottom) {
-        tableList.scrollTop += itemRect.bottom - visibleBottom;
-      }
-    };
-
-    scrollSelectedIntoView();
-    const observer = new ResizeObserver(scrollSelectedIntoView);
-    observer.observe(tableList);
-    return () => observer.disconnect();
-  }, [searchQuery, selectedSchema, selectedTable]);
+  useKeepSelectedInView(tableListRef, ".database-table-item[aria-current='page']", [searchQuery, selectedSchema, selectedTable]);
 
   return (
     <SidebarList

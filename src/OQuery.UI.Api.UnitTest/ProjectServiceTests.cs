@@ -3,11 +3,13 @@ using Microsoft.Extensions.Options;
 using OQuery;
 using OQuery.UI.Abstracts.Application;
 using OQuery.UI.Abstracts.Dto;
+using OQuery.UI.Abstracts.Repositories;
 using OQuery.UI.Abstracts.Services;
 using OQuery.UI.Hosting;
 using OQuery.UI.Services;
 using OQuery.UI.Storage.Files;
 using OQuery.UI.Storage.Files.FileStorage;
+using System.Text.Json;
 
 namespace OQuery.UI.Api.UnitTest;
 
@@ -31,7 +33,7 @@ internal sealed class ProjectServiceTests
         {
             Security = new OQueryOptions.SecurityOptions { EncryptionKey = "test-secret" },
         }));
-        _service = new ProjectService(_provider.Projects, new FixedSection(), new NoDatabase(), protector, _loader);
+        _service = new ProjectService(_provider.Projects, new FixedSection(), new NoDatabase(), protector, _loader, _provider.Queries, _provider.Playgrounds);
     }
 
     [TearDown]
@@ -133,6 +135,76 @@ internal sealed class ProjectServiceTests
             ],
         }));
     }
+
+    [Test]
+    public void ImportKeepsFreeProjectIdAndStoresQueriesAndPlaygrounds()
+    {
+        var imported = _service.Import(ImportRequest("abc123", "Imported"));
+
+        Assert.That(imported.Id, Is.EqualTo("abc123"));
+        Assert.That(imported.Domains.Single().Id, Is.EqualTo("main"));
+        var scope = new StorageScope(Section, imported.Id);
+        Assert.That(_provider.Queries.GetAll(scope).Select(query => query.Id), Is.EqualTo(new[] { "q1" }));
+        Assert.That(_provider.Playgrounds.GetAll(scope, "main").Select(playground => playground.Name), Is.EqualTo(new[] { "P" }));
+    }
+
+    [Test]
+    public void ImportAssignsNewIdWhenTheProjectIdIsTaken()
+    {
+        _service.Import(ImportRequest("abc123", "Imported"));
+
+        var copy = _service.Import(ImportRequest("abc123", "Imported copy"));
+
+        Assert.That(copy.Id, Is.Not.EqualTo("abc123"));
+        Assert.That(_service.GetAll().Select(project => project.Name), Is.EquivalentTo(new[] { "Imported", "Imported copy" }));
+    }
+
+    [Test]
+    public void ImportRejectsAConnectionEncryptedWithAnotherKeyAndWritesNothing()
+    {
+        var foreignProtector = new AesGcmConnectionStringProtector(Options.Create(new OQueryOptions
+        {
+            Security = new OQueryOptions.SecurityOptions { EncryptionKey = "another-server-key" },
+        }));
+        var request = ImportRequest("", "Sales") with
+        {
+            Project = new ProjectFileDto("", "Sales", "", "")
+            {
+                Connection = new ProjectConnectionDto("Sqlite", foreignProtector.Protect("Data Source=sales.db")),
+            },
+        };
+
+        var error = Assert.Throws<InvalidOperationException>(() => _service.Import(request));
+
+        Assert.That(error!.Message, Does.Contain("another server key"));
+        Assert.That(_service.GetAll(), Is.Empty);
+    }
+
+    [Test]
+    public void ImportRejectsAPlaygroundOfADomainNotInTheProject()
+    {
+        var request = ImportRequest("", "Sales") with
+        {
+            Playgrounds = [new PlaygroundDto("Clients") { DomainId = "missing", Id = "p1" }],
+        };
+
+        Assert.Throws<ArgumentException>(() => _service.Import(request));
+
+        Assert.That(_service.GetAll(), Is.Empty);
+    }
+
+    private static ProjectImportDto ImportRequest(string projectId, string name)
+        => new(
+            new ProjectFileDto(projectId, name, "", ""),
+            [new DomainDto
+            {
+                Id = "main",
+                Name = "Main",
+                Entities = [new EntityDto("Clients", [new Field("Id", "Id", DataType.Number)], "Clients") { DbTable = "Clients" }],
+                Relations = [],
+            }],
+            [JsonDocument.Parse("{\"id\":\"q1\",\"name\":\"All clients\"}").RootElement],
+            [new PlaygroundDto("Clients") { DomainId = "main", Id = "p1", Name = "P" }]);
 
     private static DatabaseSchema CreateSchema(params string[] tables)
         => new(

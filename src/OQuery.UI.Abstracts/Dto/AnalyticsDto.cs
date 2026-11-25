@@ -1,7 +1,7 @@
 namespace OQuery.UI.Abstracts.Dto;
 
 /// <summary>One aggregated row: how many API requests a section sent to a route from a frontend page on a UTC day. Page is empty when the client sent none.</summary>
-public sealed record AnalyticsUsageRowDto(DateOnly Day, Guid SectionId, string Url, string Page, long Count);
+public sealed record AnalyticsUsageRowDto(DateOnly Day, string SectionId, string Url, string Page, long Count);
 
 /// <summary>Per UTC day: visitors whose first visit was that day, visitors seen before, and routed request totals.</summary>
 public sealed record AnalyticsDailyStatDto(DateOnly Day, long NewUsers, long ReturningUsers, long TotalVisits);

@@ -4,7 +4,7 @@ import type { WorkspaceView } from "./main-layout";
 
 // "auto" follows the viewport width; an explicit choice is kept until the user toggles again.
 export type SidebarPreference = "auto" | "expanded" | "collapsed";
-export type SidebarGroupId = "domain" | "project" | "library";
+export type SidebarGroupId = "domain" | "project" | "global";
 type SidebarItem = { view: WorkspaceView; label: string; icon: IconName };
 type SidebarGroup = { id: SidebarGroupId; label: string; items: SidebarItem[] };
 
@@ -12,7 +12,7 @@ export const SIDEBAR_AUTO_COLLAPSE_WIDTH = 1280;
 const SIDEBAR_STORAGE_KEY = "oquery.main-sidebar";
 const RESIZE_DEBOUNCE_MS = 150;
 
-// Groups are ordered by how often they are used: domain tools first, then project tools, then shared libraries.
+// Groups are ordered by how often they are used: domain tools first, then project tools, then global tools.
 export const SIDEBAR_GROUPS: SidebarGroup[] = [
   {
     id: "domain",
@@ -33,9 +33,12 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
     ],
   },
   {
-    id: "library",
-    label: "Library",
-    items: [{ view: "functions", label: "Custom functions", icon: "function" }],
+    id: "global",
+    label: "Global",
+    items: [
+      { view: "functions", label: "Custom functions", icon: "function" },
+      { view: "workspace", label: "Workspace", icon: "folder" },
+    ],
   },
 ];
 

@@ -7,11 +7,18 @@ import MainLayoutSidebar, { useSidebarCollapse } from "./main-layout-sidebar";
 import "./main-layout.css";
 import "./main-layout-compat.css";
 
-export type WorkspaceView = "overview" | "playground" | "queries" | "diagram" | "explorer" | "functions" | "security";
+export type WorkspaceView = "overview" | "playground" | "queries" | "diagram" | "explorer" | "functions" | "security" | "workspace";
 export type WorkspaceDomain = { id: string; name: string };
 // Custom functions is project-scoped data, but its URL carries no project or domain; the project is passed as ?project=.
 export const CUSTOM_FUNCTIONS_PATH = "/sqlfunctions";
-export const DATABASE_EXPLORER_PATH = "/metadata/explorer";
+export const DATABASE_EXPLORER_PATH = "/database-explorer";
+// The explorer is bound to a project through its path: /database-explorer/<projectId>.
+export const databaseExplorerPath = (projectId: string) => (projectId ? `${DATABASE_EXPLORER_PATH}/${encodeURIComponent(projectId)}` : DATABASE_EXPLORER_PATH);
+export const isDatabaseExplorerPath = (pathname: string) => pathname === DATABASE_EXPLORER_PATH || pathname.startsWith(`${DATABASE_EXPLORER_PATH}/`);
+export const databaseExplorerProjectIdOf = (pathname: string) => {
+  const match = pathname.match(/^\/database-explorer\/([^/]+)$/);
+  return match ? decodeURIComponent(match[1]) : "";
+};
 
 // Domain lists per project, kept across MainLayout mounts so page changes don't flash an empty selector.
 const projectDomainsCache = new Map<string, WorkspaceDomain[]>();
@@ -35,9 +42,10 @@ type HeaderProps = {
   onNavigateHome: () => void;
   // Replaces the default Project/Domain selectors when a page is not project-scoped.
   headerContext?: ReactNode;
+  hideDomainSelect?: boolean;
 };
 
-function Header({ projects, projectId, domains, domainId, connectionStatus, provider, onSelectProject, onSelectDomain, onOpenConnection, onNavigateHome, headerContext }: HeaderProps) {
+function Header({ projects, projectId, domains, domainId, connectionStatus, provider, onSelectProject, onSelectDomain, onOpenConnection, onNavigateHome, headerContext, hideDomainSelect }: HeaderProps) {
   const connectionState = connectionStatus === "loading" ? "connecting"
     : connectionStatus === "failed" ? "failed"
       : connectionStatus === "succeeded" ? "connected" : "";
@@ -56,7 +64,7 @@ function Header({ projects, projectId, domains, domainId, connectionStatus, prov
         options={projects.map((project) => ({ value: project.id, label: project.name }))}
         onChange={onSelectProject}
       />
-      <MainLayoutSelect
+      {!hideDomainSelect && <MainLayoutSelect
         label="Active domain"
         prefix="Domain"
         icon="table"
@@ -65,7 +73,7 @@ function Header({ projects, projectId, domains, domainId, connectionStatus, prov
         disabled={domains.length === 0}
         options={domains.map((domain) => ({ value: domain.id, label: domain.name }))}
         onChange={onSelectDomain}
-      />
+      />}
     </div>}
     <div className="main-layout-actions">
       <button type="button" className={`database-status${connectionState ? ` ${connectionState}` : ""}`} onClick={onOpenConnection} aria-live="polite">
@@ -73,8 +81,6 @@ function Header({ projects, projectId, domains, domainId, connectionStatus, prov
         <Icon name={connectionState === "connected" ? "check" : "database"} size={15} />
         <span>{connectionLabel}</span>
       </button>
-      <button type="button" className="main-layout-notification" aria-label="Notifications"><Icon name="bell" size={15} /><em>3</em></button>
-      <button type="button" className="main-layout-avatar" aria-label="User profile">N</button>
     </div>
   </header>;
 }
@@ -96,10 +102,12 @@ type MainLayoutProps = {
   onOpenConnection: () => void;
   onNavigateHome: () => void;
   headerContext?: ReactNode;
+  // Project-only pages (such as the database explorer) hide the Domain selector.
+  hideDomainSelect?: boolean;
   children: (context: { domains: WorkspaceDomain[]; domainId: string }) => ReactNode;
 };
 
-export default function MainLayout({ view, projects, projectId, domainId, connectionStatus, provider, onSelectView, onSelectProject, onSelectDomain, onOpenConnection, onNavigateHome, headerContext, children }: MainLayoutProps) {
+export default function MainLayout({ view, projects, projectId, domainId, connectionStatus, provider, onSelectView, onSelectProject, onSelectDomain, onOpenConnection, onNavigateHome, headerContext, hideDomainSelect, children }: MainLayoutProps) {
   // Remounts (e.g. moving from another page) would otherwise render an empty Active Domain list until the fetch returns.
   const [domains, setDomains] = useState<WorkspaceDomain[]>(() => projectDomainsCache.get(projectId) ?? []);
   const [domainsVersion, setDomainsVersion] = useState(0);
@@ -167,5 +175,5 @@ export default function MainLayout({ view, projects, projectId, domainId, connec
       window.removeEventListener("resize", update);
     };
   }, []);
-  return <div className="root-workspace"><Header projects={projects} projectId={projectId} domains={domains} domainId={selectedDomainId} connectionStatus={connectionStatus} provider={provider} onSelectProject={onSelectProject} onSelectDomain={onSelectDomain} onOpenConnection={onOpenConnection} onNavigateHome={onNavigateHome} headerContext={headerContext} /><div ref={bodyRef} className={`root-body${view === "playground" ? " playground-body" : ""}`}><MainLayoutSidebar view={view} collapsed={sidebar.collapsed} onToggle={sidebar.toggle} onSelect={(next) => onSelectView(next, selectedDomainId)} /><main className={view === "playground" || view === "functions" || view === "explorer" ? "root-main-playground" : undefined}>{children({ domains, domainId: selectedDomainId })}</main></div><footer className="root-footer"><Icon name="schema" size={13} /> oQuery engine <span>Phase one</span><span>Data binding planned for phase two</span></footer></div>;
+  return <div className="root-workspace"><Header projects={projects} projectId={projectId} domains={domains} domainId={selectedDomainId} connectionStatus={connectionStatus} provider={provider} onSelectProject={onSelectProject} onSelectDomain={onSelectDomain} onOpenConnection={onOpenConnection} onNavigateHome={onNavigateHome} headerContext={headerContext} hideDomainSelect={hideDomainSelect} /><div ref={bodyRef} className={`root-body${view === "playground" ? " playground-body" : ""}`}><MainLayoutSidebar view={view} collapsed={sidebar.collapsed} onToggle={sidebar.toggle} onSelect={(next) => onSelectView(next, selectedDomainId)} /><main className={view === "playground" || view === "functions" || view === "explorer" ? "root-main-playground" : undefined}>{children({ domains, domainId: selectedDomainId })}</main></div><footer className="root-footer"><Icon name="schema" size={13} /> oQuery engine</footer></div>;
 }

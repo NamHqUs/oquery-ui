@@ -10,6 +10,9 @@ public interface IProjectService
 
     /// <summary>Creates a project, its encrypted connection and the Main domain from one database. Nothing is kept on failure.</summary>
     ProjectDto CreateFromDatabase(ProjectFromDatabaseRequestDto request);
+
+    /// <summary>Imports a project folder as a new project. Keeps the project ID when it is free, otherwise assigns a new one. Nothing is kept on failure.</summary>
+    ProjectDto Import(ProjectImportDto request);
     ProjectDto Update(string projectId, ProjectFileDto project);
     void Delete(string projectId);
 

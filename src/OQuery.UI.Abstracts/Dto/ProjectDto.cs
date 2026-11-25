@@ -28,3 +28,13 @@ public sealed record ProjectConnectionDto(string Provider, string EncryptedConne
 
 /// <summary>Request to create a project whose Main domain is read from the database.</summary>
 public sealed record ProjectFromDatabaseRequestDto(string Name, string Description, string Provider, string ConnectionString);
+
+/// <summary>
+/// A project folder read from disk. <see cref="Queries"/> are stored query request JSON objects, kept as sent.
+/// <see cref="Playgrounds"/> belong to the domains in <see cref="Domains"/>.
+/// </summary>
+public sealed record ProjectImportDto(
+    ProjectFileDto Project,
+    IReadOnlyList<DomainDto> Domains,
+    IReadOnlyList<System.Text.Json.JsonElement> Queries,
+    IReadOnlyList<PlaygroundDto> Playgrounds);

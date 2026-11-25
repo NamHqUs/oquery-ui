@@ -3,7 +3,7 @@ import Icon from "../../shared/icon/icon";
 import type { IconName } from "../../shared/icon/icon";
 
 const DESTINATIONS: { to: string; icon: IconName; title: string; body: string }[] = [
-  { to: "/workspace", icon: "query", title: "Open Query builder", body: "Compose filters, projections, joins, and sorts." },
+  { to: "/projects", icon: "query", title: "Open Query builder", body: "Compose filters, projections, joins, and sorts." },
   { to: "/data-sources", icon: "database", title: "Inspect Data sources", body: "Explore tables, fields, keys, and sample rows." },
   { to: "/", icon: "chart", title: "Open Home", body: "See query-backed dashboards and saved analyses." },
 ];

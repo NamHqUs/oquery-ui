@@ -27,7 +27,7 @@ handlers belong to the page that renders the buttons.
 
 Pages must not share another page's action state. They may reuse the shared page header
 (`Heading` with `actionItems`) for their own actions.
-The Projects page owns the **Create project** action and the project's
+The Projects page owns the **Create project** and **Load Project From Disk** actions and the project's
 sub-domain actions. The Diagram page owns its own **Reload domain** and
 sub-domain actions. Neither page shares action state with the other.
 

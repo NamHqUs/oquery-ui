@@ -103,6 +103,7 @@ internal sealed class DynamicQueryServiceTests
         public ProjectDto GetById(string projectId) => throw new NotSupportedException();
         public ProjectDto Create(ProjectFileDto project) => throw new NotSupportedException();
         public ProjectDto CreateFromDatabase(ProjectFromDatabaseRequestDto request) => throw new NotSupportedException();
+        public ProjectDto Import(ProjectImportDto request) => throw new NotSupportedException();
         public ProjectDto Update(string projectId, ProjectFileDto project) => throw new NotSupportedException();
         public void Delete(string projectId) => throw new NotSupportedException();
         public IReadOnlyList<DomainNameDto> GetDomainNames(string projectId) => throw new NotSupportedException();

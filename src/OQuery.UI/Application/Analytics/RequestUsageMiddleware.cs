@@ -19,8 +19,7 @@ public sealed class RequestUsageMiddleware(RequestUsageCollector collector, IUse
             && context.GetEndpoint() is RouteEndpoint { RoutePattern.RawText: { Length: > 0 } template }
             && !template.StartsWith("analytics/", StringComparison.OrdinalIgnoreCase))
         {
-            var sectionId = Guid.Parse(userSectionManager.GetSectionId());
-            collector.Add(DateOnly.FromDateTime(DateTime.UtcNow), sectionId, "/" + template.TrimStart('/'), ReadClientPage(context));
+            collector.Add(DateOnly.FromDateTime(DateTime.UtcNow), userSectionManager.GetSectionId(), "/" + template.TrimStart('/'), ReadClientPage(context));
         }
 
         await next(context);

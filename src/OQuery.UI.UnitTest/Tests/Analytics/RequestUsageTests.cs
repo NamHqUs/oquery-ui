@@ -13,7 +13,7 @@ public class RequestUsageTests
     public void Collector_AddsToSameKey_AndDrainClears()
     {
         var collector = new RequestUsageCollector();
-        var section = Guid.CreateVersion7();
+        var section = Guid.CreateVersion7().ToString("D");
 
         collector.Add(Day, section, "/query-request/{id}");
         collector.Add(Day, section, "/query-request/{id}", count: 2);
@@ -28,7 +28,7 @@ public class RequestUsageTests
     public void Collector_SplitsSameUrl_ByClientPage()
     {
         var collector = new RequestUsageCollector();
-        var section = Guid.CreateVersion7();
+        var section = Guid.CreateVersion7().ToString("D");
 
         collector.Add(Day, section, "/query-request/{id}", "/domains");
         collector.Add(Day, section, "/query-request/{id}", "/query-builder");
@@ -42,7 +42,7 @@ public class RequestUsageTests
     public void Collector_DropsNewKeys_OnceCapIsReached_ButKeepsCountingExistingKeys()
     {
         var collector = new RequestUsageCollector();
-        var section = Guid.CreateVersion7();
+        var section = Guid.CreateVersion7().ToString("D");
 
         for (var i = 0; i < RequestUsageCollector.MaxEntries; i++)
             collector.Add(Day, section, $"/route/{i}");

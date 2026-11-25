@@ -7,8 +7,6 @@ import { createProjectFromDatabase, testDatabaseConnection } from "../../service
 import ConnectionStringInput from "../data-sources/database-connection/connection-string-input";
 import "./projects.css";
 
-export const DEFAULT_PROJECT_NAME = "Default";
-export const DEFAULT_PROJECT_DESCRIPTION = "the first project";
 // The server creates exactly one sub-domain for a new project; it has this fixed ID.
 const MAIN_DOMAIN_ID = "main";
 
@@ -22,8 +20,8 @@ function messageOf(error: unknown) {
 // any failure stays here with the server's error details.
 export default function CreateProjectPage() {
   const navigate = useNavigate();
-  const [name, setName] = useState(DEFAULT_PROJECT_NAME);
-  const [description, setDescription] = useState(DEFAULT_PROJECT_DESCRIPTION);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [providers, setProviders] = useState<string[]>([]);
   const [provider, setProvider] = useState("");
   const [connectionString, setConnectionString] = useState("");
@@ -114,11 +112,11 @@ export default function CreateProjectPage() {
       <form className="connection-form" onSubmit={createProject}>
         <label>
           <span>Project name</span>
-          <input type="text" value={name} onChange={(event) => setName(event.target.value)} aria-required="true" disabled={disabled} />
+          <input type="text" value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Sales analytics" aria-required="true" disabled={disabled} />
         </label>
         <label>
           <span>Description</span>
-          <input type="text" value={description} onChange={(event) => setDescription(event.target.value)} disabled={disabled} />
+          <input type="text" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Optional" disabled={disabled} />
         </label>
         <label>
           <span>DBMS</span>

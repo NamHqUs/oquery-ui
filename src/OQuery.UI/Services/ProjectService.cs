@@ -3,6 +3,8 @@ using OQuery.UI.Abstracts.Dto;
 using OQuery.UI.Abstracts.Repositories;
 using OQuery.UI.Abstracts.Services;
 using OQuery;
+using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace OQuery.UI.Services;
 
@@ -11,7 +13,9 @@ public sealed class ProjectService(
     IUserSectionManager userSectionManager,
     IDatabaseService databaseService,
     IConnectionStringProtector connectionStringProtector,
-    IProjectDatabaseSchemaLoader projectDatabaseSchemaLoader) : IProjectService
+    IProjectDatabaseSchemaLoader projectDatabaseSchemaLoader,
+    IQueryRequestRepository queryRepository,
+    IPlaygroundRepository playgroundRepository) : IProjectService
 {
     public const string MainDomainId = "main";
     public const string MainDomainName = "Main";
@@ -85,6 +89,62 @@ public sealed class ProjectService(
         }
 
         return GetById(project.Id);
+    }
+
+    /// <summary>
+    /// Imports a project folder as a new project. Every check runs before the first write, so a rejected import leaves nothing behind.
+    /// The project is returned from the request without connecting to its database.
+    /// </summary>
+    public ProjectDto Import(ProjectImportDto request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var sectionId = SectionId();
+        var name = RequireName(request.Project.Name, "Project");
+        var connection = request.Project.Connection is null
+            ? null
+            : new ProjectConnectionDto(
+                RequireText(request.Project.Connection.Provider, "Database provider"),
+                VerifiedCiphertext(request.Project.Connection.EncryptedConnectionString));
+
+        if (repository.GetAll(sectionId).Any(existing => existing.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException($"A project named '{name}' already exists.");
+
+        var domains = NormalizeImportedDomains(request.Domains);
+        var domainIds = domains.Select(domain => domain.Id).ToHashSet(StringComparer.Ordinal);
+        var playgrounds = NormalizeImportedPlaygrounds(request.Playgrounds, domainIds);
+        var queries = NormalizeImportedQueries(request.Queries);
+
+        var projectId = AvailableProjectId(sectionId, request.Project.Id);
+        var project = new ProjectFileDto(projectId, name, request.Project.Description ?? string.Empty, request.Project.DbConnectionProfile?.Trim() ?? string.Empty)
+        {
+            Connection = connection,
+        };
+        var scope = new StorageScope(sectionId, projectId);
+        try
+        {
+            repository.Save(sectionId, project);
+            foreach (var domain in domains)
+                repository.SaveDomain(sectionId, projectId, domain);
+            foreach (var query in queries)
+                queryRepository.Save(scope, query);
+            foreach (var playground in playgrounds)
+                playgroundRepository.Save(scope, playground);
+        }
+        catch
+        {
+            repository.Delete(sectionId, projectId);
+            throw;
+        }
+
+        return new ProjectDto
+        {
+            Id = project.Id,
+            Name = project.Name,
+            Description = project.Description,
+            DbConnectionProfile = project.DbConnectionProfile,
+            DbProvider = connection?.Provider ?? string.Empty,
+            Domains = domains,
+        };
     }
 
     public ProjectDto Update(string projectId, ProjectFileDto project)
@@ -179,6 +239,84 @@ public sealed class ProjectService(
         if (string.IsNullOrWhiteSpace(value))
             throw new ArgumentException($"{label} is required.", nameof(value));
         return value.Trim();
+    }
+
+    /// <summary>IDs become folder and file names, so only ASCII letters, digits, '-' and '_' are allowed.</summary>
+    private static string RequireSafeId(string? id, string label)
+    {
+        if (string.IsNullOrEmpty(id) || !id.All(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '_'))
+            throw new ArgumentException($"{label} ID '{id}' may only contain letters, digits, '-' and '_'.");
+        return id;
+    }
+
+    /// <summary>Checks that this server can decrypt the carried connection string. The import is rejected otherwise.</summary>
+    private string VerifiedCiphertext(string protectedValue)
+    {
+        try
+        {
+            connectionStringProtector.Unprotect(protectedValue);
+        }
+        catch (Exception exception) when (exception is CryptographicException or FormatException or ArgumentException)
+        {
+            throw new InvalidOperationException("The connection string was encrypted with another server key, so this project cannot be imported on this server.");
+        }
+        return protectedValue;
+    }
+
+    private string AvailableProjectId(string sectionId, string? requested)
+        => !string.IsNullOrEmpty(requested) && requested.All(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '_')
+            && repository.Get(sectionId, requested) is null
+            ? requested
+            : repository.CreateId(sectionId);
+
+    private static List<DomainDto> NormalizeImportedDomains(IReadOnlyList<DomainDto> domains)
+    {
+        if (domains.Count == 0)
+            throw new ArgumentException("The project folder has no domains.");
+
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        return domains.Select(domain =>
+        {
+            var id = RequireSafeId(domain.Id, "Domain");
+            if (!ids.Add(id))
+                throw new ArgumentException($"Domain '{id}' appears more than once.");
+            var normalized = Normalize(domain, id);
+            if (!names.Add(normalized.Name))
+                throw new InvalidOperationException($"A domain named '{normalized.Name}' already exists.");
+            ProjectMetadataResolver.Resolve(normalized);
+            return normalized;
+        }).ToList();
+    }
+
+    private static List<PlaygroundDto> NormalizeImportedPlaygrounds(IReadOnlyList<PlaygroundDto> playgrounds, HashSet<string> domainIds)
+    {
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        return playgrounds.Select(playground =>
+        {
+            var id = RequireSafeId(playground.Id, "Playground");
+            if (!domainIds.Contains(playground.DomainId))
+                throw new ArgumentException($"Playground '{id}' belongs to domain '{playground.DomainId}', which is not in the project.");
+            if (!keys.Add($"{playground.DomainId}\u0000{id}"))
+                throw new ArgumentException($"Playground '{id}' appears more than once in domain '{playground.DomainId}'.");
+            return playground;
+        }).ToList();
+    }
+
+    private static List<QueryRequestRecordDto> NormalizeImportedQueries(IReadOnlyList<JsonElement> queries)
+    {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        return queries.Select(query =>
+        {
+            if (query.ValueKind != JsonValueKind.Object)
+                throw new ArgumentException("A saved query must be a JSON object.");
+            var idValue = query.EnumerateObject()
+                .FirstOrDefault(property => property.Name.Equals("id", StringComparison.OrdinalIgnoreCase)).Value;
+            var id = RequireSafeId(idValue.ValueKind == JsonValueKind.String ? idValue.GetString() : null, "Query");
+            if (!ids.Add(id))
+                throw new ArgumentException($"Query '{id}' appears more than once.");
+            return new QueryRequestRecordDto(id, query.GetRawText(), false);
+        }).ToList();
     }
 
     /// <summary>

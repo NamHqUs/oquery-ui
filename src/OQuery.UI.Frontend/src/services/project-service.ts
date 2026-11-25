@@ -71,6 +71,13 @@ function jsonRequest(method: "POST" | "PUT", body: object): RequestInit {
   return { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
 }
 
+// Fired after a project is edited or deleted, so the main layout's project selector reloads its list.
+export const PROJECTS_CHANGED_EVENT = "oquery:projects-changed";
+
+function notifyProjectsChanged() {
+  window.dispatchEvent(new Event(PROJECTS_CHANGED_EVENT));
+}
+
 export async function listProjects(): Promise<ProjectSummary[]> {
   return requestJson<ProjectSummary[]>(apiUrls.metadata.projects);
 }
@@ -85,12 +92,15 @@ export async function createProject(body: object): Promise<ProjectDetails> {
 }
 
 export async function updateProject(projectId: string, body: object): Promise<ProjectDetails> {
-  return requestJson<ProjectDetails>(apiUrls.metadata.projectById(projectId.trim()), jsonRequest("PUT", body));
+  const updated = await requestJson<ProjectDetails>(apiUrls.metadata.projectById(projectId.trim()), jsonRequest("PUT", body));
+  notifyProjectsChanged();
+  return updated;
 }
 
 export async function deleteProject(projectId: string): Promise<void> {
   await requestJson(apiUrls.metadata.projectById(projectId.trim()), { method: "DELETE" });
   invalidateDomain(projectId);
+  notifyProjectsChanged();
 }
 
 export type DatabaseProjectRequest = {
@@ -108,6 +118,19 @@ export async function testDatabaseConnection(provider: string, connectionString:
 // The server creates the project, its encrypted connection and the Main domain, or nothing at all.
 export function createProjectFromDatabase(body: DatabaseProjectRequest): Promise<ProjectDetails> {
   return requestJson<ProjectDetails>(apiUrls.metadata.createFromDatabase, jsonRequest("POST", body));
+}
+
+// A project folder read from disk: the JSON objects are sent as stored, and the server validates them.
+export type ProjectImportBundle = {
+  project: Record<string, unknown>;
+  domains: Record<string, unknown>[];
+  queries: Record<string, unknown>[];
+  playgrounds: Record<string, unknown>[];
+};
+
+// The server keeps the project ID when it is free, otherwise it assigns a new one. The encrypted connection is kept as stored.
+export function importProjectFromDisk(bundle: ProjectImportBundle): Promise<ProjectDetails> {
+  return requestJson<ProjectDetails>(apiUrls.metadata.importProject, jsonRequest("POST", bundle));
 }
 
 export async function listDomainNames(projectId: string): Promise<DomainName[]> {

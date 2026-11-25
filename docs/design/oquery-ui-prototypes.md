@@ -71,7 +71,7 @@ recent queries, and the activity timeline.
 ## Database explorer
 
 The database explorer is the real `DataSources` component (table catalog, table details, and data preview), rendered
-in `MainLayout` by `database-explorer-page.tsx` at `/metadata/explorer`. The former static mock in the playground
+in `MainLayout` by `database-explorer-page.tsx` at `/database-explorer`. The former static mock in the playground
 workspace was removed. The reference screenshot below is kept for layout comparison only.
 
 ![Database explorer prototype](./assets/database-explorer.png)

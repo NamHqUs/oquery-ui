@@ -6,6 +6,11 @@ import FunctionList from "./function-list";
 import type { FunctionDefinition } from "../types";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+// jsdom has no layout engine or ResizeObserver; the selected-item scroll effect only needs the constructor to exist.
+(globalThis as { ResizeObserver?: unknown }).ResizeObserver = class {
+  observe() {}
+  disconnect() {}
+};
 
 const definition = (name: string, isBuiltin: boolean) => ({
   name,
@@ -41,6 +46,13 @@ function render(selectedName: string) {
 function activeTabTitle(element: HTMLElement) {
   return element.querySelector('[role="tab"][aria-selected="true"]')?.textContent?.trim();
 }
+
+test("keeps the find box inside the tab header", () => {
+  const element = render("");
+  const head = element.querySelector(".function-list-head");
+  expect(head?.querySelector('input.function-list-search')).not.toBeNull();
+  expect(head?.querySelector('[role="tablist"]')).not.toBeNull();
+});
 
 test("switches to the Custom tab when the selected function is custom", () => {
   const element = render("");

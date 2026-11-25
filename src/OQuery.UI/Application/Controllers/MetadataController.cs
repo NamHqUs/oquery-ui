@@ -38,6 +38,24 @@ public sealed class MetadataController(
         }
     }
 
+    [HttpPost("import")]
+    public ActionResult<ProjectDto> ImportProject([FromBody] ProjectImportDto request)
+    {
+        try
+        {
+            var imported = projectService.Import(request);
+            return Created($"/metadata/projects/{Uri.EscapeDataString(imported.Id)}", imported);
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning("Import project failed ({ExceptionType}).", exception.GetType().Name);
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Import project failed",
+                detail: exception.Message);
+        }
+    }
+
     [HttpGet("{projectId}")]
     public ActionResult<ProjectDto> GetProject(string projectId)
         => Ok(projectService.GetById(projectId));

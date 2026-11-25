@@ -124,16 +124,44 @@ service and store its result; they must not contain `fetch` calls.
 
 ## Page API contract
 
-### Workspace (`/workspace`)
+### Projects (`/projects`)
 
-Lists every saved project and opens the New project page. When no project
-exists, the page navigates directly to `/projects/create`.
+Try Playground on the Home page opens this page, and the main menu's **Global >
+Workspace** item opens it too. The page renders inside `MainLayout` (view
+`workspace`), so the menu stays visible. It always shows the three actions, even
+when no project exists: the project list, **New project** (`/projects/create`)
+and **Load Project From Disk**.
+
+Each project row offers **Edit** and **Delete**:
+
+- **Edit** changes the name and description only (`ProjectService.updateProject`,
+  `PUT /metadata/projects/{projectId}`). The server keeps the stored encrypted
+  connection, so the connection string cannot be changed here.
+- **Delete** asks for the project name to be typed, then calls
+  `ProjectService.deleteProject` (`DELETE /metadata/projects/{projectId}`). It
+  removes the project folder with its domains, saved queries and playgrounds.
+
+Both actions refresh the project list and the main layout's project selector.
+
+**Load Project From Disk** asks the browser for a project folder (the
+`projects/{projectId}` folder of the server's data directory) through
+`showDirectoryPicker`. This needs a Chromium-based browser; elsewhere the button
+is disabled with a message. The page reads these files and sends them in one
+request:
+
+- `project.json` (required; the encrypted connection is carried as stored)
+- `domains/*.json` (required, at least one; the current format only)
+- `queries/*.json` (optional saved queries)
+- `{domainId}/playground/*.json` (optional saved playgrounds)
 
 | Service call | Trigger | Purpose |
 | --- | --- | --- |
 | `ProjectService.listProjects()` | Page load | Lists project IDs, names and descriptions. Ciphertext is never returned. |
+| `ProjectService.importProjectFromDisk(bundle)` (`POST /metadata/projects/import`) | Load Project From Disk | Imports the project. The server keeps the project ID when it is free and assigns a new one otherwise. The import fails if the encrypted connection cannot be decrypted with this server's key, or if the name or a domain name already exists. Nothing is written on failure. On success the page opens `/playground/{projectId}/{firstDomainId}`. |
 
 ### Create Project (`/projects/create`)
+
+Rendered inside the main layout (view `workspace`) from the Workspace page's **New project** button.
 
 Fields: project name (default `Default`, editable), description (default
 `the first project`, editable), DBMS (from `GET /db/connections`), and
@@ -203,7 +231,7 @@ sub-domain detail and the FullDomain are loaded only for the selected project.
 | `ProjectService.getDomain(projectId, domainId)` | Diagram / playground | Loads the resolved sub-domain. |
 | `DbSchemaService.getSchema()` | Database-backed editing | Provides tables and relationships for the FullDomain generate action. |
 
-### Metadata: Database Explorer (`/metadata/explorer`)
+### Metadata: Database Explorer (`/database-explorer`)
 
 The page is wrapped in `MainLayout` (`database-explorer-page.tsx`), the same way as Custom functions, and renders the
 `DataSources` component. It is not project-scoped; the header shows the connected data source. Sidebar items
@@ -240,6 +268,7 @@ No page-specific API request. The global provider check still runs.
 | `/db/schema`, `/db/data/*` | `DbSchemaService` |
 | `/metadata/projects*` (projects, FullDomain, sub-domains, functions) | `ProjectService`, `FunctionDefinitionService` |
 | `/metadata/projects/test-connection`, `/metadata/projects/from-database` | `ProjectService` (Create Project page) |
+| `/metadata/projects/import` | `ProjectService` (Workspace, Load Project From Disk) |
 | `/dynamic-query/*` | `OQueryEditorService` |
 | `/query-request*` | `QueryService` |
 

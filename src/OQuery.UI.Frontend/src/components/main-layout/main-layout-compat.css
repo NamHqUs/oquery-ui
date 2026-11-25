@@ -232,7 +232,7 @@
   color: #e9edf4;
   background: #151923;
   font: inherit;
-  font-size: 13px !important;
+  font-size: 11px !important;
   font-weight: 500;
   text-align: left;
   white-space: nowrap;
@@ -304,7 +304,7 @@
   color: #c8ced9;
   background: transparent;
   font: inherit;
-  font-size: 13px !important;
+  font-size: 11px !important;
   text-align: left;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -334,32 +334,6 @@
 .main-layout-actions .database-status.failed {
   color: #f0a6ae;
   border-color: #81454d80;
-}
-
-.main-layout-actions .main-layout-notification {
-  position: relative;
-  display: inline-flex;
-  padding: 6px;
-  border: 1px solid #252b38;
-  border-radius: 6px;
-  color: #bbc3cf;
-  background: #11141c;
-}
-
-.main-layout-actions .main-layout-notification em {
-  position: absolute;
-  top: -7px;
-  right: -7px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: 999px;
-  color: #fff;
-  background: #7054d4;
-  font-size: 9px;
-  font-style: normal;
-  line-height: 16px;
-  text-align: center;
 }
 
 /* App palette and reduced type scale for the playground. */
@@ -510,6 +484,7 @@
   justify-content: center;
   width: 24px;
   height: 24px;
+  padding: 0 !important;
   border: 1px solid #252b38;
   border-radius: 50%;
   color: #8993a5;

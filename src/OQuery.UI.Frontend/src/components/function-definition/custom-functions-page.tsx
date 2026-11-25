@@ -1,4 +1,4 @@
-import MainLayout, { DATABASE_EXPLORER_PATH, type WorkspaceView } from "../main-layout/main-layout";
+import MainLayout, { databaseExplorerPath, type WorkspaceView } from "../main-layout/main-layout";
 import Icon from "../shared/icon/icon";
 import { domainDiagramPath } from "../domains/domain-routes";
 import { rememberedPlaygroundPath, rememberedPlaygroundSelection } from "../playground/playground-memory";
@@ -14,13 +14,13 @@ type CustomFunctionsPageProps = {
 
 // Custom functions live in the user section, so the page has no project or domain. Playground and Domain Diagram
 // return to the last project and domain the user worked in; the project chooser is only used when none is remembered.
-const PROJECT_CHOOSER_PATH = "/workspace";
+const PROJECT_CHOOSER_PATH = "/projects";
 
 export default function CustomFunctionsPage({ connectionStatus, provider, onNavigate, onOpenConnection, onNavigationGuardChange }: CustomFunctionsPageProps) {
   const onSelectView = (view: WorkspaceView) => {
     if (view === "functions") return;
     if (view === "explorer") {
-      onNavigate(DATABASE_EXPLORER_PATH);
+      onNavigate(databaseExplorerPath(rememberedPlaygroundSelection()?.projectId ?? ""));
       return;
     }
     if (view === "diagram") {

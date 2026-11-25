@@ -37,3 +37,28 @@
   color: inherit;
   text-decoration: none;
 }
+
+.projects-item {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.projects-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.projects-edit {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+}
+
+.projects-edit label {
+  display: grid;
+  gap: 4px;
+}

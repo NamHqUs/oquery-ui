@@ -18,14 +18,15 @@ import { MessageBoxProvider } from "./components/shared/message-box/message-box"
 import { readAnalyticsConsent } from "./services/api-client";
 import CreateProjectPage from "./components/project-setup/create-project-page";
 import ProjectListPage from "./components/project-setup/project-list-page";
-import { getProject, listProjects, type ProjectSummary } from "./services/project-service";
+import ProjectSetupLayout, { WORKSPACE_PATH } from "./components/project-setup/project-setup-layout";
+import { getProject, listProjects, PROJECTS_CHANGED_EVENT, type ProjectSummary } from "./services/project-service";
 import { store, type RootState } from "./store/store";
 import "./styles.css";
 import PlaygroundWorkspace from "./components/playground/playground-workspace";
 import { rememberPlaygroundSelection, rememberedPlaygroundPath } from "./components/playground/playground-memory";
 import { domainDiagramPath, domainDiagramRouteOf, isDomainDiagramPath } from "./components/domains/domain-routes";
 import DomainPage from "./components/domains/domain-page";
-import { DATABASE_EXPLORER_PATH } from "./components/main-layout/main-layout";
+import { databaseExplorerPath, databaseExplorerProjectIdOf, isDatabaseExplorerPath } from "./components/main-layout/main-layout";
 
 const PAGE_PATHS = {
   home: "/",
@@ -43,8 +44,9 @@ const LEGACY_FUNCTION_DEFINITIONS_PATH = "/function-definitions";
 const PLAYGROUND_PATH = "/playground";
 // The Query Builder moved from /query-builder to /playground/:projectId. The old URLs redirect.
 const LEGACY_BUILDER_PATH = "/query-builder";
-const WORKSPACE_PATH = "/workspace";
 const PROJECT_CREATE_PATH = "/projects/create";
+// The project list used to live at /workspace. The old URL redirects to WORKSPACE_PATH.
+const LEGACY_WORKSPACE_PATH = "/workspace";
 // Not linked from the navigation. Admins open it by URL; the page asks for the admin token.
 const ADMIN_PATH = "/admin";
 const PRIVACY_PATH = "/privacy";
@@ -235,7 +237,7 @@ function LegacyMetadataDiagramRedirect() {
 
 function pageForPath(path: string): Page | null {
   if (builderProjectIdOf(path)) return "builder";
-  if (path === DOMAINS_PATH || path === DIAGRAMS_PATH || path === DATABASE_EXPLORER_PATH) return "metadata";
+  if (path === DOMAINS_PATH || path === DIAGRAMS_PATH || isDatabaseExplorerPath(path)) return "metadata";
   if (path === PAGE_PATHS.security) return "security";
   return (Object.keys(PAGE_PATHS) as Page[]).find((page) => PAGE_PATHS[page] === path) ?? null;
 }
@@ -291,7 +293,7 @@ function PageSubnav({
   }, [location.pathname, location.search, onBuilderDomainSelect, page]);
   const metadataSection = location.pathname === DOMAINS_PATH
     ? "domains"
-    : location.pathname === DATABASE_EXPLORER_PATH
+    : isDatabaseExplorerPath(location.pathname)
       ? "explorer"
       : location.pathname === DIAGRAMS_PATH
         ? "diagram"
@@ -460,9 +462,15 @@ function WorkspaceContextBar({
   );
 }
 
-// Refreshes on every route change, but keeps the last loaded list while refreshing so the shell does not unmount.
+// Refreshes on every route change and after a project is edited or deleted. It keeps the last loaded list while refreshing so the shell does not unmount.
 function useWorkspaceProjects(refreshKey: string) {
   const [state, setState] = useState<{ projects: ProjectSummary[] | null; failed: boolean }>({ projects: null, failed: false });
+  const [changes, setChanges] = useState(0);
+  useEffect(() => {
+    const onProjectsChanged = () => setChanges((count) => count + 1);
+    window.addEventListener(PROJECTS_CHANGED_EVENT, onProjectsChanged);
+    return () => window.removeEventListener(PROJECTS_CHANGED_EVENT, onProjectsChanged);
+  }, []);
   useEffect(() => {
     let active = true;
     listProjects()
@@ -475,7 +483,7 @@ function useWorkspaceProjects(refreshKey: string) {
     return () => {
       active = false;
     };
-  }, [refreshKey]);
+  }, [refreshKey, changes]);
   return state;
 }
 
@@ -531,13 +539,6 @@ function WorkspaceNavigation({
 
   const projectId = builderProjectIdOf(location.pathname) || new URLSearchParams(location.search).get("project");
   const domainId = builderDomainIdOf(location.pathname) || new URLSearchParams(location.search).get("domain");
-  const withProject = (path: string, includeDomain = false) => {
-    const params = new URLSearchParams();
-    if (projectId) params.set("project", projectId);
-    if (includeDomain && domainId) params.set("domain", domainId);
-    const query = params.toString();
-    return query ? `${path}?${query}` : path;
-  };
   const builderLink = projectId ? builderPath(projectId, domainId ?? "") : (rememberedPlaygroundPath() ?? WORKSPACE_PATH);
   const items = [
     {
@@ -550,7 +551,7 @@ function WorkspaceNavigation({
     {
       group: "DOMAIN STUDIO",
       links: [
-        { label: "Database explorer", hint: "Source tables", icon: "database", path: withProject(DATABASE_EXPLORER_PATH), active: page === "metadata" && location.pathname === DATABASE_EXPLORER_PATH },
+        { label: "Database explorer", hint: "Source tables", icon: "database", path: databaseExplorerPath(projectId), active: page === "metadata" && isDatabaseExplorerPath(location.pathname) },
       ],
     },
     {
@@ -808,15 +809,36 @@ function App() {
     return <DomainPage route={domainRoute} {...domainPageProps} />;
   }
 
-  if (location.pathname === DATABASE_EXPLORER_PATH) {
+  if (isDatabaseExplorerPath(location.pathname)) {
     return (
       <>
         <DatabaseExplorerPage
+          projects={workspaceProjects.projects ?? []}
+          projectId={databaseExplorerProjectIdOf(location.pathname)}
           connectionStatus={database.connectionStatus}
           provider={database.connectedProvider}
           onNavigate={navigateWorkspace}
           onOpenConnection={requestDatabaseConnection}
         />
+        {connectionDialogOpen && <ConnectionDialog onClose={() => setConnectionDialogOpen(false)} />}
+      </>
+    );
+  }
+
+  if (location.pathname === LEGACY_WORKSPACE_PATH) return <Navigate to={WORKSPACE_PATH} replace />;
+
+  if (location.pathname === WORKSPACE_PATH || location.pathname === PROJECT_CREATE_PATH) {
+    return (
+      <>
+        <ProjectSetupLayout
+          projects={workspaceProjects.projects ?? []}
+          connectionStatus={database.connectionStatus}
+          provider={database.connectedProvider}
+          onNavigate={navigateWorkspace}
+          onOpenConnection={requestDatabaseConnection}
+        >
+          {location.pathname === PROJECT_CREATE_PATH ? <CreateProjectPage /> : <ProjectListPage />}
+        </ProjectSetupLayout>
         {connectionDialogOpen && <ConnectionDialog onClose={() => setConnectionDialogOpen(false)} />}
       </>
     );
@@ -914,7 +936,7 @@ function App() {
         onNavigateToPage={navigateToPage}
         onBuilderDomainSelect={navigateToBuilderDomain}
         onMetadataSectionSelect={(section) => {
-          routerNavigate(section === "explorer" ? DATABASE_EXPLORER_PATH : section === "domains" ? DOMAINS_PATH : DIAGRAMS_PATH);
+          routerNavigate(section === "explorer" ? databaseExplorerPath(workspaceProjectId) : section === "domains" ? DOMAINS_PATH : DIAGRAMS_PATH);
         }}
       />
       <div className="page-content">
@@ -932,8 +954,6 @@ function App() {
           <Route path={PAGE_PATHS.documentation} element={<div className="page-transition page-transition-no-slide"><Documentation /></div>} />
           <Route path={PAGE_PATHS.builder} element={null} />
           <Route path={LEGACY_BUILDER_PATH} element={<LegacyQueryBuilderRedirect />} />
-          <Route path={WORKSPACE_PATH} element={<div className="page-transition page-transition-no-slide"><ProjectListPage /></div>} />
-          <Route path={PROJECT_CREATE_PATH} element={<div className="page-transition page-transition-no-slide"><CreateProjectPage /></div>} />
           <Route path={PAGE_PATHS.metadata} element={null} />
           <Route path={DOMAINS_PATH} element={null} />
           <Route path={DIAGRAMS_PATH} element={<LegacyMetadataDiagramRedirect />} />

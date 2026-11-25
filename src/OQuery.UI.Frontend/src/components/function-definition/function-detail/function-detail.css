@@ -1,45 +1,45 @@
 .function-detail { display: flex; flex-direction: column; min-height: 100%; }
-.function-detail-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 28px; border-bottom: 1px solid #262d3b; background: #12151d; }
-.function-detail-title { display: flex; align-items: center; gap: 14px; min-width: 0; }
-.function-detail-icon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 38px; height: 38px; color: #b9a6ff; background: #1e1838; border: 1px solid #3d2d7a; border-radius: 6px; }
-.function-detail-title-text { min-width: 0; display: grid; gap: 5px; }
-.function-detail-name-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.function-detail-name-row h3 { margin: 0; overflow: hidden; color: #eef1f7; font: 600 18px "Manrope", sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.function-detail-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 18px; border-bottom: 1px solid #262d3b; background: #12151d; }
+.function-detail-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.function-detail-icon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 28px; height: 28px; color: #b9a6ff; background: #1e1838; border: 1px solid #3d2d7a; border-radius: 5px; }
+.function-detail-title-text { min-width: 0; display: grid; gap: 2px; }
+.function-detail-name-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.function-detail-name-row h3 { margin: 0; overflow: hidden; color: #eef1f7; font: 600 15px "Manrope", sans-serif; text-overflow: ellipsis; white-space: nowrap; }
 .function-origin-badge { flex: 0 0 auto; padding: 2px 8px; color: #aeb6c5; background: #1a1f2a; border: 1px solid #2f3746; border-radius: 999px; font: 600 10px "Manrope", sans-serif; letter-spacing: .6px; text-transform: uppercase; }
 .function-origin-badge.custom { color: #9ee6c1; background: #10231c; border-color: #1f5a41; }
 .function-origin-badge.built-in { color: #9cc4ff; background: #111e33; border-color: #244673; }
 .function-origin-badge.new { color: #f3d28a; background: #2a2212; border-color: #5c4a1f; }
 .function-detail-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; color: #858fa1; font-size: 12px; }
 .function-detail-body { display: flex; flex-direction: column; }
-.function-detail-body > .metadata-alert { margin: 18px 28px 0; }
-.function-section { display: grid; gap: 12px; min-width: 0; }
-.function-section-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 16px; }
+.function-detail-body > .metadata-alert { margin: 10px 18px 0; }
+.function-section { display: grid; gap: 8px; min-width: 0; }
+.function-section-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 6px 12px; }
 .function-section-title { margin: 0; color: #858fa1; font: 600 11px "Manrope", sans-serif; letter-spacing: .8px; text-transform: uppercase; }
-.function-section-hint { margin: 4px 0 0; color: #6f7a8c; font-size: 11px; }
-.function-form { min-width: 0; margin: 0; border: 0; padding: 24px 28px 35px; display: flex; flex-direction: column; gap: 28px; }
-.function-form label { display: grid; gap: 8px; color: #aeb6c5; font-size: 12px; font-weight: 600; }
-.function-form input, .function-form select { width: 100%; min-width: 0; color: #dce1eb; background: #191e28; border: 1px solid #323947; border-radius: 3px; outline: 0; padding: 9px 10px; font: 12px "Manrope", sans-serif; }
+.function-section-hint { margin: 2px 0 0; color: #6f7a8c; font-size: 11px; }
+.function-form { min-width: 0; margin: 0; border: 0; padding: 12px 18px 18px; display: flex; flex-direction: column; gap: 16px; }
+.function-form label { display: grid; gap: 4px; color: #aeb6c5; font-size: 11px; font-weight: 600; }
+.function-form input, .function-form select { width: 100%; min-width: 0; color: #dce1eb; background: #191e28; border: 1px solid #323947; border-radius: 3px; outline: 0; padding: 5px 9px; font: 12px "Manrope", sans-serif; }
 .function-form input:focus, .function-form select:focus { border-color: #7054d4; }
-.function-general-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-.function-example-card { display: grid; gap: 14px; margin: 0 28px 16px; padding: 18px 20px; background: linear-gradient(180deg, #13101f, #10131a); border: 1px solid #2f2750; border-left: 3px solid #8058ff; border-radius: 4px; }
-.function-example-card-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
-.function-example-badges { display: flex; flex-wrap: wrap; gap: 6px; }
-.function-example-badge { padding: 3px 8px; color: #c9ced9; background: #191e28; border: 1px solid #2a3140; border-radius: 999px; font: 500 10px "Manrope", sans-serif; letter-spacing: .4px; }
+.function-general-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.function-example-card { display: grid; gap: 8px; margin: 0 18px 4px; padding: 10px 12px; background: linear-gradient(180deg, #13101f, #10131a); border: 1px solid #2f2750; border-left: 3px solid #8058ff; border-radius: 4px; }
+.function-example-card-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+.function-example-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+.function-example-badge { padding: 2px 7px; color: #c9ced9; background: #191e28; border: 1px solid #2a3140; border-radius: 999px; font: 500 10px "Manrope", sans-serif; letter-spacing: .4px; }
 .function-example-badge.category { color: #d6ccff; background: #1e1838; border-color: #3d2d7a; text-transform: uppercase; letter-spacing: .8px; }
 .function-example-signature { padding: 5px 10px; color: #e7e2ff; background: #0b0d12; border: 1px solid #262d3b; border-radius: 3px; font: 12px/1.4 ui-monospace, Consolas, monospace; }
-.function-example-description { margin: 0; color: #c9ced9; font-size: 13px; line-height: 1.6; }
+.function-example-description { margin: 0; color: #c9ced9; font-size: 12px; line-height: 1.5; }
 .function-example-code { display: grid; gap: 0; overflow: hidden; border: 1px solid #262d3b; border-radius: 4px; }
-.function-example-code-bar { display: flex; align-items: center; justify-content: space-between; padding: 7px 12px; color: #858fa1; background: #151923; border-bottom: 1px solid #262d3b; font: 500 10px "Manrope", sans-serif; letter-spacing: .8px; text-transform: uppercase; }
-.function-example-code pre { margin: 0; padding: 14px 16px; overflow-x: auto; color: #dce1eb; background: #0b0d12; font: 13px/1.7 ui-monospace, Consolas, monospace; white-space: pre; }
-.function-example-explanation { display: grid; gap: 4px; margin: 0; padding: 10px 14px; color: #c9ced9; background: #151923; border-radius: 3px; font-size: 12px; line-height: 1.6; }
+.function-example-code-bar { display: flex; align-items: center; justify-content: space-between; padding: 4px 10px; color: #858fa1; background: #151923; border-bottom: 1px solid #262d3b; font: 500 10px "Manrope", sans-serif; letter-spacing: .8px; text-transform: uppercase; }
+.function-example-code pre { margin: 0; padding: 8px 12px; overflow-x: auto; color: #dce1eb; background: #0b0d12; font: 12px/1.5 ui-monospace, Consolas, monospace; white-space: pre; }
+.function-example-explanation { display: grid; gap: 2px; margin: 0; padding: 6px 10px; color: #c9ced9; background: #151923; border-radius: 3px; font-size: 11px; line-height: 1.5; }
 .function-example-explanation strong { color: #b9a6ff; font: 500 10px "Manrope", sans-serif; letter-spacing: .8px; text-transform: uppercase; }
 .function-example-sql { color: #858fa1; font-size: 11px; }
 .function-example-sql summary { cursor: pointer; color: #858fa1; }
 .function-example-sql code { display: block; margin-top: 6px; padding: 8px 10px; color: #aeb6c5; background: #0b0d12; border-radius: 3px; font: 11px/1.5 ui-monospace, Consolas, monospace; overflow-x: auto; white-space: pre; }
 .function-argument-table-wrap { overflow-x: auto; border: 1px solid #2a3140; border-radius: 4px; background: #10131a; }
 .function-argument-table { width: 100%; min-width: 600px; border-collapse: collapse; text-align: left; }
-.function-argument-table th { color: #858fa1; background: #10131a; border-bottom: 1px solid #2a3140; font: 500 11px "Manrope", sans-serif; letter-spacing: .5px; text-transform: uppercase; padding: 10px 12px; white-space: nowrap; }
-.function-argument-table td { padding: 6px 12px; border-bottom: 1px solid #202633; vertical-align: middle; }
+.function-argument-table th { color: #858fa1; background: #10131a; border-bottom: 1px solid #2a3140; font: 500 10px "Manrope", sans-serif; letter-spacing: .5px; text-transform: uppercase; padding: 6px 8px; white-space: nowrap; }
+.function-argument-table td { padding: 3px 8px; border-bottom: 1px solid #202633; vertical-align: middle; }
 .function-argument-table tr:last-child td { border-bottom: 0; }
 .function-argument-table td:nth-child(1) { width: 32%; }
 .function-argument-table td:nth-child(2) { width: 150px; }
@@ -51,16 +51,16 @@
 .function-argument-table select option, .function-template-table select option { color: #dce1eb; background-color: #191e28; }
 .function-argument-table .icon-button.subtle { border-color: #2b3340; background: #151923; }
 .function-argument-help { color: var(--muted); font-size: 11px; margin: 9px 0 0; }
-.function-metadata-fields { margin-top: 22px; }
+.function-metadata-fields { margin-top: 0; }
 .function-description { grid-column: 1 / -1; }
-.function-checkbox { grid-column: 1 / -1; display: flex !important; flex-wrap: nowrap; align-items: center; gap: 4px !important; margin: 0; min-width: 0; padding: 6px 10px; border: 1px solid #2a3140; border-radius: 3px; overflow-x: auto; }
+.function-checkbox { grid-column: 1 / -1; display: flex !important; flex-wrap: nowrap; align-items: center; gap: 4px !important; margin: 0; min-width: 0; padding: 4px 8px; border: 1px solid #2a3140; border-radius: 3px; overflow-x: auto; }
 .function-checkbox legend { padding: 0 4px; }
 .function-checkbox label { display: flex; flex: 1 0 auto; min-width: 0; align-items: center; gap: 8px; padding: 4px 8px; white-space: nowrap; }
 .function-checkbox input { width: 14px; accent-color: #8064e8; }
-.function-template-table-wrap { overflow-x: auto; margin-top: 14px; border: 1px solid #2a3140; border-radius: 3px; }
+.function-template-table-wrap { overflow-x: auto; margin-top: 0; border: 1px solid #2a3140; border-radius: 3px; }
 .function-template-table { width: 100%; border-collapse: collapse; text-align: left; }
-.function-template-table th { color: #858fa1; background: #10131a; border-bottom: 1px solid #2a3140; font: 500 11px "Manrope", sans-serif; letter-spacing: .5px; text-transform: uppercase; padding: 10px 12px; }
-.function-template-table td { padding: 6px 12px; border-bottom: 1px solid #202633; }
+.function-template-table th { color: #858fa1; background: #10131a; border-bottom: 1px solid #2a3140; font: 500 10px "Manrope", sans-serif; letter-spacing: .5px; text-transform: uppercase; padding: 6px 8px; }
+.function-template-table td { padding: 3px 8px; border-bottom: 1px solid #202633; }
 .function-template-table tr:last-child td { border-bottom: 0; }
 .function-template-table td:first-child { width: 245px; }
 .template-dialect-control { display: flex; align-items: center; gap: 8px; }
@@ -69,9 +69,9 @@
 .function-form .button:disabled { opacity: .55; cursor: not-allowed; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (max-width: 760px) {
-  .function-detail-header { padding: 16px; }
-  .function-form { padding: 20px 16px 28px; }
-  .function-example-card { margin: 0 16px 16px; }
-  .function-detail-body > .metadata-alert { margin: 18px 16px 0; }
+  .function-detail-header { padding: 10px 12px; }
+  .function-form { padding: 12px 12px 16px; }
+  .function-example-card { margin: 0 12px 4px; }
+  .function-detail-body > .metadata-alert { margin: 10px 12px 0; }
   .function-template-table td:first-child { width: 190px; }
 }

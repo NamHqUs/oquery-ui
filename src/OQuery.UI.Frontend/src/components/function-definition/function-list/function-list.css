@@ -1,9 +1,9 @@
 .function-list { display: flex; min-height: 0; flex-direction: column; gap: 10px; overflow: hidden; contain: size; background: #0e1117; border-right: 1px solid var(--line); padding: 16px 12px; }
-.function-list > .function-list-search, .function-list > .function-list-tabs { flex: 0 0 auto; }
-.function-list-search { width: 100%; min-width: 0; box-sizing: border-box; height: 32px; padding: 0 10px; color: #dce1eb; background: #191e28; border: 1px solid #323947; border-radius: 3px; outline: 0; font: 12px "Manrope", sans-serif; } { width: 100%; min-width: 0; box-sizing: border-box; height: 32px; padding: 0 10px; color: #dce1eb; background: #191e28; border: 1px solid #323947; border-radius: 3px; outline: 0; font: 12px "Manrope", sans-serif; }
+.function-list > .function-list-head { flex: 0 0 auto; display: grid; gap: 8px; padding: 8px; background: #161b25; border: 1px solid #262d3b; border-radius: 4px; }
+.function-list-search { width: 100%; min-width: 0; box-sizing: border-box; height: 30px; padding: 0 10px; color: #dce1eb; background: #191e28; border: 1px solid #323947; border-radius: 3px; outline: 0; font: 12px "Manrope", sans-serif; }
 .function-list-search:focus { border-color: #7054d4; }
 .function-list .function-list-scroll { display: grid; flex: 1 1 auto; min-height: 0; align-content: start; gap: 2px; overflow-y: auto; padding-right: 2px; }
-.function-list-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; background: #161b25; border: 1px solid #262d3b; border-radius: 4px; }
+.function-list-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; background: #0e1117; border: 1px solid #262d3b; border-radius: 4px; }
 .function-list-tab { display: flex; align-items: center; justify-content: center; gap: 6px; height: 28px; border: 0; border-radius: 3px; color: #858fa1; background: transparent; font: 500 11px "Manrope", sans-serif; cursor: pointer; }
 .function-list-tab:hover { color: #dce1eb; background: #1d2330; }
 .function-list-tab.active { color: #fff; background: #1e1838; box-shadow: inset 0 -2px #8058ff; }

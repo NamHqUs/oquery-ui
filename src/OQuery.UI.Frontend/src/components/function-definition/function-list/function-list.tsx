@@ -1,5 +1,6 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Icon from "../../shared/icon/icon";
+import { useKeepSelectedInView } from "../../../utils/use-keep-selected-in-view";
 import { FunctionDefinition } from "../types";
 import "./function-list.css";
 
@@ -29,11 +30,13 @@ export default function FunctionList({
 }: FunctionListProps) {
   const [filter, setFilter] = useState("");
   const [activeTab, setActiveTab] = useState<FunctionGroup["id"]>("builtin");
+  const listRef = useRef<HTMLDivElement>(null);
   // A newly saved custom function is selected by the workspace; show the tab that contains it.
   useEffect(() => {
     const selected = definitions.find((definition) => definition.name === selectedName);
     if (selected) setActiveTab(isBuiltInDefinition(selected) ? "builtin" : "custom");
   }, [definitions, selectedName]);
+  useKeepSelectedInView(listRef, ".metadata-entity.active", [activeTab, filter, definitions, selectedName]);
   const visibleDefinitions = definitions.filter((definition) =>
     definition.name.toLowerCase().includes(filter.toLowerCase()),
   );
@@ -77,30 +80,33 @@ export default function FunctionList({
 
   return (
     <aside className="function-list split-panel">
-      <input
-        className="function-list-search"
-        type="search"
-        placeholder="Find a function"
-        value={filter}
-        onChange={(event) => setFilter(event.target.value)}
-      />
-      <div className="function-list-tabs" role="tablist" aria-label="Function types">
-        {groups.map((group) => (
-          <button
-            key={group.id}
-            id={`function-tab-${group.id}`}
-            className={`function-list-tab${group.id === activeGroup.id ? " active" : ""}`}
-            type="button"
-            role="tab"
-            aria-selected={group.id === activeGroup.id}
-            aria-controls="function-list-panel"
-            onClick={() => setActiveTab(group.id)}
-          >
-            {group.title} <small>{group.count}</small>
-          </button>
-        ))}
+      <div className="function-list-head">
+        <div className="function-list-tabs" role="tablist" aria-label="Function types">
+          {groups.map((group) => (
+            <button
+              key={group.id}
+              id={`function-tab-${group.id}`}
+              className={`function-list-tab${group.id === activeGroup.id ? " active" : ""}`}
+              type="button"
+              role="tab"
+              aria-selected={group.id === activeGroup.id}
+              aria-controls="function-list-panel"
+              onClick={() => setActiveTab(group.id)}
+            >
+              {group.title} <small>{group.count}</small>
+            </button>
+          ))}
+        </div>
+        <input
+          className="function-list-search"
+          type="search"
+          placeholder="Find a function"
+          aria-label="Find a function"
+          value={filter}
+          onChange={(event) => setFilter(event.target.value)}
+        />
       </div>
-      <div className="function-list-scroll" id="function-list-panel" role="tabpanel" aria-labelledby={`function-tab-${activeGroup.id}`}>
+      <div className="function-list-scroll" id="function-list-panel" ref={listRef} role="tabpanel" aria-labelledby={`function-tab-${activeGroup.id}`}>
         {status === "loading" && <p className="metadata-message">Loading function definitions…</p>}
         {activeGroup.content.length ? activeGroup.content : <p className="metadata-message">{activeGroup.emptyMessage}</p>}
       </div>

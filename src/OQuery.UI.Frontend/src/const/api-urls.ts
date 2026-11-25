@@ -25,6 +25,7 @@ export const apiUrls = {
   metadata: {
     projects: `${backendApiUrl}/metadata/projects`,
     createFromDatabase: `${backendApiUrl}/metadata/projects/from-database`,
+    importProject: `${backendApiUrl}/metadata/projects/import`,
     projectById: (projectId: string) => `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}`,
     domainNames: (projectId: string) => `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/domains/names`,
     domains: (projectId: string) => `${backendApiUrl}/metadata/projects/${encodeURIComponent(projectId)}/domains`,

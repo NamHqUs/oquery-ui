@@ -21,9 +21,10 @@ public sealed class UserSectionManager(IHttpContextAccessor httpContextAccessor)
             return cached;
 
         var sent = context.Request.Cookies[CookieName];
-        var id = Guid.TryParse(sent, out var parsed) && parsed != Guid.Empty
-            ? parsed
-            : Guid.CreateVersion7();
+        //var id = Guid.TryParse(sent, out var parsed) && parsed != Guid.Empty
+        //    ? parsed
+        //    : Guid.CreateVersion7();
+        var id = 123;
 
         var value = id.ToString("D");
         if (value != sent)

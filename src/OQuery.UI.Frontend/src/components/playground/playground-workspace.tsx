@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import MainLayout, { Heading, CUSTOM_FUNCTIONS_PATH, DATABASE_EXPLORER_PATH, type WorkspaceView } from "../main-layout/main-layout";
+import MainLayout, { Heading, CUSTOM_FUNCTIONS_PATH, databaseExplorerPath, type WorkspaceView } from "../main-layout/main-layout";
 import Icon, { type IconName } from "../shared/icon/icon";
 import type { ProjectSummary } from "../../services/project-service";
 import Playground from "./playground";
@@ -46,7 +46,7 @@ export default function PlaygroundWorkspace({ projectId, domainId, queryId, proj
   const selectView = (next: WorkspaceView, selectedDomainId: string) => {
     if (next === "diagram") onNavigate(domainDiagramPath(projectId, selectedDomainId));
     else if (next === "functions") onNavigate(CUSTOM_FUNCTIONS_PATH);
-    else if (next === "explorer") onNavigate(DATABASE_EXPLORER_PATH);
+    else if (next === "explorer") onNavigate(databaseExplorerPath(projectId));
     else setView(next);
   };
   return <MainLayout
