@@ -20,6 +20,10 @@ const PROJECT_CHOOSER_PATH = "/projects";
 export default function DatabaseExplorerPage({ projects, projectId, connectionStatus, provider, onNavigate, onOpenConnection }: DatabaseExplorerPageProps) {
   const onSelectView = (view: WorkspaceView) => {
     if (view === "explorer") return;
+    if (view === "workspace") {
+      onNavigate(PROJECT_CHOOSER_PATH);
+      return;
+    }
     if (view === "functions") {
       onNavigate(CUSTOM_FUNCTIONS_PATH);
       return;

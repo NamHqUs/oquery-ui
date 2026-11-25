@@ -76,6 +76,10 @@ export default function DomainPage({ route, projects, connectionStatus, provider
   const { projectId } = route;
   const onSelectView = (view: WorkspaceView, domainId: string) => {
     if (view === "diagram") return;
+    if (view === "workspace") {
+      onNavigate("/projects");
+      return;
+    }
     if (view === "functions") {
       onNavigate(CUSTOM_FUNCTIONS_PATH);
       return;

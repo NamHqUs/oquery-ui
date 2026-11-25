@@ -19,6 +19,10 @@ const PROJECT_CHOOSER_PATH = "/projects";
 export default function CustomFunctionsPage({ connectionStatus, provider, onNavigate, onOpenConnection, onNavigationGuardChange }: CustomFunctionsPageProps) {
   const onSelectView = (view: WorkspaceView) => {
     if (view === "functions") return;
+    if (view === "workspace") {
+      onNavigate(PROJECT_CHOOSER_PATH);
+      return;
+    }
     if (view === "explorer") {
       onNavigate(databaseExplorerPath(rememberedPlaygroundSelection()?.projectId ?? ""));
       return;

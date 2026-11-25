@@ -12,6 +12,13 @@ function messageOf(error: unknown) {
 
 type EditDraft = { project: ProjectSummary; name: string; description: string; error: string };
 
+function projectInitials(name: string) {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  return words.length > 1
+    ? `${words[0][0]}${words[1][0]}`.toUpperCase()
+    : (words[0]?.slice(0, 2) || "PR").toUpperCase();
+}
+
 // Lists every project with Edit and Delete, and offers New project and Load Project From Disk. The page stays open when the list is empty.
 export default function ProjectListPage() {
   const navigate = useNavigate();
@@ -107,12 +114,12 @@ export default function ProjectListPage() {
   };
 
   return (
-    <section className="projects-page">
+    <section className="projects-page projects-list-page">
       <div className="projects-page-head">
         <div>
-          <span className="section-kicker">WORKSPACE</span>
+          <span className="section-kicker">YOUR WORKSPACE</span>
           <h2>Projects</h2>
-          <p className="connection-intro">Each project holds one database, its Main domain and its queries.</p>
+          <p className="connection-intro">A focused home for your data, domains, and query work.</p>
         </div>
         <div className="projects-page-actions">
           <button
@@ -129,8 +136,39 @@ export default function ProjectListPage() {
       </div>
 
       {state.error && <p className="connection-message error" role="alert">{state.error}</p>}
-      {!state.projects && !state.error && <p className="metadata-message">Loading projects…</p>}
-      {state.projects?.length === 0 && <p className="metadata-message">No projects yet. Create one or load a project folder from disk.</p>}
+      {state.projects && state.projects.length > 0 && (
+        <div className="projects-summary" aria-label="Workspace summary">
+          <div className="projects-summary-item">
+            <span className="projects-summary-icon"><Icon name="folder" size={16} /></span>
+            <span><strong>{state.projects.length}</strong><small>{state.projects.length === 1 ? "project" : "projects"}</small></span>
+          </div>
+          <div className="projects-summary-item">
+            <span className="projects-summary-icon projects-summary-icon-green"><Icon name="database" size={16} /></span>
+            <span><strong>{state.projects.filter((project) => project.connection?.provider || project.dbConnectionProfile).length}</strong><small>connected</small></span>
+          </div>
+          <p>Choose a project to continue where your data work lives.</p>
+        </div>
+      )}
+      {!state.projects && !state.error && (
+        <div className="projects-loading" aria-label="Loading projects">
+          <span /><span /><span />
+        </div>
+      )}
+      {state.projects?.length === 0 && (
+        <div className="projects-empty">
+          <span className="projects-empty-icon"><Icon name="folder" size={25} /></span>
+          <div>
+            <h3>Your workspace is ready</h3>
+            <p>Create your first project or load an existing project folder to start exploring your data.</p>
+          </div>
+          <div className="projects-empty-actions">
+            <Link className="button primary" to="/projects/create"><Icon name="plus" size={14} /> Create a project</Link>
+            <button className="button secondary" type="button" onClick={loadFromDisk} disabled={importing || !folderPickerSupported}>
+              <Icon name="folder" size={14} /> Load from disk
+            </button>
+          </div>
+        </div>
+      )}
 
       {state.projects && state.projects.length > 0 && (
         <ul className="projects-list" aria-label="Projects">
@@ -155,10 +193,13 @@ export default function ProjectListPage() {
               ) : (
                 <>
                   <Link className="projects-card" to={`/playground/${encodeURIComponent(project.id)}`}>
-                    <Icon name="folder" size={18} />
+                    <span className="projects-card-top">
+                      <span className="projects-card-icon">{projectInitials(project.name)}</span>
+                      <span className="projects-card-provider">{project.connection?.provider || project.dbConnectionProfile || "No database"}</span>
+                    </span>
                     <strong>{project.name}</strong>
-                    <small>{project.description || "No description"}</small>
-                    <small>{project.connection?.provider || project.dbConnectionProfile || "No database"}</small>
+                    <small>{project.description || "No description yet"}</small>
+                    <span className="projects-card-open">Open workspace <Icon name="arrow-right" size={13} /></span>
                   </Link>
                   <div className="projects-card-actions">
                     <button className="button secondary" type="button" onClick={() => startEdit(project)} aria-label={`Edit ${project.name}`}>
